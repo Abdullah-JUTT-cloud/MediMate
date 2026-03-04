@@ -50,6 +50,9 @@ export const registerDoctor = async (req, res) => {
     // if (doctorExisted) {
     //   return res.status(409).json({ message: "Doctor already exists" });
     // }
+
+    //! IMPORTANT
+
     for (const day of workingHours) {
       if (day.isWorking === true) {
         if (!day.timeRanges || day.timeRanges.length === 0) {
@@ -81,9 +84,38 @@ export const registerDoctor = async (req, res) => {
       otpExpiry,
     });
     await doctor.save();
-    
-    await sendEmail(email,fullName,otp);
+
+    await sendEmail(email, fullName, otp);
     res.status(201).json({ message: "Doctor registered successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+export const verifyEmail = async (req, res) => {
+  const { email, otp } = req.body;
+  try {
+    const doctor = await Doctor.findOne({ email });
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+    if (doctor.isVerified) {
+  return res.status(400).json({ message: "Email already verified" })
+}
+    if (doctor.otp !== otp) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+    if (doctor.otpExpiry < Date.now()) {
+      return res.status(400).json({ message: "OTP expired" });
+    }
+    if (!email || !otp) {
+      return res.status(400).json({ message: "Email and OTP are required" });
+    }
+    doctor.isVerified = true;
+    doctor.otp = null;
+    doctor.otpExpiry = null;
+    await doctor.save();
+    res.status(200).json({ message: "Email verified successfully" });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
