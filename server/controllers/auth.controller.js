@@ -1,7 +1,7 @@
 import { Doctor } from "../models/doctor.model.js";
 import bcrypt from "bcryptjs";
 import { generateOtp } from "../utils/generateOtp.js";
-
+import { sendEmail } from "../utils/sendEmail.js";
 
 export const registerDoctor = async (req, res) => {
   const {
@@ -81,7 +81,8 @@ export const registerDoctor = async (req, res) => {
       otpExpiry,
     });
     await doctor.save();
-    //TODO: send email to doctor with otp
+    
+    await sendEmail(email,fullName,otp);
     res.status(201).json({ message: "Doctor registered successfully" });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
