@@ -1,10 +1,9 @@
 import express from "express";
+import { registerDoctor } from "../controllers/auth.controller.js";
 
 const router=express.Router();
 
-router.post("/register",(req,res)=>{
-    res.send("register");
-})
+router.post("/register",registerDoctor)
 
 router.post("/verify-email",(req,res)=>{
     res.send("verify email");
