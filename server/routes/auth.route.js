@@ -1,5 +1,5 @@
 import express from "express";
-import { registerDoctor, verifyEmail} from "../controllers/auth.controller.js";
+import { registerDoctor, verifyEmail,login} from "../controllers/auth.controller.js";
 
 const router=express.Router();
 
@@ -11,9 +11,7 @@ router.post("/forgot-password",(req,res)=>{
     res.send("forgot password");
 })
 
-router.post("/login",(req,res)=>{
-    res.send("login");
-})
+router.post("/login",login);
 
 router.post("/logout",(req,res)=>{
     res.send("logout");
