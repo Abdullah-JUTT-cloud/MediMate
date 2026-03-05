@@ -1,8 +1,9 @@
 import { Doctor } from "../models/doctor.model.js";
 import bcrypt from "bcryptjs";
 import { generateOtp } from "../utils/generateOtp.js";
-import { sendEmail } from "../utils/sendEmail.js";
+import { sendEmail,verificationEmailTemplate,resetPasswordEmailTemplate } from "../utils/sendEmail.js";
 import { generateToken } from "../utils/generateToken.js";
+import crypto from "crypto";
 
 export const registerDoctor = async (req, res) => {
   const {
@@ -86,7 +87,11 @@ export const registerDoctor = async (req, res) => {
     });
     await doctor.save();
 
-    await sendEmail(email, fullName, otp);
+    await sendEmail({
+      to: email,
+      subject: "Verify your MediMate account",
+      html: verificationEmailTemplate(fullName, otp),
+    });
     res.status(201).json({ message: "Doctor registered successfully" });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -155,6 +160,99 @@ export const login = async (req, res) => {
       clinicName: doctor.clinicName,
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Error logging in", error: error.message });
   }
 };
+
+export const logout = async (req, res) => {
+  try {
+    res.clearCookie("token");
+    res.status(200).json({ message: "Logout successful" });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error logging out", error: error.message });
+  }
+};
+
+export const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  try {
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+    const doctor = await Doctor.findOne({ email });
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+    const otp = generateOtp();
+    const otpExpiry = Date.now() + 30 * 60 * 1000;
+    doctor.otp = otp;
+    doctor.otpExpiry = otpExpiry;
+    await doctor.save();
+    await sendEmail({
+      to: email,
+      subject: "Reset your MediMate password",
+      html: resetPasswordEmailTemplate(doctor.fullName, otp),
+    });
+    res.status(200).json({ message: "OTP sent successfully" });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error sending OTP", error: error.message });
+  }
+};
+
+export const verifyResetOtp = async (req, res) => {
+    const {email,otp}=req.body;
+    try {
+        if(!email || !otp){
+            return res.status(400).json({message:"Email and OTP are required"})
+        }
+        const doctor=await Doctor.findOne({email})
+        if(!doctor){
+            return res.status(404).json({message:"Doctor not found"})
+        }
+        if(doctor.otp!==otp){
+            return res.status(400).json({message:"Invalid OTP"})
+        }
+        if(doctor.otpExpiry<Date.now()){
+            return res.status(400).json({message:"OTP expired"})
+        }
+        const resetToken=crypto.randomBytes(32).toString("hex")
+        const resetTokenExpiry=Date.now()+30*60*1000
+        doctor.resetToken=resetToken
+        doctor.resetTokenExpiry=resetTokenExpiry
+        doctor.otp=null;
+        doctor.otpExpiry=null;
+        await doctor.save();
+        res.status(200).json({message:"OTP verified successfully",resetToken})
+    } catch (error) {
+        res.status(500).json({message:"Error verifying OTP",error:error.message})
+    }
+}
+
+export const resetPassword = async (req, res) => {
+    const {resetToken,newPassword}=req.body;
+    try {
+        if(!resetToken || !newPassword){
+            return res.status(400).json({message:"Reset token and password are required"})
+        }
+        const doctor=await Doctor.findOne({resetToken})
+        if(!doctor){
+            return res.status(404).json({message:"Doctor not found"})
+        }
+        
+        if(doctor.resetTokenExpiry<Date.now()){
+            return res.status(400).json({message:"Reset token expired"})
+        }
+        const hashedPassword=await bcrypt.hash(newPassword,10)
+        doctor.password=hashedPassword
+        doctor.resetToken=null
+        doctor.resetTokenExpiry=null
+        await doctor.save()
+        res.status(200).json({message:"Password reset successful"})
+    } catch (error) {
+        res.status(500).json({message:"Error resetting password",error:error.message})
+    }
+}

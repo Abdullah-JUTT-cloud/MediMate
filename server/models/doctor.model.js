@@ -86,6 +86,8 @@ const doctorSchema = new Schema(
     otpExpiry: {
       type: Date,
     },
+    resetToken: { type: String },
+    resetTokenExpiry: { type: Date },
   },
   { timestamps: true },
 );
