@@ -2,9 +2,10 @@ import dotenv from "dotenv";
 dotenv.config();
 import express from "express";
 import { connectDB } from "./db/connectDB.js";
-import authRoutes from "./routes/auth.route.js";
+import authRoutes from "./routes/auth.routes.js";
 import cors from "cors";    
 import cookieParser from "cookie-parser";
+import doctorRoutes from "./routes/doctor.routes.js";
 
 const app=express();
 
@@ -19,6 +20,8 @@ app.get("/",(req,res)=>{
 })
 
 app.use("/api/auth",authRoutes);
+
+app.use("/api/doctor",doctorRoutes)
 
 connectDB()
 .then(()=>{
