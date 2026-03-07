@@ -43,7 +43,7 @@ export const updateProfile=async(req,res)=>{
         }   
         if(profileImage){
             doctor.profileImage=profileImage;
-            
+
         }
         await doctor.save();
         const updatedDoc=await Doctor.findById(req.doctorId).select("-password -otp -otpExpiry -resetToken -resetTokenExpiry");
