@@ -50,8 +50,8 @@ const stats = [
 ];
 
 const footerLinks = {
-  Product: ["Features", "How it Works", "Pricing", "Changelog"],
-  Company: ["About Us", "Blog", "Careers", "Press Kit"],
+  Product: ["Features", "How it Works", "Pricing"],
+  Company: ["About Us"],
   Support: ["Help Center", "Contact Us", "Privacy Policy", "Terms of Service"],
   Integrations: ["WhatsApp", "PDF Export", "Drug Database", "SMS Alerts"],
 };

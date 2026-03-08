@@ -256,3 +256,30 @@ export const resetPassword = async (req, res) => {
         res.status(500).json({message:"Error resetting password",error:error.message})
     }
 }
+
+export const resendOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email is required" });
+
+    const doctor = await Doctor.findOne({ email });
+    if (!doctor) return res.status(404).json({ message: "Doctor not found" });
+
+    if (doctor.isVerified) return res.status(400).json({ message: "Email is already verified" });
+
+    const otp = generateOtp();
+    doctor.otp = otp;
+    doctor.otpExpiry = new Date(Date.now() + 30 * 60 * 1000);
+    await doctor.save();
+
+    await sendEmail({
+      to: email,
+      subject: "MediMate - New Verification OTP",
+      html: verificationEmailTemplate(doctor.fullName, otp),
+    });
+
+    res.status(200).json({ message: "New OTP sent to your email" });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

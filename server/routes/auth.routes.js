@@ -1,5 +1,5 @@
 import express from "express";
-import { registerDoctor, verifyEmail,login,logout,forgotPassword,verifyResetOtp,resetPassword} from "../controllers/auth.controller.js";
+import { registerDoctor, verifyEmail,login,logout,forgotPassword,verifyResetOtp,resetPassword,resendOtp} from "../controllers/auth.controller.js";
 
 
 
@@ -14,6 +14,7 @@ router.post("/forgot-password",forgotPassword)
 router.post("/login",login);
 
 router.post("/logout",logout)
+router.post("/resend-otp", resendOtp)
 
 router.post("/verify-reset-otp", verifyResetOtp)
 router.post("/reset-password", resetPassword)
