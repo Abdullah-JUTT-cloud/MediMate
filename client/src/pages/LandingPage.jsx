@@ -153,7 +153,7 @@ export default function LandingPage() {
                 style={{ background: "rgba(16,184,169,0.15)", color: "#10b8a9", border: "1px solid rgba(16,184,169,0.3)" }}
               >
                 <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
-                Built for Modern Clinics
+                Built for Modern Doctors
               </div>
 
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-5 leading-tight text-white">
@@ -181,14 +181,14 @@ export default function LandingPage() {
 
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4">
-                <button
+                {/* <button
                   onClick={() => navigate("/signup")}
                   className="group w-full sm:w-auto px-6 sm:px-8 py-3.5 rounded-2xl text-white font-semibold text-sm sm:text-base transition-all duration-300 hover:scale-105 hover:shadow-2xl flex items-center justify-center gap-2"
                   style={{ background: "linear-gradient(135deg, #10b8a9, #0d9488)", boxShadow: "0 8px 30px rgba(16,184,169,0.4)" }}
                 >
                   Book Appointment
                   <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
-                </button>
+                </button> */}
                 <button
                   onClick={() => navigate("/login")}
                   className="w-full sm:w-auto px-6 sm:px-8 py-3.5 rounded-2xl font-semibold text-sm sm:text-base transition-all duration-200"
