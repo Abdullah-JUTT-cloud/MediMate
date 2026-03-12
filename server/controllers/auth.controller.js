@@ -1,33 +1,52 @@
 import { Doctor } from "../models/doctor.model.js";
 import bcrypt from "bcryptjs";
 import { generateOtp } from "../utils/generateOtp.js";
-import { sendEmail,verificationEmailTemplate,resetPasswordEmailTemplate } from "../utils/sendEmail.js";
+import {
+  sendEmail,
+  verificationEmailTemplate,
+  resetPasswordEmailTemplate,
+} from "../utils/sendEmail.js";
 import { generateToken } from "../utils/generateToken.js";
 import crypto from "crypto";
 
 export const registerDoctor = async (req, res) => {
   const {
     fullName,
+    gender,
     email,
+    phone,
     password,
-    phoneNumber,
+    title,
     specialization,
-    clinicName,
-    clinicAddress,
-    licenseNumber,
-    workingHours,
+    primaryDegree,
+    additionalDegrees,
+    university,
+    graduationYear,
+    postgraduateTraining,
+    yearsOfExperience,
+    pmdcNumber,
+    licenseStatus,
+    licenseIssueDate,
+    licenseExpiryDate,
+    clinics,
+    hospitals,
   } = req.body;
   try {
     if (
       !fullName ||
       !email ||
+      !gender ||
+      !phone ||
+      !title ||
       !password ||
-      !phoneNumber ||
       !specialization ||
-      !clinicName ||
-      !clinicAddress ||
-      !licenseNumber ||
-      !workingHours
+      !primaryDegree ||
+      !university ||
+      !graduationYear ||
+      !yearsOfExperience ||
+      !pmdcNumber ||
+      !licenseStatus ||
+      !licenseIssueDate
     ) {
       return res.status(400).json({ message: "All fields are required" });
     }
@@ -43,27 +62,12 @@ export const registerDoctor = async (req, res) => {
     if (emailExists)
       return res.status(409).json({ message: "Email already registered" });
 
-    const licenseExists = await Doctor.findOne({ licenseNumber });
-    if (licenseExists)
+    const pmdcNumberExists = await Doctor.findOne({ pmdcNumber });
+    if (pmdcNumberExists)
       return res
         .status(409)
-        .json({ message: "License number already registered" });
+        .json({ message: "PMDC number already registered" });
 
-    // if (doctorExisted) {
-    //   return res.status(409).json({ message: "Doctor already exists" });
-    // }
-
-    //! IMPORTANT
-
-    for (const day of workingHours) {
-      if (day.isWorking === true) {
-        if (!day.timeRanges || day.timeRanges.length === 0) {
-          return res.status(400).json({
-            message: `Please add time ranges for ${day.day}`,
-          });
-        }
-      }
-    }
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const otp = generateOtp();
@@ -76,14 +80,24 @@ export const registerDoctor = async (req, res) => {
       fullName,
       email,
       password: hashedPassword,
-      phoneNumber,
+      phone,
       specialization,
-      clinicName,
-      clinicAddress,
-      licenseNumber,
-      workingHours,
+      title,
+      primaryDegree,
+      additionalDegrees,
+      university,
+      graduationYear,
+      postgraduateTraining,
+      yearsOfExperience,
+      pmdcNumber,
+      licenseStatus,
+      licenseIssueDate,
+      licenseExpiryDate,
+      clinics,
+      hospitals,
       otp,
       otpExpiry,
+      gender
     });
     await doctor.save();
 
@@ -204,58 +218,64 @@ export const forgotPassword = async (req, res) => {
 };
 
 export const verifyResetOtp = async (req, res) => {
-    const {email,otp}=req.body;
-    try {
-        if(!email || !otp){
-            return res.status(400).json({message:"Email and OTP are required"})
-        }
-        const doctor=await Doctor.findOne({email})
-        if(!doctor){
-            return res.status(404).json({message:"Doctor not found"})
-        }
-        if(doctor.otp!==otp){
-            return res.status(400).json({message:"Invalid OTP"})
-        }
-        if(doctor.otpExpiry<Date.now()){
-            return res.status(400).json({message:"OTP expired"})
-        }
-        const resetToken=crypto.randomBytes(32).toString("hex")
-        const resetTokenExpiry=Date.now()+30*60*1000
-        doctor.resetToken=resetToken
-        doctor.resetTokenExpiry=resetTokenExpiry
-        doctor.otp=null;
-        doctor.otpExpiry=null;
-        await doctor.save();
-        res.status(200).json({message:"OTP verified successfully",resetToken})
-    } catch (error) {
-        res.status(500).json({message:"Error verifying OTP",error:error.message})
+  const { email, otp } = req.body;
+  try {
+    if (!email || !otp) {
+      return res.status(400).json({ message: "Email and OTP are required" });
     }
-}
+    const doctor = await Doctor.findOne({ email });
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+    if (doctor.otp !== otp) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+    if (doctor.otpExpiry < Date.now()) {
+      return res.status(400).json({ message: "OTP expired" });
+    }
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const resetTokenExpiry = Date.now() + 30 * 60 * 1000;
+    doctor.resetToken = resetToken;
+    doctor.resetTokenExpiry = resetTokenExpiry;
+    doctor.otp = null;
+    doctor.otpExpiry = null;
+    await doctor.save();
+    res.status(200).json({ message: "OTP verified successfully", resetToken });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error verifying OTP", error: error.message });
+  }
+};
 
 export const resetPassword = async (req, res) => {
-    const {resetToken,newPassword}=req.body;
-    try {
-        if(!resetToken || !newPassword){
-            return res.status(400).json({message:"Reset token and password are required"})
-        }
-        const doctor=await Doctor.findOne({resetToken})
-        if(!doctor){
-            return res.status(404).json({message:"Doctor not found"})
-        }
-        
-        if(doctor.resetTokenExpiry<Date.now()){
-            return res.status(400).json({message:"Reset token expired"})
-        }
-        const hashedPassword=await bcrypt.hash(newPassword,10)
-        doctor.password=hashedPassword
-        doctor.resetToken=null
-        doctor.resetTokenExpiry=null
-        await doctor.save()
-        res.status(200).json({message:"Password reset successful"})
-    } catch (error) {
-        res.status(500).json({message:"Error resetting password",error:error.message})
+  const { resetToken, newPassword } = req.body;
+  try {
+    if (!resetToken || !newPassword) {
+      return res
+        .status(400)
+        .json({ message: "Reset token and password are required" });
     }
-}
+    const doctor = await Doctor.findOne({ resetToken });
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    if (doctor.resetTokenExpiry < Date.now()) {
+      return res.status(400).json({ message: "Reset token expired" });
+    }
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    doctor.password = hashedPassword;
+    doctor.resetToken = null;
+    doctor.resetTokenExpiry = null;
+    await doctor.save();
+    res.status(200).json({ message: "Password reset successful" });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error resetting password", error: error.message });
+  }
+};
 
 export const resendOtp = async (req, res) => {
   try {
@@ -265,7 +285,8 @@ export const resendOtp = async (req, res) => {
     const doctor = await Doctor.findOne({ email });
     if (!doctor) return res.status(404).json({ message: "Doctor not found" });
 
-    if (doctor.isVerified) return res.status(400).json({ message: "Email is already verified" });
+    if (doctor.isVerified)
+      return res.status(400).json({ message: "Email is already verified" });
 
     const otp = generateOtp();
     doctor.otp = otp;
