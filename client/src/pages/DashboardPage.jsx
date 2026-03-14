@@ -47,6 +47,7 @@ export default function DashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [todayAppointments, setTodayAppointments] = useState([]);
   const [recentPatients, setRecentPatients] = useState([]);
+  const [totalPatients, setTotalPatients] = useState(0);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
   useEffect(() => {
@@ -60,8 +61,20 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
           axiosInstance.get("/appointments?date=" + today),
           axiosInstance.get("/patients"),
         ]);
-        setTodayAppointments(appointmentsRes.data.appointments);
-        setRecentPatients(patientsRes.data.patients.slice(0, 4));
+        const appointments = appointmentsRes && appointmentsRes.data && Array.isArray(appointmentsRes.data.appointments)
+          ? appointmentsRes.data.appointments
+          : [];
+        const patients = patientsRes && patientsRes.data && Array.isArray(patientsRes.data.patients)
+          ? patientsRes.data.patients
+          : [];
+
+        setTodayAppointments(appointments);
+        setRecentPatients(Array.isArray(patients) ? patients.slice(0, 4) : []);
+        setTotalPatients(
+          patientsRes && patientsRes.data && Number.isFinite(Number(patientsRes.data.total))
+            ? Number(patientsRes.data.total)
+            : patients.length,
+        );
       } catch {
         console.error("Failed to load dashboard data");
       } finally {
@@ -178,7 +191,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                 {[
                   { icon: "👤", label: "New Patient", color: "#10B8A9", onClick: () => setActiveNav("patients") },
                   { icon: "📅", label: "Book Appointment", color: "#10B8A9", onClick: () => setActiveNav("appointments") },
-                  { icon: "🚨", label: "Emergency Cancel", color: "#ef4444", onClick: () => {} },
+                  { icon: "🚨", label: "Emergency Cancel", color: "#ef4444", onClick: () => toast("Emergency Cancel is not available yet") },
                 ].map((action) => (
                   <button key={action.label} onClick={action.onClick}
                     className="flex items-center cursor-pointer gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 hover:scale-105 hover:opacity-90"
@@ -196,7 +209,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
 
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
                 {[
-                  { label: "Total Patients", value: isLoadingData ? "..." : recentPatients.length > 0 ? recentPatients.length + "+" : "0", sub: "Registered patients", icon: "👥", color: "#10B8A9" },
+                  { label: "Total Patients", value: isLoadingData ? "..." : String(totalPatients || 0), sub: "Registered patients", icon: "👥", color: "#10B8A9" },
                   { label: "Today's Appointments", value: isLoadingData ? "..." : todayAppointments.length.toString(), sub: isLoadingData ? "Loading..." : todayAppointments.filter((a) => a.status === "Pending").length + " pending", icon: "📅", color: "#38bdf8" },
                   { label: "Today's Earnings", value: "PKR —", sub: "Insights coming soon", icon: "💰", color: "#22c55e" },
                   { label: "Prescriptions", value: "—", sub: "Coming soon", icon: "📋", color: "#a78bfa" },

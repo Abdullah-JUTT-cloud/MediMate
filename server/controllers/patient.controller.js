@@ -94,7 +94,7 @@ export const updatePatient=async(req,res)=>{
         if(medicalHistory){
             patient.medicalHistory=medicalHistory;
         }
-        if(locations){
+        if(typeof locations !== "undefined"){
             patient.locations=locations;
         }
         await patient.save();

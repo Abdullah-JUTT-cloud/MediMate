@@ -766,6 +766,7 @@ export default function PatientsPage() {
                 )}
               </div>
               <button onClick={(e) => handleDelete(patient._id, e)}
+                aria-label={`Delete patient ${patient.name || patient._id}`}
                 className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-red-500 hover:bg-opacity-15 flex-shrink-0"
                 style={{ color: "#ef4444", border: "1px solid rgba(239,68,68,0.2)" }}>
                 🗑
@@ -792,6 +793,7 @@ export default function PatientsPage() {
               <div className="flex items-center justify-between">
                 <span className="text-sm" style={{ color: "#64748b" }}>{formatDate(patient.createdAt)}</span>
                 <button onClick={(e) => handleDelete(patient._id, e)}
+                  aria-label={`Delete patient ${patient.name || patient._id}`}
                   className="w-8 h-8 rounded-lg flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:bg-opacity-15"
                   style={{ color: "#ef4444", border: "1px solid rgba(239,68,68,0.2)" }}>
                   🗑

@@ -107,12 +107,16 @@ function AppointmentDetailPage({ appointment, onBack, onUpdated, onDeleted }) {
 
   const handleDelete = async () => {
     if (!window.confirm("Delete this appointment?")) return;
+    if (isLoading) return;
+    setIsLoading(true);
     try {
       await axiosInstance.delete(`/appointments/${appointment._id}`);
       toast.success("Appointment deleted");
       onDeleted(appointment._id);
     } catch {
       toast.error("Failed to delete");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -188,7 +192,7 @@ function AppointmentDetailPage({ appointment, onBack, onUpdated, onDeleted }) {
             style={{ background: "linear-gradient(135deg,#10B8A9,#0d9488)", boxShadow: "0 4px 15px rgba(16,184,169,0.25)" }}>
             {isLoading ? "Saving..." : "Save Changes ✓"}
           </button>
-          <button onClick={handleDelete}
+          <button onClick={handleDelete} disabled={isLoading}
             className="px-4 py-3 rounded-xl text-sm font-bold transition-all hover:bg-red-500 hover:bg-opacity-10"
             style={{ color: "#ef4444", border: "1px solid rgba(239,68,68,0.2)" }}>
             🗑 Delete
@@ -223,7 +227,7 @@ function BookAppointmentForm({ onBack, onBooked }) {
       if (!search.trim()) { setPatients([]); return; }
       setSearchLoading(true);
       try {
-        const res = await axiosInstance.get(`/patients?search=${search}`);
+        const res = await axiosInstance.get("/patients", { params: { search } });
         setPatients(res.data.patients);
       } catch {
         toast.error("Failed to search patients");

@@ -105,6 +105,9 @@ export const createAppointment = async (req, res) => {
 export const updateAppointment = async (req, res) => {
   try {
     const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ message: "Invalid appointment ID" });
+    }
     const { status, date, slot, type, notes } = req.body;
     const appointment = await Appointment.findOne({
       doctor: req.doctorId,
@@ -113,11 +116,27 @@ export const updateAppointment = async (req, res) => {
     if (!appointment) {
       return res.status(404).json({ message: "Appointment not found" });
     }
+
+    if (typeof date !== "undefined" || typeof slot !== "undefined") {
+      const nextDate = typeof date !== "undefined" ? date : appointment.date;
+      const nextSlot = typeof slot !== "undefined" ? slot : appointment.slot;
+      const conflict = await Appointment.findOne({
+        doctor: req.doctorId,
+        _id: { $ne: appointment._id },
+        date: nextDate,
+        slot: nextSlot,
+        status: { $nin: ["Cancelled", "Completed"] },
+      });
+      if (conflict) {
+        return res.status(400).json({ message: "This slot is already booked" });
+      }
+    }
+
     if (status) appointment.status = status;
     if (date) appointment.date = date;
     if (slot) appointment.slot = slot;
     if (type) appointment.type = type;
-    if (notes) appointment.notes = notes;
+    if (typeof notes !== "undefined") appointment.notes = notes;
     await appointment.save();
     const populated = await Appointment.findById(appointment._id).populate(
       "patient",
@@ -137,6 +156,9 @@ export const updateAppointment = async (req, res) => {
 export const deleteAppointment = async (req, res) => {
   try {
     const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ error: "Invalid appointment id" });
+    }
     const appointment = await Appointment.findOneAndDelete({
       doctor: req.doctorId,
       _id: id,
