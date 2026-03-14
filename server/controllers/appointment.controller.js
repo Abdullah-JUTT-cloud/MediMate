@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
-import Appointment from "../models/appointment.model";
-import Patient from "../models/patient.model";
+import Appointment from "../models/appointment.model.js";
+import Patient from "../models/patient.model.js";
 
 export const getAppointments = async (req, res) => {
   try {
@@ -75,7 +75,11 @@ export const createAppointment = async (req, res) => {
     if (!patient) {
       return res.status(404).json({ message: "Patient not found" });
     }
-    const existing = await Appointment.findOne({ doctor: req.doctorId, date, slot });
+    const existing = await Appointment.findOne({
+      doctor: req.doctorId,
+      date,
+      slot,
+    });
     if (existing) {
       return res.status(409).json({ message: "This slot is already booked" });
     }
@@ -89,10 +93,40 @@ export const createAppointment = async (req, res) => {
     });
     await appointment.save();
     const populated = await appointment.populate("patient", "name phone age");
+    res.status(201).json({
+      message: "Appointment created successfully",
+      appointment: populated,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const updateAppointment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, date, slot, type, notes } = req.body;
+    const appointment = await Appointment.findOne({
+      doctor: req.doctorId,
+      _id: id,
+    });
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+    if (status) appointment.status = status;
+    if (date) appointment.date = date;
+    if (slot) appointment.slot = slot;
+    if (type) appointment.type = type;
+    if (notes) appointment.notes = notes;
+    await appointment.save();
+    const populated = await Appointment.findById(appointment._id).populate(
+      "patient",
+      "name phone age",
+    );
     res
-      .status(201)
+      .status(200)
       .json({
-        message: "Appointment created successfully",
+        message: "Appointment updated successfully",
         appointment: populated,
       });
   } catch (error) {
@@ -100,10 +134,18 @@ export const createAppointment = async (req, res) => {
   }
 };
 
-export const updateAppointment = async (req, res) => {
-    try {
-        res.status(501).json({ error: "Not Implemented" });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+export const deleteAppointment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const appointment = await Appointment.findOneAndDelete({
+      doctor: req.doctorId,
+      _id: id,
+    });
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
     }
-}
+    res.status(200).json({ message: "Appointment deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

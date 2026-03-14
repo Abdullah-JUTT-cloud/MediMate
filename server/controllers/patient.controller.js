@@ -14,7 +14,7 @@ export const getPatients = async (req, res) => {
     }
 
     const patients = await Patient.find(query)
-      .select("name age gender phone bloodGroup createdAt")
+      .select("name age gender phone bloodGroup createdAt locations")
       .sort({ createdAt: -1 });
 
     res.status(200).json({ patients });
@@ -38,7 +38,7 @@ export const getPatient=async(req,res)=>{
 
 export const addPatient=async(req,res)=>{
     try {
-        const {name,age,gender,phone,bloodGroup,medicalHistory}=req.body;
+        const {name,age,gender,phone,bloodGroup,medicalHistory,locations}=req.body;
         if(!name){
             return res.status(400).json({message:"Name is required"});
         }
@@ -59,6 +59,7 @@ export const addPatient=async(req,res)=>{
             phone,
             bloodGroup,
             medicalHistory,
+            locations,
         });
         await patient.save();
         res.status(201).json({message:"Patient added successfully",patient});
@@ -70,7 +71,7 @@ export const addPatient=async(req,res)=>{
 export const updatePatient=async(req,res)=>{
     try {
         const id=req.params.id;
-        const {name,age,gender,phone,bloodGroup,medicalHistory}=req.body;
+        const {name,age,gender,phone,bloodGroup,medicalHistory,locations}=req.body;
         const patient=await Patient.findOne({ _id: id, doctor: req.doctorId });
         if(!patient){
             return res.status(404).json({message:"Patient not found"});
@@ -92,6 +93,9 @@ export const updatePatient=async(req,res)=>{
         }
         if(medicalHistory){
             patient.medicalHistory=medicalHistory;
+        }
+        if(locations){
+            patient.locations=locations;
         }
         await patient.save();
         res.status(200).json({message:"Patient updated successfully",patient});

@@ -8,6 +8,7 @@ import cookieParser from "cookie-parser";
 import doctorRoutes from "./routes/doctor.routes.js";
 import patientRoutes from "./routes/patient.routes.js";
 import checkupRoutes from "./routes/checkup.routes.js";
+import appointmentRoutes from "./routes/appointment.routes.js";
 
 
 const app=express();
@@ -32,6 +33,8 @@ app.use("/api/doctor",doctorRoutes)
 app.use("/api/patients",patientRoutes)
 
 app.use("/api/checkups", checkupRoutes);
+
+app.use("/api/appointments", appointmentRoutes);
 
 connectDB()
 .then(()=>{
