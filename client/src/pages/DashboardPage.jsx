@@ -229,7 +229,7 @@ export default function DashboardPage() {
                 {doctor?.fullName || "Doctor"}
               </p>
               <p className="text-xs truncate" style={{ color: "#10B8A9" }}>
-                {doctor?.specialization || "Specialist"}
+                {[doctor?.title, doctor?.specialization || "Specialist"].filter(Boolean).join(" ")}
               </p>
             </div>
           </div>

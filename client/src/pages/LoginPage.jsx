@@ -29,8 +29,30 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       const res = await axiosInstance.post("/auth/login", form);
-      const { fullName, email, specialization, clinicName } = res.data;
-      setDoctor({ fullName, email, specialization, clinicName });
+      const {
+        fullName,
+        email,
+        title,
+        gender,
+        specialization,
+        primaryDegree,
+        clinics,
+        hospitals,
+        slotDuration,
+        profilePicture,
+      } = res.data;
+      setDoctor({
+        fullName,
+        email,
+        title,
+        gender,
+        specialization,
+        primaryDegree,
+        clinics,
+        hospitals,
+        slotDuration,
+        profilePicture,
+      });
       toast.success(`Welcome back, ${fullName}!`);
       navigate("/dashboard");
     } catch (error) {

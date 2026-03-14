@@ -97,7 +97,7 @@ export const registerDoctor = async (req, res) => {
       hospitals,
       otp,
       otpExpiry,
-      gender
+      gender,
     });
     await doctor.save();
 
@@ -170,8 +170,19 @@ export const login = async (req, res) => {
       message: "Login successful",
       fullName: doctor.fullName,
       email: doctor.email,
+      gender: doctor.gender,
+      title: doctor.title,
       specialization: doctor.specialization,
-      clinicName: doctor.clinicName,
+      primaryDegree: doctor.primaryDegree,
+      additionalDegrees: doctor.additionalDegrees,
+      university: doctor.university,
+      yearsOfExperience: doctor.yearsOfExperience,
+      pmdcNumber: doctor.pmdcNumber,
+      licenseStatus: doctor.licenseStatus,
+      clinics: doctor.clinics,
+      hospitals: doctor.hospitals,
+      slotDuration: doctor.slotDuration,
+      profilePicture: doctor.profilePicture,
     });
   } catch (error) {
     res.status(500).json({ message: "Error logging in", error: error.message });
