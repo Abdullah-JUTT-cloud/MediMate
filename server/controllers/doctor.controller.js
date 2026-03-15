@@ -1,4 +1,5 @@
 import { Doctor } from "../models/doctor.model.js";
+import cloudinary from "../config/cloudinary.js";
 
 export const getProfile = async (req, res) => {
   try {
@@ -99,5 +100,37 @@ export const updateProfile = async (req, res) => {
     res
       .status(500)
       .json({ message: "Error updating profile", error: error.message });
+  }
+};
+
+export const uploadProfilePicture = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const uploadResult = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: "medimate/profiles", resource_type: "image" },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+      stream.end(req.file.buffer);
+    });
+
+    const doctor = await Doctor.findById(req.doctorId);
+    if (!doctor) return res.status(404).json({ message: "Doctor not found" });
+
+    doctor.profilePicture = uploadResult.secure_url;
+    await doctor.save();
+
+    res.status(200).json({
+      message: "Profile picture updated successfully",
+      profilePicture: uploadResult.secure_url,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Upload failed", error: error.message });
   }
 };

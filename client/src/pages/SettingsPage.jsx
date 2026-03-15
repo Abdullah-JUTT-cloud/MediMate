@@ -268,7 +268,7 @@ function LocationCard({ location, index, type, allClinics, allHospitals, onChang
                     style={{ background: "rgba(239,68,68,0.1)", color: "#ef4444" }}>⚠ Overlap</span>
                 )}
                 <button onClick={() => removeSession(si)}
-                  className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:bg-red-500 hover:bg-opacity-10 flex-shrink-0"
+                  className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:bg-red-500 hover:bg-opacity-10 shrink-0"
                   style={{ color: "#ef4444", border: "1px solid rgba(239,68,68,0.15)" }}>
                   🗑
                 </button>
@@ -422,18 +422,48 @@ export default function SettingsPage() {
 
       {/* Profile Picture Placeholder */}
       <div className="flex items-center gap-4 p-5 rounded-2xl mb-6" style={S.card}>
-        <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold text-white flex-shrink-0"
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold text-white shrink-0"
           style={{ background: "linear-gradient(135deg,#10B8A9,#0d9488)" }}>
-          {doctor?.fullName?.charAt(0) || "D"}
+          {doctor?.profilePicture ? (
+            <img src={doctor.profilePicture} alt="Profile" className="w-full h-full object-cover rounded-2xl" />
+          ) : (
+            doctor?.fullName?.charAt(0) || "D"
+          )}
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-base font-bold text-white">{doctor?.fullName || "Doctor"}</p>
           <p className="text-sm" style={{ color: "#10B8A9" }}>{doctor?.specialization || "Specialist"}</p>
         </div>
-        <button className="px-4 py-2 rounded-xl text-xs font-semibold cursor-not-allowed"
-          style={{ background: "rgba(255,255,255,0.04)", border: "1px dashed rgba(255,255,255,0.1)", color: "#475569" }}>
-          📷 Upload Photo (Soon)
-        </button>
+        <input
+          type="file"
+          id="profilePicUpload"
+          accept="image/*"
+          className="hidden"
+          onChange={async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append("profilePicture", file);
+
+            try {
+              const res = await axiosInstance.post("/doctor/upload-profile-picture", formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+              });
+              setDoctor({ ...doctor, profilePicture: res.data.profilePicture });
+              toast.success("Profile picture updated!");
+            } catch {
+              toast.error("Failed to upload picture");
+            } finally {
+              e.target.value = "";
+            }
+          }}
+        />
+        <label htmlFor="profilePicUpload"
+          className="px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer transition-all hover:opacity-80"
+          style={{ background: "rgba(16,184,169,0.12)", color: "#10B8A9", border: "1px solid rgba(16,184,169,0.2)" }}>
+          📷 Upload Photo
+        </label>
       </div>
 
       {/* Tabs */}

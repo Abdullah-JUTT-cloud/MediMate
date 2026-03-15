@@ -113,9 +113,13 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
 
         <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(16,184,169,0.08)" }}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white shrink-0"
               style={{ background: "linear-gradient(135deg, #10B8A9, #0d9488)" }}>
-              {doctor?.fullName?.charAt(0) || "D"}
+              {doctor?.profilePicture ? (
+                <img src={doctor.profilePicture} alt="Profile" className="w-full h-full object-cover rounded-xl" />
+              ) : (
+                doctor?.fullName?.charAt(0) || "D"
+              )}
             </div>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-white truncate">{doctor?.fullName || "Doctor"}</p>
@@ -152,7 +156,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="flex items-center justify-between px-4 sm:px-6 py-4 flex-shrink-0"
+        <header className="flex items-center justify-between px-4 sm:px-6 py-4 shrink-0"
           style={{ background: "#0a1628", borderBottom: "1px solid rgba(16,184,169,0.1)" }}>
           <div className="flex items-center gap-3">
             <button className="lg:hidden p-2 rounded-lg transition-colors hover:bg-white hover:bg-opacity-5" onClick={() => setSidebarOpen(true)}>
@@ -173,7 +177,11 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
             <div className="flex items-center gap-2 cursor-pointer px-2 py-1.5 rounded-xl transition-colors hover:bg-white hover:bg-opacity-5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white"
                 style={{ background: "linear-gradient(135deg, #10B8A9, #0d9488)" }}>
-                {doctor?.fullName?.charAt(0) || "D"}
+                {doctor?.profilePicture ? (
+                  <img src={doctor.profilePicture} alt="Profile" className="w-full h-full object-cover rounded-xl" />
+                ) : (
+                  doctor?.fullName?.charAt(0) || "D"
+                )}
               </div>
               <span className="text-sm font-medium text-white hidden sm:block">{doctor?.fullName?.split(" ")[0] || "Doctor"}</span>
             </div>
@@ -275,7 +283,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                     ) : todayAppointments.map((apt) => (
                       <div key={apt._id} className="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-white hover:bg-opacity-5"
                         style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)" }}>
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0"
                           style={{ background: "linear-gradient(135deg, #10B8A9, #0d9488)" }}>
                           {apt.patient?.name?.charAt(0) || "P"}
                         </div>
@@ -283,7 +291,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                           <p className="text-xs font-semibold text-white truncate">{apt.patient?.name || "Unknown"}</p>
                           <p className="text-xs" style={{ color: "#64748b" }}>{apt.slot} · {apt.type}</p>
                         </div>
-                        <span className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0"
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium shrink-0"
                           style={{
                             background: apt.status === "Confirmed" ? "rgba(34,197,94,0.1)" : "rgba(245,158,11,0.1)",
                             color: apt.status === "Confirmed" ? "#22c55e" : "#f59e0b",
@@ -325,7 +333,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                       <div key={patient._id} className="rounded-xl p-3 sm:p-4 transition-all hover:bg-white hover:bg-opacity-5"
                         style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)" }}>
                         <div className="sm:hidden flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white shrink-0"
                             style={{ background: "linear-gradient(135deg, #10B8A9, #0d9488)" }}>
                             {getInitials(patient.name)}
                           </div>
@@ -337,7 +345,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                         </div>
                         <div className="hidden sm:grid grid-cols-4 gap-4 items-center">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white shrink-0"
                               style={{ background: "linear-gradient(135deg, #10B8A9, #0d9488)" }}>
                               {getInitials(patient.name)}
                             </div>
