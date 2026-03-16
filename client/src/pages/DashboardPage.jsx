@@ -175,7 +175,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full" style={{ background: "#10B8A9" }} />
             </button>
             <div className="flex items-center gap-2 cursor-pointer px-2 py-1.5 rounded-xl transition-colors hover:bg-white hover:bg-opacity-5">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white"
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold text-white"
                 style={{ background: "linear-gradient(135deg, #10B8A9, #0d9488)" }}>
                 {doctor?.profilePicture ? (
                   <img src={doctor.profilePicture} alt="Profile" className="w-full h-full object-cover rounded-xl" />

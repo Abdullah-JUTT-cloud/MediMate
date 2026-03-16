@@ -33,6 +33,7 @@ const checkupSchema = new mongoose.Schema(
       nextAppointment: { type: Date },
       medicines: { type: [medicineSchema], default: [] },
       labTests: { type: [String], default: [] },
+      pdfUrl: { type: String, default: "" },
     },
   },
   { timestamps: true }

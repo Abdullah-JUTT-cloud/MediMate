@@ -1,6 +1,6 @@
 import { Doctor } from "../models/doctor.model.js";
 import cloudinary from "../config/cloudinary.js";
-
+import { allowedImageMimeTypes } from "../middlewares/upload.middleware.js";
 export const getProfile = async (req, res) => {
   try {
     const doctor = await Doctor.findById(req.doctorId).select(
@@ -107,6 +107,13 @@ export const uploadProfilePicture = async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    const fileMimeType = req.file.detectedMimeType || req.file.mimetype;
+    if (!fileMimeType || !allowedImageMimeTypes.has(fileMimeType)) {
+      return res.status(400).json({
+        message: "Invalid file type; only image files are allowed",
+      });
     }
 
     const uploadResult = await new Promise((resolve, reject) => {

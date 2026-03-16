@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import useAuthStore from "../store/authStore";
+import PrescriptionModal from "./PrescriptionModal";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -277,6 +278,7 @@ function NewCheckupForm({ patient, onBack, onAdded }) {
 function PatientDetailPage({ patient, onBack, onNewCheckup }) {
   const [checkups, setCheckups] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [prescriptionCheckup, setPrescriptionCheckup] = useState(null);
 
   useEffect(() => {
     const fetch = async () => {
@@ -430,7 +432,14 @@ function PatientDetailPage({ patient, onBack, onNewCheckup }) {
 
               {checkup.prescription?.medicines?.length > 0 && (
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wide mb-2.5" style={{ color: "#475569" }}>Prescription</p>
+                  <div className="flex items-center justify-between mb-2.5">
+                    <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "#475569" }}>Prescription</p>
+                    <button onClick={() => setPrescriptionCheckup(checkup)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all hover:opacity-90"
+                      style={{ background: "#10B8A9" }}>
+                      📋 {checkup.prescription.pdfUrl ? "View PDF" : "Generate PDF"}
+                    </button>
+                  </div>
                   <div className="space-y-2">
                     {checkup.prescription.medicines.map((med, i) => (
                       <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-xl" style={S.section}>
@@ -485,6 +494,20 @@ function PatientDetailPage({ patient, onBack, onNewCheckup }) {
           </div>
         ))}
       </div>
+      {prescriptionCheckup && (
+        <PrescriptionModal
+          checkup={prescriptionCheckup}
+          patient={patient}
+          onClose={() => setPrescriptionCheckup(null)}
+          onSaved={(url) => {
+            setCheckups((prev) => prev.map((c) =>
+              c._id === prescriptionCheckup._id
+                ? { ...c, prescription: { ...c.prescription, pdfUrl: url } }
+                : c
+            ));
+          }}
+        />
+      )}
     </div>
   );
 }

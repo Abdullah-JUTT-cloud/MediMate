@@ -9,7 +9,7 @@ import doctorRoutes from "./routes/doctor.routes.js";
 import patientRoutes from "./routes/patient.routes.js";
 import checkupRoutes from "./routes/checkup.routes.js";
 import appointmentRoutes from "./routes/appointment.routes.js";
-
+import prescriptionRoutes from "./routes/prescription.routes.js";
 
 const app=express();
 
@@ -35,6 +35,8 @@ app.use("/api/patients",patientRoutes)
 app.use("/api/checkups", checkupRoutes);
 
 app.use("/api/appointments", appointmentRoutes);
+
+app.use("/api/prescriptions", prescriptionRoutes);
 
 connectDB()
 .then(()=>{
