@@ -3,6 +3,7 @@ import Checkup from "../models/checkup.model.js";
 import Patient from "../models/patient.model.js";
 import { Doctor } from "../models/doctor.model.js";
 import cloudinary from "../config/cloudinary.js";
+import { sendPrescriptionWhatsApp } from "../utils/whatsapp.js";
 
 export const generatePrescription = async (req, res) => {
   try {
@@ -71,5 +72,36 @@ return res.status(200).json({ message: "Prescription saved successfully", pdfUrl
     res
       .status(500)
       .json({ message: "Error saving prescription", error: error.message }); 
+  }
+}
+
+
+export const sendWhatsApp=async(req,res)=>{
+  try {
+    const { checkupId } = req.params;
+    const checkup = await Checkup.findOne({
+      _id: checkupId,
+      doctor: req.doctorId,
+    });
+    if (!checkup) {
+      return res.status(404).json({ message: "Checkup not found" });
+    }
+
+    const patient = await Patient.findById(checkup.patient);
+    if (!patient) {
+      return res.status(404).json({ message: "Patient not found" });
+    }
+
+    const doctor = await Doctor.findById(req.doctorId);
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+    const pdfBuffer = await generatePrescriptionPdf(doctor, patient, checkup);
+    await sendPrescriptionWhatsApp(patient.phone, patient.name, pdfBuffer);
+    return res.status(200).json({ message: "Prescription sent successfully" });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error sending prescription", error: error.message });
   }
 }

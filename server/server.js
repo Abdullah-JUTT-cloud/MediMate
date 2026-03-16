@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config();
+import "./utils/whatsapp.js";
 import express from "express";
 import { connectDB } from "./db/connectDB.js";
 import authRoutes from "./routes/auth.routes.js";
