@@ -1,6 +1,6 @@
 import express from "express";
 import { verifyToken } from "../middlewares/auth.middleware.js";
-import { getProfile, updateProfile, uploadProfilePicture } from "../controllers/doctor.controller.js";
+import { getProfile, updateProfile, uploadProfilePicture,uploadPmdcCertificate } from "../controllers/doctor.controller.js";
 import upload, { verifyUploadedFileSignature } from "../middlewares/upload.middleware.js";
 
 const router = express.Router();
@@ -15,6 +15,14 @@ router.post(
   upload.single("profilePicture"),
   verifyUploadedFileSignature,
   uploadProfilePicture,
+);
+
+router.post(
+  "/upload-pmdc-certificate",
+  verifyToken,
+  upload.single("pmdcCertificate"),
+  verifyUploadedFileSignature,
+  uploadPmdcCertificate,
 );
 
 export default router;

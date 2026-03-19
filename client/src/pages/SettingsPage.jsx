@@ -4,7 +4,6 @@ import axiosInstance from "../api/axios";
 import useAuthStore from "../store/authStore";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
 const TITLES = ["Dr.", "Prof.", "Consultant"];
 const GENDERS = ["Male", "Female", "Other"];
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -309,6 +308,8 @@ export default function SettingsPage() {
   });
   const [clinics, setClinics] = useState([]);
   const [hospitals, setHospitals] = useState([]);
+  const [pmdcCertificate, setPmdcCertificate] = useState("");
+  const [isUploadingPmdc, setIsUploadingPmdc] = useState(false);
 
   // ── Load profile on mount
   useEffect(() => {
@@ -336,6 +337,8 @@ export default function SettingsPage() {
         });
         setClinics((d.clinics || []).map((c, i) => ({ ...c, id: c.id || Date.now() + i })));
         setHospitals((d.hospitals || []).map((h, i) => ({ ...h, id: h.id || Date.now() + i })));
+        setPmdcCertificate(d.pmdcCertificate || "");
+        
       } catch {
         toast.error("Failed to load profile");
       } finally {
@@ -395,6 +398,24 @@ export default function SettingsPage() {
       if (!h.address.trim()) { toast.error("Hospital address is required"); return; }
     }
     save({ clinics, hospitals }, "Locations updated!");
+  };
+
+  const handlePmdcUpload = async (file) => {
+    if (!file) return;
+    setIsUploadingPmdc(true);
+    try {
+      const formData = new FormData();
+      formData.append("pmdcCertificate", file);
+      const res = await axiosInstance.post("/doctor/upload-pmdc-certificate", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setPmdcCertificate(res.data.pmdcCertificate);
+      toast.success("PMDC certificate uploaded!");
+    } catch {
+      toast.error("Failed to upload certificate");
+    } finally {
+      setIsUploadingPmdc(false);
+    }
   };
 
   const TABS = [
@@ -657,10 +678,31 @@ export default function SettingsPage() {
             </div>
             <div className="sm:col-span-2">
               <FieldLabel text="PMDC Certificate" optional />
-              <div className="w-full px-4 py-3 rounded-xl text-sm flex items-center gap-2 cursor-not-allowed"
-                style={{ background: "rgba(255,255,255,0.02)", border: "1px dashed rgba(255,255,255,0.08)", color: "#475569" }}>
-                📎 Upload will be available soon (Cloudinary)
-              </div>
+              <input type="file" id="pmdcUpload" accept=".pdf,image/*" className="hidden"
+                onChange={(e) => { handlePmdcUpload(e.target.files[0]); e.target.value = ""; }} />
+              {pmdcCertificate ? (
+                <div className="flex items-center gap-3 px-4 py-3 rounded-xl"
+                  style={{ background: "rgba(16,184,169,0.06)", border: "1px solid rgba(16,184,169,0.2)" }}>
+                  <span style={{ color: "#10B8A9" }}>📎</span>
+                  <span className="text-sm flex-1" style={{ color: "#10B8A9" }}>Certificate uploaded</span>
+                  <a href={pmdcCertificate} target="_blank" rel="noreferrer"
+                    className="text-xs px-3 py-1.5 rounded-lg font-semibold"
+                    style={{ background: "rgba(16,184,169,0.12)", color: "#10B8A9" }}>
+                    View
+                  </a>
+                  <label htmlFor="pmdcUpload"
+                    className="text-xs px-3 py-1.5 rounded-lg font-semibold cursor-pointer"
+                    style={{ background: "rgba(255,255,255,0.07)", color: "#64748b" }}>
+                    {isUploadingPmdc ? "Uploading..." : "Replace"}
+                  </label>
+                </div>
+              ) : (
+                <label htmlFor="pmdcUpload"
+                  className="w-full px-4 py-3 rounded-xl text-sm flex items-center gap-2 cursor-pointer transition-all hover:opacity-80"
+                  style={{ background: "rgba(255,255,255,0.02)", border: "1px dashed rgba(16,184,169,0.3)", color: "#10B8A9" }}>
+                  {isUploadingPmdc ? "⏳ Uploading..." : "📎 Upload PMDC Certificate (PDF or Image)"}
+                </label>
+              )}
             </div>
           </div>
           <SaveButton onClick={saveLicensing} isLoading={isSaving} />
