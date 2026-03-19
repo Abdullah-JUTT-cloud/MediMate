@@ -4,36 +4,24 @@ import axiosInstance from "../api/axios";
 import useAuthStore from "../store/authStore";
 import PrescriptionModal from "./PrescriptionModal";
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+const BLOOD_GROUPS = ["A+","A-","B+","B-","AB+","AB-","O+","O-","Unknown"];
+const GENDERS = ["Male","Female","Other"];
+const FREQUENCIES = ["Once a day","Twice a day","Three times a day","Four times a day","Every 8 hours","Every 12 hours","As needed"];
+const DURATIONS = ["3 days","5 days","7 days","10 days","14 days","1 month","3 months","Ongoing"];
+const PAYMENT_METHODS = ["Cash","Card","Online Transfer"];
 
-const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown"];
-const GENDERS = ["Male", "Female", "Other"];
-const FREQUENCIES = ["Once a day", "Twice a day", "Three times a day", "Four times a day", "Every 8 hours", "Every 12 hours", "As needed"];
-const DURATIONS = ["3 days", "5 days", "7 days", "10 days", "14 days", "1 month", "3 months", "Ongoing"];
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const getInitials = (name) =>
-  name?.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "P";
-
-const formatDate = (date) =>
-  new Date(date).toLocaleDateString("en-PK", { day: "numeric", month: "short", year: "numeric" });
-
+const getInitials = (name) => name?.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "P";
+const formatDate = (date) => new Date(date).toLocaleDateString("en-PK", { day: "numeric", month: "short", year: "numeric" });
 const emptyMedicine = () => ({ name: "", dosage: "", frequency: "", duration: "", instructions: "" });
-
-// ─── Shared Styles ────────────────────────────────────────────────────────────
 
 const S = {
   input: { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "white" },
   card: { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" },
   section: { background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" },
 };
-
 const focusInput = (e) => (e.target.style.border = "1px solid #10B8A9");
 const blurInput = (e) => (e.target.style.border = "1px solid rgba(255,255,255,0.1)");
 const inputCls = "w-full px-4 py-3 rounded-xl text-sm outline-none transition-all";
-
-// ─── Location Tag ─────────────────────────────────────────────────────────────
 
 function LocationTag({ location }) {
   const isClinic = location.locationType === "Clinic";
@@ -49,8 +37,6 @@ function LocationTag({ location }) {
   );
 }
 
-// ─── Back Button ──────────────────────────────────────────────────────────────
-
 function BackButton({ onClick, label = "Back" }) {
   return (
     <button onClick={onClick}
@@ -64,8 +50,6 @@ function BackButton({ onClick, label = "Back" }) {
 function SectionLabel({ text }) {
   return <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: "#475569" }}>{text}</p>;
 }
-
-// ─── Tag Input ────────────────────────────────────────────────────────────────
 
 function TagInput({ value, onChange, onAdd, onRemove, items, placeholder }) {
   return (
@@ -98,52 +82,137 @@ function TagInput({ value, onChange, onAdd, onRemove, items, placeholder }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// NEW CHECKUP FORM
+// CHECKUP FORM
 // ══════════════════════════════════════════════════════════════════════════════
+function CheckupForm({ patient, existingCheckup, onBack, onSaved }) {
+  const isEdit = !!existingCheckup;
 
-function NewCheckupForm({ patient, onBack, onAdded }) {
-  const [diseases, setDiseases] = useState([]);
+  const [diseases, setDiseases] = useState(existingCheckup?.diseases || []);
   const [diseaseInput, setDiseaseInput] = useState("");
-  const [labTests, setLabTests] = useState([]);
+  const [notes, setNotes] = useState(existingCheckup?.notes || "");
+  const [diagnosis, setDiagnosis] = useState(existingCheckup?.prescription?.diagnosis || "");
+  const [nextAppointment, setNextAppointment] = useState(
+    existingCheckup?.prescription?.nextAppointment
+      ? new Date(existingCheckup.prescription.nextAppointment).toISOString().split("T")[0]
+      : ""
+  );
+  const [medicines, setMedicines] = useState(
+    existingCheckup?.prescription?.medicines?.length
+      ? existingCheckup.prescription.medicines
+      : [emptyMedicine()]
+  );
+  const [labTests, setLabTests] = useState(existingCheckup?.prescription?.labTests || []);
   const [labInput, setLabInput] = useState("");
-  const [notes, setNotes] = useState("");
-  const [diagnosis, setDiagnosis] = useState("");
-  const [nextAppointment, setNextAppointment] = useState("");
-  const [medicines, setMedicines] = useState([emptyMedicine()]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [payment, setPayment] = useState(
+    existingCheckup?.payment || { amount: "", method: "Cash", isPaid: false }
+  );
+  const [savedCheckupId, setSavedCheckupId] = useState(existingCheckup?._id || null);
+  const [currentPdfUrl, setCurrentPdfUrl] = useState(existingCheckup?.prescription?.pdfUrl || "");
+  const [prescriptionCheckup, setPrescriptionCheckup] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isAutoSaving, setIsAutoSaving] = useState(false);
+
+  const canGenerate = diagnosis.trim().length > 0 && medicines.some((m) => m.name.trim().length > 0);
 
   const updateMedicine = (i, field, val) =>
     setMedicines((p) => p.map((m, idx) => idx === i ? { ...m, [field]: val } : m));
-
   const addMedicine = () => setMedicines((p) => [...p, emptyMedicine()]);
   const removeMedicine = (i) => {
     if (medicines.length === 1) { toast.error("At least one medicine required"); return; }
     setMedicines((p) => p.filter((_, idx) => idx !== i));
   };
 
-  const handleSubmit = async () => {
+  const buildPayload = () => ({
+    diseases,
+    notes,
+    prescription: {
+      diagnosis,
+      nextAppointment: nextAppointment || undefined,
+      medicines,
+      labTests,
+      pdfUrl: currentPdfUrl,
+    },
+    payment: { amount: Number(payment.amount) || 0, method: payment.method, isPaid: payment.isPaid },
+  });
+
+  const handleGeneratePrescription = async () => {
+    if (!canGenerate) return;
+    if (medicines.some((m) => !m.name.trim() || !m.dosage.trim() || !m.frequency || !m.duration)) {
+      toast.error("Fill all required medicine fields"); return;
+    }
+    setIsAutoSaving(true);
+    try {
+      let checkupId = savedCheckupId;
+      if (!checkupId) {
+        const res = await axiosInstance.post(`/checkups/${patient._id}`, buildPayload());
+        checkupId = res.data.checkup._id;
+        setSavedCheckupId(checkupId);
+      } else {
+        await axiosInstance.put(`/checkups/${checkupId}`, buildPayload());
+      }
+      // Pass current state labTests directly — this is key
+      const tempCheckup = {
+        _id: checkupId,
+        createdAt: existingCheckup?.createdAt || new Date().toISOString(),
+        prescription: {
+          diagnosis,
+          nextAppointment: nextAppointment || undefined,
+          medicines: [...medicines],
+          labTests: [...labTests],
+          pdfUrl: currentPdfUrl,
+        },
+        notes,
+      };
+      setPrescriptionCheckup(tempCheckup);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to auto-save checkup");
+    } finally {
+      setIsAutoSaving(false);
+    }
+  };
+
+  const handleSave = async () => {
     if (!diagnosis.trim()) { toast.error("Diagnosis is required"); return; }
     if (medicines.some((m) => !m.name.trim() || !m.dosage.trim() || !m.frequency || !m.duration)) {
       toast.error("Fill all required medicine fields"); return;
     }
-    setIsLoading(true);
+    if (!payment.amount) { toast.error("Payment amount is required"); return; }
+    setIsSaving(true);
     try {
-      const res = await axiosInstance.post(`/checkups/${patient._id}`, {
-        diseases, notes,
-        prescription: { diagnosis, nextAppointment: nextAppointment || undefined, medicines, labTests },
-      });
-      toast.success("Checkup saved!");
-      onAdded(res.data.checkup);
+      let res;
+      const id = savedCheckupId;
+      if (id) {
+        res = await axiosInstance.put(`/checkups/${id}`, buildPayload());
+      } else {
+        res = await axiosInstance.post(`/checkups/${patient._id}`, buildPayload());
+      }
+      toast.success(isEdit ? "Checkup updated!" : "Checkup saved!");
+      onSaved(res.data.checkup);
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to save checkup");
+      toast.error(err.response?.data?.message || "Failed to save");
     } finally {
-      setIsLoading(false);
+      setIsSaving(false);
     }
   };
 
   return (
     <div className="max-w-2xl mx-auto px-1">
+      {prescriptionCheckup && (
+        <PrescriptionModal
+          checkup={prescriptionCheckup}
+          patient={patient}
+          onClose={() => setPrescriptionCheckup(null)}
+          onSaved={(url) => {
+            setCurrentPdfUrl(url);
+            setPrescriptionCheckup((prev) =>
+              prev ? { ...prev, prescription: { ...prev.prescription, pdfUrl: url } } : null
+            );
+          }}
+        />
+      )}
+
       <BackButton onClick={onBack} label={`Back to ${patient.name}`} />
+
       <div className="flex items-center gap-3 mb-6 px-4 py-3 rounded-2xl" style={S.card}>
         <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
           style={{ background: "linear-gradient(135deg,#10B8A9,#0d9488)" }}>
@@ -154,13 +223,12 @@ function NewCheckupForm({ patient, onBack, onAdded }) {
           <p className="text-xs" style={{ color: "#64748b" }}>{patient.age} yrs · {patient.gender}</p>
         </div>
         <div className="ml-auto text-right">
-          <p className="text-xs font-semibold" style={{ color: "#10B8A9" }}>New Checkup</p>
+          <p className="text-xs font-semibold" style={{ color: "#10B8A9" }}>{isEdit ? "Edit Checkup" : "New Checkup"}</p>
           <p className="text-xs" style={{ color: "#64748b" }}>{formatDate(new Date())}</p>
         </div>
       </div>
 
       <div className="space-y-4">
-        {/* Diseases */}
         <div className="rounded-2xl p-5" style={S.card}>
           <SectionLabel text="Diseases This Visit" />
           <TagInput value={diseaseInput} onChange={setDiseaseInput}
@@ -169,16 +237,14 @@ function NewCheckupForm({ patient, onBack, onAdded }) {
             items={diseases} placeholder="e.g. Hypertension" />
         </div>
 
-        {/* Notes */}
         <div className="rounded-2xl p-5" style={S.card}>
-          <SectionLabel text="Visit Notes" />
+          <SectionLabel text="Visit Notes (Doctor Only)" />
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
-            placeholder="General notes about this visit..." rows={3}
-            className="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
+            placeholder="Internal notes — not shown on prescription..."
+            rows={3} className="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
             style={S.input} onFocus={focusInput} onBlur={blurInput} />
         </div>
 
-        {/* Prescription */}
         <div className="rounded-2xl p-5" style={S.card}>
           <SectionLabel text="Prescription" />
           <div className="space-y-4">
@@ -209,8 +275,8 @@ function NewCheckupForm({ patient, onBack, onAdded }) {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {[
-                        { label: "Name *", field: "name", placeholder: "e.g. Paracetamol", type: "text" },
-                        { label: "Dosage *", field: "dosage", placeholder: "e.g. 500mg", type: "text" },
+                        { label: "Name *", field: "name", placeholder: "e.g. Paracetamol" },
+                        { label: "Dosage *", field: "dosage", placeholder: "e.g. 500mg" },
                       ].map(({ label, field, placeholder }) => (
                         <div key={field}>
                           <label className="block text-xs mb-1" style={{ color: "#64748b" }}>{label}</label>
@@ -258,13 +324,69 @@ function NewCheckupForm({ patient, onBack, onAdded }) {
                 onRemove={(i) => setLabTests((p) => p.filter((_, idx) => idx !== i))}
                 items={labTests} placeholder="e.g. CBC, Blood Sugar" />
             </div>
+            <button onClick={handleGeneratePrescription}
+              disabled={isAutoSaving || !canGenerate}
+              className="w-full py-3 rounded-xl text-sm font-bold transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{
+                background: canGenerate ? "rgba(16,184,169,0.15)" : "rgba(255,255,255,0.04)",
+                border: canGenerate ? "1px solid rgba(16,184,169,0.3)" : "1px solid rgba(255,255,255,0.07)",
+                color: canGenerate ? "#10B8A9" : "#475569",
+              }}>
+              {isAutoSaving ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 rounded-full border-2 animate-spin inline-block"
+                    style={{ borderColor: "#10B8A9", borderTopColor: "transparent" }} />
+                  Saving...
+                </span>
+              ) : currentPdfUrl ? "📋 Regenerate Prescription" : "📋 Generate Prescription"}
+            </button>
           </div>
         </div>
 
-        <button onClick={handleSubmit} disabled={isLoading}
+        <div className="rounded-2xl p-5" style={S.card}>
+          <SectionLabel text="Payment" />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>Amount (PKR) *</label>
+              <input type="number" value={payment.amount}
+                onChange={(e) => setPayment((p) => ({ ...p, amount: e.target.value }))}
+                placeholder="e.g. 1500" className={inputCls} style={S.input}
+                onFocus={focusInput} onBlur={blurInput} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>Method</label>
+              <div className="flex gap-2">
+                {PAYMENT_METHODS.map((m) => (
+                  <button key={m} onClick={() => setPayment((p) => ({ ...p, method: m }))}
+                    className="flex-1 py-3 rounded-xl text-xs font-semibold transition-all"
+                    style={{
+                      background: payment.method === m ? "rgba(16,184,169,0.15)" : "rgba(255,255,255,0.04)",
+                      border: payment.method === m ? "1px solid #10B8A9" : "1px solid rgba(255,255,255,0.07)",
+                      color: payment.method === m ? "#10B8A9" : "#64748b",
+                    }}>
+                    {m}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-end">
+              <button onClick={() => setPayment((p) => ({ ...p, isPaid: !p.isPaid }))}
+                className="w-full py-3 rounded-xl text-xs font-semibold transition-all"
+                style={{
+                  background: payment.isPaid ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.04)",
+                  border: payment.isPaid ? "1px solid #22c55e" : "1px solid rgba(255,255,255,0.07)",
+                  color: payment.isPaid ? "#22c55e" : "#64748b",
+                }}>
+                {payment.isPaid ? "✓ Paid" : "Unpaid"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <button onClick={handleSave} disabled={isSaving}
           className="w-full py-4 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
           style={{ background: "linear-gradient(135deg,#10B8A9,#0d9488)", boxShadow: "0 4px 20px rgba(16,184,169,0.3)" }}>
-          {isLoading ? "Saving..." : "Save Checkup ✓"}
+          {isSaving ? "Saving..." : isEdit ? "Update Checkup ✓" : "Save Checkup ✓"}
         </button>
       </div>
     </div>
@@ -274,92 +396,169 @@ function NewCheckupForm({ patient, onBack, onAdded }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // PATIENT DETAIL PAGE
 // ══════════════════════════════════════════════════════════════════════════════
-
-function PatientDetailPage({ patient, onBack, onNewCheckup }) {
+function PatientDetailPage({ patient: initialPatient, onBack, onNewCheckup, onEditCheckup, refreshTrigger }) {
+  const [patient, setPatient] = useState(initialPatient);
   const [checkups, setCheckups] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [prescriptionCheckup, setPrescriptionCheckup] = useState(null);
+  const [isEditingPatient, setIsEditingPatient] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: initialPatient.name, age: initialPatient.age, gender: initialPatient.gender,
+    phone: initialPatient.phone, bloodGroup: initialPatient.bloodGroup,
+    medicalHistory: initialPatient.medicalHistory || [],
+  });
+  const [isSavingPatient, setIsSavingPatient] = useState(false);
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchCheckups = async () => {
+      setIsLoading(true);
       try {
         const res = await axiosInstance.get(`/checkups/${patient._id}`);
         setCheckups(res.data.checkups);
-      } catch {
-        toast.error("Failed to load checkups");
-      } finally {
-        setIsLoading(false);
-      }
+      } catch { toast.error("Failed to load checkups"); }
+      finally { setIsLoading(false); }
     };
-    fetch();
-  }, [patient._id]);
+    fetchCheckups();
+  }, [patient._id, refreshTrigger]);
 
-  const handleDelete = async (checkupId) => {
+  const handleSavePatient = async () => {
+    setIsSavingPatient(true);
+    try {
+      const res = await axiosInstance.put(`/patients/${patient._id}`, editForm);
+      setPatient(res.data.patient);
+      toast.success("Patient updated!");
+      setIsEditingPatient(false);
+    } catch { toast.error("Failed to update patient"); }
+    finally { setIsSavingPatient(false); }
+  };
+
+  const handleDeleteCheckup = async (checkupId) => {
     if (!window.confirm("Delete this checkup?")) return;
     try {
       await axiosInstance.delete(`/checkups/${checkupId}`);
       setCheckups((p) => p.filter((c) => c._id !== checkupId));
       toast.success("Checkup deleted");
-    } catch {
-      toast.error("Failed to delete");
-    }
+    } catch { toast.error("Failed to delete"); }
   };
 
   return (
     <div className="max-w-3xl mx-auto px-1">
+      {prescriptionCheckup && (
+        <PrescriptionModal
+          checkup={prescriptionCheckup}
+          patient={patient}
+          onClose={() => setPrescriptionCheckup(null)}
+          onSaved={(url) => {
+            setCheckups((prev) => prev.map((c) =>
+              c._id === prescriptionCheckup._id
+                ? { ...c, prescription: { ...c.prescription, pdfUrl: url } }
+                : c
+            ));
+          }}
+        />
+      )}
+
       <BackButton onClick={onBack} label="Back to Patients" />
 
       {/* Patient Header */}
-      <div className="rounded-2xl p-5 sm:p-6 mb-5" style={S.card}>
-        <div className="flex items-start gap-4 mb-5">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-bold text-white flex-shrink-0"
-            style={{ background: "linear-gradient(135deg,#10B8A9,#0d9488)" }}>
-            {getInitials(patient.name)}
+      {isEditingPatient ? (
+        <div className="rounded-2xl p-5 sm:p-6 mb-5" style={S.card}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold text-white">Edit Patient Info</h3>
+            <button onClick={() => setIsEditingPatient(false)}
+              className="text-xs px-3 py-1.5 rounded-lg" style={{ color: "#64748b" }}>Cancel</button>
           </div>
-          <div className="flex-1 min-w-0">
-            <h2 className="text-xl font-bold text-white">{patient.name}</h2>
-            <p className="text-sm mt-0.5" style={{ color: "#64748b" }}>
-              {patient.age} yrs · {patient.gender} · {patient.bloodGroup}
-            </p>
-            {/* Location tags */}
-            {patient.locations?.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {patient.locations.map((loc, i) => <LocationTag key={i} location={loc} />)}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            {[
+              { name: "name", label: "Full Name", placeholder: "Ahmed Raza" },
+              { name: "age", label: "Age", placeholder: "34", type: "number" },
+              { name: "phone", label: "Phone", placeholder: "03001234567" },
+            ].map(({ name, label, placeholder, type }) => (
+              <div key={name}>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>{label}</label>
+                <input type={type || "text"} value={editForm[name]}
+                  onChange={(e) => setEditForm((p) => ({ ...p, [name]: e.target.value }))}
+                  placeholder={placeholder} className={inputCls} style={S.input}
+                  onFocus={focusInput} onBlur={blurInput} />
               </div>
-            )}
+            ))}
+            <div>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>Gender</label>
+              <select value={editForm.gender} onChange={(e) => setEditForm((p) => ({ ...p, gender: e.target.value }))}
+                className={inputCls} style={S.input} onFocus={focusInput} onBlur={blurInput}>
+                {GENDERS.map((g) => <option key={g} value={g} style={{ background: "#0a1628" }}>{g}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>Blood Group</label>
+              <select value={editForm.bloodGroup} onChange={(e) => setEditForm((p) => ({ ...p, bloodGroup: e.target.value }))}
+                className={inputCls} style={S.input} onFocus={focusInput} onBlur={blurInput}>
+                {BLOOD_GROUPS.map((b) => <option key={b} value={b} style={{ background: "#0a1628" }}>{b}</option>)}
+              </select>
+            </div>
           </div>
-          <button onClick={onNewCheckup}
-            className="flex-shrink-0 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-white transition-all hover:opacity-90 hover:scale-105"
-            style={{ background: "linear-gradient(135deg,#10B8A9,#0d9488)", boxShadow: "0 4px 15px rgba(16,184,169,0.3)" }}>
-            + New Checkup
+          <button onClick={handleSavePatient} disabled={isSavingPatient}
+            className="w-full py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-50"
+            style={{ background: "linear-gradient(135deg,#10B8A9,#0d9488)" }}>
+            {isSavingPatient ? "Saving..." : "Save Changes ✓"}
           </button>
         </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {[
-            { label: "Phone", value: patient.phone },
-            { label: "Blood Group", value: patient.bloodGroup },
-            { label: "Patient Since", value: formatDate(patient.createdAt) },
-          ].map(({ label, value }) => (
-            <div key={label} className="p-3 rounded-xl" style={S.section}>
-              <p className="text-xs mb-1" style={{ color: "#64748b" }}>{label}</p>
-              <p className="text-sm font-semibold text-white">{value}</p>
+      ) : (
+        <div className="rounded-2xl p-5 sm:p-6 mb-5" style={S.card}>
+          <div className="flex items-start gap-4 mb-5">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-bold text-white flex-shrink-0"
+              style={{ background: "linear-gradient(135deg,#10B8A9,#0d9488)" }}>
+              {getInitials(patient.name)}
             </div>
-          ))}
-        </div>
-
-        {patient.medicalHistory?.length > 0 && (
-          <div className="mt-4 p-4 rounded-xl" style={S.section}>
-            <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: "#475569" }}>Medical History</p>
-            <div className="flex flex-wrap gap-2">
-              {patient.medicalHistory.map((h, i) => (
-                <span key={i} className="text-xs px-2.5 py-1 rounded-lg"
-                  style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}>{h}</span>
-              ))}
+            <div className="flex-1 min-w-0">
+              <h2 className="text-xl font-bold text-white">{patient.name}</h2>
+              <p className="text-sm mt-0.5" style={{ color: "#64748b" }}>
+                {patient.age} yrs · {patient.gender} · {patient.bloodGroup}
+              </p>
+              {patient.locations?.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {patient.locations.map((loc, i) => <LocationTag key={i} location={loc} />)}
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2 flex-shrink-0">
+              <button onClick={() => setIsEditingPatient(true)}
+                className="px-3 py-2 rounded-xl text-xs font-bold transition-all hover:opacity-80"
+                style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.1)", color: "#94a3b8" }}>
+                ✏️ Edit
+              </button>
+              <button onClick={onNewCheckup}
+                className="px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-white transition-all hover:opacity-90"
+                style={{ background: "linear-gradient(135deg,#10B8A9,#0d9488)", boxShadow: "0 4px 15px rgba(16,184,169,0.3)" }}>
+                + New Checkup
+              </button>
             </div>
           </div>
-        )}
-      </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {[
+              { label: "Phone", value: patient.phone },
+              { label: "Blood Group", value: patient.bloodGroup },
+              { label: "Patient Since", value: formatDate(patient.createdAt) },
+            ].map(({ label, value }) => (
+              <div key={label} className="p-3 rounded-xl" style={S.section}>
+                <p className="text-xs mb-1" style={{ color: "#64748b" }}>{label}</p>
+                <p className="text-sm font-semibold text-white">{value}</p>
+              </div>
+            ))}
+          </div>
+          {patient.medicalHistory?.length > 0 && (
+            <div className="mt-4 p-4 rounded-xl" style={S.section}>
+              <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: "#475569" }}>Medical History</p>
+              <div className="flex flex-wrap gap-2">
+                {patient.medicalHistory.map((h, i) => (
+                  <span key={i} className="text-xs px-2.5 py-1 rounded-lg"
+                    style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}>{h}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Checkup History */}
       <div className="flex items-center justify-between mb-4">
@@ -389,82 +588,124 @@ function PatientDetailPage({ patient, onBack, onNewCheckup }) {
       <div className="space-y-4">
         {checkups.map((checkup, idx) => (
           <div key={checkup._id} className="rounded-2xl overflow-hidden" style={S.card}>
-            <div className="flex items-center justify-between px-5 py-4"
+
+            {/* ── Card Header: date + badges */}
+            <div className="flex items-center justify-between px-5 py-3"
               style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0"
-                  style={{ background: "rgba(16,184,169,0.1)" }}>🩺</div>
-                <div>
-                  <p className="text-sm font-bold text-white">{checkup.prescription?.diagnosis || "No diagnosis"}</p>
-                  <p className="text-xs" style={{ color: "#64748b" }}>{formatDate(checkup.createdAt)}</p>
-                </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold" style={{ color: "#64748b" }}>
+                  {formatDate(checkup.createdAt)}
+                </span>
+                {idx === 0 && (
+                  <span className="text-xs px-2 py-0.5 rounded-full font-bold"
+                    style={{ background: "rgba(34,197,94,0.12)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.2)" }}>
+                    Latest
+                  </span>
+                )}
               </div>
-              {idx === 0 && (
-                <span className="text-xs px-2.5 py-1 rounded-full font-semibold hidden sm:block"
-                  style={{ background: "rgba(34,197,94,0.1)", color: "#22c55e" }}>Latest</span>
+              {checkup.payment && (
+                <span className="text-xs px-2.5 py-1 rounded-full font-semibold"
+                  style={{
+                    background: checkup.payment.isPaid ? "rgba(34,197,94,0.1)" : "rgba(245,158,11,0.1)",
+                    color: checkup.payment.isPaid ? "#22c55e" : "#f59e0b",
+                  }}>
+                  {checkup.payment.isPaid ? "✓ Paid" : "Unpaid"} · PKR {checkup.payment.amount}
+                </span>
               )}
             </div>
 
-            <div className="px-5 py-4 space-y-4">
-              {checkup.diseases?.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs font-bold uppercase tracking-wide" style={{ color: "#475569" }}>Diseases:</span>
-                  {checkup.diseases.map((d, i) => (
-                    <span key={i} className="text-xs px-2.5 py-1 rounded-full font-medium"
-                      style={{ background: "rgba(239,68,68,0.1)", color: "#f87171", border: "1px solid rgba(239,68,68,0.15)" }}>
-                      {d}
-                    </span>
-                  ))}
-                </div>
-              )}
+            <div className="px-5 py-4 space-y-3">
 
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wide" style={{ color: "#475569" }}>Last Checkup:</span>
-                <span className="text-xs font-semibold" style={{ color: "#94a3b8" }}>{formatDate(checkup.createdAt)}</span>
-              </div>
-
-              {checkup.notes && (
-                <div className="p-3 rounded-xl" style={S.section}>
-                  <p className="text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: "#475569" }}>Notes</p>
-                  <p className="text-sm" style={{ color: "#94a3b8" }}>{checkup.notes}</p>
-                </div>
-              )}
-
-              {checkup.prescription?.medicines?.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-2.5">
-                    <p className="text-xs font-bold uppercase tracking-wide" style={{ color: "#475569" }}>Prescription</p>
-                    <button onClick={() => setPrescriptionCheckup(checkup)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all hover:opacity-90"
-                      style={{ background: "#10B8A9" }}>
-                      📋 {checkup.prescription.pdfUrl ? "View PDF" : "Generate PDF"}
-                    </button>
+              {/* ── PDF Thumbnail */}
+              {checkup.prescription?.pdfUrl ? (
+                <div className="cursor-pointer rounded-xl transition-all hover:opacity-90"
+                  style={{ background: "rgba(16,184,169,0.06)", border: "1px solid rgba(16,184,169,0.2)" }}
+                  onClick={() => setPrescriptionCheckup(checkup)}>
+                  <div className="flex items-center gap-3 p-3">
+                    {/* Mini PDF preview icon */}
+                    <div className="w-10 h-14 rounded-lg flex-shrink-0 flex flex-col overflow-hidden"
+                      style={{ background: "white", border: "1px solid #e2e8f0" }}>
+                      <div className="h-2 w-full" style={{ background: "#10B8A9" }} />
+                      <div className="flex-1 flex flex-col justify-center px-1 gap-0.5">
+                        <div className="h-0.5 rounded" style={{ background: "#e2e8f0" }} />
+                        <div className="h-0.5 rounded w-3/4" style={{ background: "#e2e8f0" }} />
+                        <div className="h-0.5 rounded" style={{ background: "#10B8A9", opacity: 0.5 }} />
+                        <div className="h-0.5 rounded w-4/5" style={{ background: "#e2e8f0" }} />
+                        <div className="h-0.5 rounded w-3/4" style={{ background: "#e2e8f0" }} />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-bold text-white">Prescription PDF</p>
+                      <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>
+                        {checkup.prescription.diagnosis}
+                      </p>
+                      <p className="text-xs mt-0.5" style={{ color: "#10B8A9" }}>
+                        {checkup.prescription.medicines?.length || 0} medicine{checkup.prescription.medicines?.length !== 1 ? "s" : ""}
+                        {checkup.prescription.labTests?.length > 0 && ` · ${checkup.prescription.labTests.length} lab test${checkup.prescription.labTests.length !== 1 ? "s" : ""}`}
+                      </p>
+                    </div>
+                    <span className="text-xs font-semibold flex-shrink-0" style={{ color: "#10B8A9" }}>View →</span>
                   </div>
+                </div>
+              ) : checkup.prescription?.medicines?.length > 0 ? (
+                <button onClick={() => setPrescriptionCheckup(checkup)}
+                  className="w-full py-2.5 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
+                  style={{ background: "rgba(16,184,169,0.06)", border: "1px dashed rgba(16,184,169,0.3)", color: "#10B8A9" }}>
+                  📋 Generate Prescription PDF
+                </button>
+              ) : null}
+
+              {/* ── Medicines */}
+              {checkup.prescription?.medicines?.length > 0 && (
+                <div className="p-3 rounded-xl" style={S.section}>
+                  <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: "#475569" }}>Medicines</p>
                   <div className="space-y-2">
                     {checkup.prescription.medicines.map((med, i) => (
-                      <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-xl" style={S.section}>
-                        <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
-                          style={{ background: "rgba(16,184,169,0.15)", color: "#10B8A9" }}>{i + 1}</div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-white">
-                            {med.name}<span className="font-normal ml-2" style={{ color: "#64748b" }}>— {med.dosage}</span>
-                          </p>
-                          <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>
-                            {med.frequency} · {med.duration}{med.instructions && ` · ${med.instructions}`}
-                          </p>
-                        </div>
+                      <div key={i} className="flex flex-wrap items-center gap-2 p-2.5 rounded-lg"
+                        style={{ background: "rgba(16,184,169,0.04)", border: "1px solid rgba(16,184,169,0.1)" }}>
+                        <span className="text-xs font-bold px-1.5 py-0.5 rounded"
+                          style={{ background: "rgba(16,184,169,0.12)", color: "#10B8A9" }}>💊</span>
+                        <span className="text-sm font-semibold text-white">{med.name}</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full"
+                          style={{ background: "rgba(255,255,255,0.06)", color: "#94a3b8" }}>{med.dosage}</span>
+                        <span className="text-xs" style={{ color: "#64748b" }}>·</span>
+                        <span className="text-xs" style={{ color: "#94a3b8" }}>{med.frequency}</span>
+                        <span className="text-xs" style={{ color: "#64748b" }}>·</span>
+                        <span className="text-xs" style={{ color: "#94a3b8" }}>{med.duration}</span>
+                        {med.instructions && (
+                          <>
+                            <span className="text-xs" style={{ color: "#64748b" }}>·</span>
+                            <span className="text-xs italic" style={{ color: "#64748b" }}>{med.instructions}</span>
+                          </>
+                        )}
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
+              {/* ── Diseases */}
+              {checkup.diseases?.length > 0 && (
+                <div className="p-3 rounded-xl" style={S.section}>
+                  <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: "#475569" }}>Diseases</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {checkup.diseases.map((d, i) => (
+                      <span key={i} className="text-xs px-2.5 py-1 rounded-full font-medium"
+                        style={{ background: "rgba(239,68,68,0.1)", color: "#f87171", border: "1px solid rgba(239,68,68,0.15)" }}>
+                        {d}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Lab Tests */}
               {checkup.prescription?.labTests?.length > 0 && (
-                <div>
+                <div className="p-3 rounded-xl" style={S.section}>
                   <p className="text-xs font-bold uppercase tracking-wide mb-2" style={{ color: "#475569" }}>Lab Tests</p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5">
                     {checkup.prescription.labTests.map((t, i) => (
-                      <span key={i} className="text-xs px-3 py-1.5 rounded-full font-medium"
+                      <span key={i} className="text-xs px-2.5 py-1 rounded-full font-medium"
                         style={{ background: "rgba(167,139,250,0.1)", color: "#a78bfa", border: "1px solid rgba(167,139,250,0.2)" }}>
                         🧪 {t}
                       </span>
@@ -473,41 +714,31 @@ function PatientDetailPage({ patient, onBack, onNewCheckup }) {
                 </div>
               )}
 
-              {checkup.prescription?.nextAppointment && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl w-fit"
-                  style={{ background: "rgba(16,184,169,0.08)", border: "1px solid rgba(16,184,169,0.15)" }}>
-                  <span>📅</span>
-                  <span className="text-xs font-semibold" style={{ color: "#10B8A9" }}>
-                    Next appointment: {formatDate(checkup.prescription.nextAppointment)}
-                  </span>
+              {/* ── Notes */}
+              {checkup.notes && (
+                <div className="p-3 rounded-xl" style={S.section}>
+                  <p className="text-xs font-bold uppercase tracking-wide mb-1.5" style={{ color: "#475569" }}>Notes (Doctor Only)</p>
+                  <p className="text-sm" style={{ color: "#94a3b8" }}>{checkup.notes}</p>
                 </div>
               )}
 
-              <div className="flex justify-end pt-1">
-                <button onClick={() => handleDelete(checkup._id)}
+              {/* ── Actions */}
+              <div className="flex items-center justify-between pt-1">
+                <button onClick={() => onEditCheckup(checkup)}
+                  className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl transition-all hover:bg-white hover:bg-opacity-5"
+                  style={{ color: "#10B8A9", border: "1px solid rgba(16,184,169,0.2)" }}>
+                  ✏️ Edit Checkup
+                </button>
+                <button onClick={() => handleDeleteCheckup(checkup._id)}
                   className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl transition-all hover:bg-red-500 hover:bg-opacity-10"
                   style={{ color: "#ef4444", border: "1px solid rgba(239,68,68,0.15)" }}>
-                  🗑 Delete Checkup
+                  🗑 Delete
                 </button>
               </div>
             </div>
           </div>
         ))}
       </div>
-      {prescriptionCheckup && (
-        <PrescriptionModal
-          checkup={prescriptionCheckup}
-          patient={patient}
-          onClose={() => setPrescriptionCheckup(null)}
-          onSaved={(url) => {
-            setCheckups((prev) => prev.map((c) =>
-              c._id === prescriptionCheckup._id
-                ? { ...c, prescription: { ...c.prescription, pdfUrl: url } }
-                : c
-            ));
-          }}
-        />
-      )}
     </div>
   );
 }
@@ -515,17 +746,13 @@ function PatientDetailPage({ patient, onBack, onNewCheckup }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // ADD PATIENT FORM
 // ══════════════════════════════════════════════════════════════════════════════
-
 function AddPatientForm({ onBack, onAdded }) {
   const { doctor } = useAuthStore();
-  const [form, setForm] = useState({
-    name: "", age: "", gender: "", phone: "", bloodGroup: "Unknown", medicalHistory: [],
-  });
+  const [form, setForm] = useState({ name: "", age: "", gender: "", phone: "", bloodGroup: "Unknown", medicalHistory: [] });
   const [historyInput, setHistoryInput] = useState("");
   const [selectedLocations, setSelectedLocations] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Build all available locations from doctor profile
   const allLocations = [
     ...(doctor?.clinics || []).map((c, i) => ({ locationType: "Clinic", locationId: c._id || `clinic_${i}`, locationName: c.name })),
     ...(doctor?.hospitals || []).map((h, i) => ({ locationType: "Hospital", locationId: h._id || `hospital_${i}`, locationName: h.name })),
@@ -533,16 +760,8 @@ function AddPatientForm({ onBack, onAdded }) {
 
   const toggleLocation = (loc) => {
     const exists = selectedLocations.find((l) => l.locationId === loc.locationId);
-    if (exists) {
-      setSelectedLocations((p) => p.filter((l) => l.locationId !== loc.locationId));
-    } else {
-      setSelectedLocations((p) => [...p, loc]);
-    }
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((p) => ({ ...p, [name]: value }));
+    if (exists) setSelectedLocations((p) => p.filter((l) => l.locationId !== loc.locationId));
+    else setSelectedLocations((p) => [...p, loc]);
   };
 
   const handleSubmit = async () => {
@@ -551,7 +770,6 @@ function AddPatientForm({ onBack, onAdded }) {
     if (!form.gender) { toast.error("Gender is required"); return; }
     if (!form.phone.trim()) { toast.error("Phone is required"); return; }
     if (selectedLocations.length === 0) { toast.error("Select at least one location"); return; }
-
     setIsLoading(true);
     try {
       const res = await axiosInstance.post("/patients", { ...form, locations: selectedLocations });
@@ -559,17 +777,13 @@ function AddPatientForm({ onBack, onAdded }) {
       onAdded(res.data.patient);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to add patient");
-    } finally {
-      setIsLoading(false);
-    }
+    } finally { setIsLoading(false); }
   };
 
   return (
     <div className="max-w-2xl mx-auto px-1">
       <BackButton onClick={onBack} label="Back to Patients" />
       <div className="rounded-2xl p-5 sm:p-6 space-y-5" style={S.card}>
-
-        {/* Basic Info */}
         <div>
           <SectionLabel text="Basic Information" />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -580,14 +794,15 @@ function AddPatientForm({ onBack, onAdded }) {
             ].map(({ name, label, placeholder, type }) => (
               <div key={name}>
                 <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>{label}</label>
-                <input name={name} type={type} value={form[name]} onChange={handleChange}
+                <input name={name} type={type} value={form[name]}
+                  onChange={(e) => setForm((p) => ({ ...p, [name]: e.target.value }))}
                   placeholder={placeholder} className={inputCls} style={S.input}
                   onFocus={focusInput} onBlur={blurInput} />
               </div>
             ))}
             <div>
               <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>Gender *</label>
-              <select name="gender" value={form.gender} onChange={handleChange}
+              <select value={form.gender} onChange={(e) => setForm((p) => ({ ...p, gender: e.target.value }))}
                 className={inputCls} style={S.input} onFocus={focusInput} onBlur={blurInput}>
                 <option value="" style={{ background: "#0a1628" }}>Select gender</option>
                 {GENDERS.map((g) => <option key={g} value={g} style={{ background: "#0a1628" }}>{g}</option>)}
@@ -595,15 +810,13 @@ function AddPatientForm({ onBack, onAdded }) {
             </div>
             <div>
               <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>Blood Group</label>
-              <select name="bloodGroup" value={form.bloodGroup} onChange={handleChange}
+              <select value={form.bloodGroup} onChange={(e) => setForm((p) => ({ ...p, bloodGroup: e.target.value }))}
                 className={inputCls} style={S.input} onFocus={focusInput} onBlur={blurInput}>
                 {BLOOD_GROUPS.map((b) => <option key={b} value={b} style={{ background: "#0a1628" }}>{b}</option>)}
               </select>
             </div>
           </div>
         </div>
-
-        {/* Medical History */}
         <div>
           <SectionLabel text="Medical History" />
           <TagInput value={historyInput} onChange={setHistoryInput}
@@ -611,8 +824,6 @@ function AddPatientForm({ onBack, onAdded }) {
             onRemove={(i) => setForm((p) => ({ ...p, medicalHistory: p.medicalHistory.filter((_, idx) => idx !== i) }))}
             items={form.medicalHistory} placeholder="e.g. Appendix surgery 2019" />
         </div>
-
-        {/* Location Selection */}
         <div>
           <SectionLabel text="Patient Location *" />
           {allLocations.length === 0 ? (
@@ -634,21 +845,21 @@ function AddPatientForm({ onBack, onAdded }) {
                     }}>
                     <span className="text-lg">{isClinic ? "🏥" : "🏨"}</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate" style={{ color: selected ? isClinic ? "#10B8A9" : "#38bdf8" : "white" }}>
+                      <p className="text-sm font-semibold truncate"
+                        style={{ color: selected ? isClinic ? "#10B8A9" : "#38bdf8" : "white" }}>
                         {loc.locationName}
                       </p>
                       <p className="text-xs" style={{ color: "#64748b" }}>{loc.locationType}</p>
                     </div>
-                    {selected && <span className="text-sm" style={{ color: isClinic ? "#10B8A9" : "#38bdf8" }}>✓</span>}
+                    {selected && <span style={{ color: isClinic ? "#10B8A9" : "#38bdf8" }}>✓</span>}
                   </button>
                 );
               })}
             </div>
           )}
         </div>
-
         <button onClick={handleSubmit} disabled={isLoading}
-          className="w-full py-4 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+          className="w-full py-4 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 hover:scale-105 disabled:opacity-50"
           style={{ background: "linear-gradient(135deg,#10B8A9,#0d9488)", boxShadow: "0 4px 20px rgba(16,184,169,0.3)" }}>
           {isLoading ? "Adding..." : "Add Patient ✓"}
         </button>
@@ -660,24 +871,22 @@ function AddPatientForm({ onBack, onAdded }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // PATIENTS LIST
 // ══════════════════════════════════════════════════════════════════════════════
-
 export default function PatientsPage() {
   const [view, setView] = useState("list");
   const [patients, setPatients] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activePatient, setActivePatient] = useState(null);
+  const [editingCheckup, setEditingCheckup] = useState(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const fetchPatients = async (q = "") => {
     setIsLoading(true);
     try {
       const res = await axiosInstance.get(`/patients${q ? `?search=${q}` : ""}`);
       setPatients(res.data.patients);
-    } catch {
-      toast.error("Failed to load patients");
-    } finally {
-      setIsLoading(false);
-    }
+    } catch { toast.error("Failed to load patients"); }
+    finally { setIsLoading(false); }
   };
 
   useEffect(() => { fetchPatients(); }, []);
@@ -691,34 +900,45 @@ export default function PatientsPage() {
       const res = await axiosInstance.get(`/patients/${patient._id}`);
       setActivePatient(res.data.patient);
       setView("detail");
-    } catch {
-      toast.error("Failed to load patient");
-    }
+    } catch { toast.error("Failed to load patient"); }
   };
 
-  const handleDelete = async (id, e) => {
+  const handleDeletePatient = async (id, e) => {
     e.stopPropagation();
     if (!window.confirm("Delete this patient?")) return;
     try {
       await axiosInstance.delete(`/patients/${id}`);
       setPatients((p) => p.filter((pt) => pt._id !== id));
       toast.success("Patient deleted");
-    } catch {
-      toast.error("Failed to delete");
-    }
+    } catch { toast.error("Failed to delete"); }
   };
 
-  if (view === "add") return <AddPatientForm onBack={() => setView("list")} onAdded={(p) => { setPatients((prev) => [p, ...prev]); setView("list"); }} />;
-  if (view === "detail" && activePatient) return (
-    <PatientDetailPage patient={activePatient} onBack={() => setView("list")} onNewCheckup={() => setView("checkup")} />
+  if (view === "add") return (
+    <AddPatientForm onBack={() => setView("list")}
+      onAdded={(p) => { setPatients((prev) => [p, ...prev]); setView("list"); }} />
   );
+
+  if (view === "detail" && activePatient) return (
+    <PatientDetailPage
+      patient={activePatient}
+      onBack={() => setView("list")}
+      onNewCheckup={() => { setEditingCheckup(null); setView("checkup"); }}
+      onEditCheckup={(checkup) => { setEditingCheckup(checkup); setView("checkup"); }}
+      refreshTrigger={refreshTrigger}
+    />
+  );
+
   if (view === "checkup" && activePatient) return (
-    <NewCheckupForm patient={activePatient} onBack={() => setView("detail")} onAdded={() => setView("detail")} />
+    <CheckupForm
+      patient={activePatient}
+      existingCheckup={editingCheckup}
+      onBack={() => setView("detail")}
+      onSaved={() => { setRefreshTrigger(p => p + 1); setView("detail"); }}
+    />
   );
 
   return (
     <div>
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h2 className="text-xl font-bold text-white">Patients</h2>
@@ -731,7 +951,6 @@ export default function PatientsPage() {
         </button>
       </div>
 
-      {/* Search */}
       <div className="relative mb-5">
         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: "#64748b" }}>🔍</span>
         <input value={search} onChange={(e) => setSearch(e.target.value)}
@@ -742,7 +961,6 @@ export default function PatientsPage() {
           onBlur={(e) => (e.target.style.border = "1px solid rgba(255,255,255,0.07)")} />
       </div>
 
-      {/* Table */}
       <div className="rounded-2xl overflow-hidden" style={S.card}>
         <div className="hidden sm:grid grid-cols-5 gap-4 px-5 py-3"
           style={{ borderBottom: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.02)" }}>
@@ -773,7 +991,6 @@ export default function PatientsPage() {
             onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(16,184,169,0.04)")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
 
-            {/* Mobile */}
             <div className="sm:hidden flex items-center gap-3 px-4 py-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
                 style={{ background: "linear-gradient(135deg,#10B8A9,#0d9488)" }}>
@@ -788,15 +1005,11 @@ export default function PatientsPage() {
                   </div>
                 )}
               </div>
-              <button onClick={(e) => handleDelete(patient._id, e)}
-                aria-label={`Delete patient ${patient.name || patient._id}`}
+              <button onClick={(e) => handleDeletePatient(patient._id, e)}
                 className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-red-500 hover:bg-opacity-15 flex-shrink-0"
-                style={{ color: "#ef4444", border: "1px solid rgba(239,68,68,0.2)" }}>
-                🗑
-              </button>
+                style={{ color: "#ef4444", border: "1px solid rgba(239,68,68,0.2)" }}>🗑</button>
             </div>
 
-            {/* Desktop */}
             <div className="hidden sm:grid grid-cols-5 gap-4 items-center px-5 py-4">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
@@ -810,17 +1023,13 @@ export default function PatientsPage() {
               <div className="flex flex-wrap gap-1">
                 {patient.locations?.length > 0
                   ? patient.locations.map((loc, i) => <LocationTag key={i} location={loc} />)
-                  : <span className="text-xs" style={{ color: "#475569" }}>—</span>
-                }
+                  : <span className="text-xs" style={{ color: "#475569" }}>—</span>}
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm" style={{ color: "#64748b" }}>{formatDate(patient.createdAt)}</span>
-                <button onClick={(e) => handleDelete(patient._id, e)}
-                  aria-label={`Delete patient ${patient.name || patient._id}`}
+                <button onClick={(e) => handleDeletePatient(patient._id, e)}
                   className="w-8 h-8 rounded-lg flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:bg-opacity-15"
-                  style={{ color: "#ef4444", border: "1px solid rgba(239,68,68,0.2)" }}>
-                  🗑
-                </button>
+                  style={{ color: "#ef4444", border: "1px solid rgba(239,68,68,0.2)" }}>🗑</button>
               </div>
             </div>
           </div>

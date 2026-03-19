@@ -35,6 +35,15 @@ const checkupSchema = new mongoose.Schema(
       labTests: { type: [String], default: [] },
       pdfUrl: { type: String, default: "" },
     },
+    payment: {
+      amount: { type: Number, required: true, default: 0 },
+      method: {
+        type: String,
+        enum: ["Cash", "Card", "Online Transfer"],
+        default: "Cash",
+      },
+      isPaid: { type: Boolean, default: false },
+    },
   },
   { timestamps: true }
 );

@@ -1,269 +1,220 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 
-export default function PrescriptionModal({
-  checkup,
-  patient,
-  onClose,
-  onSaved,
-}) {
+export default function PrescriptionModal({ checkup, patient, onClose, onSaved }) {
   const [pdfBase64, setPdfBase64] = useState(null);
-  const [pdfUrl, setPdfUrl] = useState(checkup.prescription?.pdfUrl || null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [saved, setSaved] = useState(!!checkup?.prescription?.pdfUrl);
+  const [pdfUrl, setPdfUrl] = useState(checkup?.prescription?.pdfUrl || "");
 
-  const handleSendWhatsApp = async () => {
+  // Generate PDF on mount
+  useEffect(() => {
+    if (!checkup?._id) return;
+    const generate = async () => {
+      setIsGenerating(true);
+      try {
+        const res = await axiosInstance.post(`/prescriptions/generate/${checkup._id}`);
+        setPdfBase64(res.data.pdf);
+        // Auto-open in new tab
+        const byteChars = atob(res.data.pdf);
+        const byteNums = new Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
+        const byteArray = new Uint8Array(byteNums);
+        const blob = new Blob([byteArray], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        window.open(url, "_blank");
+
+        // Auto-save to Cloudinary
+        setIsSaving(true);
+        try {
+          const saveRes = await axiosInstance.post(`/prescriptions/save/${checkup._id}`);
+          setPdfUrl(saveRes.data.pdfUrl);
+          setSaved(true);
+          onSaved?.(saveRes.data.pdfUrl);
+          toast.success("Prescription saved to cloud");
+        } catch (err) {
+          toast.error(err.response?.data?.message || "Failed to save prescription");
+        } finally {
+          setIsSaving(false);
+        }
+      } catch (err) {
+        toast.error(err.response?.data?.message || "Failed to generate prescription");
+      } finally {
+        setIsGenerating(false);
+      }
+    };
+    generate();
+  }, [checkup?._id]);
+
+  const handleDownload = () => {
+    if (!pdfBase64) return;
+    const byteChars = atob(pdfBase64);
+    const byteNums = new Array(byteChars.length);
+    for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
+    const byteArray = new Uint8Array(byteNums);
+    const blob = new Blob([byteArray], { type: "application/pdf" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `prescription_${patient?.name?.replace(/\s+/g, "_") || "patient"}_${new Date().toISOString().split("T")[0]}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleWhatsApp = async () => {
+    if (!checkup?._id) return;
     setIsSending(true);
     try {
       await axiosInstance.post(`/prescriptions/send-whatsapp/${checkup._id}`);
-      toast.success(`Prescription sent to ${patient.name} via WhatsApp! 📲`);
-    } catch {
-      toast.error("Failed to send via WhatsApp");
+      toast.success("Prescription sent via WhatsApp!");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to send via WhatsApp");
     } finally {
       setIsSending(false);
     }
   };
 
-  const handleGenerate = async () => {
-    setIsGenerating(true);
-    try {
-      // Generate PDF
-      const res = await axiosInstance.post(
-        `/prescriptions/generate/${checkup._id}`,
-      );
-      const base64 = res.data.pdf;
-      setPdfBase64(base64);
-
-      // Open in new tab for preview
-      const binary = atob(base64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      const blob = new Blob([bytes], { type: "application/pdf" });
-      const blobUrl = URL.createObjectURL(blob);
-      window.open(blobUrl, "_blank");
-
-      // Auto save to Cloudinary
-      const saveRes = await axiosInstance.post(
-        `/prescriptions/save/${checkup._id}`,
-      );
-      const url = saveRes.data.pdfUrl;
-      setPdfUrl(url);
-      if (onSaved) onSaved(url);
-      toast.success("Prescription saved!");
-    } catch {
-      toast.error("Failed to generate prescription");
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleSaveAndSend = async () => {
-    setIsSaving(true);
-    try {
-      const res = await axiosInstance.post(
-        `/prescriptions/save/${checkup._id}`,
-      );
-      const url = res.data.pdfUrl;
-      setPdfUrl(url);
-      if (onSaved) onSaved(url);
-      toast.success("Prescription saved!");
-
-      const phone = patient.phone.replace(/\D/g, "");
-      const formattedPhone = phone.startsWith("0")
-        ? "92" + phone.slice(1)
-        : phone;
-      const message = encodeURIComponent(
-        `Dear ${patient.name}, your prescription from ${checkup.prescription?.diagnosis ? "for " + checkup.prescription.diagnosis : ""} is ready.\n\nDownload here: ${url}\n\nGenerated by MediMate.`,
-      );
-      window.open(`https://wa.me/${formattedPhone}?text=${message}`, "_blank");
-    } catch {
-      toast.error("Failed to save prescription");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleDownload = () => {
-    if (pdfBase64) {
-      const link = document.createElement("a");
-      link.href = `data:application/pdf;base64,${pdfBase64}`;
-      link.download = `prescription_${patient.name}_${new Date().toISOString().split("T")[0]}.pdf`;
-      link.click();
-    } else if (pdfUrl) {
+  const handleViewPdf = () => {
+    if (pdfUrl) {
       window.open(pdfUrl, "_blank");
+    } else if (pdfBase64) {
+      const byteChars = atob(pdfBase64);
+      const byteNums = new Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
+      const byteArray = new Uint8Array(byteNums);
+      const blob = new Blob([byteArray], { type: "application/pdf" });
+      window.open(URL.createObjectURL(blob), "_blank");
     }
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex flex-col"
-      style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(6px)" }}
-    >
-      {/* Top Bar */}
-      <div
-        className="flex items-center justify-between px-4 sm:px-6 py-3 flex-shrink-0"
-        style={{
-          background: "#0a1628",
-          borderBottom: "1px solid rgba(16,184,169,0.2)",
-        }}
-      >
-        <div className="flex items-center gap-3">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: "rgba(16,184,169,0.1)" }}
-          >
-            📋
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)" }}>
+      <div className="w-full max-w-md rounded-3xl overflow-hidden animate-in"
+        style={{ background: "#0f1923", border: "1px solid rgba(255,255,255,0.08)" }}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4"
+          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+              style={{ background: "rgba(16,184,169,0.12)" }}>
+              <span className="text-lg">📋</span>
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white">Prescription</h3>
+              <p className="text-xs" style={{ color: "#64748b" }}>{patient?.name}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-bold text-white">Prescription</p>
-            <p className="text-xs" style={{ color: "#64748b" }}>
-              {patient.name} · {checkup.prescription?.diagnosis}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {/* Download */}
-          {(pdfBase64 || pdfUrl) && (
-            <button
-              onClick={handleDownload}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
-              style={{ background: "rgba(255,255,255,0.07)", color: "white" }}
-            >
-              ⬇ Download
-            </button>
-          )}
-
-          {/* Save & Send WhatsApp */}
-          {pdfBase64 && !pdfUrl && (
-            <button
-              onClick={handleSaveAndSend}
-              disabled={isSaving}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-80 disabled:opacity-50"
-              style={{ background: "#25D366", color: "white" }}
-            >
-              {isSaving ? "Saving..." : "📤 Save & Send WhatsApp"}
-            </button>
-          )}
-
-          {/* Already saved — resend */}
-          {pdfUrl && (
-            <button
-              onClick={handleSendWhatsApp}
-              disabled={isSending}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-80 disabled:opacity-50"
-              style={{ background: "#25D366", color: "white" }}
-            >
-              {isSending ? "Sending..." : "📲 Send via WhatsApp"}
-            </button>
-          )}
-
-          {/* Close */}
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-white hover:bg-opacity-10"
-            style={{ color: "#64748b" }}
-          >
+          <button onClick={onClose}
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-white hover:bg-opacity-5"
+            style={{ color: "#64748b", border: "1px solid rgba(255,255,255,0.07)" }}>
             ✕
           </button>
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="flex-1 flex items-center justify-center p-4 overflow-hidden">
-        {/* Initial state */}
-        {!pdfBase64 && !pdfUrl && (
-          <div className="text-center">
-            <div
-              className="w-20 h-20 rounded-2xl flex items-center justify-center text-4xl mx-auto mb-4"
-              style={{
-                background: "rgba(16,184,169,0.1)",
-                border: "1px solid rgba(16,184,169,0.2)",
-              }}
-            >
-              📋
+        {/* Content */}
+        <div className="px-6 py-5 space-y-4">
+
+          {/* Status */}
+          {isGenerating ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <div className="w-10 h-10 rounded-full border-2 animate-spin mb-3"
+                style={{ borderColor: "#10B8A9", borderTopColor: "transparent" }} />
+              <p className="text-sm font-semibold text-white">Generating prescription...</p>
+              <p className="text-xs mt-1" style={{ color: "#64748b" }}>This may take a moment</p>
             </div>
-            <h3 className="text-lg font-bold text-white mb-2">
-              Generate Prescription
-            </h3>
-            <p className="text-sm mb-6" style={{ color: "#64748b" }}>
-              Create a professional PDF prescription for {patient.name}
-            </p>
-            <button
-              onClick={handleGenerate}
-              disabled={isGenerating}
-              className="px-6 py-3 rounded-xl text-sm font-bold text-white transition-all hover:scale-105 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-              style={{
-                background: "linear-gradient(135deg,#10B8A9,#0d9488)",
-                boxShadow: "0 4px 20px rgba(16,184,169,0.3)",
-              }}
-            >
-              {isGenerating ? (
-                <span className="flex items-center gap-2">
-                  <span
-                    className="w-4 h-4 rounded-full border-2 animate-spin inline-block"
-                    style={{
-                      borderColor: "white",
-                      borderTopColor: "transparent",
-                    }}
-                  />
-                  Generating...
-                </span>
-              ) : (
-                "Generate PDF"
-              )}
-            </button>
-          </div>
-        )}
-
-        {/* PDF Generated — preview opened in new tab */}
-        {pdfBase64 && !pdfUrl && (
-          <div className="text-center">
-            <div
-              className="w-20 h-20 rounded-2xl flex items-center justify-center text-4xl mx-auto mb-4"
-              style={{
-                background: "rgba(16,184,169,0.1)",
-                border: "1px solid rgba(16,184,169,0.2)",
-              }}
-            >
-              ✅
+          ) : isSaving ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <div className="w-10 h-10 rounded-full border-2 animate-spin mb-3"
+                style={{ borderColor: "#10B8A9", borderTopColor: "transparent" }} />
+              <p className="text-sm font-semibold text-white">Saving to cloud...</p>
             </div>
-            <h3 className="text-lg font-bold text-white mb-2">
-              PDF Generated!
-            </h3>
-            <p className="text-sm mb-4" style={{ color: "#64748b" }}>
-              Prescription opened in a new tab for preview.
-            </p>
-            <button
-              onClick={handleGenerate}
-              className="text-xs px-3 py-2 rounded-xl transition-all hover:opacity-80"
-              style={{ background: "rgba(255,255,255,0.07)", color: "#94a3b8" }}
-            >
-              🔄 Regenerate
-            </button>
-          </div>
-        )}
+          ) : pdfBase64 ? (
+            <>
+              {/* Success indicator */}
+              <div className="flex items-center gap-3 p-4 rounded-2xl"
+                style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.15)" }}>
+                <span className="text-2xl">✅</span>
+                <div>
+                  <p className="text-sm font-bold" style={{ color: "#22c55e" }}>
+                    {saved ? "Prescription Generated & Saved" : "Prescription Generated"}
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>
+                    PDF opened in new tab for preview
+                  </p>
+                </div>
+              </div>
 
-        {/* Already saved */}
-        {pdfUrl && (
-          <div
-            className="w-full flex flex-col"
-            style={{
-              maxWidth: "900px",
-              width: "100%",
-              height: "calc(100vh - 150px)",
-            }}
-          >
-            <iframe
-              src={pdfUrl}
-              className="w-full h-full rounded-2xl shadow-2xl"
-              style={{ border: "none" }}
-              title="Prescription Preview"
-            />
-          </div>
-        )}
+              {/* Prescription summary */}
+              <div className="p-4 rounded-2xl" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-xs" style={{ color: "#64748b" }}>Diagnosis</span>
+                    <span className="text-xs font-semibold text-white">{checkup?.prescription?.diagnosis}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-xs" style={{ color: "#64748b" }}>Medicines</span>
+                    <span className="text-xs font-semibold text-white">{checkup?.prescription?.medicines?.length || 0}</span>
+                  </div>
+                  {checkup?.prescription?.labTests?.length > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-xs" style={{ color: "#64748b" }}>Lab Tests</span>
+                      <span className="text-xs font-semibold text-white">{checkup.prescription.labTests.length}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="space-y-2">
+                <button onClick={handleViewPdf}
+                  className="w-full py-3 rounded-xl text-sm font-bold transition-all hover:opacity-90"
+                  style={{ background: "rgba(16,184,169,0.12)", border: "1px solid rgba(16,184,169,0.25)", color: "#10B8A9" }}>
+                  👁️ View PDF Again
+                </button>
+
+                <button onClick={handleDownload}
+                  className="w-full py-3 rounded-xl text-sm font-bold transition-all hover:opacity-90"
+                  style={{ background: "rgba(56,189,248,0.1)", border: "1px solid rgba(56,189,248,0.2)", color: "#38bdf8" }}>
+                  ⬇️ Download PDF
+                </button>
+
+                <button onClick={handleWhatsApp} disabled={isSending}
+                  className="w-full py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-50"
+                  style={{ background: "linear-gradient(135deg,#25D366,#128C7E)", boxShadow: "0 4px 15px rgba(37,211,102,0.25)" }}>
+                  {isSending ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span className="w-4 h-4 rounded-full border-2 animate-spin inline-block"
+                        style={{ borderColor: "white", borderTopColor: "transparent" }} />
+                      Sending...
+                    </span>
+                  ) : "📱 Send via WhatsApp"}
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8">
+              <span className="text-4xl mb-3">❌</span>
+              <p className="text-sm font-semibold text-white">Failed to generate prescription</p>
+              <p className="text-xs mt-1" style={{ color: "#64748b" }}>Please try again</p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+          <button onClick={onClose}
+            className="w-full py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-80"
+            style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "#94a3b8" }}>
+            Close
+          </button>
+        </div>
       </div>
     </div>
   );

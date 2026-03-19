@@ -36,7 +36,7 @@ export const getCheckup = async (req, res) => {
 
 export const addCheckup = async (req, res) => {
   try {
-    const { diseases, notes, prescription } = req.body;
+    const { diseases, notes, prescription,payment } = req.body;
     const patientId = req.params.id;
     const patient = await Patient.findOne({
       _id: patientId,
@@ -53,16 +53,25 @@ export const addCheckup = async (req, res) => {
         .status(400)
         .json({ message: "At least one medicine is required" });
     }
+    if (payment?.amount === undefined || payment?.amount === null) {
+      return res.status(400).json({ message: "Payment amount is required" });
+    }
+    if (!payment?.method) {
+      return res.status(400).json({ message: "Payment method is required" });
+    }
+   
     const checkup = new Checkup({
       patient: patientId,
       doctor: req.doctorId,
       diseases,
       notes,
       prescription,
+      payment,
     });
     await checkup.save();
     res.status(201).json({ message: "Checkup added successfully", checkup });
   } catch (error) {
+    console.error("addCheckup error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -79,6 +88,32 @@ export const deleteCheckup = async (req, res) => {
     }
     res.status(200).json({ message: "Checkup deleted successfully" });
   } catch (error) {
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+export const updateCheckup = async (req, res) => {
+  try {
+    const { diseases, notes, prescription, payment } = req.body;
+    const checkup = await Checkup.findOne({ _id: req.params.id, doctor: req.doctorId });
+    if (!checkup) {
+      return res.status(404).json({ message: "Checkup not found" });
+    }
+    if (diseases !== undefined) checkup.diseases = diseases;
+    if (notes !== undefined) checkup.notes = notes;
+    if (prescription !== undefined) {
+      // Merge prescription fields individually to ensure Mongoose tracks changes
+      if (prescription.diagnosis !== undefined) checkup.prescription.diagnosis = prescription.diagnosis;
+      if (prescription.nextAppointment !== undefined) checkup.prescription.nextAppointment = prescription.nextAppointment;
+      if (prescription.medicines !== undefined) checkup.prescription.medicines = prescription.medicines;
+      if (prescription.labTests !== undefined) checkup.prescription.labTests = prescription.labTests;
+      if (prescription.pdfUrl !== undefined) checkup.prescription.pdfUrl = prescription.pdfUrl;
+      checkup.markModified("prescription");
+    }
+    if (payment !== undefined) checkup.payment = payment;
+    await checkup.save();
+    res.status(200).json({ message: "Checkup updated successfully", checkup });
+  } catch (error) {
+    console.error("updateCheckup error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

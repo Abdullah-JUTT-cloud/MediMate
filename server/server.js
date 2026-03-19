@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config();
-import "./utils/whatsapp.js";
+// import "./utils/whatsapp.js";
 import express from "express";
 import { connectDB } from "./db/connectDB.js";
 import authRoutes from "./routes/auth.routes.js";
@@ -41,8 +41,9 @@ app.use("/api/prescriptions", prescriptionRoutes);
 
 connectDB()
 .then(()=>{
-    app.listen(PORT,()=>{
+    app.listen(PORT,async()=>{
         console.log(`Server is running on port ${PORT}`);
+        const { default: _ } = await import("./utils/whatsapp.js");
     })
 })
 .catch((error)=>{
