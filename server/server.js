@@ -11,6 +11,7 @@ import patientRoutes from "./routes/patient.routes.js";
 import checkupRoutes from "./routes/checkup.routes.js";
 import appointmentRoutes from "./routes/appointment.routes.js";
 import prescriptionRoutes from "./routes/prescription.routes.js";
+import {startReminderJob} from "./utils/reminderJob.js";
 
 const app=express();
 
@@ -45,6 +46,7 @@ connectDB()
         console.log(`Server is running on port ${PORT}`);
         const { default: _ } = await import("./utils/whatsapp.js");
     })
+    startReminderJob();
 })
 .catch((error)=>{
     console.log("Error connecting to MongoDB: ",error.message);

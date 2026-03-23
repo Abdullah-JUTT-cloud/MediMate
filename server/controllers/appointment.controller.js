@@ -1,6 +1,28 @@
 import mongoose from "mongoose";
 import Appointment from "../models/appointment.model.js";
 import Patient from "../models/patient.model.js";
+import client from "../utils/whatsapp.js";
+import { Doctor } from "../models/doctor.model.js";
+
+const sendAppointmentWhatsApp = async (patient, appointment, message) => {
+  try {
+    const phone = patient.phone.replace(/\D/g, "");
+    const whatsappPhone = phone.startsWith("0") ? "92" + phone.slice(1) : phone;
+    const chatId = `${whatsappPhone}@c.us`;
+    await client.sendMessage(chatId, message);
+  } catch (err) {
+    console.error("Appointment WhatsApp error:", err.message);
+  }
+};
+const formatAppointmentMessage = (patientName, date, slot, type) => {
+  const formattedDate = new Date(date).toLocaleDateString("en-PK", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  return `Dear ${patientName}, your appointment is scheduled for ${formattedDate} at ${slot}. Type: ${type}. - MediMate`;
+};
 
 export const getAppointments = async (req, res) => {
   try {
@@ -93,6 +115,8 @@ export const createAppointment = async (req, res) => {
     });
     await appointment.save();
     const populated = await appointment.populate("patient", "name phone age");
+    const msg = formatAppointmentMessage(patient.name, date, slot, type);
+    await sendAppointmentWhatsApp(patient, appointment, msg);
     res.status(201).json({
       message: "Appointment created successfully",
       appointment: populated,
@@ -142,12 +166,19 @@ export const updateAppointment = async (req, res) => {
       "patient",
       "name phone age",
     );
-    res
-      .status(200)
-      .json({
-        message: "Appointment updated successfully",
-        appointment: populated,
-      });
+    if (date || slot) {
+      const msg = formatAppointmentMessage(
+        populated.patient.name,
+        populated.date,
+        populated.slot,
+        populated.type,
+      );
+      await sendAppointmentWhatsApp(populated.patient, populated, msg);
+    }
+    res.status(200).json({
+      message: "Appointment updated successfully",
+      appointment: populated,
+    });
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
   }

@@ -32,7 +32,8 @@ const appointmentSchema = new mongoose.Schema({
     notes:{
         type:String,
 
-    }
+    },
+    reminderSent: { type: Boolean, default: false }
 
     
     
