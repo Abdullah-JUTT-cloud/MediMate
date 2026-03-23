@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import useAuthStore from "../store/authStore";
@@ -207,7 +207,7 @@ function AppointmentDetailPage({ appointment, onBack, onUpdated, onDeleted }) {
 // BOOK APPOINTMENT FORM
 // ══════════════════════════════════════════════════════════════════════════════
 
-function BookAppointmentForm({ onBack, onBooked }) {
+function BookAppointmentForm({ onBack, onBooked, preSelectedPatient = null }) {
   const { doctor } = useAuthStore();
   const [patients, setPatients] = useState([]);
   const [search, setSearch] = useState("");
@@ -220,6 +220,47 @@ function BookAppointmentForm({ onBack, onBooked }) {
   const [bookedSlots, setBookedSlots] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [isHydratingSelectedPatient, setIsHydratingSelectedPatient] = useState(false);
+  const hasShownMissingScheduleToast = useRef(false);
+
+  // Preselected patients coming from reschedule can be partial objects (without locations).
+  useEffect(() => {
+    let cancelled = false;
+
+    const hydratePatient = async () => {
+      if (!preSelectedPatient) return;
+
+      setSearch(preSelectedPatient.name || "");
+
+      if (Array.isArray(preSelectedPatient.locations)) {
+        setSelectedPatient(preSelectedPatient);
+        return;
+      }
+
+      if (!preSelectedPatient._id) {
+        setSelectedPatient(preSelectedPatient);
+        return;
+      }
+
+      setIsHydratingSelectedPatient(true);
+      try {
+        const res = await axiosInstance.get(`/patients/${preSelectedPatient._id}`);
+        if (!cancelled) {
+          setSelectedPatient(res.data.patient || preSelectedPatient);
+        }
+      } catch {
+        if (!cancelled) {
+          setSelectedPatient(preSelectedPatient);
+          toast.error("Failed to load full patient details for reschedule");
+        }
+      } finally {
+        if (!cancelled) setIsHydratingSelectedPatient(false);
+      }
+    };
+
+    hydratePatient();
+    return () => { cancelled = true; };
+  }, [preSelectedPatient]);
 
   // Search patients
   useEffect(() => {
@@ -240,22 +281,37 @@ function BookAppointmentForm({ onBack, onBooked }) {
 
   // Generate slots when date and patient are selected
   useEffect(() => {
-    if (!date || !selectedPatient) return;
+    if (!date || !selectedPatient || isHydratingSelectedPatient) return;
 
     const dayName = getDayName(date);
     const slotDuration = doctor?.slotDuration || 20;
     const generatedSlots = [];
+    const doctorClinics = Array.isArray(doctor?.clinics) ? doctor.clinics : [];
+    const doctorHospitals = Array.isArray(doctor?.hospitals) ? doctor.hospitals : [];
 
     // Get patient's locations
-    const patientLocations = selectedPatient.locations || [];
+    const patientLocations = Array.isArray(selectedPatient.locations) ? selectedPatient.locations : [];
+
+    if (patientLocations.length > 0 && doctorClinics.length === 0 && doctorHospitals.length === 0) {
+      if (!hasShownMissingScheduleToast.current) {
+        toast.error("Doctor schedule data is missing. Please refresh or re-login.");
+        hasShownMissingScheduleToast.current = true;
+      }
+      console.warn("Slot generation skipped: doctor clinics/hospitals missing in auth store");
+      setSlots([]);
+      setBookedSlots([]);
+      setSelectedSlot("");
+      return;
+    }
+    hasShownMissingScheduleToast.current = false;
 
     // For each patient location find matching sessions in doctor's profile
     for (const loc of patientLocations) {
       const isClinic = loc.locationType === "Clinic";
-      const locationList = isClinic ? (doctor?.clinics || []) : (doctor?.hospitals || []);
+      const locationList = isClinic ? doctorClinics : doctorHospitals;
       const matchedLocation = locationList.find(
-  (l) => l._id?.toString() === loc.locationId || l.name === loc.locationName
-);
+        (l) => l._id?.toString() === loc.locationId || l.name === loc.locationName
+      );
 
       if (matchedLocation) {
         const daySessions = matchedLocation.sessions.filter((s) => s.day === dayName);
@@ -283,7 +339,7 @@ function BookAppointmentForm({ onBack, onBooked }) {
       }
     };
     fetchBooked();
-  }, [date, selectedPatient, doctor]);
+  }, [date, selectedPatient, doctor, isHydratingSelectedPatient]);
 
   const handleSubmit = async () => {
     if (!selectedPatient) { toast.error("Select a patient"); return; }
@@ -409,7 +465,15 @@ function BookAppointmentForm({ onBack, onBooked }) {
         {selectedPatient && date && (
           <div className="rounded-2xl p-5" style={S.card}>
             <SectionLabel text={`Available Slots — ${getDayName(date)}, ${formatDate(date)}`} />
-            {slots.length === 0 ? (
+            {isHydratingSelectedPatient ? (
+              <div className="text-center py-8 rounded-xl" style={S.section}>
+                <div className="text-3xl mb-2">⏳</div>
+                <p className="text-sm font-semibold text-white mb-1">Loading patient schedule...</p>
+                <p className="text-xs" style={{ color: "#475569" }}>
+                  Fetching complete location details to calculate slots
+                </p>
+              </div>
+            ) : slots.length === 0 ? (
               <div className="text-center py-8 rounded-xl" style={S.section}>
                 <div className="text-3xl mb-2">📅</div>
                 <p className="text-sm font-semibold text-white mb-1">No slots available</p>
@@ -473,13 +537,14 @@ function BookAppointmentForm({ onBack, onBooked }) {
 // APPOINTMENTS LIST
 // ══════════════════════════════════════════════════════════════════════════════
 
-export default function AppointmentsPage() {
+export default function AppointmentsPage({ initialPatient = null }) {
   const [view, setView] = useState("list");
   const [appointments, setAppointments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState("All");
   const [dateFilter, setDateFilter] = useState("");
   const [activeAppointment, setActiveAppointment] = useState(null);
+  const [preSelectedPatient, setPreSelectedPatient] = useState(null);
 
   const fetchAppointments = async () => {
     setIsLoading(true);
@@ -498,6 +563,13 @@ export default function AppointmentsPage() {
 
   useEffect(() => { fetchAppointments(); }, [dateFilter, activeFilter]);
 
+  useEffect(() => {
+    if (initialPatient) {
+      setPreSelectedPatient(initialPatient);
+      setView("book");
+    }
+  }, []);
+
   const handleUpdated = (updated) => {
     setAppointments((p) => p.map((a) => a._id === updated._id ? updated : a));
     setView("list");
@@ -513,7 +585,13 @@ export default function AppointmentsPage() {
     setView("list");
   };
 
-  if (view === "book") return <BookAppointmentForm onBack={() => setView("list")} onBooked={handleBooked} />;
+  if (view === "book") return (
+    <BookAppointmentForm
+      onBack={() => setView("list")}
+      onBooked={handleBooked}
+      preSelectedPatient={preSelectedPatient}
+    />
+  );
   if (view === "detail" && activeAppointment) return (
     <AppointmentDetailPage
       appointment={activeAppointment}

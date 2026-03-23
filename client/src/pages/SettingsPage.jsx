@@ -355,11 +355,8 @@ export default function SettingsPage() {
       const res = await axiosInstance.put("/doctor/update-profile", data);
       const d = res.data.doctor;
       setDoctor({
-        fullName: d.fullName,
-        email: d.email,
-        title: d.title,
-        specialization: d.specialization,
-        profilePicture: d.profilePicture,
+        ...(doctor || {}),
+        ...d,
       });
       toast.success(successMsg);
     } catch {
@@ -471,7 +468,7 @@ export default function SettingsPage() {
               const res = await axiosInstance.post("/doctor/upload-profile-picture", formData, {
                 headers: { "Content-Type": "multipart/form-data" },
               });
-              setDoctor({ ...doctor, profilePicture: res.data.profilePicture });
+              setDoctor({ ...(doctor || {}), profilePicture: res.data.profilePicture });
               toast.success("Profile picture updated!");
             } catch {
               toast.error("Failed to upload picture");

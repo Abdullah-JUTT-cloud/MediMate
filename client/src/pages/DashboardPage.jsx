@@ -49,8 +49,29 @@ export default function DashboardPage() {
   const [recentPatients, setRecentPatients] = useState([]);
   const [totalPatients, setTotalPatients] = useState(0);
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [showEmergencySection, setShowEmergencySection] = useState(false);
+  const [emergencyStartDate, setEmergencyStartDate] = useState("");
+  const [emergencyEndDate, setEmergencyEndDate] = useState("");
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelledAppointments, setCancelledAppointments] = useState([]);
+  const [isLoadingCancelled, setIsLoadingCancelled] = useState(false);
+  const [reschedulePatient, setReschedulePatient] = useState(null);
+
+  const fetchCancelledAppointments = async () => {
+    setIsLoadingCancelled(true);
+    try {
+      const res = await axiosInstance.get("/appointments?status=Cancelled");
+      const emergency = res.data.appointments.filter((a) => a.emergencyCancelled === true);
+      setCancelledAppointments(emergency);
+    } catch {
+      console.error("Failed to load cancelled appointments");
+    } finally {
+      setIsLoadingCancelled(false);
+    }
+  };
 
   useEffect(() => {
+    fetchCancelledAppointments();
     if (activeNav !== "dashboard") return;
     const fetchDashboardData = async () => {
       setIsLoadingData(true);
@@ -83,6 +104,13 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
     };
     fetchDashboardData();
   }, [activeNav]);
+
+  useEffect(() => {
+    if (activeNav === "appointments" && reschedulePatient) {
+      const t = setTimeout(() => setReschedulePatient(null), 500);
+      return () => clearTimeout(t);
+    }
+  }, [activeNav, reschedulePatient]);
 
   const handleLogout = async () => {
     try {
@@ -191,7 +219,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
         <main className="flex-1 overflow-y-auto p-4 sm:p-6" style={{ background: "#0f1923" }}>
           {activeNav === "settings" && <SettingsPage />}
           {activeNav === "patients" && <PatientsPage />}
-          {activeNav === "appointments" && <AppointmentsPage />}
+          {activeNav === "appointments" && <AppointmentsPage initialPatient={reschedulePatient} />}
 
           {activeNav === "dashboard" && (
             <>
@@ -199,7 +227,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                 {[
                   { icon: "👤", label: "New Patient", color: "#10B8A9", onClick: () => setActiveNav("patients") },
                   { icon: "📅", label: "Book Appointment", color: "#10B8A9", onClick: () => setActiveNav("appointments") },
-                  { icon: "🚨", label: "Emergency Cancel", color: "#ef4444", onClick: () => toast("Emergency Cancel is not available yet") },
+                  { icon: "🚨", label: "Emergency Cancel", color: "#ef4444", onClick: () => setShowEmergencySection((p) => !p) },
                 ].map((action) => (
                   <button key={action.label} onClick={action.onClick}
                     className="flex items-center cursor-pointer gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 hover:scale-105 hover:opacity-90"
@@ -214,6 +242,62 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                   </button>
                 ))}
               </div>
+
+              {showEmergencySection && (
+                <div className="mb-5 p-5 rounded-2xl"
+                  style={{ background: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.2)" }}>
+                  <p className="text-sm font-bold mb-4" style={{ color: "#ef4444" }}>🚨 Emergency Cancel Appointments</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>Start Date</label>
+                      <input type="date" value={emergencyStartDate}
+                        onChange={(e) => setEmergencyStartDate(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+                        style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(239,68,68,0.3)", color: "white", colorScheme: "dark" }} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>End Date</label>
+                      <input type="date" value={emergencyEndDate}
+                        onChange={(e) => setEmergencyEndDate(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+                        style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(239,68,68,0.3)", color: "white", colorScheme: "dark" }} />
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <button onClick={async () => {
+                      if (!emergencyStartDate || !emergencyEndDate) { toast.error("Select both dates"); return; }
+                      if (new Date(emergencyStartDate) > new Date(emergencyEndDate)) { toast.error("Start date must be before end date"); return; }
+                      if (!window.confirm(`Cancel ALL appointments from ${emergencyStartDate} to ${emergencyEndDate}?`)) return;
+                      setIsCancelling(true);
+                      try {
+                        const res = await axiosInstance.post("/appointments/emergency-cancel", {
+                          startDate: emergencyStartDate,
+                          endDate: emergencyEndDate,
+                        });
+                        toast.success(`${res.data.cancelledAppointments.length} appointments cancelled`);
+                        setCancelledAppointments((p) => [...res.data.cancelledAppointments, ...p]);
+                        setShowEmergencySection(false);
+                        setEmergencyStartDate("");
+                        setEmergencyEndDate("");
+                      } catch {
+                        toast.error("Failed to cancel appointments");
+                      } finally {
+                        setIsCancelling(false);
+                      }
+                    }}
+                      disabled={isCancelling}
+                      className="px-5 py-2.5 rounded-xl text-sm font-bold transition-all hover:opacity-90 disabled:opacity-50"
+                      style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444" }}>
+                      {isCancelling ? "Cancelling..." : "Cancel All Appointments"}
+                    </button>
+                    <button onClick={() => setShowEmergencySection(false)}
+                      className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-80"
+                      style={{ background: "rgba(255,255,255,0.05)", color: "#64748b" }}>
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
                 {[
@@ -360,6 +444,57 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                   </div>
                 )}
               </div>
+
+              {isLoadingCancelled && (
+                <div className="flex justify-center py-6">
+                  <div className="w-6 h-6 rounded-full border-2 animate-spin" style={{ borderColor: "#ef4444", borderTopColor: "transparent" }} />
+                </div>
+              )}
+
+              {!isLoadingCancelled && cancelledAppointments.length > 0 && (
+                <div className="rounded-2xl p-4 sm:p-6 mt-6"
+                  style={{ background: "rgba(239,68,68,0.03)", border: "1px solid rgba(239,68,68,0.15)" }}>
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="text-sm sm:text-base font-bold text-white">🚨 Emergency Cancelled Appointments</h3>
+                      <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>{cancelledAppointments.length} appointments need rescheduling</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {cancelledAppointments.map((apt) => (
+                      <div key={apt._id} className="flex items-center gap-3 p-3 sm:p-4 rounded-xl"
+                        style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(239,68,68,0.1)" }}>
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+                          style={{ background: "linear-gradient(135deg,#ef4444,#dc2626)" }}>
+                          {apt.patient?.name?.charAt(0) || "P"}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-white truncate">{apt.patient?.name || "Unknown"}</p>
+                          <p className="text-xs" style={{ color: "#64748b" }}>
+                            {new Date(apt.date).toLocaleDateString("en-PK", { day: "numeric", month: "short", year: "numeric" })} at {apt.slot} · {apt.type}
+                          </p>
+                        </div>
+                        <button onClick={async () => {
+                          try {
+                            await axiosInstance.post(`/appointments/${apt._id}/reschedule-whatsapp`);
+                            await axiosInstance.put(`/appointments/${apt._id}`, { emergencyCancelled: false });
+                          } catch {
+                            toast.error("Failed to send WhatsApp message");
+                            return;
+                          }
+                          setCancelledAppointments((p) => p.filter((a) => a._id !== apt._id));
+                          setReschedulePatient(apt.patient);
+                          setActiveNav("appointments");
+                        }}
+                          className="px-3 py-2 rounded-xl text-xs font-bold transition-all hover:opacity-90 flex-shrink-0"
+                          style={{ background: "rgba(16,184,169,0.12)", border: "1px solid rgba(16,184,169,0.2)", color: "#10B8A9" }}>
+                          Reschedule
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
 

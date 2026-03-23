@@ -132,7 +132,7 @@ export const updateAppointment = async (req, res) => {
     if (!mongoose.isValidObjectId(id)) {
       return res.status(400).json({ message: "Invalid appointment ID" });
     }
-    const { status, date, slot, type, notes } = req.body;
+    const { status, date, slot, type, notes, emergencyCancelled } = req.body;
     const appointment = await Appointment.findOne({
       doctor: req.doctorId,
       _id: id,
@@ -161,6 +161,7 @@ export const updateAppointment = async (req, res) => {
     if (slot) appointment.slot = slot;
     if (type) appointment.type = type;
     if (typeof notes !== "undefined") appointment.notes = notes;
+    if (typeof emergencyCancelled !== "undefined") appointment.emergencyCancelled = emergencyCancelled;
     await appointment.save();
     const populated = await Appointment.findById(appointment._id).populate(
       "patient",
@@ -200,5 +201,93 @@ export const deleteAppointment = async (req, res) => {
     res.status(200).json({ message: "Appointment deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const emergencyCancel = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.body;
+    if (!startDate || !endDate) {
+      return res.status(400).json({ message: "Start and end date are required" });
+    }
+
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return res.status(400).json({ message: "Invalid date format" });
+    }
+
+    const appointments = await Appointment.find({
+      doctor: req.doctorId,
+      date: { $gte: start, $lte: end },
+      status: { $nin: ["Cancelled", "Completed"] },
+    }).populate("patient", "name phone");
+
+    const cancelledAppointments = [];
+
+    for (const appointment of appointments) {
+      appointment.status = "Cancelled";
+      appointment.emergencyCancelled = true;
+      await appointment.save();
+      cancelledAppointments.push(appointment);
+
+      try {
+        const formattedDate = new Date(appointment.date).toLocaleDateString(
+          "en-PK",
+          {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          }
+        );
+        const msg = `Dear ${appointment.patient.name}, your appointment on ${formattedDate} at ${appointment.slot} has been cancelled due to an emergency. We apologize for the inconvenience. - MediMate`;
+        await sendAppointmentWhatsApp(appointment.patient, appointment, msg);
+      } catch (error) {
+        console.error(
+          `WhatsApp send failed for appointment ${appointment._id}:`,
+          error.message
+        );
+      }
+    }
+
+    res.status(200).json({
+      message: `${cancelledAppointments.length} appointment(s) cancelled successfully`,
+      cancelledAppointments,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+};
+
+export const sendRescheduleWhatsApp = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ message: "Invalid appointment ID" });
+    }
+
+    const appointment = await Appointment.findOne({
+      doctor: req.doctorId,
+      _id: id,
+    }).populate("patient", "name phone");
+
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+    if (!appointment.patient?.phone) {
+      return res.status(400).json({ message: "Patient phone number not found" });
+    }
+
+    const msg = `Dear ${appointment.patient.name}, please contact us to reschedule your cancelled appointment. - MediMate`;
+    await sendAppointmentWhatsApp(appointment.patient, appointment, msg);
+
+    res.status(200).json({ message: "Reschedule WhatsApp sent successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error: error.message });
   }
 };
