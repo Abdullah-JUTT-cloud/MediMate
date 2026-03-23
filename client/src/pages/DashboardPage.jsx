@@ -51,7 +51,9 @@ export default function DashboardPage() {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [showEmergencySection, setShowEmergencySection] = useState(false);
   const [emergencyStartDate, setEmergencyStartDate] = useState("");
+  const [emergencyStartTime, setEmergencyStartTime] = useState("");
   const [emergencyEndDate, setEmergencyEndDate] = useState("");
+  const [emergencyEndTime, setEmergencyEndTime] = useState("");
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelledAppointments, setCancelledAppointments] = useState([]);
   const [isLoadingCancelled, setIsLoadingCancelled] = useState(false);
@@ -88,8 +90,9 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
         const patients = patientsRes && patientsRes.data && Array.isArray(patientsRes.data.patients)
           ? patientsRes.data.patients
           : [];
+        const activeTodayAppointments = appointments.filter((a) => a.status !== "Cancelled");
 
-        setTodayAppointments(appointments);
+        setTodayAppointments(activeTodayAppointments);
         setRecentPatients(Array.isArray(patients) ? patients.slice(0, 4) : []);
         setTotalPatients(
           patientsRes && patientsRes.data && Number.isFinite(Number(patientsRes.data.total))
@@ -249,36 +252,57 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                   <p className="text-sm font-bold mb-4" style={{ color: "#ef4444" }}>🚨 Emergency Cancel Appointments</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div>
-                      <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>Start Date</label>
-                      <input type="date" value={emergencyStartDate}
-                        onChange={(e) => setEmergencyStartDate(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                        style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(239,68,68,0.3)", color: "white", colorScheme: "dark" }} />
+                      <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>Start Date & Time</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input type="date" value={emergencyStartDate}
+                          onChange={(e) => setEmergencyStartDate(e.target.value)}
+                          className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+                          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(239,68,68,0.3)", color: "white", colorScheme: "dark" }} />
+                        <input type="time" value={emergencyStartTime}
+                          onChange={(e) => setEmergencyStartTime(e.target.value)}
+                          className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+                          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(239,68,68,0.3)", color: "white", colorScheme: "dark" }} />
+                      </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>End Date</label>
-                      <input type="date" value={emergencyEndDate}
-                        onChange={(e) => setEmergencyEndDate(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                        style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(239,68,68,0.3)", color: "white", colorScheme: "dark" }} />
+                      <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>End Date & Time</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input type="date" value={emergencyEndDate}
+                          onChange={(e) => setEmergencyEndDate(e.target.value)}
+                          className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+                          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(239,68,68,0.3)", color: "white", colorScheme: "dark" }} />
+                        <input type="time" value={emergencyEndTime}
+                          onChange={(e) => setEmergencyEndTime(e.target.value)}
+                          className="w-full px-4 py-3 rounded-xl text-sm outline-none"
+                          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(239,68,68,0.3)", color: "white", colorScheme: "dark" }} />
+                      </div>
                     </div>
                   </div>
                   <div className="flex gap-3">
                     <button onClick={async () => {
-                      if (!emergencyStartDate || !emergencyEndDate) { toast.error("Select both dates"); return; }
-                      if (new Date(emergencyStartDate) > new Date(emergencyEndDate)) { toast.error("Start date must be before end date"); return; }
-                      if (!window.confirm(`Cancel ALL appointments from ${emergencyStartDate} to ${emergencyEndDate}?`)) return;
+                      if (!emergencyStartDate || !emergencyStartTime || !emergencyEndDate || !emergencyEndTime) {
+                        toast.error("Select start/end date and time");
+                        return;
+                      }
+                      const startDateTime = new Date(`${emergencyStartDate}T${emergencyStartTime}:00`);
+                      const endDateTime = new Date(`${emergencyEndDate}T${emergencyEndTime}:00`);
+                      if (startDateTime > endDateTime) { toast.error("Start date/time must be before end date/time"); return; }
+                      if (!window.confirm(`Cancel ALL appointments from ${emergencyStartDate} ${emergencyStartTime} to ${emergencyEndDate} ${emergencyEndTime}?`)) return;
                       setIsCancelling(true);
                       try {
                         const res = await axiosInstance.post("/appointments/emergency-cancel", {
                           startDate: emergencyStartDate,
+                          startTime: emergencyStartTime,
                           endDate: emergencyEndDate,
+                          endTime: emergencyEndTime,
                         });
                         toast.success(`${res.data.cancelledAppointments.length} appointments cancelled`);
                         setCancelledAppointments((p) => [...res.data.cancelledAppointments, ...p]);
                         setShowEmergencySection(false);
                         setEmergencyStartDate("");
+                        setEmergencyStartTime("");
                         setEmergencyEndDate("");
+                        setEmergencyEndTime("");
                       } catch {
                         toast.error("Failed to cancel appointments");
                       } finally {

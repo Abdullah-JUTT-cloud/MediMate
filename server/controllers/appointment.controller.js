@@ -206,30 +206,40 @@ export const deleteAppointment = async (req, res) => {
 
 export const emergencyCancel = async (req, res) => {
   try {
-    const { startDate, endDate } = req.body;
-    if (!startDate || !endDate) {
-      return res.status(400).json({ message: "Start and end date are required" });
+    const { startDate, startTime, endDate, endTime } = req.body;
+    if (!startDate || !startTime || !endDate || !endTime) {
+      return res.status(400).json({ message: "Start date/time and end date/time are required" });
     }
 
-    const start = new Date(startDate);
-    start.setHours(0, 0, 0, 0);
-
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
+    const start = new Date(`${startDate}T${startTime}:00`);
+    const end = new Date(`${endDate}T${endTime}:00`);
 
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      return res.status(400).json({ message: "Invalid date format" });
+      return res.status(400).json({ message: "Invalid date/time format" });
     }
+    if (start > end) {
+      return res.status(400).json({ message: "Start datetime must be before end datetime" });
+    }
+
+    const startDay = new Date(startDate);
+    startDay.setHours(0, 0, 0, 0);
+    const endDay = new Date(endDate);
+    endDay.setHours(23, 59, 59, 999);
 
     const appointments = await Appointment.find({
       doctor: req.doctorId,
-      date: { $gte: start, $lte: end },
-      status: { $nin: ["Cancelled", "Completed"] },
+      date: { $gte: startDay, $lte: endDay },
+      status: { $ne: "Cancelled" },
     }).populate("patient", "name phone");
+
+    const toCancel = appointments.filter((apt) => {
+      const aptDateTime = new Date(`${apt.date.toISOString().split("T")[0]}T${apt.slot}:00`);
+      return aptDateTime >= start && aptDateTime <= end;
+    });
 
     const cancelledAppointments = [];
 
-    for (const appointment of appointments) {
+    for (const appointment of toCancel) {
       appointment.status = "Cancelled";
       appointment.emergencyCancelled = true;
       await appointment.save();
@@ -283,7 +293,7 @@ export const sendRescheduleWhatsApp = async (req, res) => {
       return res.status(400).json({ message: "Patient phone number not found" });
     }
 
-    const msg = `Dear ${appointment.patient.name}, please contact us to reschedule your cancelled appointment. - MediMate`;
+    const msg = `Dear ${appointment.patient.name}, your appointment was cancelled due to an emergency. Please wait while we reschedule your appointment. - MediMate`;
     await sendAppointmentWhatsApp(appointment.patient, appointment, msg);
 
     res.status(200).json({ message: "Reschedule WhatsApp sent successfully" });
