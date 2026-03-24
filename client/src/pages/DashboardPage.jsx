@@ -7,16 +7,8 @@ import logo from "../assets/logo.svg";
 import SettingsPage from "./SettingsPage";
 import PatientsPage from "./PatientsPage";
 import AppointmentsPage from "./AppointmentsPage";
+import InsightsPage from "./InsightsPage";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-
-const earningsData = [
-  { month: "Jan", earnings: 32000 }, { month: "Feb", earnings: 28000 },
-  { month: "Mar", earnings: 45000 }, { month: "Apr", earnings: 38000 },
-  { month: "May", earnings: 52000 }, { month: "Jun", earnings: 47000 },
-  { month: "Jul", earnings: 61000 }, { month: "Aug", earnings: 55000 },
-  { month: "Sep", earnings: 67000 }, { month: "Oct", earnings: 72000 },
-  { month: "Nov", earnings: 64000 }, { month: "Dec", earnings: 80000 },
-];
 
 const navItems = [
   { icon: "⊞", label: "Dashboard", key: "dashboard" },
@@ -58,6 +50,11 @@ export default function DashboardPage() {
   const [cancelledAppointments, setCancelledAppointments] = useState([]);
   const [isLoadingCancelled, setIsLoadingCancelled] = useState(false);
   const [rescheduleContext, setRescheduleContext] = useState(null);
+  const [todayEarnings, setTodayEarnings] = useState(0);
+  const [isLoadingTodayEarnings, setIsLoadingTodayEarnings] = useState(false);
+  const [monthlyEarnings, setMonthlyEarnings] = useState([]);
+  const [totalPrescriptions, setTotalPrescriptions] = useState(null);
+  const [thisYearEarnings, setThisYearEarnings] = useState(0);
 
   const fetchCancelledAppointments = async () => {
     setIsLoadingCancelled(true);
@@ -106,6 +103,30 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
       }
     };
     fetchDashboardData();
+  }, [activeNav]);
+
+  useEffect(() => {
+    if (activeNav !== "dashboard") return;
+
+    const fetchTodayEarnings = async () => {
+      setIsLoadingTodayEarnings(true);
+      try {
+        const res = await axiosInstance.get("/insights");
+        setTodayEarnings(Number(res?.data?.earnings?.today || 0));
+        setMonthlyEarnings(res?.data?.monthly || []);
+        setTotalPrescriptions(res?.data?.counts?.prescriptions ?? null);
+        setThisYearEarnings(Number(res?.data?.earnings?.thisYear || 0));
+      } catch {
+        setTodayEarnings(0);
+        setMonthlyEarnings([]);
+        setTotalPrescriptions(null);
+        setThisYearEarnings(0);
+      } finally {
+        setIsLoadingTodayEarnings(false);
+      }
+    };
+
+    fetchTodayEarnings();
   }, [activeNav]);
 
   const handleEmergencyRescheduleComplete = async (cancelledAppointmentId) => {
@@ -227,6 +248,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
         <main className="flex-1 overflow-y-auto p-4 sm:p-6" style={{ background: "#0f1923" }}>
           {activeNav === "settings" && <SettingsPage />}
           {activeNav === "patients" && <PatientsPage />}
+          {activeNav === "insights" && <InsightsPage />}
           {activeNav === "appointments" && (
             <AppointmentsPage
               initialPatient={rescheduleContext?.patient || null}
@@ -338,8 +360,8 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                 {[
                   { label: "Total Patients", value: isLoadingData ? "..." : String(totalPatients || 0), sub: "Registered patients", icon: "👥", color: "#10B8A9" },
                   { label: "Today's Appointments", value: isLoadingData ? "..." : todayAppointments.length.toString(), sub: isLoadingData ? "Loading..." : todayAppointments.filter((a) => a.status === "Pending").length + " pending", icon: "📅", color: "#38bdf8" },
-                  { label: "Today's Earnings", value: "PKR —", sub: "Insights coming soon", icon: "💰", color: "#22c55e" },
-                  { label: "Prescriptions", value: "—", sub: "Coming soon", icon: "📋", color: "#a78bfa" },
+                  { label: "Today's Earnings", value: isLoadingTodayEarnings ? "..." : `PKR ${todayEarnings.toLocaleString()}`, sub: isLoadingTodayEarnings ? "Loading..." : "From insights", icon: "💰", color: "#22c55e" },
+                  { label: "Prescriptions", value: totalPrescriptions === null ? "..." : String(totalPrescriptions), sub: "PDFs generated", icon: "📋", color: "#a78bfa" },
                 ].map((stat) => (
                   <div key={stat.label} className="rounded-2xl  p-4 sm:p-5 transition-all hover:scale-105"
                     style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
@@ -362,12 +384,14 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                   <div className="flex items-center justify-between mb-5">
                     <div>
                       <h3 className="text-sm sm:text-base font-bold text-white">Monthly Earnings</h3>
-                      <p className="text-xs" style={{ color: "#64748b" }}>Year 2026 overview (mock)</p>
+                      <p className="text-xs" style={{ color: "#64748b" }}>Year 2026 — real data</p>
                     </div>
-                    <div className="px-3 py-1 rounded-lg text-xs font-semibold" style={{ background: "rgba(16,184,169,0.1)", color: "#10B8A9" }}>PKR 80,000 ↑</div>
+                    <div className="px-3 py-1 rounded-lg text-xs font-semibold" style={{ background: "rgba(16,184,169,0.1)", color: "#10B8A9" }}>
+                      {isLoadingTodayEarnings ? "..." : `PKR ${thisYearEarnings.toLocaleString()}`}
+                    </div>
                   </div>
                   <ResponsiveContainer width="100%" height={200}>
-                    <AreaChart data={earningsData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                    <AreaChart data={monthlyEarnings} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="earningsGrad" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#10B8A9" stopOpacity={0.3} />
@@ -532,7 +556,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
             </>
           )}
 
-          {!["dashboard", "settings", "patients", "appointments"].includes(activeNav) && (
+          {!["dashboard", "settings", "patients", "appointments", "insights"].includes(activeNav) && (
             <div className="flex items-center justify-center h-full">
               <div className="text-center py-20">
                 <div className="text-5xl mb-4">🚧</div>

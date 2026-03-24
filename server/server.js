@@ -12,6 +12,7 @@ import checkupRoutes from "./routes/checkup.routes.js";
 import appointmentRoutes from "./routes/appointment.routes.js";
 import prescriptionRoutes from "./routes/prescription.routes.js";
 import {startReminderJob} from "./utils/reminderJob.js";
+import insightsRoutes from "./routes/insights.routes.js";
 
 const app=express();
 
@@ -39,6 +40,8 @@ app.use("/api/checkups", checkupRoutes);
 app.use("/api/appointments", appointmentRoutes);
 
 app.use("/api/prescriptions", prescriptionRoutes);
+
+ app.use("/api/insights", insightsRoutes)
 
 connectDB()
 .then(()=>{
