@@ -103,7 +103,7 @@ export const registerDoctor = async (req, res) => {
 
     await sendEmail({
       to: email,
-      subject: "Verify your MediMate account",
+      subject: "Verify your MedAlerto account",
       html: verificationEmailTemplate(fullName, otp),
     });
     res.status(201).json({ message: "Doctor registered successfully" });
@@ -217,7 +217,7 @@ export const forgotPassword = async (req, res) => {
     await doctor.save();
     await sendEmail({
       to: email,
-      subject: "Reset your MediMate password",
+      subject: "Reset your MedAlerto password",
       html: resetPasswordEmailTemplate(doctor.fullName, otp),
     });
     res.status(200).json({ message: "OTP sent successfully" });
@@ -306,7 +306,7 @@ export const resendOtp = async (req, res) => {
 
     await sendEmail({
       to: email,
-      subject: "MediMate - New Verification OTP",
+      subject: "MedAlerto - New Verification OTP",
       html: verificationEmailTemplate(doctor.fullName, otp),
     });
 

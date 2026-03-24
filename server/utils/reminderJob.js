@@ -64,8 +64,8 @@ export const startReminderJob = () => {
 					});
 
 					const reminderText = hasSixHourLead
-						? `Dear ${patient.name}, reminder: your appointment is in ~6 hours on ${dateLabel} at ${appointment.slot}. - MediMate`
-						: `Dear ${patient.name}, reminder: your appointment is on ${dateLabel} at ${appointment.slot}. - MediMate`;
+						? `Dear ${patient.name}, reminder: your appointment is in ~6 hours on ${dateLabel} at ${appointment.slot}. - MedAlerto`
+						: `Dear ${patient.name}, reminder: your appointment is on ${dateLabel} at ${appointment.slot}. - MedAlerto`;
 
 					await client.sendMessage(chatId, reminderText);
 					await Appointment.updateOne(

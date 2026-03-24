@@ -35,7 +35,7 @@ export default function ForgotPasswordPage() {
 
       <nav className="relative z-10 px-4 sm:px-6 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(16,184,169,0.1)" }}>
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
-          <img src={logo} alt="MediMate" className="h-8 w-auto brightness-0 invert" />
+          <img src={logo} alt="MedAlerto" className="h-8 w-auto brightness-0 invert" />
         </div>
         <button onClick={() => navigate("/login")} className="text-sm font-medium hover:text-teal-400 transition-colors" style={{ color: "#94a3b8" }}>
           Back to <span style={{ color: "#10B8A9" }}>Login</span>

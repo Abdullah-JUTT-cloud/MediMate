@@ -29,7 +29,7 @@ const sendEmail = async ({ to, subject, html }) => {
     }
   })
   const mailOptions = {
-    from: `"MediMate" <${process.env.EMAIL_USER}>`,
+    from: `"MedAlerto" <${process.env.EMAIL_USER}>`,
     to,
     subject,
     html,
@@ -48,7 +48,7 @@ const verificationEmailTemplate = (fullName, otp) => {
   return `
     <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-        <h1 style="color: #fff; margin: 0; font-size: 24px;">Welcome to MediMate! 🎉</h1>
+        <h1 style="color: #fff; margin: 0; font-size: 24px;">Welcome to MedAlerto! 🎉</h1>
       </div>
       <div style="background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
         <p style="color: #333; font-size: 16px;">Hi <strong>${fullName}</strong>,</p>

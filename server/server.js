@@ -13,8 +13,12 @@ import appointmentRoutes from "./routes/appointment.routes.js";
 import prescriptionRoutes from "./routes/prescription.routes.js";
 import {startReminderJob} from "./utils/reminderJob.js";
 import insightsRoutes from "./routes/insights.routes.js";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import mongoSanitize from "express-mongo-sanitize";
 
 const app=express();
+app.use(helmet());
 
 const PORT=process.env.PORT || 3000;
 
@@ -23,12 +27,23 @@ app.use(cors({
     credentials:true
 }))
 app.use(express.json())
+app.use((req, res, next) => {
+    // Express 5 has a read-only req.query, so sanitize mutable objects only.
+    if (req.body) req.body = mongoSanitize.sanitize(req.body);
+    if (req.params) req.params = mongoSanitize.sanitize(req.params);
+    next();
+});
 app.use(cookieParser())
 
 app.get("/",(req,res)=>{
     res.send("landing page");
 })
-
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: { message: "Too many requests, please try again later" },
+});
+app.use("/api/auth", authLimiter);
 app.use("/api/auth",authRoutes);
 
 app.use("/api/doctor",doctorRoutes)

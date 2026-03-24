@@ -1,1 +1,1 @@
-# MediMate
+# MedAlerto

@@ -114,7 +114,7 @@ export default function VerifyEmailPage() {
         style={{ borderBottom: "1px solid rgba(16,184,169,0.1)" }}
       >
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
-          <img src={logo} alt="MediMate" className="h-8 w-auto brightness-0 invert" />
+          <img src={logo} alt="MedAlerto" className="h-8 w-auto brightness-0 invert" />
         </div>
         <button
           onClick={() => navigate("/login")}

@@ -164,7 +164,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
         style={{ width: "240px", background: "#0a1628", borderRight: "1px solid rgba(16,184,169,0.1)", flexShrink: 0 }}>
 
         <div className="px-5 py-5 flex items-center gap-3" style={{ borderBottom: "1px solid rgba(16,184,169,0.1)" }}>
-          <img src={logo} alt="MediMate" className="h-8 w-auto brightness-0 invert" />
+          <img src={logo} alt="MedAlerto" className="h-8 w-auto brightness-0 invert" />
           <button className="ml-auto lg:hidden text-gray-400 hover:text-white" onClick={() => setSidebarOpen(false)}>✕</button>
         </div>
 

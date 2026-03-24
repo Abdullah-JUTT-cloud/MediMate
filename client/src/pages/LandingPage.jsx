@@ -82,13 +82,13 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <img src={logo} alt="MediMate Logo" className="h-8 sm:h-10 w-auto brightness-0 invert" />
+            <img src={logo} alt="MedAlerto Logo" className="h-8 sm:h-10 w-auto brightness-0 invert" />
           </div>
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-6 lg:gap-8">
             <a href="#features" className="text-sm font-medium transition-colors hover:text-teal-400" style={{ color: "#94a3b8" }}>Features</a>
-            <a href="#stats" className="text-sm font-medium transition-colors hover:text-teal-400" style={{ color: "#94a3b8" }}>Why MediMate</a>
+            <a href="#stats" className="text-sm font-medium transition-colors hover:text-teal-400" style={{ color: "#94a3b8" }}>Why MedAlerto</a>
             <a href="#contact" className="text-sm font-medium transition-colors hover:text-teal-400" style={{ color: "#94a3b8" }}>Contact</a>
             <button
               onClick={() => navigate("/login")}
@@ -122,7 +122,7 @@ export default function LandingPage() {
         {menuOpen && (
           <div className="md:hidden px-4 pb-5 pt-2 flex flex-col gap-3" style={{ background: "#0f1923", borderTop: "1px solid rgba(16,184,169,0.2)" }}>
             <a href="#features" className="text-sm font-medium py-2" style={{ color: "#94a3b8" }} onClick={() => setMenuOpen(false)}>Features</a>
-            <a href="#stats" className="text-sm font-medium py-2" style={{ color: "#94a3b8" }} onClick={() => setMenuOpen(false)}>Why MediMate</a>
+            <a href="#stats" className="text-sm font-medium py-2" style={{ color: "#94a3b8" }} onClick={() => setMenuOpen(false)}>Why MedAlerto</a>
             <a href="#contact" className="text-sm font-medium py-2" style={{ color: "#94a3b8" }} onClick={() => setMenuOpen(false)}>Contact</a>
             <button onClick={() => { navigate("/login"); setMenuOpen(false); }} className="text-sm font-semibold py-3 rounded-xl w-full" style={{ color: "#10b8a9", border: "1.5px solid #10b8a9" }}>Login</button>
             <button onClick={() => { navigate("/signup"); setMenuOpen(false); }} className="text-sm font-semibold py-3 rounded-xl text-white w-full" style={{ background: "linear-gradient(135deg, #10b8a9, #0d9488)" }}>Create Account</button>
@@ -165,7 +165,7 @@ export default function LandingPage() {
               </h1>
 
               <p className="text-base sm:text-lg max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed" style={{ color: "#94a3b8" }}>
-                MediMate automates prescriptions, appointments, and patient records —
+                MedAlerto automates prescriptions, appointments, and patient records —
                 so you spend less time on paperwork and more time with patients.
               </p>
 
@@ -262,7 +262,7 @@ export default function LandingPage() {
               <span style={{ color: "#10b8a9" }}>to Keep You Healthy</span>
             </h2>
             <p className="text-base sm:text-lg max-w-xl mx-auto px-4" style={{ color: "#585858" }}>
-              From digital prescriptions to smart appointments — MediMate handles it all.
+              From digital prescriptions to smart appointments — MedAlerto handles it all.
             </p>
           </div>
 
@@ -307,7 +307,7 @@ export default function LandingPage() {
             <span style={{ color: "#10b8a9" }}>Your Clinic?</span>
           </h2>
           <p className="text-base sm:text-lg mb-6 sm:mb-8 max-w-xl mx-auto px-2" style={{ color: "#94a3b8" }}>
-            Join doctors already using MediMate to save time, reduce errors, and deliver better care.
+            Join doctors already using MedAlerto to save time, reduce errors, and deliver better care.
           </p>
           <button
             onClick={() => navigate("/signup")}
@@ -326,7 +326,7 @@ export default function LandingPage() {
             {/* Brand column */}
             <div className="col-span-2 sm:col-span-3 lg:col-span-1">
               <div className="flex items-center gap-2 mb-4">
-                <img src={logo} alt="MediMate Logo" className="h-8 w-auto brightness-0 invert" />
+                <img src={logo} alt="MedAlerto Logo" className="h-8 w-auto brightness-0 invert" />
               </div>
               <p className="text-sm leading-relaxed mb-5" style={{ color: "#64748b" }}>
                 The modern clinic management platform built for doctors who care about their patients.
@@ -373,7 +373,7 @@ export default function LandingPage() {
           <div className="mt-10 sm:mt-12 p-5 sm:p-6 rounded-2xl" style={{ background: "#1e293b", border: "1px solid rgba(16,184,169,0.2)" }}>
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                <h4 className="text-sm font-semibold mb-1" style={{ color: "#f1f5f9" }}>Stay updated with MediMate</h4>
+                <h4 className="text-sm font-semibold mb-1" style={{ color: "#f1f5f9" }}>Stay updated with MedAlerto</h4>
                 <p className="text-xs" style={{ color: "#64748b" }}>Get the latest features and updates delivered to your inbox.</p>
               </div>
               <div className="flex gap-2 w-full sm:w-auto">
@@ -398,7 +398,7 @@ export default function LandingPage() {
         <div style={{ borderTop: "1px solid #1e293b" }}>
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
             <p className="text-xs text-center sm:text-left" style={{ color: "#475569" }}>
-              © 2026 MediMate. All rights reserved. Built for doctors who care.
+              © 2026 MedAlerto. All rights reserved. Built for doctors who care.
             </p>
             <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
               {["Privacy Policy", "Terms of Service", "Cookie Policy"].map((item) => (

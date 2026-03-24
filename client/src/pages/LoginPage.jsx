@@ -117,7 +117,7 @@ export default function LoginPage() {
         >
           <img
             src={logo}
-            alt="MediMate"
+            alt="MedAlerto"
             className="h-8 w-auto brightness-0 invert"
           />
         </div>
@@ -152,7 +152,7 @@ export default function LoginPage() {
               Welcome Back
             </h1>
             <p className="text-sm sm:text-base" style={{ color: "#94a3b8" }}>
-              Sign in to your MediMate dashboard
+              Sign in to your MedAlerto dashboard
             </p>
           </div>
 

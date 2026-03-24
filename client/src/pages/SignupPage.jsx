@@ -479,7 +479,7 @@ export default function SignupPage() {
 
         {/* Logo */}
         <div className="flex justify-center mb-6">
-          <img src={logo} alt="MediMate" className="h-10 brightness-0 invert" />
+          <img src={logo} alt="MedAlerto" className="h-10 brightness-0 invert" />
         </div>
 
         {/* Header */}

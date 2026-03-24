@@ -21,7 +21,7 @@ const formatAppointmentMessage = (patientName, date, slot, type) => {
     month: "long",
     year: "numeric",
   });
-  return `Dear ${patientName}, your appointment is scheduled for ${formattedDate} at ${slot}. Type: ${type}. - MediMate`;
+  return `Dear ${patientName}, your appointment is scheduled for ${formattedDate} at ${slot}. Type: ${type}. - MedAlerto`;
 };
 
 export const getAppointments = async (req, res) => {
@@ -267,7 +267,7 @@ export const emergencyCancel = async (req, res) => {
             year: "numeric",
           }
         );
-        const msg = `Dear ${appointment.patient.name}, your appointment on ${formattedDate} at ${appointment.slot} has been cancelled due to an emergency. We apologize for the inconvenience. - MediMate`;
+        const msg = `Dear ${appointment.patient.name}, your appointment on ${formattedDate} at ${appointment.slot} has been cancelled due to an emergency. We apologize for the inconvenience. - MedAlerto`;
         await sendAppointmentWhatsApp(appointment.patient, appointment, msg);
       } catch (error) {
         console.error(
@@ -305,7 +305,7 @@ export const sendRescheduleWhatsApp = async (req, res) => {
       return res.status(400).json({ message: "Patient phone number not found" });
     }
 
-    const msg = `Dear ${appointment.patient.name}, your appointment was cancelled due to an emergency. Please wait while we reschedule your appointment. - MediMate`;
+    const msg = `Dear ${appointment.patient.name}, your appointment was cancelled due to an emergency. Please wait while we reschedule your appointment. - MedAlerto`;
     await sendAppointmentWhatsApp(appointment.patient, appointment, msg);
 
     res.status(200).json({ message: "Reschedule WhatsApp sent successfully" });
