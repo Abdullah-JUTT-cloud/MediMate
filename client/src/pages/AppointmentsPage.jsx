@@ -129,7 +129,7 @@ function AppointmentDetailPage({ appointment, onBack, onUpdated, onDeleted }) {
       {/* Header Card */}
       <div className="rounded-2xl p-5 sm:p-6 mb-5" style={S.card}>
         <div className="flex items-start gap-4 mb-5">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center text-xl shrink-0"
             style={{ background: "rgba(16,184,169,0.1)" }}>
             {TYPE_ICONS[appointment.type] || "🩺"}
           </div>
@@ -207,7 +207,13 @@ function AppointmentDetailPage({ appointment, onBack, onUpdated, onDeleted }) {
 // BOOK APPOINTMENT FORM
 // ══════════════════════════════════════════════════════════════════════════════
 
-function BookAppointmentForm({ onBack, onBooked, preSelectedPatient = null }) {
+function BookAppointmentForm({
+  onBack,
+  onBooked,
+  preSelectedPatient = null,
+  rescheduleCancelledAppointmentId = null,
+  onEmergencyRescheduleComplete,
+}) {
   const { doctor } = useAuthStore();
   const [patients, setPatients] = useState([]);
   const [search, setSearch] = useState("");
@@ -333,7 +339,11 @@ function BookAppointmentForm({ onBack, onBooked, preSelectedPatient = null }) {
     const fetchBooked = async () => {
       try {
         const res = await axiosInstance.get(`/appointments?date=${date}`);
-        setBookedSlots(res.data.appointments.map((a) => a.slot));
+        setBookedSlots(
+          res.data.appointments
+            .filter((a) => !["Cancelled", "Completed"].includes(a.status))
+            .map((a) => a.slot)
+        );
       } catch {
         setBookedSlots([]);
       }
@@ -353,6 +363,9 @@ function BookAppointmentForm({ onBack, onBooked, preSelectedPatient = null }) {
         patientId: selectedPatient._id,
         date, slot: selectedSlot, type, notes,
       });
+      if (rescheduleCancelledAppointmentId && onEmergencyRescheduleComplete) {
+        await onEmergencyRescheduleComplete(rescheduleCancelledAppointmentId);
+      }
       toast.success("Appointment booked!");
       onBooked(res.data.appointment);
     } catch (err) {
@@ -396,7 +409,7 @@ function BookAppointmentForm({ onBack, onBooked, preSelectedPatient = null }) {
                   style={S.section}
                   onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(16,184,169,0.06)")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = S.section.background)}>
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white shrink-0"
                     style={{ background: "linear-gradient(135deg,#10B8A9,#0d9488)" }}>
                     {getInitials(p.name)}
                   </div>
@@ -418,7 +431,7 @@ function BookAppointmentForm({ onBack, onBooked, preSelectedPatient = null }) {
           {selectedPatient && (
             <div className="flex items-center gap-3 px-4 py-3 rounded-xl"
               style={{ background: "rgba(16,184,169,0.08)", border: "1px solid rgba(16,184,169,0.2)" }}>
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white shrink-0"
                 style={{ background: "linear-gradient(135deg,#10B8A9,#0d9488)" }}>
                 {getInitials(selectedPatient.name)}
               </div>
@@ -537,7 +550,11 @@ function BookAppointmentForm({ onBack, onBooked, preSelectedPatient = null }) {
 // APPOINTMENTS LIST
 // ══════════════════════════════════════════════════════════════════════════════
 
-export default function AppointmentsPage({ initialPatient = null }) {
+export default function AppointmentsPage({
+  initialPatient = null,
+  rescheduleCancelledAppointmentId = null,
+  onEmergencyRescheduleComplete,
+}) {
   const [view, setView] = useState("list");
   const [appointments, setAppointments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -568,7 +585,7 @@ export default function AppointmentsPage({ initialPatient = null }) {
       setPreSelectedPatient(initialPatient);
       setView("book");
     }
-  }, []);
+  }, [initialPatient]);
 
   const handleUpdated = (updated) => {
     setAppointments((p) => p.map((a) => a._id === updated._id ? updated : a));
@@ -590,6 +607,8 @@ export default function AppointmentsPage({ initialPatient = null }) {
       onBack={() => setView("list")}
       onBooked={handleBooked}
       preSelectedPatient={preSelectedPatient}
+      rescheduleCancelledAppointmentId={rescheduleCancelledAppointmentId}
+      onEmergencyRescheduleComplete={onEmergencyRescheduleComplete}
     />
   );
   if (view === "detail" && activeAppointment) return (
@@ -685,7 +704,7 @@ export default function AppointmentsPage({ initialPatient = null }) {
 
             {/* Mobile */}
             <div className="sm:hidden flex items-center gap-3 px-4 py-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0"
                 style={{ background: "rgba(16,184,169,0.1)" }}>
                 {TYPE_ICONS[apt.type] || "🩺"}
               </div>
@@ -701,7 +720,7 @@ export default function AppointmentsPage({ initialPatient = null }) {
             {/* Desktop */}
             <div className="hidden sm:grid grid-cols-5 gap-4 items-center px-5 py-4">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm flex-shrink-0"
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm shrink-0"
                   style={{ background: "rgba(16,184,169,0.1)" }}>
                   {TYPE_ICONS[apt.type] || "🩺"}
                 </div>

@@ -57,7 +57,7 @@ export default function DashboardPage() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelledAppointments, setCancelledAppointments] = useState([]);
   const [isLoadingCancelled, setIsLoadingCancelled] = useState(false);
-  const [reschedulePatient, setReschedulePatient] = useState(null);
+  const [rescheduleContext, setRescheduleContext] = useState(null);
 
   const fetchCancelledAppointments = async () => {
     setIsLoadingCancelled(true);
@@ -108,12 +108,17 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
     fetchDashboardData();
   }, [activeNav]);
 
-  useEffect(() => {
-    if (activeNav === "appointments" && reschedulePatient) {
-      const t = setTimeout(() => setReschedulePatient(null), 500);
-      return () => clearTimeout(t);
+  const handleEmergencyRescheduleComplete = async (cancelledAppointmentId) => {
+    if (!cancelledAppointmentId) return;
+    try {
+      await axiosInstance.put(`/appointments/${cancelledAppointmentId}`, { emergencyCancelled: false });
+      setCancelledAppointments((p) => p.filter((a) => a._id !== cancelledAppointmentId));
+      setRescheduleContext(null);
+      toast.success("Rescheduling completed");
+    } catch {
+      toast.error("Booked, but failed to mark previous emergency-cancelled appointment as resolved");
     }
-  }, [activeNav, reschedulePatient]);
+  };
 
   const handleLogout = async () => {
     try {
@@ -222,7 +227,13 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
         <main className="flex-1 overflow-y-auto p-4 sm:p-6" style={{ background: "#0f1923" }}>
           {activeNav === "settings" && <SettingsPage />}
           {activeNav === "patients" && <PatientsPage />}
-          {activeNav === "appointments" && <AppointmentsPage initialPatient={reschedulePatient} />}
+          {activeNav === "appointments" && (
+            <AppointmentsPage
+              initialPatient={rescheduleContext?.patient || null}
+              rescheduleCancelledAppointmentId={rescheduleContext?.cancelledAppointmentId || null}
+              onEmergencyRescheduleComplete={handleEmergencyRescheduleComplete}
+            />
+          )}
 
           {activeNav === "dashboard" && (
             <>
@@ -488,7 +499,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                     {cancelledAppointments.map((apt) => (
                       <div key={apt._id} className="flex items-center gap-3 p-3 sm:p-4 rounded-xl"
                         style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(239,68,68,0.1)" }}>
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold text-white shrink-0"
                           style={{ background: "linear-gradient(135deg,#ef4444,#dc2626)" }}>
                           {apt.patient?.name?.charAt(0) || "P"}
                         </div>
@@ -501,16 +512,15 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                         <button onClick={async () => {
                           try {
                             await axiosInstance.post(`/appointments/${apt._id}/reschedule-whatsapp`);
-                            await axiosInstance.put(`/appointments/${apt._id}`, { emergencyCancelled: false });
+                            toast.success("Patient notified. Complete rescheduling to resolve this item.");
                           } catch {
                             toast.error("Failed to send WhatsApp message");
                             return;
                           }
-                          setCancelledAppointments((p) => p.filter((a) => a._id !== apt._id));
-                          setReschedulePatient(apt.patient);
+                          setRescheduleContext({ patient: apt.patient, cancelledAppointmentId: apt._id });
                           setActiveNav("appointments");
                         }}
-                          className="px-3 py-2 rounded-xl text-xs font-bold transition-all hover:opacity-90 flex-shrink-0"
+                          className="px-3 py-2 rounded-xl text-xs font-bold transition-all hover:opacity-90 shrink-0"
                           style={{ background: "rgba(16,184,169,0.12)", border: "1px solid rgba(16,184,169,0.2)", color: "#10B8A9" }}>
                           Reschedule
                         </button>

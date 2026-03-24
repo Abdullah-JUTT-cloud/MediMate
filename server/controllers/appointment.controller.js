@@ -101,6 +101,7 @@ export const createAppointment = async (req, res) => {
       doctor: req.doctorId,
       date,
       slot,
+      status: { $nin: ["Cancelled", "Completed"] },
     });
     if (existing) {
       return res.status(409).json({ message: "This slot is already booked" });
@@ -162,6 +163,16 @@ export const updateAppointment = async (req, res) => {
     if (type) appointment.type = type;
     if (typeof notes !== "undefined") appointment.notes = notes;
     if (typeof emergencyCancelled !== "undefined") appointment.emergencyCancelled = emergencyCancelled;
+
+    // Allow reminder to be recalculated after rescheduling.
+    if (typeof date !== "undefined" || typeof slot !== "undefined") {
+      appointment.reminderSent = false;
+    }
+
+    if (status === "Cancelled" || status === "Completed") {
+      appointment.reminderSent = true;
+    }
+
     await appointment.save();
     const populated = await Appointment.findById(appointment._id).populate(
       "patient",
@@ -242,6 +253,7 @@ export const emergencyCancel = async (req, res) => {
     for (const appointment of toCancel) {
       appointment.status = "Cancelled";
       appointment.emergencyCancelled = true;
+      appointment.reminderSent = true;
       await appointment.save();
       cancelledAppointments.push(appointment);
 
