@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import useAuthStore from "../store/authStore";
+import { RowSkeleton, AppointmentRowSkeleton, FormFieldSkeleton } from "../components/SkeletonLoaders";
+import { Skeleton } from "@mui/material";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -395,9 +397,9 @@ function BookAppointmentForm({
           </div>
 
           {searchLoading && (
-            <div className="flex justify-center py-4">
-              <div className="w-5 h-5 rounded-full border-2 animate-spin"
-                style={{ borderColor: "var(--color-primary)", borderTopColor: "transparent" }} />
+            <div className="space-y-2 py-4">
+              <RowSkeleton hasAvatar={true} />
+              <RowSkeleton hasAvatar={true} />
             </div>
           )}
 
@@ -676,14 +678,15 @@ export default function AppointmentsPage({
           ))}
         </div>
 
-        {isLoading && (
-          <div className="flex justify-center py-16">
-            <div className="w-8 h-8 rounded-full border-2 animate-spin"
-              style={{ borderColor: "var(--color-primary)", borderTopColor: "transparent" }} />
+        {isLoading ? (
+          <div className="space-y-2 p-4">
+            <RowSkeleton />
+            <RowSkeleton />
+            <RowSkeleton />
+            <RowSkeleton />
+            <RowSkeleton />
           </div>
-        )}
-
-        {!isLoading && appointments.length === 0 && (
+        ) : appointments.length === 0 ? (
           <div className="text-center py-16">
             <div className="text-5xl mb-3">📅</div>
             <p className="text-sm font-bold text-[var(--color-text-primary)] mb-1">No appointments found</p>
@@ -691,56 +694,56 @@ export default function AppointmentsPage({
               {activeFilter !== "All" || dateFilter ? "Try changing filters" : "Book your first appointment"}
             </p>
           </div>
-        )}
+        ) : (
+          appointments.map((apt) => (
+            <div key={apt._id}
+              className="group cursor-pointer transition-all duration-200"
+              style={{ borderBottom: "1px solid var(--color-border)" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "color-mix(in srgb, var(--color-primary) 6%, transparent)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              onClick={() => { setActiveAppointment(apt); setView("detail"); }}>
 
-        {!isLoading && appointments.map((apt) => (
-          <div key={apt._id}
-            className="group cursor-pointer transition-all duration-200"
-            style={{ borderBottom: "1px solid var(--color-border)" }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "color-mix(in srgb, var(--color-primary) 6%, transparent)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-            onClick={() => { setActiveAppointment(apt); setView("detail"); }}>
-
-            {/* Mobile */}
-            <div className="sm:hidden flex items-center gap-3 px-4 py-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0"
-                style={{ background: "color-mix(in srgb, var(--color-primary) 12%, transparent)" }}>
-                {TYPE_ICONS[apt.type] || "🩺"}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-[var(--color-text-primary)] truncate">{apt.patient?.name || "Unknown"}</p>
-                <p className="text-xs mt-0.5 text-[var(--color-text-secondary)]">
-                  {formatDate(apt.date)} at {apt.slot} · {apt.type}
-                </p>
-              </div>
-              <StatusBadge status={apt.status} />
-            </div>
-
-            {/* Desktop */}
-            <div className="hidden sm:grid grid-cols-5 gap-4 items-center px-5 py-4">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm shrink-0"
+              {/* Mobile */}
+              <div className="sm:hidden flex items-center gap-3 px-4 py-4">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0"
                   style={{ background: "color-mix(in srgb, var(--color-primary) 12%, transparent)" }}>
                   {TYPE_ICONS[apt.type] || "🩺"}
                 </div>
-                <span className="text-sm font-semibold text-[var(--color-text-primary)] truncate">{apt.patient?.name || "Unknown"}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-[var(--color-text-primary)] truncate">{apt.patient?.name || "Unknown"}</p>
+                  <p className="text-xs mt-0.5 text-[var(--color-text-secondary)]">
+                    {formatDate(apt.date)} at {apt.slot} · {apt.type}
+                  </p>
+                </div>
+                <StatusBadge status={apt.status} />
               </div>
-              <div>
-                <p className="text-sm text-[var(--color-text-primary)]">{formatDate(apt.date)}</p>
-                <p className="text-xs text-[var(--color-text-secondary)]">{apt.slot}</p>
-              </div>
-              <span className="text-sm text-[var(--color-text-secondary)]">{apt.type}</span>
-              <StatusBadge status={apt.status} />
-              <div className="flex items-center">
-                <button
-                  className="text-xs px-3 py-1.5 rounded-lg font-semibold transition-all opacity-0 group-hover:opacity-100"
-                  style={{ background: "color-mix(in srgb, var(--color-primary) 10%, transparent)", color: "var(--color-primary)" }}>
-                  View →
-                </button>
+
+              {/* Desktop */}
+              <div className="hidden sm:grid grid-cols-5 gap-4 items-center px-5 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm shrink-0"
+                    style={{ background: "color-mix(in srgb, var(--color-primary) 12%, transparent)" }}>
+                    {TYPE_ICONS[apt.type] || "🩺"}
+                  </div>
+                  <span className="text-sm font-semibold text-[var(--color-text-primary)] truncate">{apt.patient?.name || "Unknown"}</span>
+                </div>
+                <div>
+                  <p className="text-sm text-[var(--color-text-primary)]">{formatDate(apt.date)}</p>
+                  <p className="text-xs text-[var(--color-text-secondary)]">{apt.slot}</p>
+                </div>
+                <span className="text-sm text-[var(--color-text-secondary)]">{apt.type}</span>
+                <StatusBadge status={apt.status} />
+                <div className="flex items-center">
+                  <button
+                    className="text-xs px-3 py-1.5 rounded-lg font-semibold transition-all opacity-0 group-hover:opacity-100"
+                    style={{ background: "color-mix(in srgb, var(--color-primary) 10%, transparent)", color: "var(--color-primary)" }}>
+                    View →
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );

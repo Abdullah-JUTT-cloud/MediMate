@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
-import logo from "../assets/logo-compact.webp";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
 import doc from "../assets/doc-hero.webp";
 
 const features = [
@@ -49,97 +49,12 @@ const stats = [
   { value: "24/7", label: "Patient Records Access" },
 ];
 
-const footerLinks = {
-  Product: ["Features", "How it Works", "Pricing"],
-  Company: ["About Us"],
-  Support: ["Help Center", "Contact Us", "Privacy Policy", "Terms of Service"],
-  Integrations: ["WhatsApp", "PDF Export", "Drug Database", "SMS Alerts"],
-};
-
 export default function LandingPage() {
   const navigate = useNavigate();
-  const [scrolled, setScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const navBaseClass = scrolled
-    ? "border-b bg-[var(--color-card)]/95 shadow-sm backdrop-blur"
-    : "border-b border-transparent bg-[var(--color-card)]/80";
 
   return (
     <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)]">
-      <nav className={`fixed left-0 right-0 top-0 z-50 transition ${navBaseClass}`}>
-        <div className="flex w-full items-center justify-between px-4 py-4 sm:px-8 lg:px-10 xl:px-14">
-          <div className="flex items-center gap-3">
-            <img src={logo} alt="MedAlerto Logo" className="h-8 w-auto" />
-            <p className="text-sm font-extrabold tracking-tight text-[var(--color-text-primary)] sm:text-base">MedAlerto</p>
-          </div>
-
-          <div className="hidden items-center gap-6 md:flex">
-            <a href="#features" className="text-sm font-semibold text-[var(--color-text-secondary)] transition hover:text-[var(--color-primary)]">Features</a>
-            <a href="#stats" className="text-sm font-semibold text-[var(--color-text-secondary)] transition hover:text-[var(--color-primary)]">Why MedAlerto</a>
-            <a href="#contact" className="text-sm font-semibold text-[var(--color-text-secondary)] transition hover:text-[var(--color-primary)]">Contact</a>
-            <button
-              onClick={() => navigate("/login")}
-              className="rounded-xl border border-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-[var(--color-primary)] transition hover:bg-[var(--color-primary)]/10"
-            >
-              Login
-            </button>
-            <button
-              onClick={() => navigate("/signup")}
-              className="rounded-xl bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
-            >
-              Create Account
-            </button>
-          </div>
-
-          <button
-            type="button"
-            className="rounded-xl border p-2 text-[var(--color-text-primary)] md:hidden"
-            onClick={() => setMenuOpen((prev) => !prev)}
-            aria-label="Toggle menu"
-          >
-            <div className="space-y-1">
-              <span className={`block h-0.5 w-5 bg-current transition ${menuOpen ? "translate-y-1.5 rotate-45" : ""}`} />
-              <span className={`block h-0.5 w-5 bg-current transition ${menuOpen ? "opacity-0" : ""}`} />
-              <span className={`block h-0.5 w-5 bg-current transition ${menuOpen ? "-translate-y-1.5 -rotate-45" : ""}`} />
-            </div>
-          </button>
-        </div>
-
-        {menuOpen && (
-          <div className="border-t bg-[var(--color-card)] px-4 py-4 md:hidden">
-            <div className="flex flex-col gap-3">
-              <a href="#features" className="text-sm font-semibold text-[var(--color-text-secondary)]" onClick={() => setMenuOpen(false)}>Features</a>
-              <a href="#stats" className="text-sm font-semibold text-[var(--color-text-secondary)]" onClick={() => setMenuOpen(false)}>Why MedAlerto</a>
-              <a href="#contact" className="text-sm font-semibold text-[var(--color-text-secondary)]" onClick={() => setMenuOpen(false)}>Contact</a>
-              <button
-                onClick={() => {
-                  navigate("/login");
-                  setMenuOpen(false);
-                }}
-                className="rounded-xl border border-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-[var(--color-primary)]"
-              >
-                Login
-              </button>
-              <button
-                onClick={() => {
-                  navigate("/signup");
-                  setMenuOpen(false);
-                }}
-                className="rounded-xl bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-white"
-              >
-                Create Account
-              </button>
-            </div>
-          </div>
-        )}
-      </nav>
+      <Navbar />
 
       <section className="relative overflow-hidden border-b pt-24">
         <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-primary)]/8 via-transparent to-[var(--color-primary)]/5" />
@@ -255,61 +170,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <footer id="contact" className="border-t bg-[var(--color-card)]">
-        <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-5">
-            <div className="col-span-2 sm:col-span-3 lg:col-span-1">
-              <img src={logo} alt="MedAlerto Logo" className="h-8 w-auto" />
-              <p className="mt-4 text-sm leading-relaxed text-[var(--color-text-secondary)]">
-                Trusted clinic management for doctors who value reliable and clear patient communication.
-              </p>
-            </div>
-
-            {Object.entries(footerLinks).map(([category, links]) => (
-              <div key={category}>
-                <h4 className="text-sm font-bold text-[var(--color-text-primary)]">{category}</h4>
-                <ul className="mt-4 space-y-3">
-                  {links.map((link) => (
-                    <li key={link}>
-                      <a href="#" className="text-sm text-[var(--color-text-secondary)] transition hover:text-[var(--color-primary)]">
-                        {link}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-8 rounded-xl border bg-[var(--color-bg)] p-4 sm:p-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h4 className="text-sm font-bold">Stay updated with MedAlerto</h4>
-                <p className="mt-2 text-xs text-[var(--color-text-secondary)]">Get product updates and release notes in your inbox.</p>
-              </div>
-              <div className="flex w-full gap-3 sm:w-auto">
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  className="w-full rounded-xl border bg-[var(--color-card)] px-4 py-2 text-sm outline-none focus:border-[var(--color-primary)] sm:w-64"
-                />
-                <button className="rounded-xl bg-[var(--color-primary)] px-4 py-2 text-sm font-bold text-white">Subscribe</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="border-t">
-          <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-3 px-4 py-4 text-xs text-[var(--color-text-secondary)] sm:flex-row sm:px-6 lg:px-8">
-            <p>© 2026 MedAlerto. All rights reserved. Built for doctors who care.</p>
-            <div className="flex flex-wrap justify-center gap-4">
-              {["Privacy Policy", "Terms of Service", "Cookie Policy"].map((item) => (
-                <a key={item} href="#" className="transition hover:text-[var(--color-primary)]">{item}</a>
-              ))}
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

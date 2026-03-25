@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import axiosInstance from "../api/axios";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, BarChart, Bar, Cell,
+  Tooltip, ResponsiveContainer,
 } from "recharts";
+import { CardSkeleton, ChartSkeleton } from "../components/SkeletonLoaders";
 
 const S = {
   card: { background: "var(--color-card)", border: "1px solid var(--color-border)" },
@@ -45,8 +46,23 @@ export default function InsightsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 rounded-full border-2 animate-spin border-[var(--color-primary)] border-t-transparent" />
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-xl font-bold text-[var(--color-text-primary)]">Insights</h2>
+          <p className="text-xs mt-0.5 text-[var(--color-text-secondary)]">Your practice performance overview</p>
+        </div>
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest mb-3 text-[var(--color-text-secondary)]">Earnings</p>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[1, 2, 3, 4].map((i) => <CardSkeleton key={i} />)}
+          </div>
+        </div>
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div className="xl:col-span-2">
+            <ChartSkeleton height={280} />
+          </div>
+          <CardSkeleton />
+        </div>
       </div>
     );
   }

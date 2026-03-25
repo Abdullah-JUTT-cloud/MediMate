@@ -9,6 +9,8 @@ import PatientsPage from "./PatientsPage";
 import AppointmentsPage from "./AppointmentsPage";
 import InsightsPage from "./InsightsPage";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { CardSkeleton, RowSkeleton, AppointmentRowSkeleton, ChartSkeleton } from "../components/SkeletonLoaders";
+import { Skeleton } from "@mui/material";
 
 const navItems = [
   { icon: "⊞", label: "Dashboard", key: "dashboard" },
@@ -354,25 +356,34 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
               )}
 
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-                {[
-                  { label: "Total Patients", value: isLoadingData ? "..." : String(totalPatients || 0), sub: "Registered patients", icon: "👥", color: "var(--color-primary)" },
-                  { label: "Today's Appointments", value: isLoadingData ? "..." : todayAppointments.length.toString(), sub: isLoadingData ? "Loading..." : todayAppointments.filter((a) => a.status === "Pending").length + " pending", icon: "📅", color: "#38bdf8" },
-                  { label: "Today's Earnings", value: isLoadingTodayEarnings ? "..." : `PKR ${todayEarnings.toLocaleString()}`, sub: isLoadingTodayEarnings ? "Loading..." : "From insights", icon: "💰", color: "#22c55e" },
-                  { label: "Prescriptions", value: totalPrescriptions === null ? "..." : String(totalPrescriptions), sub: "PDFs generated", icon: "📋", color: "#a78bfa" },
-                ].map((stat) => (
-                  <div key={stat.label} className="rounded-2xl  p-4 sm:p-5 transition-all hover:scale-105"
-                    style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}>
-                    <div className="mb-3">
-                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-base sm:text-lg"
-                        style={{ background: "rgba(" + (stat.color === "var(--color-primary)" ? "59,130,246" : stat.color === "#38bdf8" ? "56,189,248" : stat.color === "#22c55e" ? "34,197,94" : "167,139,250") + ",0.15)" }}>
-                        {stat.icon}
+                {isLoadingData || isLoadingTodayEarnings ? (
+                  <>
+                    <CardSkeleton />
+                    <CardSkeleton />
+                    <CardSkeleton />
+                    <CardSkeleton />
+                  </>
+                ) : (
+                  [
+                    { label: "Total Patients", value: String(totalPatients || 0), sub: "Registered patients", icon: "👥", color: "var(--color-primary)" },
+                    { label: "Today's Appointments", value: todayAppointments.length.toString(), sub: todayAppointments.filter((a) => a.status === "Pending").length + " pending", icon: "📅", color: "#38bdf8" },
+                    { label: "Today's Earnings", value: `PKR ${todayEarnings.toLocaleString()}`, sub: "From insights", icon: "💰", color: "#22c55e" },
+                    { label: "Prescriptions", value: totalPrescriptions === null ? "0" : String(totalPrescriptions), sub: "PDFs generated", icon: "📋", color: "#a78bfa" },
+                  ].map((stat) => (
+                    <div key={stat.label} className="rounded-2xl  p-4 sm:p-5 transition-all hover:scale-105"
+                      style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}>
+                      <div className="mb-3">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-base sm:text-lg"
+                          style={{ background: "rgba(" + (stat.color === "var(--color-primary)" ? "59,130,246" : stat.color === "#38bdf8" ? "56,189,248" : stat.color === "#22c55e" ? "34,197,94" : "167,139,250") + ",0.15)" }}>
+                          {stat.icon}
+                        </div>
                       </div>
+                      <p className="text-lg sm:text-2xl font-extrabold text-[var(--color-text-primary)] mb-0.5">{stat.value}</p>
+                      <p className="text-xs sm:text-sm font-medium mb-1 text-[var(--color-text-secondary)]">{stat.label}</p>
+                      <p className="text-xs" style={{ color: stat.color }}>{stat.sub}</p>
                     </div>
-                    <p className="text-lg sm:text-2xl font-extrabold text-[var(--color-text-primary)] mb-0.5">{stat.value}</p>
-                    <p className="text-xs sm:text-sm font-medium mb-1 text-[var(--color-text-secondary)]">{stat.label}</p>
-                    <p className="text-xs" style={{ color: stat.color }}>{stat.sub}</p>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
 
               <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 mb-6">
@@ -383,25 +394,29 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                       <h3 className="text-sm sm:text-base font-bold text-[var(--color-text-primary)]">Monthly Earnings</h3>
                       <p className="text-xs text-[var(--color-text-secondary)]">Year 2026 — real data</p>
                     </div>
-                    <div className="px-3 py-1 rounded-lg text-xs font-semibold bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
-                      {isLoadingTodayEarnings ? "..." : `PKR ${thisYearEarnings.toLocaleString()}`}
+                    <div className="px-3 py-1 rounded-lg text-xs font-semibold bg-[var(--color-primary)]/10 text-[var(--color-primary)] min-w-[100px] flex justify-center">
+                      {isLoadingTodayEarnings ? <Skeleton variant="text" width={60} sx={{ bgcolor: "rgba(var(--color-primary-rgb), 0.1)" }} /> : `PKR ${thisYearEarnings.toLocaleString()}`}
                     </div>
                   </div>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <AreaChart data={monthlyEarnings} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="earningsGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                      <XAxis dataKey="month" tick={{ fill: "var(--color-text-secondary)", fontSize: 11 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fill: "var(--color-text-secondary)", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => v/1000 + "k"} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Area type="monotone" dataKey="earnings" stroke="var(--color-primary)" strokeWidth={2} fill="url(#earningsGrad)" dot={false} activeDot={{ r: 5, fill: "var(--color-primary)" }} />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                  {isLoadingTodayEarnings ? (
+                    <ChartSkeleton />
+                  ) : (
+                    <ResponsiveContainer width="100%" height={200}>
+                      <AreaChart data={monthlyEarnings} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="earningsGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                        <XAxis dataKey="month" tick={{ fill: "var(--color-text-secondary)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fill: "var(--color-text-secondary)", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => v/1000 + "k"} />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Area type="monotone" dataKey="earnings" stroke="var(--color-primary)" strokeWidth={2} fill="url(#earningsGrad)" dot={false} activeDot={{ r: 5, fill: "var(--color-primary)" }} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  )}
                 </div>
 
                 <div className="rounded-2xl p-4 sm:p-5" style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}>
@@ -413,8 +428,10 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                   </div>
                   <div className="space-y-2.5 overflow-y-auto" style={{ maxHeight: "220px" }}>
                     {isLoadingData ? (
-                      <div className="flex justify-center py-8">
-                        <div className="w-6 h-6 rounded-full border-2 animate-spin border-[var(--color-primary)] border-t-transparent" />
+                      <div className="space-y-2.5">
+                        <AppointmentRowSkeleton />
+                        <AppointmentRowSkeleton />
+                        <AppointmentRowSkeleton />
                       </div>
                     ) : todayAppointments.length === 0 ? (
                       <div className="text-center py-8">
@@ -460,8 +477,10 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                 </div>
 
                 {isLoadingData ? (
-                  <div className="flex justify-center py-8">
-                    <div className="w-6 h-6 rounded-full border-2 animate-spin border-[var(--color-primary)] border-t-transparent" />
+                  <div className="space-y-2">
+                    <RowSkeleton />
+                    <RowSkeleton />
+                    <RowSkeleton />
                   </div>
                 ) : recentPatients.length === 0 ? (
                   <div className="text-center py-8">
@@ -502,8 +521,8 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
               </div>
 
               {isLoadingCancelled && (
-                <div className="flex justify-center py-6">
-                  <div className="w-6 h-6 rounded-full border-2 animate-spin border-[var(--color-danger)] border-t-transparent" />
+                <div className="space-y-2 mt-6">
+                  <RowSkeleton hasAvatar={true} />
                 </div>
               )}
 

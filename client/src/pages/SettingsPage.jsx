@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import useAuthStore from "../store/authStore";
+import { ProfileHeaderSkeleton, FormFieldSkeleton } from "../components/SkeletonLoaders";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const TITLES = ["Dr.", "Prof.", "Consultant"];
@@ -399,10 +400,23 @@ export default function SettingsPage() {
     { key: "locations", label: "Locations", icon: "🏥" },
   ];
 
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 rounded-full border-2 animate-spin border-[var(--color-primary)] border-t-transparent" />
+      <div className="max-w-3xl mx-auto space-y-6">
+        <div className="mb-6">
+          <h2 className="text-xl font-bold text-[var(--color-text-primary)]">Settings</h2>
+          <p className="text-xs mt-0.5 text-[var(--color-text-secondary)]">Manage your profile and practice information</p>
+        </div>
+        <ProfileHeaderSkeleton />
+        <div className="rounded-2xl p-6 space-y-6 border bg-[var(--color-card)] border-[var(--color-border)]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <FormFieldSkeleton />
+            <FormFieldSkeleton />
+            <FormFieldSkeleton />
+            <FormFieldSkeleton />
+          </div>
+        </div>
       </div>
     );
   }

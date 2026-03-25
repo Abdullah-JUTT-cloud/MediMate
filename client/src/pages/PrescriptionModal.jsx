@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
+import { Skeleton } from "@mui/material";
 
 export default function PrescriptionModal({ checkup, patient, onClose, onSaved }) {
   const [pdfBase64, setPdfBase64] = useState(null);
@@ -120,13 +121,15 @@ export default function PrescriptionModal({ checkup, patient, onClose, onSaved }
           {/* Status */}
           {isGenerating ? (
             <div className="flex flex-col items-center justify-center py-8">
-              <div className="w-10 h-10 rounded-full border-2 animate-spin mb-3 border-[var(--color-primary)] border-t-transparent" />
+              <Skeleton variant="circular" width={40} height={40} 
+                sx={{ bgcolor: "var(--color-primary)", opacity: 0.15, marginBottom: "12px" }} />
               <p className="text-sm font-semibold text-[var(--color-text-primary)]">Generating prescription...</p>
               <p className="text-xs mt-1 text-[var(--color-text-secondary)]">This may take a moment</p>
             </div>
           ) : isSaving ? (
             <div className="flex flex-col items-center justify-center py-8">
-              <div className="w-10 h-10 rounded-full border-2 animate-spin mb-3 border-[var(--color-primary)] border-t-transparent" />
+              <Skeleton variant="circular" width={40} height={40} 
+                sx={{ bgcolor: "var(--color-primary)", opacity: 0.15, marginBottom: "12px" }} />
               <p className="text-sm font-semibold text-[var(--color-text-primary)]">Saving to cloud...</p>
             </div>
           ) : pdfBase64 ? (

@@ -3,6 +3,8 @@ import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import useAuthStore from "../store/authStore";
 import PrescriptionModal from "./PrescriptionModal";
+import { RowSkeleton, ProfileHeaderSkeleton, FormFieldSkeleton } from "../components/SkeletonLoaders";
+import { Skeleton } from "@mui/material";
 
 const BLOOD_GROUPS = ["A+","A-","B+","B-","AB+","AB-","O+","O-","Unknown"];
 const GENDERS = ["Male","Female","Other"];
@@ -461,7 +463,9 @@ function PatientDetailPage({ patient: initialPatient, onBack, onNewCheckup, onEd
       <BackButton onClick={onBack} label="Back to Patients" />
 
       {/* Patient Header */}
-      {isEditingPatient ? (
+      {isLoading ? (
+        <ProfileHeaderSkeleton />
+      ) : isEditingPatient ? (
         <div className="rounded-2xl p-5 sm:p-6 mb-5" style={S.card}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-[var(--color-text-primary)]">Edit Patient Info</h3>
@@ -569,40 +573,36 @@ function PatientDetailPage({ patient: initialPatient, onBack, onNewCheckup, onEd
         </span>
       </div>
 
-      {isLoading && (
-        <div className="flex justify-center py-16">
-          <div className="w-8 h-8 rounded-full border-2 animate-spin"
-            style={{ borderColor: "var(--color-primary)", borderTopColor: "transparent" }} />
+      {isLoading ? (
+        <div className="space-y-4">
+          <RowSkeleton />
+          <RowSkeleton />
+          <RowSkeleton />
         </div>
-      )}
-
-      {!isLoading && checkups.length === 0 && (
+      ) : checkups.length === 0 ? (
         <div className="text-center py-16 rounded-2xl"
           style={{ background: "var(--color-bg)", border: "1px dashed var(--color-border)" }}>
           <div className="text-4xl mb-3">🩺</div>
           <p className="text-sm font-bold text-[var(--color-text-primary)] mb-1">No checkups yet</p>
           <p className="text-xs text-[var(--color-text-secondary)]">Click "+ New Checkup" to record the first visit</p>
         </div>
-      )}
-
-      <div className="space-y-4">
-        {checkups.map((checkup, idx) => (
-          <div key={checkup._id} className="rounded-2xl overflow-hidden" style={S.card}>
-
-            {/* ── Card Header: date + badges */}
-            <div className="flex items-center justify-between px-5 py-3"
-              style={{ borderBottom: "1px solid var(--color-border)" }}>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-[var(--color-text-secondary)]">
-                  {formatDate(checkup.createdAt)}
-                </span>
-                {idx === 0 && (
-                  <span className="text-xs px-2 py-0.5 rounded-full font-bold"
-                    style={{ background: "rgba(34,197,94,0.12)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.2)" }}>
-                    Latest
+      ) : (
+        <div className="space-y-4">
+          {checkups.map((checkup, idx) => (
+            <div key={checkup._id} className="rounded-2xl overflow-hidden" style={S.card}>
+              <div className="flex items-center justify-between px-5 py-3"
+                style={{ borderBottom: "1px solid var(--color-border)" }}>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-[var(--color-text-secondary)]">
+                    {formatDate(checkup.createdAt)}
                   </span>
-                )}
-              </div>
+                  {idx === 0 && (
+                    <span className="text-xs px-2 py-0.5 rounded-full font-bold"
+                      style={{ background: "rgba(34,197,94,0.12)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.2)" }}>
+                      Latest
+                    </span>
+                  )}
+                </div>
               {checkup.payment && (
                 <span className="text-xs px-2.5 py-1 rounded-full font-semibold"
                   style={{
@@ -737,8 +737,9 @@ function PatientDetailPage({ patient: initialPatient, onBack, onNewCheckup, onEd
               </div>
             </div>
           </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -969,71 +970,72 @@ export default function PatientsPage() {
           ))}
         </div>
 
-        {isLoading && (
-          <div className="flex justify-center py-16">
-            <div className="w-8 h-8 rounded-full border-2 animate-spin"
-              style={{ borderColor: "var(--color-primary)", borderTopColor: "transparent" }} />
+        {isLoading ? (
+          <div className="space-y-2 p-4">
+            <RowSkeleton />
+            <RowSkeleton />
+            <RowSkeleton />
+            <RowSkeleton />
+            <RowSkeleton />
           </div>
-        )}
-
-        {!isLoading && patients.length === 0 && (
+        ) : patients.length === 0 ? (
           <div className="text-center py-16">
             <div className="text-5xl mb-3">👥</div>
             <p className="text-sm font-bold text-[var(--color-text-primary)] mb-1">{search ? "No patients found" : "No patients yet"}</p>
             <p className="text-xs text-[var(--color-text-secondary)]">{search ? "Try a different search" : "Click + Add Patient to get started"}</p>
           </div>
-        )}
+        ) : (
+          patients.map((patient) => (
+            <div key={patient._id} onClick={() => openPatient(patient)}
+              className="group cursor-pointer transition-all duration-200"
+              style={{ borderBottom: "1px solid var(--color-border)" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "color-mix(in srgb, var(--color-primary) 6%, transparent)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
 
-        {!isLoading && patients.map((patient) => (
-          <div key={patient._id} onClick={() => openPatient(patient)}
-            className="group cursor-pointer transition-all duration-200"
-            style={{ borderBottom: "1px solid var(--color-border)" }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "color-mix(in srgb, var(--color-primary) 6%, transparent)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
-
-            <div className="sm:hidden flex items-center gap-3 px-4 py-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                style={{ background: "linear-gradient(135deg,var(--color-primary),color-mix(in srgb, var(--color-primary) 80%, black))" }}>
-                {getInitials(patient.name)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-[var(--color-text-primary)] truncate">{patient.name}</p>
-                <p className="text-xs mt-0.5 text-[var(--color-text-secondary)]">{patient.age} yrs · {patient.gender}</p>
-                {patient.locations?.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {patient.locations.map((loc, i) => <LocationTag key={i} location={loc} />)}
-                  </div>
-                )}
-              </div>
-              <button onClick={(e) => handleDeletePatient(patient._id, e)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-red-500 hover:bg-opacity-15 flex-shrink-0"
-                style={{ color: "var(--color-danger)", border: "1px solid color-mix(in srgb, var(--color-danger) 28%, transparent)" }}>🗑</button>
-            </div>
-
-            <div className="hidden sm:grid grid-cols-5 gap-4 items-center px-5 py-4">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+              <div className="sm:hidden flex items-center gap-3 px-4 py-4">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
                   style={{ background: "linear-gradient(135deg,var(--color-primary),color-mix(in srgb, var(--color-primary) 80%, black))" }}>
                   {getInitials(patient.name)}
                 </div>
-                <span className="text-sm font-semibold text-[var(--color-text-primary)] truncate">{patient.name}</span>
-              </div>
-              <span className="text-sm text-[var(--color-text-secondary)]">{patient.age} yrs · {patient.gender}</span>
-              <span className="text-sm text-[var(--color-text-secondary)]">{patient.phone}</span>
-              <div className="flex flex-wrap gap-1">
-                {patient.locations?.length > 0
-                  ? patient.locations.map((loc, i) => <LocationTag key={i} location={loc} />)
-                  : <span className="text-xs text-[var(--color-text-secondary)]">—</span>}
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-[var(--color-text-secondary)]">{formatDate(patient.createdAt)}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-[var(--color-text-primary)] truncate">{patient.name}</p>
+                  <p className="text-xs mt-0.5 text-[var(--color-text-secondary)]">{patient.age} yrs · {patient.gender}</p>
+                  {patient.locations?.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {patient.locations.map((loc, i) => <LocationTag key={i} location={loc} />)}
+                    </div>
+                  )}
+                </div>
                 <button onClick={(e) => handleDeletePatient(patient._id, e)}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:bg-opacity-15"
+                  className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-red-500 hover:bg-opacity-15 flex-shrink-0"
                   style={{ color: "var(--color-danger)", border: "1px solid color-mix(in srgb, var(--color-danger) 28%, transparent)" }}>🗑</button>
               </div>
+
+              <div className="hidden sm:grid grid-cols-5 gap-4 items-center px-5 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                    style={{ background: "linear-gradient(135deg,var(--color-primary),color-mix(in srgb, var(--color-primary) 80%, black))" }}>
+                    {getInitials(patient.name)}
+                  </div>
+                  <span className="text-sm font-semibold text-[var(--color-text-primary)] truncate">{patient.name}</span>
+                </div>
+                <span className="text-sm text-[var(--color-text-secondary)]">{patient.age} yrs · {patient.gender}</span>
+                <span className="text-sm text-[var(--color-text-secondary)]">{patient.phone}</span>
+                <div className="flex flex-wrap gap-1">
+                  {patient.locations?.length > 0
+                    ? patient.locations.map((loc, i) => <LocationTag key={i} location={loc} />)
+                    : <span className="text-xs text-[var(--color-text-secondary)]">—</span>}
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-[var(--color-text-secondary)]">{formatDate(patient.createdAt)}</span>
+                  <button onClick={(e) => handleDeletePatient(patient._id, e)}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:bg-opacity-15"
+                    style={{ color: "var(--color-danger)", border: "1px solid color-mix(in srgb, var(--color-danger) 28%, transparent)" }}>🗑</button>
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
