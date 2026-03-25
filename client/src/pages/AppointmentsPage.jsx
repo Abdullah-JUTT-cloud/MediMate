@@ -276,7 +276,7 @@ function BookAppointmentForm({
       if (!search.trim()) { setPatients([]); return; }
       setSearchLoading(true);
       try {
-        const res = await axiosInstance.get("/patients", { params: { search, limit: 200 } });
+        const res = await axiosInstance.get("/patients", { params: { search, limit: 10 } });
         setPatients(res.data.patients);
       } catch {
         toast.error("Failed to search patients");
@@ -455,7 +455,7 @@ function BookAppointmentForm({
               <SectionLabel text="Date" />
               <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
                 min={formatDateInput(new Date())}
-                className={inputCls} style={{ ...S.input, colorScheme: "auto" }}
+                className={inputCls} style={{ ...S.input, colorScheme: "light" }}
                 onFocus={focusInput} onBlur={blurInput} />
             </div>
             <div>
@@ -581,7 +581,7 @@ export default function AppointmentsPage({
   const fetchAppointments = useCallback(async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({ limit: "500" });
+      const params = new URLSearchParams({ limit: "50" });
       if (dateFilter) params.set("date", dateFilter);
       if (activeFilter !== "All") params.set("status", activeFilter);
       const res = await axiosInstance.get(`/appointments?${params.toString()}`);
@@ -651,7 +651,19 @@ export default function AppointmentsPage({
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-5">
+      <div className="flex flex-wrap items-center gap-3 mb-5">
+        {/* Date filter first so native calendar popup has room on the right */}
+        <div className="flex items-center gap-2">
+          <input type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)}
+            className="px-3 py-2 rounded-xl text-xs outline-none transition-all"
+            style={{ ...S.input, colorScheme: "light" }}
+            onFocus={focusInput} onBlur={blurInput} />
+          {dateFilter && (
+            <button onClick={() => setDateFilter("")}
+              className="text-xs px-2 py-2 rounded-xl transition-all hover:bg-[var(--color-bg)] text-[var(--color-text-secondary)]">✕</button>
+          )}
+        </div>
+
         {/* Status filters */}
         <div className="flex gap-1.5 flex-wrap">
           {["All", ...STATUSES].map((s) => (
@@ -665,18 +677,6 @@ export default function AppointmentsPage({
               {s}
             </button>
           ))}
-        </div>
-
-        {/* Date filter */}
-        <div className="flex items-center gap-2 ml-auto">
-          <input type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)}
-            className="px-3 py-2 rounded-xl text-xs outline-none transition-all"
-            style={{ ...S.input, colorScheme: "auto" }}
-            onFocus={focusInput} onBlur={blurInput} />
-          {dateFilter && (
-            <button onClick={() => setDateFilter("")}
-              className="text-xs px-2 py-2 rounded-xl transition-all hover:bg-[var(--color-bg)] text-[var(--color-text-secondary)]">✕</button>
-          )}
         </div>
       </div>
 

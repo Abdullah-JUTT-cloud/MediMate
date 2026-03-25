@@ -5,13 +5,11 @@ const useAuthStore = create(
   persist(
     (set) => ({
       doctor: null,
-      isAuthenticated: false,
       isLoading: false,
 
       setDoctor: (doctor) =>
         set({
           doctor,
-          isAuthenticated: true,
         }),
 
       setLoading: (isLoading) => set({ isLoading }),
@@ -19,7 +17,6 @@ const useAuthStore = create(
       logout: () =>
         set({
           doctor: null,
-          isAuthenticated: false,
         }),
     }),
     {
@@ -27,10 +24,13 @@ const useAuthStore = create(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         doctor: state.doctor,
-        isAuthenticated: state.isAuthenticated,
+        // isAuthenticated is intentionally NOT persisted (FE-3)
       }),
     }
   )
 );
+
+// Derive isAuthenticated from doctor — never persisted to localStorage
+export const useIsAuthenticated = () => useAuthStore((state) => state.doctor !== null);
 
 export default useAuthStore;

@@ -73,6 +73,14 @@ const doctorSchema = new Schema(
       type: Date,
       default: null,
     },
+    resetToken: {
+      type: String,
+      default: null,
+    },
+    resetTokenExpiry: {
+      type: Date,
+      default: null,
+    },
 
     // Step 2 - Professional Info
     title: {
@@ -117,6 +125,7 @@ const doctorSchema = new Schema(
       type: String,
       required: true,
       trim: true,
+      unique: true,
     },
     licenseStatus: {
       type: String,

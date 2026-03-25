@@ -35,3 +35,13 @@ body {
   background-color: var(--color-bg);
   color: var(--color-text-primary);
 }
+
+/* Keep native date-picker popups readable in dark theme browsers. */
+input[type="date"] {
+  color-scheme: light;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0.95;
+  cursor: pointer;
+}

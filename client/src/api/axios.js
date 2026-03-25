@@ -23,8 +23,8 @@ axiosInstance.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error?.response?.status === 401) {
-            const { isAuthenticated, logout } = useAuthStore.getState();
-            if (isAuthenticated) {
+            const { doctor, logout } = useAuthStore.getState();
+            if (doctor) {
                 logout();
             }
         }

@@ -49,4 +49,9 @@ const patientSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Indexes for doctor-scoped queries and search
+patientSchema.index({ doctor: 1, createdAt: -1 });
+patientSchema.index({ doctor: 1, name: 1 });
+patientSchema.index({ doctor: 1, phone: 1 });
+
 export default mongoose.model("Patient", patientSchema);

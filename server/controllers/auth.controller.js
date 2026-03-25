@@ -51,6 +51,10 @@ export const registerDoctor = async (req, res) => {
       return res.status(400).json({ message: "All fields are required" });
     }
 
+    if (typeof password !== "string" || password.length < 8) {
+      return res.status(400).json({ message: "Password must be at least 8 characters" });
+    }
+
     // const doctorExisted=await Doctor.findOne({
     //     $and:[
     //         {email:email},
@@ -110,7 +114,8 @@ export const registerDoctor = async (req, res) => {
     }
     res.status(201).json({ message: "Doctor registered successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("[registerDoctor]", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -127,7 +132,10 @@ export const verifyEmail = async (req, res) => {
     if (doctor.isVerified) {
       return res.status(400).json({ message: "Email already verified" });
     }
-    if (doctor.otp !== otp) {
+    if (
+      doctor.otp.length !== otp.length ||
+      !crypto.timingSafeEqual(Buffer.from(doctor.otp), Buffer.from(otp))
+    ) {
       return res.status(400).json({ message: "Invalid OTP" });
     }
     if (doctor.otpExpiry < Date.now()) {
@@ -140,7 +148,8 @@ export const verifyEmail = async (req, res) => {
     await doctor.save();
     res.status(200).json({ message: "Email verified successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    console.error("[verifyEmail]", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -151,15 +160,12 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "All fields are required" });
     }
     const doctor = await Doctor.findOne({ email });
-    if (!doctor) {
-      return res.status(404).json({ message: "Doctor not found" });
+    const isMatch = doctor ? await bcrypt.compare(password, doctor.password) : false;
+    if (!doctor || !isMatch) {
+      return res.status(401).json({ message: "Invalid email or password" });
     }
     if (!doctor.isVerified) {
       return res.status(400).json({ message: "Email not verified" });
-    }
-    const isMatch = await bcrypt.compare(password, doctor.password);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Invalid credentials" });
     }
     const token = generateToken(doctor._id);
     res.cookie("token", token, {
@@ -187,7 +193,8 @@ export const login = async (req, res) => {
       profilePicture: doctor.profilePicture,
     });
   } catch (error) {
-    res.status(500).json({ message: "Error logging in", error: error.message });
+    console.error("[login]", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -196,9 +203,8 @@ export const logout = async (req, res) => {
     res.clearCookie("token");
     res.status(200).json({ message: "Logout successful" });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error logging out", error: error.message });
+    console.error("[logout]", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -209,8 +215,9 @@ export const forgotPassword = async (req, res) => {
       return res.status(400).json({ message: "Email is required" });
     }
     const doctor = await Doctor.findOne({ email });
+    // Generic response to prevent email enumeration
     if (!doctor) {
-      return res.status(404).json({ message: "Doctor not found" });
+      return res.status(200).json({ message: "If this email is registered, an OTP has been sent" });
     }
     const otp = generateOtp();
     const otpExpiry = Date.now() + 30 * 60 * 1000;
@@ -227,11 +234,10 @@ export const forgotPassword = async (req, res) => {
       console.error("Password reset email failed: ", emailError.message);
       return res.status(500).json({ message: "Failed to send password reset email. Please try again." });
     }
-    res.status(200).json({ message: "OTP sent successfully" });
+    res.status(200).json({ message: "If this email is registered, an OTP has been sent" });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error sending OTP", error: error.message });
+    console.error("[forgotPassword]", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -243,26 +249,32 @@ export const verifyResetOtp = async (req, res) => {
     }
     const doctor = await Doctor.findOne({ email });
     if (!doctor) {
-      return res.status(404).json({ message: "Doctor not found" });
+      return res.status(400).json({ message: "Invalid or expired OTP" });
     }
-    if (doctor.otp !== otp) {
-      return res.status(400).json({ message: "Invalid OTP" });
+    if (
+      !doctor.otp ||
+      doctor.otp.length !== otp.length ||
+      !crypto.timingSafeEqual(Buffer.from(doctor.otp), Buffer.from(otp))
+    ) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
     }
     if (doctor.otpExpiry < Date.now()) {
-      return res.status(400).json({ message: "OTP expired" });
+      return res.status(400).json({ message: "Invalid or expired OTP" });
     }
-    const resetToken = crypto.randomBytes(32).toString("hex");
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    // Store only the hash — never store the raw token in the DB
+    const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
     const resetTokenExpiry = Date.now() + 30 * 60 * 1000;
-    doctor.resetToken = resetToken;
+    doctor.resetToken = hashedToken;
     doctor.resetTokenExpiry = resetTokenExpiry;
     doctor.otp = null;
     doctor.otpExpiry = null;
     await doctor.save();
-    res.status(200).json({ message: "OTP verified successfully", resetToken });
+    // Return the raw (unhashed) token to the client
+    res.status(200).json({ message: "OTP verified successfully", resetToken: rawToken });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error verifying OTP", error: error.message });
+    console.error("[verifyResetOtp]", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -274,13 +286,18 @@ export const resetPassword = async (req, res) => {
         .status(400)
         .json({ message: "Reset token and password are required" });
     }
-    const doctor = await Doctor.findOne({ resetToken });
+    if (typeof newPassword !== "string" || newPassword.length < 8) {
+      return res.status(400).json({ message: "Password must be at least 8 characters" });
+    }
+    // Hash the submitted token to compare against the stored hash
+    const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+    const doctor = await Doctor.findOne({ resetToken: hashedToken });
     if (!doctor) {
-      return res.status(404).json({ message: "Doctor not found" });
+      return res.status(400).json({ message: "Invalid or expired reset token" });
     }
 
     if (doctor.resetTokenExpiry < Date.now()) {
-      return res.status(400).json({ message: "Reset token expired" });
+      return res.status(400).json({ message: "Invalid or expired reset token" });
     }
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     doctor.password = hashedPassword;
@@ -289,9 +306,8 @@ export const resetPassword = async (req, res) => {
     await doctor.save();
     res.status(200).json({ message: "Password reset successful" });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error resetting password", error: error.message });
+    console.error("[resetPassword]", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -301,10 +317,10 @@ export const resendOtp = async (req, res) => {
     if (!email) return res.status(400).json({ message: "Email is required" });
 
     const doctor = await Doctor.findOne({ email });
-    if (!doctor) return res.status(404).json({ message: "Doctor not found" });
-
-    if (doctor.isVerified)
-      return res.status(400).json({ message: "Email is already verified" });
+    // Generic response to prevent email enumeration
+    if (!doctor || doctor.isVerified) {
+      return res.status(200).json({ message: "If this email is registered and unverified, a new OTP has been sent" });
+    }
 
     const otp = generateOtp();
     doctor.otp = otp;
@@ -324,6 +340,7 @@ export const resendOtp = async (req, res) => {
 
     res.status(200).json({ message: "New OTP sent to your email" });
   } catch (error) {
+    console.error("[resendOtp]", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

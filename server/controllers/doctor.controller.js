@@ -11,9 +11,8 @@ export const getProfile = async (req, res) => {
     }
     res.status(200).json({ doctor });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error getting profile", error: error.message });
+    console.error("[getProfile]", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -97,9 +96,8 @@ export const updateProfile = async (req, res) => {
       .status(200)
       .json({ message: "Profile updated successfully", doctor: updatedDoc });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Error updating profile", error: error.message });
+    console.error("[updateProfile]", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -138,7 +136,8 @@ export const uploadProfilePicture = async (req, res) => {
       profilePicture: uploadResult.secure_url,
     });
   } catch (error) {
-    res.status(500).json({ message: "Upload failed", error: error.message });
+    console.error("[uploadProfilePicture]", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -166,7 +165,8 @@ export const uploadPmdcCertificate = async (req, res) => {
       pmdcCertificate: uploadResult.secure_url,
     });
   } catch (error) {
-    res.status(500).json({ message: "Upload failed", error: error.message });
+    console.error("[uploadPmdcCertificate]", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 }
   

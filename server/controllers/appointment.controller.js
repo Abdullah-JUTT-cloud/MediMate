@@ -137,7 +137,6 @@ export const createAppointment = async (req, res) => {
       type,
       notes,
     });
-
     await appointment.save();
 
     const populated = await appointment.populate("patient", "name phone age");
@@ -149,6 +148,7 @@ export const createAppointment = async (req, res) => {
       appointment: populated,
     });
   } catch (error) {
+    console.error("[createAppointment]", error);
     if (error?.code === 11000) {
       return res.status(409).json({ message: "This slot has reached the maximum capacity (3 appointments)" });
     }
@@ -212,7 +212,7 @@ export const updateAppointment = async (req, res) => {
 
     await appointment.save();
 
-    const populated = await Appointment.findById(appointment._id).populate("patient", "name phone age");
+    const populated = await Appointment.findById(id).populate("patient", "name phone age");
     if (date || slot) {
       const msg = formatAppointmentMessage(
         populated.patient.name,
@@ -228,6 +228,7 @@ export const updateAppointment = async (req, res) => {
       appointment: populated,
     });
   } catch (error) {
+    console.error("[updateAppointment]", error);
     if (error?.code === 11000) {
       return res.status(409).json({ message: "This slot has reached the maximum capacity (3 appointments)" });
     }
@@ -290,15 +291,26 @@ export const emergencyCancel = async (req, res) => {
       return aptMinutesSinceMidnight >= startMinutesSinceMidnight && aptMinutesSinceMidnight <= endMinutesSinceMidnight;
     });
 
-    const cancelledAppointments = [];
+    if (toCancel.length === 0) {
+      return res.status(200).json({ message: "0 appointment(s) cancelled successfully", cancelledAppointments: [] });
+    }
+
+    // Single atomic write — replaces the sequential per-document save loop
+    const cancelIds = toCancel.map((a) => a._id);
+    await Appointment.updateMany(
+      { _id: { $in: cancelIds } },
+      { $set: { status: "Cancelled", emergencyCancelled: true, reminderSent: true } }
+    );
+
+    // Re-fetch with updated status for the response and WhatsApp messages
+    const cancelledAppointments = toCancel.map((a) => ({
+      ...a.toObject(),
+      status: "Cancelled",
+      emergencyCancelled: true,
+      reminderSent: true,
+    }));
 
     for (const appointment of toCancel) {
-      appointment.status = "Cancelled";
-      appointment.emergencyCancelled = true;
-      appointment.reminderSent = true;
-      await appointment.save();
-      cancelledAppointments.push(appointment);
-
       try {
         const formattedDate = new Date(appointment.date).toLocaleDateString("en-PK", {
           weekday: "long",
@@ -318,7 +330,8 @@ export const emergencyCancel = async (req, res) => {
       cancelledAppointments,
     });
   } catch (error) {
-    res.status(500).json({ message: "Internal server error", error: error.message });
+    console.error("[emergencyCancel]", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -346,6 +359,7 @@ export const sendRescheduleWhatsApp = async (req, res) => {
 
     res.status(200).json({ message: "Reschedule WhatsApp sent successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Internal server error", error: error.message });
+    console.error("[sendRescheduleWhatsApp]", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };

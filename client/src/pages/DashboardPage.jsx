@@ -72,16 +72,16 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    fetchCancelledAppointments();
     if (activeNav !== "dashboard") return;
+    fetchCancelledAppointments();
     const fetchDashboardData = async () => {
       setIsLoadingData(true);
       try {
        const now = new Date();
 const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
         const [appointmentsRes, patientsRes] = await Promise.all([
-          axiosInstance.get("/appointments?date=" + today + "&limit=500"),
-          axiosInstance.get("/patients?limit=500"),
+          axiosInstance.get("/appointments?date=" + today + "&limit=50"),
+          axiosInstance.get("/patients?limit=4&sort=-createdAt"),
         ]);
         const appointments = appointmentsRes && appointmentsRes.data && Array.isArray(appointmentsRes.data.appointments)
           ? appointmentsRes.data.appointments

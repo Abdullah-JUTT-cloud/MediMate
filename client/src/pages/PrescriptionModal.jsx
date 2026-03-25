@@ -11,60 +11,87 @@ export default function PrescriptionModal({ checkup, patient, onClose, onSaved }
   const [saved, setSaved] = useState(!!checkup?.prescription?.pdfUrl);
   const [pdfUrl, setPdfUrl] = useState(checkup?.prescription?.pdfUrl || "");
 
-  // Generate PDF on mount
+  const base64ToBlob = (base64) => {
+    const byteChars = atob(base64);
+    const byteNums = new Array(byteChars.length);
+    for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
+    const byteArray = new Uint8Array(byteNums);
+    return new Blob([byteArray], { type: "application/pdf" });
+  };
+
+  // Generate a fresh PDF on mount so regenerate always reflects latest edits.
   useEffect(() => {
     if (!checkup?._id) return;
+
+    let cancelled = false;
     const generate = async () => {
       setIsGenerating(true);
+      setPdfBase64(null);
+      setSaved(false);
+      setPdfUrl("");
       try {
         const res = await axiosInstance.post(`/prescriptions/generate/${checkup._id}`);
+        if (cancelled) return;
         setPdfBase64(res.data.pdf);
         // Auto-open in new tab
-        const byteChars = atob(res.data.pdf);
-        const byteNums = new Array(byteChars.length);
-        for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
-        const byteArray = new Uint8Array(byteNums);
-        const blob = new Blob([byteArray], { type: "application/pdf" });
+        const blob = base64ToBlob(res.data.pdf);
         const url = URL.createObjectURL(blob);
         window.open(url, "_blank");
 
-        // Auto-save to Cloudinary
+        // Auto-save to Cloudinary in background (don't block the UI)
         setIsSaving(true);
         try {
           const saveRes = await axiosInstance.post(`/prescriptions/save/${checkup._id}`);
+          if (cancelled) return;
           setPdfUrl(saveRes.data.pdfUrl);
           setSaved(true);
           onSaved?.(saveRes.data.pdfUrl);
           toast.success("Prescription saved to cloud");
         } catch (err) {
-          toast.error(err.response?.data?.message || "Failed to save prescription");
+          if (!cancelled) toast.error(err.response?.data?.message || "Failed to save prescription");
         } finally {
-          setIsSaving(false);
+          if (!cancelled) setIsSaving(false);
         }
       } catch (err) {
-        toast.error(err.response?.data?.message || "Failed to generate prescription");
+        if (!cancelled) toast.error(err.response?.data?.message || "Failed to generate prescription");
       } finally {
-        setIsGenerating(false);
+        if (!cancelled) setIsGenerating(false);
       }
     };
     generate();
-  }, [checkup?._id, onSaved]);
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkup?._id]);
 
-  const handleDownload = () => {
-    if (!pdfBase64) return;
-    const byteChars = atob(pdfBase64);
-    const byteNums = new Array(byteChars.length);
-    for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
-    const byteArray = new Uint8Array(byteNums);
-    const blob = new Blob([byteArray], { type: "application/pdf" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `prescription_${patient?.name?.replace(/\s+/g, "_") || "patient"}_${new Date().toISOString().split("T")[0]}.pdf`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const handleDownload = async () => {
+    const filename = `prescription_${patient?.name?.replace(/\s+/g, "_") || "patient"}_${new Date().toISOString().split("T")[0]}.pdf`;
+    if (pdfBase64) {
+      const blob = base64ToBlob(pdfBase64);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } else if (checkup?._id) {
+      try {
+        const res = await axiosInstance.get(`/prescriptions/download/${checkup._id}`, {
+          responseType: "blob",
+        });
+        const url = URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        toast.error(err.response?.data?.message || "Failed to download prescription");
+      }
+    }
   };
 
   const handleWhatsApp = async () => {
@@ -81,15 +108,11 @@ export default function PrescriptionModal({ checkup, patient, onClose, onSaved }
   };
 
   const handleViewPdf = () => {
-    if (pdfUrl) {
-      window.open(pdfUrl, "_blank");
-    } else if (pdfBase64) {
-      const byteChars = atob(pdfBase64);
-      const byteNums = new Array(byteChars.length);
-      for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
-      const byteArray = new Uint8Array(byteNums);
-      const blob = new Blob([byteArray], { type: "application/pdf" });
+    if (pdfBase64) {
+      const blob = base64ToBlob(pdfBase64);
       window.open(URL.createObjectURL(blob), "_blank");
+    } else if (pdfUrl) {
+      window.open(pdfUrl, "_blank");
     }
   };
 
@@ -126,23 +149,17 @@ export default function PrescriptionModal({ checkup, patient, onClose, onSaved }
               <p className="text-sm font-semibold text-[var(--color-text-primary)]">Generating prescription...</p>
               <p className="text-xs mt-1 text-[var(--color-text-secondary)]">This may take a moment</p>
             </div>
-          ) : isSaving ? (
-            <div className="flex flex-col items-center justify-center py-8">
-              <Skeleton variant="circular" width={40} height={40} 
-                sx={{ bgcolor: "var(--color-primary)", opacity: 0.15, marginBottom: "12px" }} />
-              <p className="text-sm font-semibold text-[var(--color-text-primary)]">Saving to cloud...</p>
-            </div>
-          ) : pdfBase64 ? (
+          ) : (pdfBase64 || pdfUrl) ? (
             <>
               {/* Success indicator */}
               <div className="flex items-center gap-3 p-4 rounded-2xl border border-[var(--color-success)]/25 bg-[var(--color-success)]/10">
                 <span className="text-2xl">✅</span>
                 <div>
                   <p className="text-sm font-bold text-[var(--color-success)]">
-                    {saved ? "Prescription Generated & Saved" : "Prescription Generated"}
+                    {saved ? "Prescription Ready" : "Prescription Generated"}
                   </p>
                   <p className="text-xs mt-0.5 text-[var(--color-text-secondary)]">
-                    PDF opened in new tab for preview
+                    {saved ? "Saved to cloud" : "PDF opened in new tab for preview"}
                   </p>
                 </div>
               </div>

@@ -98,11 +98,6 @@ export const startReminderJob = () => {
 				const patient = appointment.patient;
 				if (!patient?.phone) continue;
 
-				const latest = await Appointment.findById(appointment._id).select('status reminderSent');
-				if (!latest || ['Cancelled', 'Completed'].includes(latest.status) || latest.reminderSent) {
-					continue;
-				}
-
 				const appointmentDateTime = getAppointmentDateTime(appointment);
 				if (isNaN(appointmentDateTime.getTime())) continue;
 

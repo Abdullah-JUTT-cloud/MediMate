@@ -48,4 +48,9 @@ const checkupSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Compound indexes for all hot query paths
+checkupSchema.index({ patient: 1, doctor: 1, createdAt: -1 });
+checkupSchema.index({ doctor: 1, createdAt: -1 });
+checkupSchema.index({ doctor: 1, "prescription.pdfUrl": 1 });
+
 export default mongoose.model("Checkup", checkupSchema);

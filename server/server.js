@@ -1,5 +1,14 @@
 import dotenv from "dotenv";
 dotenv.config();
+
+// ─── Process-level error handlers (ERR-2) ────────────────────────────────────
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
 // import "./utils/whatsapp.js";
 import express from "express";
 import { connectDB } from "./db/connectDB.js";

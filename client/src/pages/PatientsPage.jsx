@@ -885,7 +885,7 @@ export default function PatientsPage() {
   const fetchPatients = async (q = "") => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({ limit: "500" });
+      const params = new URLSearchParams({ limit: "50" });
       if (q) params.set("search", q);
       const res = await axiosInstance.get(`/patients?${params.toString()}`);
       setPatients(res.data.patients);
@@ -894,7 +894,6 @@ export default function PatientsPage() {
     finally { setIsLoading(false); }
   };
 
-  useEffect(() => { fetchPatients(); }, []);
   useEffect(() => {
     const t = setTimeout(() => fetchPatients(search), 400);
     return () => clearTimeout(t);
