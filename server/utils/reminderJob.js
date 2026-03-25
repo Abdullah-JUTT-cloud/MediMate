@@ -17,8 +17,11 @@ const formatWhatsAppPhone = (phone) => {
 };
 
 const getAppointmentDateTime = (appointment) => {
-	const day = new Date(appointment.date).toISOString().split('T')[0];
-	return new Date(`${day}T${appointment.slot}:00`);
+	// Use appointment.date as-is and add the slot time from the string
+	const dateObj = new Date(appointment.date);
+	const [hours, minutes] = appointment.slot.split(':').map(Number);
+	dateObj.setHours(hours, minutes, 0, 0);
+	return dateObj;
 };
 
 export const startReminderJob = () => {

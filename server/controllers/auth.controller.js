@@ -71,9 +71,6 @@ export const registerDoctor = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const otp = generateOtp();
-
-    console.log(otp);
-
     const otpExpiry = Date.now() + 30 * 60 * 1000;
 
     const doctor = new Doctor({
@@ -101,11 +98,16 @@ export const registerDoctor = async (req, res) => {
     });
     await doctor.save();
 
-    await sendEmail({
-      to: email,
-      subject: "Verify your MedAlerto account",
-      html: verificationEmailTemplate(fullName, otp),
-    });
+    try {
+      await sendEmail({
+        to: email,
+        subject: "Verify your MedAlerto account",
+        html: verificationEmailTemplate(fullName, otp),
+      });
+    } catch (emailError) {
+      console.error("Verification email failed: ", emailError.message);
+      return res.status(500).json({ message: "Failed to send verification email. Please try again." });
+    }
     res.status(201).json({ message: "Doctor registered successfully" });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -215,11 +217,16 @@ export const forgotPassword = async (req, res) => {
     doctor.otp = otp;
     doctor.otpExpiry = otpExpiry;
     await doctor.save();
-    await sendEmail({
-      to: email,
-      subject: "Reset your MedAlerto password",
-      html: resetPasswordEmailTemplate(doctor.fullName, otp),
-    });
+    try {
+      await sendEmail({
+        to: email,
+        subject: "Reset your MedAlerto password",
+        html: resetPasswordEmailTemplate(doctor.fullName, otp),
+      });
+    } catch (emailError) {
+      console.error("Password reset email failed: ", emailError.message);
+      return res.status(500).json({ message: "Failed to send password reset email. Please try again." });
+    }
     res.status(200).json({ message: "OTP sent successfully" });
   } catch (error) {
     res
@@ -304,11 +311,16 @@ export const resendOtp = async (req, res) => {
     doctor.otpExpiry = new Date(Date.now() + 30 * 60 * 1000);
     await doctor.save();
 
-    await sendEmail({
-      to: email,
-      subject: "MedAlerto - New Verification OTP",
-      html: verificationEmailTemplate(doctor.fullName, otp),
-    });
+    try {
+      await sendEmail({
+        to: email,
+        subject: "MedAlerto - New Verification OTP",
+        html: verificationEmailTemplate(doctor.fullName, otp),
+      });
+    } catch (emailError) {
+      console.error("Resend OTP email failed: ", emailError.message);
+      return res.status(500).json({ message: "Failed to send OTP. Please try again." });
+    }
 
     res.status(200).json({ message: "New OTP sent to your email" });
   } catch (error) {

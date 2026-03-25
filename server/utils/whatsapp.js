@@ -25,7 +25,13 @@ client.on("auth_failure", (msg) => {
 
 client.on("disconnected", (reason) => {
   console.log("❌ WhatsApp disconnected:", reason);
-  client.initialize();
+  // Only auto-reconnect if the disconnect was unexpected
+  if (reason !== "LOGOUT") {
+    setTimeout(() => {
+      console.log("Attempting WhatsApp reconnection...");
+      client.initialize().catch(err => console.error("Reconnect failed:", err.message));
+    }, 5000);
+  }
 });
 
 client.initialize();

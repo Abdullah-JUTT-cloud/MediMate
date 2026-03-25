@@ -22,9 +22,17 @@ app.use(helmet());
 
 const PORT=process.env.PORT || 3000;
 
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "http://localhost:5173").split(",").map(o => o.trim());
+
 app.use(cors({
-    origin:"http://localhost:5173",
-    credentials:true
+    origin: (origin, callback) => {
+        if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
+    credentials: true
 }))
 app.use(express.json())
 app.use((req, res, next) => {
@@ -46,17 +54,21 @@ const authLimiter = rateLimit({
 app.use("/api/auth", authLimiter);
 app.use("/api/auth",authRoutes);
 
-app.use("/api/doctor",doctorRoutes)
+// Apply rate limiting to data mutation routes to prevent abuse
+const dataLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  message: { message: "Too many requests to this endpoint, please try again later" },
+  skip: (req) => req.method === "GET",
+});
 
-app.use("/api/patients",patientRoutes)
+app.use("/api/doctor", dataLimiter, doctorRoutes);
+app.use("/api/patients", dataLimiter, patientRoutes);
+app.use("/api/checkups", dataLimiter, checkupRoutes);
+app.use("/api/appointments", dataLimiter, appointmentRoutes);
+app.use("/api/prescriptions", dataLimiter, prescriptionRoutes);
 
-app.use("/api/checkups", checkupRoutes);
-
-app.use("/api/appointments", appointmentRoutes);
-
-app.use("/api/prescriptions", prescriptionRoutes);
-
- app.use("/api/insights", insightsRoutes)
+ app.use("/api/insights", dataLimiter, insightsRoutes)
 
 connectDB()
 .then(()=>{
@@ -70,3 +82,21 @@ connectDB()
     console.log("Error connecting to MongoDB: ",error.message);
     process.exit(1);
 })
+
+// Global error handler for Express (catches async errors from middleware/handlers)
+app.use((err, req, res, next) => {
+  console.error("[Error]", err.message, err.stack);
+  
+  // Multer errors
+  if (err.message && err.message.includes("file")) {
+    return res.status(400).json({ message: err.message });
+  }
+  
+  // CORS errors
+  if (err.message === "Not allowed by CORS") {
+    return res.status(403).json({ message: "CORS policy violation" });
+  }
+  
+  // Default 500 error
+  res.status(500).json({ message: "Internal server error" });
+});

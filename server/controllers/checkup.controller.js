@@ -1,9 +1,15 @@
+import mongoose from "mongoose";
 import Checkup from "../models/checkup.model.js";
 import Patient from "../models/patient.model.js";
 
 export const getCheckups = async (req, res) => {
   try {
     const patientId = req.params.id;
+    const { page = 1, limit = 50 } = req.query;
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(500, Math.max(1, parseInt(limit) || 50));
+    const skip = (pageNum - 1) * limitNum;
+
     const patient = await Patient.findOne({
       _id: patientId,
       doctor: req.doctorId,
@@ -14,8 +20,12 @@ export const getCheckups = async (req, res) => {
     const checkups = await Checkup.find({
       patient: patientId,
       doctor: req.doctorId,
-    }).sort({ createdAt: -1 });
-    res.status(200).json({ checkups });
+    }).sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum);
+
+    const total = await Checkup.countDocuments({ patient: patientId, doctor: req.doctorId });
+    res.status(200).json({ checkups, pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) } });
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
   }
@@ -23,7 +33,10 @@ export const getCheckups = async (req, res) => {
 
 export const getCheckup = async (req, res) => {
   try {
-    const id = req.params.id;
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ message: "Invalid checkup ID" });
+    }
     const checkup = await Checkup.findOne({ _id: id, doctor: req.doctorId });
     if (!checkup) {
       return res.status(404).json({ message: "Checkup not found" });
@@ -78,7 +91,10 @@ export const addCheckup = async (req, res) => {
 
 export const deleteCheckup = async (req, res) => {
   try {
-    const id = req.params.id;
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ message: "Invalid checkup ID" });
+    }
     const checkup = await Checkup.findOneAndDelete({
       _id: id,
       doctor: req.doctorId,

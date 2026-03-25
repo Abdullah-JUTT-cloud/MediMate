@@ -26,7 +26,10 @@ const formatAppointmentMessage = (patientName, date, slot, type) => {
 
 export const getAppointments = async (req, res) => {
   try {
-    const { date, status } = req.query;
+    const { date, status, page = 1, limit = 50 } = req.query;
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(500, Math.max(1, parseInt(limit) || 50));
+    const skip = (pageNum - 1) * limitNum;
 
     const query = { doctor: req.doctorId };
 
@@ -47,9 +50,13 @@ export const getAppointments = async (req, res) => {
 
     const appointments = await Appointment.find(query)
       .populate("patient", "name phone age")
-      .sort({ date: 1 });
+      .sort({ date: 1 })
+      .skip(skip)
+      .limit(limitNum);
 
-    res.status(200).json({ appointments });
+    const total = await Appointment.countDocuments(query);
+
+    res.status(200).json({ appointments, pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) } });
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
   }
@@ -114,10 +121,22 @@ export const createAppointment = async (req, res) => {
       type,
       notes,
     });
-    await appointment.save();
+    try {
+      await appointment.save();
+    } catch (saveError) {
+      // Handle duplicate key error if unique index is added
+      if (saveError.code === 11000) {
+        return res.status(409).json({ message: "This slot is already booked" });
+      }
+      throw saveError;
+    }
     const populated = await appointment.populate("patient", "name phone age");
     const msg = formatAppointmentMessage(patient.name, date, slot, type);
-    await sendAppointmentWhatsApp(patient, appointment, msg);
+    try {
+      await sendAppointmentWhatsApp(patient, appointment, msg);
+    } catch (whatsappError) {
+      console.error("WhatsApp send failed, but appointment was saved:", whatsappError.message);
+    }
     res.status(201).json({
       message: "Appointment created successfully",
       appointment: populated,
@@ -222,8 +241,8 @@ export const emergencyCancel = async (req, res) => {
       return res.status(400).json({ message: "Start date/time and end date/time are required" });
     }
 
-    const start = new Date(`${startDate}T${startTime}:00`);
-    const end = new Date(`${endDate}T${endTime}:00`);
+    const start = new Date(`${startDate}T${startTime}:00Z`);
+    const end = new Date(`${endDate}T${endTime}:00Z`);
 
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
       return res.status(400).json({ message: "Invalid date/time format" });
@@ -232,20 +251,24 @@ export const emergencyCancel = async (req, res) => {
       return res.status(400).json({ message: "Start datetime must be before end datetime" });
     }
 
-    const startDay = new Date(startDate);
-    startDay.setHours(0, 0, 0, 0);
-    const endDay = new Date(endDate);
-    endDay.setHours(23, 59, 59, 999);
+    const startDay = new Date(`${startDate}T00:00:00Z`);
+    const endDay = new Date(`${endDate}T23:59:59Z`);
 
     const appointments = await Appointment.find({
       doctor: req.doctorId,
       date: { $gte: startDay, $lte: endDay },
-      status: { $ne: "Cancelled" },
+      status: { $nin: ["Cancelled", "Completed"] },
     }).populate("patient", "name phone");
 
     const toCancel = appointments.filter((apt) => {
-      const aptDateTime = new Date(`${apt.date.toISOString().split("T")[0]}T${apt.slot}:00`);
-      return aptDateTime >= start && aptDateTime <= end;
+      if (["Cancelled", "Completed"].includes(apt.status)) return false;
+      const [aptHour, aptMin] = apt.slot.split(":").map(Number);
+      const aptMinutesSinceMidnight = aptHour * 60 + aptMin;
+      const [startHour, startMin] = startTime.split(":").map(Number);
+      const startMinutesSinceMidnight = startHour * 60 + startMin;
+      const [endHour, endMin] = endTime.split(":").map(Number);
+      const endMinutesSinceMidnight = endHour * 60 + endMin;
+      return aptMinutesSinceMidnight >= startMinutesSinceMidnight && aptMinutesSinceMidnight <= endMinutesSinceMidnight;
     });
 
     const cancelledAppointments = [];

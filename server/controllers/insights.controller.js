@@ -20,74 +20,98 @@ const MONTH_NAMES = [
 export const getInsights = async (req, res) => {
     try {
         const now = new Date();
-
         const todayStart = new Date(now);
         todayStart.setHours(0, 0, 0, 0);
-
         const weekStart = new Date(now);
         const mondayOffset = (weekStart.getDay() + 6) % 7;
         weekStart.setDate(weekStart.getDate() - mondayOffset);
         weekStart.setHours(0, 0, 0, 0);
-
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
         const yearStart = new Date(now.getFullYear(), 0, 1);
 
-        const checkups = await Checkup.find({ doctor: req.doctorId });
-        const totalPatients = await Patient.countDocuments({ doctor: req.doctorId });
-        const totalAppointments = await Appointment.countDocuments({ doctor: req.doctorId });
+        const doctorId = req.doctorId;
 
-        let todayEarnings = 0;
-        let thisWeekEarnings = 0;
-        let thisMonthEarnings = 0;
-        let thisYearEarnings = 0;
-        let totalEarnings = 0;
-
-        for (const checkup of checkups) {
-            const amount = Number(checkup?.payment?.amount || 0);
-            const createdAt = new Date(checkup.createdAt);
-
-            totalEarnings += amount;
-            if (createdAt >= todayStart) todayEarnings += amount;
-            if (createdAt >= weekStart) thisWeekEarnings += amount;
-            if (createdAt >= monthStart) thisMonthEarnings += amount;
-            if (createdAt >= yearStart) thisYearEarnings += amount;
-        }
-
-        const monthly = Array(12).fill(0);
-        for (const checkup of checkups) {
-            const amount = Number(checkup?.payment?.amount || 0);
-            const createdAt = new Date(checkup.createdAt);
-            if (createdAt.getFullYear() === now.getFullYear()) {
-                monthly[createdAt.getMonth()] += amount;
+        // Use aggregation for earnings calculations
+        const earningsData = await Checkup.aggregate([
+            { $match: { doctor: doctorId } },
+            {
+                $group: {
+                    _id: null,
+                    totalEarnings: { $sum: { $toDouble: "$payment.amount" } },
+                    todayEarnings: {
+                        $sum: {
+                            $cond: [{ $gte: ["$createdAt", todayStart] }, { $toDouble: "$payment.amount" }, 0]
+                        }
+                    },
+                    weekEarnings: {
+                        $sum: {
+                            $cond: [{ $gte: ["$createdAt", weekStart] }, { $toDouble: "$payment.amount" }, 0]
+                        }
+                    },
+                    monthEarnings: {
+                        $sum: {
+                            $cond: [{ $gte: ["$createdAt", monthStart] }, { $toDouble: "$payment.amount" }, 0]
+                        }
+                    },
+                    yearEarnings: {
+                        $sum: {
+                            $cond: [{ $gte: ["$createdAt", yearStart] }, { $toDouble: "$payment.amount" }, 0]
+                        }
+                    }
+                }
             }
-        }
-        const monthlyEarningsArray = monthly.map((amount, i) => ({
-            month: MONTH_NAMES[i],
-            earnings: amount,
-        }));
+        ]);
 
-        const totalCheckups = checkups.length;
-        const totalPrescriptions = checkups.filter((c) => c.prescription?.pdfUrl).length;
+        const earnings = earningsData[0] || { totalEarnings: 0, todayEarnings: 0, weekEarnings: 0, monthEarnings: 0, yearEarnings: 0 };
 
-        const allDiseases = checkups.flatMap((c) => c.diseases || []);
-        const diseaseCounts = {};
-        for (const disease of allDiseases) {
-            const key = String(disease || "").trim();
-            if (!key) continue;
-            diseaseCounts[key] = (diseaseCounts[key] || 0) + 1;
-        }
-        const top5DiseasesArray = Object.entries(diseaseCounts)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 5)
-            .map(([disease, count]) => ({ disease, count }));
+        // Monthly earnings chart
+        const monthlyData = await Checkup.aggregate([
+            { $match: { doctor: doctorId, createdAt: { $gte: yearStart } } },
+            {
+                $group: {
+                    _id: { $month: "$createdAt" },
+                    earnings: { $sum: { $toDouble: "$payment.amount" } }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]);
+
+        const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const monthlyEarningsArray = Array(12).fill(0).map((_, i) => {
+            const found = monthlyData.find(m => m._id === i + 1);
+            return { month: MONTH_NAMES[i], earnings: found ? found.earnings : 0 };
+        });
+
+        // Top diseases
+        const topDiseasesData = await Checkup.aggregate([
+            { $match: { doctor: doctorId } },
+            { $unwind: { path: "$diseases", preserveNullAndEmptyArrays: true } },
+            {
+                $group: {
+                    _id: { $trim: { input: { $ifNull: ["$diseases", ""] } } },
+                    count: { $sum: 1 }
+                }
+            },
+            { $match: { _id: { $ne: "" } } },
+            { $sort: { count: -1 } },
+            { $limit: 5 }
+        ]);
+
+        const top5DiseasesArray = topDiseasesData.map(d => ({ disease: d._id, count: d.count }));
+
+        // Counts via countDocuments (efficient)
+        const totalPatients = await Patient.countDocuments({ doctor: doctorId });
+        const totalAppointments = await Appointment.countDocuments({ doctor: doctorId });
+        const totalCheckups = await Checkup.countDocuments({ doctor: doctorId });
+        const totalPrescriptions = await Checkup.countDocuments({ doctor: doctorId, "prescription.pdfUrl": { $exists: true, $ne: "" } });
 
         res.status(200).json({
             earnings: {
-                today: todayEarnings,
-                thisWeek: thisWeekEarnings,
-                thisMonth: thisMonthEarnings,
-                thisYear: thisYearEarnings,
-                total: totalEarnings,
+                today: earnings.todayEarnings || 0,
+                thisWeek: earnings.weekEarnings || 0,
+                thisMonth: earnings.monthEarnings || 0,
+                thisYear: earnings.yearEarnings || 0,
+                total: earnings.totalEarnings || 0,
             },
             monthly: monthlyEarningsArray,
             counts: {
@@ -99,6 +123,7 @@ export const getInsights = async (req, res) => {
             topDiseases: top5DiseasesArray,
         });
     } catch (error) {
+        console.error("Insights error:", error);
         res.status(500).json({ message: "Internal server error" });
     }
 };
