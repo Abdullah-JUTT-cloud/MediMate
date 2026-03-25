@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
-import logo from "../assets/logo.svg";
+import logo from "../assets/logo-compact.webp";
 
 export default function ForgotPasswordPage() {
   const navigate = useNavigate();
@@ -26,73 +26,71 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "linear-gradient(135deg, #0f1923 0%, #0d2137 50%, #0a1628 100%)" }}>
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 rounded-full opacity-10" style={{ background: "radial-gradient(circle, #10B8A9, transparent)", filter: "blur(60px)" }} />
-        <div className="absolute bottom-20 right-10 w-96 h-96 rounded-full opacity-10" style={{ background: "radial-gradient(circle, #10B8A9, transparent)", filter: "blur(80px)" }} />
-        <div className="absolute inset-0 opacity-5" style={{ backgroundImage: `linear-gradient(rgba(16,184,169,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(16,184,169,0.3) 1px, transparent 1px)`, backgroundSize: "60px 60px" }} />
+    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)]">
+      <div className="pointer-events-none fixed inset-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-primary)]/8 via-transparent to-[var(--color-primary)]/5" />
       </div>
 
-      <nav className="relative z-10 px-4 sm:px-6 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(16,184,169,0.1)" }}>
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
-          <img src={logo} alt="MedAlerto" className="h-8 w-auto brightness-0 invert" />
+      <nav className="relative z-10 border-b bg-[var(--color-card)]/90 backdrop-blur">
+        <div className="flex w-full items-center justify-between px-4 py-4 sm:px-8 lg:px-10 xl:px-14">
+          <button className="flex items-center gap-3" onClick={() => navigate("/")}>
+            <img src={logo} alt="MedAlerto" className="h-8 w-auto" />
+            <span className="text-sm font-extrabold sm:text-base">MedAlerto</span>
+          </button>
+          <button
+            onClick={() => navigate("/login")}
+            className="text-xs font-semibold text-[var(--color-text-secondary)] transition hover:text-[var(--color-primary)] sm:text-sm"
+          >
+            Back to <span className="text-[var(--color-primary)]">Login</span>
+          </button>
         </div>
-        <button onClick={() => navigate("/login")} className="text-sm font-medium hover:text-teal-400 transition-colors" style={{ color: "#94a3b8" }}>
-          Back to <span style={{ color: "#10B8A9" }}>Login</span>
-        </button>
       </nav>
 
-      <div className="relative z-10 flex-1 flex items-center justify-center px-4 sm:px-6 py-12">
-        <div className="w-full max-w-md">
-
-          <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl" style={{ background: "rgba(16,184,169,0.1)", border: "1px solid rgba(16,184,169,0.25)" }}>
+      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-73px)] w-full max-w-6xl items-center justify-center px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+        <section className="w-full max-w-md rounded-xl border bg-[var(--color-card)] p-6 shadow-sm sm:p-8">
+          <div className="mb-6 flex justify-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-xl border bg-[var(--color-primary)]/10 text-3xl sm:h-20 sm:w-20 sm:text-4xl">
               🔐
             </div>
           </div>
 
-          <div className="text-center mb-8">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-2">Forgot Password?</h1>
-            <p className="text-sm sm:text-base" style={{ color: "#94a3b8" }}>
+          <header className="mb-8 text-center">
+            <h1 className="mb-2 text-2xl font-extrabold sm:text-3xl">Forgot Password?</h1>
+            <p className="text-sm text-[var(--color-text-secondary)] sm:text-base">
               No worries. Enter your email and we'll send you a reset OTP.
             </p>
-          </div>
+          </header>
 
-          <div className="rounded-2xl sm:rounded-3xl p-6 sm:p-8" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(16,184,169,0.15)", backdropFilter: "blur(12px)" }}>
-            <div>
-              <label className="block text-xs sm:text-sm font-medium mb-1.5" style={{ color: "#94a3b8" }}>Email Address</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-                placeholder="doctor@example.com"
-                className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
-                style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "white" }}
-                onFocus={e => e.target.style.border = "1px solid #10B8A9"}
-                onBlur={e => e.target.style.border = "1px solid rgba(255,255,255,0.1)"}
-              />
-            </div>
+          <div className="rounded-xl border bg-[var(--color-bg)] p-4 sm:p-6">
+            <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)] sm:text-sm">
+              Email Address
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+              placeholder="doctor@example.com"
+              className="w-full rounded-xl border bg-[var(--color-card)] px-4 py-3 text-sm outline-none transition focus:border-[var(--color-primary)]"
+            />
 
             <button
               onClick={handleSubmit}
               disabled={isLoading}
-              className="w-full mt-6 py-3 sm:py-4 rounded-xl text-sm sm:text-base font-semibold text-white transition-all duration-200 hover:scale-105 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-              style={{ background: "linear-gradient(135deg, #10B8A9, #0d9488)", boxShadow: "0 4px 15px rgba(16,184,169,0.3)" }}
+              className="mt-6 w-full rounded-xl bg-[var(--color-primary)] py-3 text-sm font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:py-4 sm:text-base"
             >
-              {isLoading ? "Sending OTP..." : "Send Reset OTP →"}
+              {isLoading ? "Sending OTP..." : "Send Reset OTP"}
             </button>
 
             <button
               onClick={() => navigate("/login")}
-              className="w-full mt-3 py-3 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-105"
-              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", color: "#64748b" }}
+              className="mt-3 w-full rounded-xl border bg-[var(--color-card)] py-3 text-sm font-semibold text-[var(--color-text-secondary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
             >
-              ← Back to Login
+              Back to Login
             </button>
           </div>
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   );
 }

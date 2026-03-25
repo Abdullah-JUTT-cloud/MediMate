@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import useAuthStore from "../store/authStore";
-import logo from "../assets/logo.svg";
+import logo from "../assets/logo-compact.webp";
 import SettingsPage from "./SettingsPage";
 import PatientsPage from "./PatientsPage";
 import AppointmentsPage from "./AppointmentsPage";
@@ -21,8 +21,8 @@ const navItems = [
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="px-3 py-2 rounded-xl text-sm" style={{ background: "#0f1923", border: "1px solid rgba(16,184,169,0.3)", color: "white" }}>
-        <p className="font-semibold" style={{ color: "#10B8A9" }}>{label}</p>
+      <div className="px-3 py-2 rounded-xl text-sm border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-text-primary)]">
+        <p className="font-semibold text-[var(--color-primary)]">{label}</p>
         <p>PKR {payload[0].value.toLocaleString()}</p>
       </div>
     );
@@ -157,21 +157,22 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
   const pageTitle = navItems.find((n) => n.key === activeNav)?.label || "Dashboard";
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: "#0f1923" }}>
+    <div className="flex h-screen overflow-hidden bg-[var(--color-bg)]">
       {sidebarOpen && <div className="fixed inset-0 z-20 bg-black bg-opacity-60 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
-      <aside className={"fixed lg:static inset-y-0 left-0 z-30 flex flex-col transition-transform duration-300 " + (sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0")}
-        style={{ width: "240px", background: "#0a1628", borderRight: "1px solid rgba(16,184,169,0.1)", flexShrink: 0 }}>
+      <aside
+        className={"fixed lg:static inset-y-0 left-0 z-30 flex flex-col transition-transform duration-300 bg-[var(--color-card)] border-r border-[var(--color-border)] " + (sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0")}
+        style={{ width: "240px", flexShrink: 0 }}>
 
-        <div className="px-5 py-5 flex items-center gap-3" style={{ borderBottom: "1px solid rgba(16,184,169,0.1)" }}>
-          <img src={logo} alt="MedAlerto" className="h-8 w-auto brightness-0 invert" />
-          <button className="ml-auto lg:hidden text-gray-400 hover:text-white" onClick={() => setSidebarOpen(false)}>✕</button>
+        <div className="px-5 py-5 flex items-center gap-3 border-b border-[var(--color-border)]">
+          <img src={logo} alt="MedAlerto" className="h-8 w-auto" />
+          <button className="ml-auto lg:hidden text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]" onClick={() => setSidebarOpen(false)}>✕</button>
         </div>
 
-        <div className="px-5 py-4" style={{ borderBottom: "1px solid rgba(16,184,169,0.08)" }}>
+        <div className="px-5 py-4 border-b border-[var(--color-border)]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white shrink-0"
-              style={{ background: "linear-gradient(135deg, #10B8A9, #0d9488)" }}>
+              style={{ background: "linear-gradient(135deg, var(--color-primary), color-mix(in srgb, var(--color-primary) 80%, black))" }}>
               {doctor?.profilePicture ? (
                 <img src={doctor.profilePicture} alt="Profile" className="w-full h-full object-cover rounded-xl" />
               ) : (
@@ -179,8 +180,8 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
               )}
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-white truncate">{doctor?.fullName || "Doctor"}</p>
-              <p className="text-xs truncate" style={{ color: "#10B8A9" }}>
+              <p className="text-sm font-semibold text-[var(--color-text-primary)] truncate">{doctor?.fullName || "Doctor"}</p>
+              <p className="text-xs truncate text-[var(--color-primary)]">
                 {[doctor?.title, doctor?.specialization || "Specialist"].filter(Boolean).join(" ")}
               </p>
             </div>
@@ -188,14 +189,14 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
         </div>
 
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
-          <p className="text-xs font-semibold uppercase tracking-widest px-3 mb-3" style={{ color: "#334155" }}>Main Menu</p>
+          <p className="text-xs font-semibold uppercase tracking-widest px-3 mb-3 text-[var(--color-text-secondary)]">Main Menu</p>
           {navItems.map((item) => (
             <button key={item.key} onClick={() => { setActiveNav(item.key); setSidebarOpen(false); }}
               className="w-full cursor-pointer flex items-center gap-3 px-3 py-2.5 rounded-xl mb-1 text-sm font-medium transition-all duration-200"
               style={{
-                background: activeNav === item.key ? "rgba(16,184,169,0.12)" : "transparent",
-                color: activeNav === item.key ? "#10B8A9" : "#64748b",
-                borderLeft: activeNav === item.key ? "3px solid #10B8A9" : "3px solid transparent",
+                background: activeNav === item.key ? "color-mix(in srgb, var(--color-primary) 12%, transparent)" : "transparent",
+                color: activeNav === item.key ? "var(--color-primary)" : "var(--color-text-secondary)",
+                borderLeft: activeNav === item.key ? "3px solid var(--color-primary)" : "3px solid transparent",
               }}>
               <span className="text-base">{item.icon}</span>
               {item.label}
@@ -203,10 +204,10 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
           ))}
         </nav>
 
-        <div className="px-3 py-4" style={{ borderTop: "1px solid rgba(16,184,169,0.08)" }}>
+        <div className="px-3 py-4 border-t border-[var(--color-border)]">
           <button onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:bg-red-500 hover:bg-opacity-10"
-            style={{ color: "#ef4444" }}>
+            style={{ color: "var(--color-danger)" }}>
             <span>🚪</span> Logout
           </button>
         </div>
@@ -214,38 +215,38 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="flex items-center justify-between px-4 sm:px-6 py-4 shrink-0"
-          style={{ background: "#0a1628", borderBottom: "1px solid rgba(16,184,169,0.1)" }}>
+          style={{ background: "var(--color-card)", borderBottom: "1px solid var(--color-border)" }}>
           <div className="flex items-center gap-3">
-            <button className="lg:hidden p-2 rounded-lg transition-colors hover:bg-white hover:bg-opacity-5" onClick={() => setSidebarOpen(true)}>
+            <button className="lg:hidden p-2 rounded-lg transition-colors hover:bg-[var(--color-bg)]" onClick={() => setSidebarOpen(true)}>
               <div className="space-y-1.5">
-                {[0,1,2].map((i) => <span key={i} className="block w-5 h-0.5" style={{ background: "#10B8A9" }} />)}
+                {[0,1,2].map((i) => <span key={i} className="block w-5 h-0.5 bg-[var(--color-primary)]" />)}
               </div>
             </button>
             <div>
-              <h1 className="text-base sm:text-lg font-bold text-white">{pageTitle}</h1>
-              <p className="text-xs hidden sm:block" style={{ color: "#64748b" }}>{todayStr}</p>
+              <h1 className="text-base sm:text-lg font-bold text-[var(--color-text-primary)]">{pageTitle}</h1>
+              <p className="text-xs hidden sm:block text-[var(--color-text-secondary)]">{todayStr}</p>
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
-            <button className="relative p-2 rounded-xl transition-colors hover:bg-white hover:bg-opacity-5" style={{ color: "#64748b" }}>
+            <button className="relative p-2 rounded-xl transition-colors hover:bg-[var(--color-bg)] text-[var(--color-text-secondary)]">
               🔔
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full" style={{ background: "#10B8A9" }} />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[var(--color-primary)]" />
             </button>
-            <div className="flex items-center gap-2 cursor-pointer px-2 py-1.5 rounded-xl transition-colors hover:bg-white hover:bg-opacity-5">
+            <div className="flex items-center gap-2 cursor-pointer px-2 py-1.5 rounded-xl transition-colors hover:bg-[var(--color-bg)]">
               <div className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold text-white"
-                style={{ background: "linear-gradient(135deg, #10B8A9, #0d9488)" }}>
+                style={{ background: "linear-gradient(135deg, var(--color-primary), color-mix(in srgb, var(--color-primary) 80%, black))" }}>
                 {doctor?.profilePicture ? (
                   <img src={doctor.profilePicture} alt="Profile" className="w-full h-full object-cover rounded-xl" />
                 ) : (
                   doctor?.fullName?.charAt(0) || "D"
                 )}
               </div>
-              <span className="text-sm font-medium text-white hidden sm:block">{doctor?.fullName?.split(" ")[0] || "Doctor"}</span>
+              <span className="text-sm font-medium text-[var(--color-text-primary)] hidden sm:block">{doctor?.fullName?.split(" ")[0] || "Doctor"}</span>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6" style={{ background: "#0f1923" }}>
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-[var(--color-bg)]">
           {activeNav === "settings" && <SettingsPage />}
           {activeNav === "patients" && <PatientsPage />}
           {activeNav === "insights" && <InsightsPage />}
@@ -261,15 +262,15 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
             <>
               <div className="flex flex-wrap gap-2 sm:gap-3 mb-6">
                 {[
-                  { icon: "👤", label: "New Patient", color: "#10B8A9", onClick: () => setActiveNav("patients") },
-                  { icon: "📅", label: "Book Appointment", color: "#10B8A9", onClick: () => setActiveNav("appointments") },
-                  { icon: "🚨", label: "Emergency Cancel", color: "#ef4444", onClick: () => setShowEmergencySection((p) => !p) },
+                  { icon: "👤", label: "New Patient", color: "var(--color-primary)", onClick: () => setActiveNav("patients") },
+                  { icon: "📅", label: "Book Appointment", color: "var(--color-primary)", onClick: () => setActiveNav("appointments") },
+                  { icon: "🚨", label: "Emergency Cancel", color: "var(--color-danger)", onClick: () => setShowEmergencySection((p) => !p) },
                 ].map((action) => (
                   <button key={action.label} onClick={action.onClick}
                     className="flex items-center cursor-pointer gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 hover:scale-105 hover:opacity-90"
                     style={{
-                      background: action.color === "#ef4444" ? "rgba(239,68,68,0.1)" : "rgba(16,184,169,0.1)",
-                      border: "1px solid " + (action.color === "#ef4444" ? "rgba(239,68,68,0.3)" : "rgba(16,184,169,0.3)"),
+                      background: action.color === "var(--color-danger)" ? "color-mix(in srgb, var(--color-danger) 12%, transparent)" : "color-mix(in srgb, var(--color-primary) 12%, transparent)",
+                      border: "1px solid " + (action.color === "var(--color-danger)" ? "color-mix(in srgb, var(--color-danger) 30%, transparent)" : "color-mix(in srgb, var(--color-primary) 30%, transparent)"),
                       color: action.color,
                     }}>
                     <span>{action.icon}</span>
@@ -281,33 +282,29 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
 
               {showEmergencySection && (
                 <div className="mb-5 p-5 rounded-2xl"
-                  style={{ background: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.2)" }}>
-                  <p className="text-sm font-bold mb-4" style={{ color: "#ef4444" }}>🚨 Emergency Cancel Appointments</p>
+                  style={{ background: "color-mix(in srgb, var(--color-danger) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--color-danger) 25%, transparent)" }}>
+                  <p className="text-sm font-bold mb-4 text-[var(--color-danger)]">🚨 Emergency Cancel Appointments</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div>
-                      <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>Start Date & Time</label>
+                      <label className="block text-xs font-medium mb-1.5 text-[var(--color-text-secondary)]">Start Date & Time</label>
                       <div className="grid grid-cols-2 gap-2">
                         <input type="date" value={emergencyStartDate}
                           onChange={(e) => setEmergencyStartDate(e.target.value)}
-                          className="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(239,68,68,0.3)", color: "white", colorScheme: "dark" }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm outline-none bg-[var(--color-bg)] border border-[var(--color-danger)]/35 text-[var(--color-text-primary)]" />
                         <input type="time" value={emergencyStartTime}
                           onChange={(e) => setEmergencyStartTime(e.target.value)}
-                          className="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(239,68,68,0.3)", color: "white", colorScheme: "dark" }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm outline-none bg-[var(--color-bg)] border border-[var(--color-danger)]/35 text-[var(--color-text-primary)]" />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>End Date & Time</label>
+                      <label className="block text-xs font-medium mb-1.5 text-[var(--color-text-secondary)]">End Date & Time</label>
                       <div className="grid grid-cols-2 gap-2">
                         <input type="date" value={emergencyEndDate}
                           onChange={(e) => setEmergencyEndDate(e.target.value)}
-                          className="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(239,68,68,0.3)", color: "white", colorScheme: "dark" }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm outline-none bg-[var(--color-bg)] border border-[var(--color-danger)]/35 text-[var(--color-text-primary)]" />
                         <input type="time" value={emergencyEndTime}
                           onChange={(e) => setEmergencyEndTime(e.target.value)}
-                          className="w-full px-4 py-3 rounded-xl text-sm outline-none"
-                          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(239,68,68,0.3)", color: "white", colorScheme: "dark" }} />
+                          className="w-full px-4 py-3 rounded-xl text-sm outline-none bg-[var(--color-bg)] border border-[var(--color-danger)]/35 text-[var(--color-text-primary)]" />
                       </div>
                     </div>
                   </div>
@@ -344,12 +341,12 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                     }}
                       disabled={isCancelling}
                       className="px-5 py-2.5 rounded-xl text-sm font-bold transition-all hover:opacity-90 disabled:opacity-50"
-                      style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444" }}>
+                      style={{ background: "color-mix(in srgb, var(--color-danger) 15%, transparent)", border: "1px solid color-mix(in srgb, var(--color-danger) 30%, transparent)", color: "var(--color-danger)" }}>
                       {isCancelling ? "Cancelling..." : "Cancel All Appointments"}
                     </button>
                     <button onClick={() => setShowEmergencySection(false)}
                       className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-80"
-                      style={{ background: "rgba(255,255,255,0.05)", color: "#64748b" }}>
+                      style={{ background: "var(--color-bg)", color: "var(--color-text-secondary)", border: "1px solid var(--color-border)" }}>
                       Dismiss
                     </button>
                   </div>
@@ -358,21 +355,21 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
 
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
                 {[
-                  { label: "Total Patients", value: isLoadingData ? "..." : String(totalPatients || 0), sub: "Registered patients", icon: "👥", color: "#10B8A9" },
+                  { label: "Total Patients", value: isLoadingData ? "..." : String(totalPatients || 0), sub: "Registered patients", icon: "👥", color: "var(--color-primary)" },
                   { label: "Today's Appointments", value: isLoadingData ? "..." : todayAppointments.length.toString(), sub: isLoadingData ? "Loading..." : todayAppointments.filter((a) => a.status === "Pending").length + " pending", icon: "📅", color: "#38bdf8" },
                   { label: "Today's Earnings", value: isLoadingTodayEarnings ? "..." : `PKR ${todayEarnings.toLocaleString()}`, sub: isLoadingTodayEarnings ? "Loading..." : "From insights", icon: "💰", color: "#22c55e" },
                   { label: "Prescriptions", value: totalPrescriptions === null ? "..." : String(totalPrescriptions), sub: "PDFs generated", icon: "📋", color: "#a78bfa" },
                 ].map((stat) => (
                   <div key={stat.label} className="rounded-2xl  p-4 sm:p-5 transition-all hover:scale-105"
-                    style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                    style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}>
                     <div className="mb-3">
                       <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-base sm:text-lg"
-                        style={{ background: "rgba(" + (stat.color === "#10B8A9" ? "16,184,169" : stat.color === "#38bdf8" ? "56,189,248" : stat.color === "#22c55e" ? "34,197,94" : "167,139,250") + ",0.15)" }}>
+                        style={{ background: "rgba(" + (stat.color === "var(--color-primary)" ? "59,130,246" : stat.color === "#38bdf8" ? "56,189,248" : stat.color === "#22c55e" ? "34,197,94" : "167,139,250") + ",0.15)" }}>
                         {stat.icon}
                       </div>
                     </div>
-                    <p className="text-lg sm:text-2xl font-extrabold text-white mb-0.5">{stat.value}</p>
-                    <p className="text-xs sm:text-sm font-medium mb-1" style={{ color: "#94a3b8" }}>{stat.label}</p>
+                    <p className="text-lg sm:text-2xl font-extrabold text-[var(--color-text-primary)] mb-0.5">{stat.value}</p>
+                    <p className="text-xs sm:text-sm font-medium mb-1 text-[var(--color-text-secondary)]">{stat.label}</p>
                     <p className="text-xs" style={{ color: stat.color }}>{stat.sub}</p>
                   </div>
                 ))}
@@ -380,13 +377,13 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
 
               <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6 mb-6">
                 <div className="xl:col-span-2 rounded-2xl p-4 sm:p-6"
-                  style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                  style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}>
                   <div className="flex items-center justify-between mb-5">
                     <div>
-                      <h3 className="text-sm sm:text-base font-bold text-white">Monthly Earnings</h3>
-                      <p className="text-xs" style={{ color: "#64748b" }}>Year 2026 — real data</p>
+                      <h3 className="text-sm sm:text-base font-bold text-[var(--color-text-primary)]">Monthly Earnings</h3>
+                      <p className="text-xs text-[var(--color-text-secondary)]">Year 2026 — real data</p>
                     </div>
-                    <div className="px-3 py-1 rounded-lg text-xs font-semibold" style={{ background: "rgba(16,184,169,0.1)", color: "#10B8A9" }}>
+                    <div className="px-3 py-1 rounded-lg text-xs font-semibold bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
                       {isLoadingTodayEarnings ? "..." : `PKR ${thisYearEarnings.toLocaleString()}`}
                     </div>
                   </div>
@@ -394,45 +391,45 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                     <AreaChart data={monthlyEarnings} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                       <defs>
                         <linearGradient id="earningsGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#10B8A9" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="#10B8A9" stopOpacity={0} />
+                          <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                      <XAxis dataKey="month" tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fill: "#64748b", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => v/1000 + "k"} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                      <XAxis dataKey="month" tick={{ fill: "var(--color-text-secondary)", fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: "var(--color-text-secondary)", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => v/1000 + "k"} />
                       <Tooltip content={<CustomTooltip />} />
-                      <Area type="monotone" dataKey="earnings" stroke="#10B8A9" strokeWidth={2} fill="url(#earningsGrad)" dot={false} activeDot={{ r: 5, fill: "#10B8A9" }} />
+                      <Area type="monotone" dataKey="earnings" stroke="var(--color-primary)" strokeWidth={2} fill="url(#earningsGrad)" dot={false} activeDot={{ r: 5, fill: "var(--color-primary)" }} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
 
-                <div className="rounded-2xl p-4 sm:p-5" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                <div className="rounded-2xl p-4 sm:p-5" style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}>
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm sm:text-base font-bold text-white">Today's Appointments</h3>
-                    <span className="text-xs px-2 py-1 rounded-lg" style={{ background: "rgba(16,184,169,0.1)", color: "#10B8A9" }}>
+                    <h3 className="text-sm sm:text-base font-bold text-[var(--color-text-primary)]">Today's Appointments</h3>
+                    <span className="text-xs px-2 py-1 rounded-lg bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
                       {todayAppointments.length} total
                     </span>
                   </div>
                   <div className="space-y-2.5 overflow-y-auto" style={{ maxHeight: "220px" }}>
                     {isLoadingData ? (
                       <div className="flex justify-center py-8">
-                        <div className="w-6 h-6 rounded-full border-2 animate-spin" style={{ borderColor: "#10B8A9", borderTopColor: "transparent" }} />
+                        <div className="w-6 h-6 rounded-full border-2 animate-spin border-[var(--color-primary)] border-t-transparent" />
                       </div>
                     ) : todayAppointments.length === 0 ? (
                       <div className="text-center py-8">
-                        <p className="text-sm" style={{ color: "#475569" }}>No appointments today</p>
+                        <p className="text-sm text-[var(--color-text-secondary)]">No appointments today</p>
                       </div>
                     ) : todayAppointments.map((apt) => (
-                      <div key={apt._id} className="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-white hover:bg-opacity-5"
-                        style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)" }}>
+                      <div key={apt._id} className="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-[var(--color-bg)]"
+                        style={{ background: "color-mix(in srgb, var(--color-bg) 65%, var(--color-card))", border: "1px solid var(--color-border)" }}>
                         <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0"
-                          style={{ background: "linear-gradient(135deg, #10B8A9, #0d9488)" }}>
+                          style={{ background: "linear-gradient(135deg, var(--color-primary), color-mix(in srgb, var(--color-primary) 80%, black))" }}>
                           {apt.patient?.name?.charAt(0) || "P"}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-white truncate">{apt.patient?.name || "Unknown"}</p>
-                          <p className="text-xs" style={{ color: "#64748b" }}>{apt.slot} · {apt.type}</p>
+                          <p className="text-xs font-semibold text-[var(--color-text-primary)] truncate">{apt.patient?.name || "Unknown"}</p>
+                          <p className="text-xs text-[var(--color-text-secondary)]">{apt.slot} · {apt.type}</p>
                         </div>
                         <span className="text-xs px-2 py-0.5 rounded-full font-medium shrink-0"
                           style={{
@@ -447,56 +444,56 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                 </div>
               </div>
 
-              <div className="rounded-2xl p-4 sm:p-6" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <div className="rounded-2xl p-4 sm:p-6" style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}>
                 <div className="flex items-center justify-between mb-5">
                   <div>
-                    <h3 className="text-sm sm:text-base font-bold text-white">Recent Patients</h3>
-                    <p className="text-xs" style={{ color: "#64748b" }}>Latest registered patients</p>
+                    <h3 className="text-sm sm:text-base font-bold text-[var(--color-text-primary)]">Recent Patients</h3>
+                    <p className="text-xs text-[var(--color-text-secondary)]">Latest registered patients</p>
                   </div>
-                  <button onClick={() => setActiveNav("patients")} className="text-xs font-semibold transition-colors cursor-pointer hover:text-teal-300" style={{ color: "#10B8A9" }}>View All →</button>
+                  <button onClick={() => setActiveNav("patients")} className="text-xs font-semibold transition-colors cursor-pointer text-[var(--color-primary)] hover:opacity-85">View All →</button>
                 </div>
 
                 <div className="hidden sm:grid grid-cols-4 gap-4 px-3 mb-2">
                   {["Patient", "Age & Gender", "Phone", "Blood Group"].map((h) => (
-                    <p key={h} className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#334155" }}>{h}</p>
+                    <p key={h} className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]">{h}</p>
                   ))}
                 </div>
 
                 {isLoadingData ? (
                   <div className="flex justify-center py-8">
-                    <div className="w-6 h-6 rounded-full border-2 animate-spin" style={{ borderColor: "#10B8A9", borderTopColor: "transparent" }} />
+                    <div className="w-6 h-6 rounded-full border-2 animate-spin border-[var(--color-primary)] border-t-transparent" />
                   </div>
                 ) : recentPatients.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-sm" style={{ color: "#475569" }}>No patients yet</p>
+                    <p className="text-sm text-[var(--color-text-secondary)]">No patients yet</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
                     {recentPatients.map((patient) => (
-                      <div key={patient._id} className="rounded-xl p-3 sm:p-4 transition-all hover:bg-white hover:bg-opacity-5"
-                        style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)" }}>
+                      <div key={patient._id} className="rounded-xl p-3 sm:p-4 transition-all hover:bg-[var(--color-bg)]"
+                        style={{ background: "color-mix(in srgb, var(--color-bg) 65%, var(--color-card))", border: "1px solid var(--color-border)" }}>
                         <div className="sm:hidden flex items-center gap-3">
                           <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white shrink-0"
-                            style={{ background: "linear-gradient(135deg, #10B8A9, #0d9488)" }}>
+                            style={{ background: "linear-gradient(135deg, var(--color-primary), color-mix(in srgb, var(--color-primary) 80%, black))" }}>
                             {getInitials(patient.name)}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-white">{patient.name}</p>
-                            <p className="text-xs" style={{ color: "#64748b" }}>{patient.age} yrs · {patient.gender}</p>
+                            <p className="text-sm font-semibold text-[var(--color-text-primary)]">{patient.name}</p>
+                            <p className="text-xs text-[var(--color-text-secondary)]">{patient.age} yrs · {patient.gender}</p>
                           </div>
-                          <span className="text-xs px-2 py-1 rounded-full" style={{ background: "rgba(16,184,169,0.1)", color: "#10B8A9" }}>{patient.bloodGroup}</span>
+                          <span className="text-xs px-2 py-1 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)]">{patient.bloodGroup}</span>
                         </div>
                         <div className="hidden sm:grid grid-cols-4 gap-4 items-center">
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white shrink-0"
-                              style={{ background: "linear-gradient(135deg, #10B8A9, #0d9488)" }}>
+                              style={{ background: "linear-gradient(135deg, var(--color-primary), color-mix(in srgb, var(--color-primary) 80%, black))" }}>
                               {getInitials(patient.name)}
                             </div>
-                            <span className="text-sm font-semibold text-white truncate">{patient.name}</span>
+                            <span className="text-sm font-semibold text-[var(--color-text-primary)] truncate">{patient.name}</span>
                           </div>
-                          <span className="text-sm" style={{ color: "#94a3b8" }}>{patient.age} yrs · {patient.gender}</span>
-                          <span className="text-sm" style={{ color: "#94a3b8" }}>{patient.phone}</span>
-                          <span className="text-xs px-2.5 py-1 rounded-full w-fit font-semibold" style={{ background: "rgba(16,184,169,0.1)", color: "#10B8A9" }}>{patient.bloodGroup}</span>
+                          <span className="text-sm text-[var(--color-text-secondary)]">{patient.age} yrs · {patient.gender}</span>
+                          <span className="text-sm text-[var(--color-text-secondary)]">{patient.phone}</span>
+                          <span className="text-xs px-2.5 py-1 rounded-full w-fit font-semibold bg-[var(--color-primary)]/10 text-[var(--color-primary)]">{patient.bloodGroup}</span>
                         </div>
                       </div>
                     ))}
@@ -506,30 +503,30 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
 
               {isLoadingCancelled && (
                 <div className="flex justify-center py-6">
-                  <div className="w-6 h-6 rounded-full border-2 animate-spin" style={{ borderColor: "#ef4444", borderTopColor: "transparent" }} />
+                  <div className="w-6 h-6 rounded-full border-2 animate-spin border-[var(--color-danger)] border-t-transparent" />
                 </div>
               )}
 
               {!isLoadingCancelled && cancelledAppointments.length > 0 && (
                 <div className="rounded-2xl p-4 sm:p-6 mt-6"
-                  style={{ background: "rgba(239,68,68,0.03)", border: "1px solid rgba(239,68,68,0.15)" }}>
+                  style={{ background: "color-mix(in srgb, var(--color-danger) 6%, transparent)", border: "1px solid color-mix(in srgb, var(--color-danger) 20%, transparent)" }}>
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <h3 className="text-sm sm:text-base font-bold text-white">🚨 Emergency Cancelled Appointments</h3>
-                      <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>{cancelledAppointments.length} appointments need rescheduling</p>
+                      <h3 className="text-sm sm:text-base font-bold text-[var(--color-text-primary)]">🚨 Emergency Cancelled Appointments</h3>
+                      <p className="text-xs mt-0.5 text-[var(--color-text-secondary)]">{cancelledAppointments.length} appointments need rescheduling</p>
                     </div>
                   </div>
                   <div className="space-y-2">
                     {cancelledAppointments.map((apt) => (
                       <div key={apt._id} className="flex items-center gap-3 p-3 sm:p-4 rounded-xl"
-                        style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(239,68,68,0.1)" }}>
+                        style={{ background: "color-mix(in srgb, var(--color-bg) 65%, var(--color-card))", border: "1px solid color-mix(in srgb, var(--color-danger) 20%, var(--color-border))" }}>
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold text-white shrink-0"
-                          style={{ background: "linear-gradient(135deg,#ef4444,#dc2626)" }}>
+                          style={{ background: "linear-gradient(135deg,var(--color-danger),color-mix(in srgb, var(--color-danger) 85%, black))" }}>
                           {apt.patient?.name?.charAt(0) || "P"}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-white truncate">{apt.patient?.name || "Unknown"}</p>
-                          <p className="text-xs" style={{ color: "#64748b" }}>
+                          <p className="text-sm font-semibold text-[var(--color-text-primary)] truncate">{apt.patient?.name || "Unknown"}</p>
+                          <p className="text-xs text-[var(--color-text-secondary)]">
                             {new Date(apt.date).toLocaleDateString("en-PK", { day: "numeric", month: "short", year: "numeric" })} at {apt.slot} · {apt.type}
                           </p>
                         </div>
@@ -545,7 +542,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                           setActiveNav("appointments");
                         }}
                           className="px-3 py-2 rounded-xl text-xs font-bold transition-all hover:opacity-90 shrink-0"
-                          style={{ background: "rgba(16,184,169,0.12)", border: "1px solid rgba(16,184,169,0.2)", color: "#10B8A9" }}>
+                          style={{ background: "color-mix(in srgb, var(--color-primary) 12%, transparent)", border: "1px solid color-mix(in srgb, var(--color-primary) 22%, transparent)", color: "var(--color-primary)" }}>
                           Reschedule
                         </button>
                       </div>
@@ -560,8 +557,8 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
             <div className="flex items-center justify-center h-full">
               <div className="text-center py-20">
                 <div className="text-5xl mb-4">🚧</div>
-                <h2 className="text-xl font-bold text-white mb-2">{pageTitle} Module</h2>
-                <p className="text-sm" style={{ color: "#64748b" }}>Coming soon. We're building this next!</p>
+                <h2 className="text-xl font-bold text-[var(--color-text-primary)] mb-2">{pageTitle} Module</h2>
+                <p className="text-sm text-[var(--color-text-secondary)]">Coming soon. We're building this next!</p>
               </div>
             </div>
           )}

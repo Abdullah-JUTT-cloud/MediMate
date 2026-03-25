@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import useAuthStore from "../store/authStore";
@@ -10,9 +10,9 @@ const STATUSES = ["Pending", "Confirmed", "Completed", "Cancelled"];
 
 const STATUS_STYLES = {
   Pending:   { bg: "rgba(245,158,11,0.1)",  border: "rgba(245,158,11,0.2)",  color: "#f59e0b" },
-  Confirmed: { bg: "rgba(16,184,169,0.1)",  border: "rgba(16,184,169,0.2)",  color: "#10B8A9" },
+  Confirmed: { bg: "color-mix(in srgb, var(--color-primary) 12%, transparent)",  border: "color-mix(in srgb, var(--color-primary) 24%, transparent)",  color: "var(--color-primary)" },
   Completed: { bg: "rgba(34,197,94,0.1)",   border: "rgba(34,197,94,0.2)",   color: "#22c55e" },
-  Cancelled: { bg: "rgba(239,68,68,0.1)",   border: "rgba(239,68,68,0.2)",   color: "#ef4444" },
+  Cancelled: { bg: "color-mix(in srgb, var(--color-danger) 12%, transparent)",   border: "color-mix(in srgb, var(--color-danger) 24%, transparent)",   color: "var(--color-danger)" },
 };
 
 const TYPE_ICONS = {
@@ -50,27 +50,27 @@ const generateSlots = (startTime, endTime, slotDuration) => {
 // ─── Shared Styles ────────────────────────────────────────────────────────────
 
 const S = {
-  input: { background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "white" },
-  card:  { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" },
-  section: { background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" },
+  input: { background: "var(--color-bg)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)" },
+  card:  { background: "var(--color-card)", border: "1px solid var(--color-border)" },
+  section: { background: "var(--color-bg)", border: "1px solid var(--color-border)" },
 };
 
-const focusInput = (e) => (e.target.style.border = "1px solid #10B8A9");
-const blurInput  = (e) => (e.target.style.border = "1px solid rgba(255,255,255,0.1)");
+const focusInput = (e) => (e.target.style.border = "1px solid var(--color-primary)");
+const blurInput  = (e) => (e.target.style.border = "1px solid var(--color-border)");
 const inputCls   = "w-full px-4 py-3 rounded-xl text-sm outline-none transition-all";
 
 function BackButton({ onClick, label = "Back" }) {
   return (
     <button onClick={onClick}
       className="flex items-center gap-2 text-sm font-medium transition-all hover:opacity-80 mb-6"
-      style={{ color: "#10B8A9" }}>
+      style={{ color: "var(--color-primary)" }}>
       ← {label}
     </button>
   );
 }
 
 function SectionLabel({ text }) {
-  return <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: "#475569" }}>{text}</p>;
+  return <p className="text-xs font-bold uppercase tracking-widest mb-3 text-[var(--color-text-secondary)]">{text}</p>;
 }
 
 function StatusBadge({ status }) {
@@ -130,12 +130,12 @@ function AppointmentDetailPage({ appointment, onBack, onUpdated, onDeleted }) {
       <div className="rounded-2xl p-5 sm:p-6 mb-5" style={S.card}>
         <div className="flex items-start gap-4 mb-5">
           <div className="w-12 h-12 rounded-xl flex items-center justify-center text-xl shrink-0"
-            style={{ background: "rgba(16,184,169,0.1)" }}>
+            style={{ background: "color-mix(in srgb, var(--color-primary) 12%, transparent)" }}>
             {TYPE_ICONS[appointment.type] || "🩺"}
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-bold text-white">{patient?.name || "Unknown Patient"}</h2>
-            <p className="text-sm mt-0.5" style={{ color: "#64748b" }}>
+            <h2 className="text-lg font-bold text-[var(--color-text-primary)]">{patient?.name || "Unknown Patient"}</h2>
+            <p className="text-sm mt-0.5 text-[var(--color-text-secondary)]">
               {appointment.type} · {formatDate(appointment.date)} at {appointment.slot}
             </p>
           </div>
@@ -153,8 +153,8 @@ function AppointmentDetailPage({ appointment, onBack, onUpdated, onDeleted }) {
             { label: "Type", value: appointment.type },
           ].map(({ label, value }) => (
             <div key={label} className="p-3 rounded-xl" style={S.section}>
-              <p className="text-xs mb-1" style={{ color: "#64748b" }}>{label}</p>
-              <p className="text-sm font-semibold text-white">{value}</p>
+              <p className="text-xs mb-1 text-[var(--color-text-secondary)]">{label}</p>
+              <p className="text-sm font-semibold text-[var(--color-text-primary)]">{value}</p>
             </div>
           ))}
         </div>
@@ -170,9 +170,9 @@ function AppointmentDetailPage({ appointment, onBack, onUpdated, onDeleted }) {
               <button key={s} onClick={() => setStatus(s)}
                 className="py-2.5 rounded-xl text-xs font-bold transition-all"
                 style={{
-                  background: status === s ? style.bg : "rgba(255,255,255,0.03)",
-                  border: status === s ? `1px solid ${style.border}` : "1px solid rgba(255,255,255,0.07)",
-                  color: status === s ? style.color : "#64748b",
+                  background: status === s ? style.bg : "var(--color-bg)",
+                  border: status === s ? `1px solid ${style.border}` : "1px solid var(--color-border)",
+                  color: status === s ? style.color : "var(--color-text-secondary)",
                 }}>
                 {s}
               </button>
@@ -189,12 +189,12 @@ function AppointmentDetailPage({ appointment, onBack, onUpdated, onDeleted }) {
         <div className="flex gap-3">
           <button onClick={handleSave} disabled={isLoading}
             className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-50"
-            style={{ background: "linear-gradient(135deg,#10B8A9,#0d9488)", boxShadow: "0 4px 15px rgba(16,184,169,0.25)" }}>
+            style={{ background: "linear-gradient(135deg,var(--color-primary),color-mix(in srgb, var(--color-primary) 80%, black))", boxShadow: "0 4px 15px color-mix(in srgb, var(--color-primary) 25%, transparent)" }}>
             {isLoading ? "Saving..." : "Save Changes ✓"}
           </button>
           <button onClick={handleDelete} disabled={isLoading}
             className="px-4 py-3 rounded-xl text-sm font-bold transition-all hover:bg-red-500 hover:bg-opacity-10"
-            style={{ color: "#ef4444", border: "1px solid rgba(239,68,68,0.2)" }}>
+            style={{ color: "var(--color-danger)", border: "1px solid color-mix(in srgb, var(--color-danger) 30%, transparent)" }}>
             🗑 Delete
           </button>
         </div>
@@ -387,7 +387,7 @@ function BookAppointmentForm({
         <div className="rounded-2xl p-5" style={S.card}>
           <SectionLabel text="Select Patient" />
           <div className="relative mb-3">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: "#64748b" }}>🔍</span>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-[var(--color-text-secondary)]">🔍</span>
             <input value={search} onChange={(e) => { setSearch(e.target.value); setSelectedPatient(null); }}
               placeholder="Search patient by name or phone..."
               className="w-full pl-10 pr-4 py-3 rounded-xl text-sm outline-none transition-all"
@@ -397,7 +397,7 @@ function BookAppointmentForm({
           {searchLoading && (
             <div className="flex justify-center py-4">
               <div className="w-5 h-5 rounded-full border-2 animate-spin"
-                style={{ borderColor: "#10B8A9", borderTopColor: "transparent" }} />
+                style={{ borderColor: "var(--color-primary)", borderTopColor: "transparent" }} />
             </div>
           )}
 
@@ -407,19 +407,19 @@ function BookAppointmentForm({
                 <button key={p._id} onClick={() => { setSelectedPatient(p); setSearch(p.name); setPatients([]); }}
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all"
                   style={S.section}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(16,184,169,0.06)")}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "color-mix(in srgb, var(--color-primary) 8%, var(--color-bg))")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = S.section.background)}>
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white shrink-0"
-                    style={{ background: "linear-gradient(135deg,#10B8A9,#0d9488)" }}>
+                    style={{ background: "linear-gradient(135deg,var(--color-primary),color-mix(in srgb, var(--color-primary) 80%, black))" }}>
                     {getInitials(p.name)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-white truncate">{p.name}</p>
-                    <p className="text-xs" style={{ color: "#64748b" }}>{p.age} yrs · {p.phone}</p>
+                    <p className="text-sm font-semibold text-[var(--color-text-primary)] truncate">{p.name}</p>
+                    <p className="text-xs text-[var(--color-text-secondary)]">{p.age} yrs · {p.phone}</p>
                   </div>
                   {p.locations?.map((loc, i) => (
                     <span key={i} className="text-xs px-2 py-1 rounded-full hidden sm:block"
-                      style={{ background: loc.locationType === "Clinic" ? "rgba(16,184,169,0.1)" : "rgba(56,189,248,0.1)", color: loc.locationType === "Clinic" ? "#10B8A9" : "#38bdf8" }}>
+                      style={{ background: loc.locationType === "Clinic" ? "color-mix(in srgb, var(--color-primary) 12%, transparent)" : "rgba(56,189,248,0.1)", color: loc.locationType === "Clinic" ? "var(--color-primary)" : "#38bdf8" }}>
                       {loc.locationType === "Clinic" ? "🏥" : "🏨"} {loc.locationName}
                     </span>
                   ))}
@@ -430,17 +430,17 @@ function BookAppointmentForm({
 
           {selectedPatient && (
             <div className="flex items-center gap-3 px-4 py-3 rounded-xl"
-              style={{ background: "rgba(16,184,169,0.08)", border: "1px solid rgba(16,184,169,0.2)" }}>
+              style={{ background: "color-mix(in srgb, var(--color-primary) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--color-primary) 22%, transparent)" }}>
               <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white shrink-0"
-                style={{ background: "linear-gradient(135deg,#10B8A9,#0d9488)" }}>
+                style={{ background: "linear-gradient(135deg,var(--color-primary),color-mix(in srgb, var(--color-primary) 80%, black))" }}>
                 {getInitials(selectedPatient.name)}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white">{selectedPatient.name}</p>
-                <p className="text-xs" style={{ color: "#64748b" }}>{selectedPatient.age} yrs · {selectedPatient.phone}</p>
+                <p className="text-sm font-semibold text-[var(--color-text-primary)]">{selectedPatient.name}</p>
+                <p className="text-xs text-[var(--color-text-secondary)]">{selectedPatient.age} yrs · {selectedPatient.phone}</p>
               </div>
               <button onClick={() => { setSelectedPatient(null); setSearch(""); setSlots([]); }}
-                className="text-xs px-2 py-1 rounded-lg" style={{ color: "#64748b" }}>✕</button>
+                className="text-xs px-2 py-1 rounded-lg text-[var(--color-text-secondary)]">✕</button>
             </div>
           )}
         </div>
@@ -452,7 +452,7 @@ function BookAppointmentForm({
               <SectionLabel text="Date" />
               <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
                 min={formatDateInput(new Date())}
-                className={inputCls} style={{ ...S.input, colorScheme: "dark" }}
+                className={inputCls} style={{ ...S.input, colorScheme: "auto" }}
                 onFocus={focusInput} onBlur={blurInput} />
             </div>
             <div>
@@ -462,9 +462,9 @@ function BookAppointmentForm({
                   <button key={t} onClick={() => setType(t)}
                     className="py-2.5 px-3 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5"
                     style={{
-                      background: type === t ? "rgba(16,184,169,0.15)" : "rgba(255,255,255,0.04)",
-                      border: type === t ? "1px solid #10B8A9" : "1px solid rgba(255,255,255,0.07)",
-                      color: type === t ? "#10B8A9" : "#64748b",
+                      background: type === t ? "color-mix(in srgb, var(--color-primary) 15%, transparent)" : "var(--color-bg)",
+                      border: type === t ? "1px solid var(--color-primary)" : "1px solid var(--color-border)",
+                      color: type === t ? "var(--color-primary)" : "var(--color-text-secondary)",
                     }}>
                     <span>{TYPE_ICONS[t]}</span> {t}
                   </button>
@@ -481,16 +481,16 @@ function BookAppointmentForm({
             {isHydratingSelectedPatient ? (
               <div className="text-center py-8 rounded-xl" style={S.section}>
                 <div className="text-3xl mb-2">⏳</div>
-                <p className="text-sm font-semibold text-white mb-1">Loading patient schedule...</p>
-                <p className="text-xs" style={{ color: "#475569" }}>
+                <p className="text-sm font-semibold text-[var(--color-text-primary)] mb-1">Loading patient schedule...</p>
+                <p className="text-xs text-[var(--color-text-secondary)]">
                   Fetching complete location details to calculate slots
                 </p>
               </div>
             ) : slots.length === 0 ? (
               <div className="text-center py-8 rounded-xl" style={S.section}>
                 <div className="text-3xl mb-2">📅</div>
-                <p className="text-sm font-semibold text-white mb-1">No slots available</p>
-                <p className="text-xs" style={{ color: "#475569" }}>
+                <p className="text-sm font-semibold text-[var(--color-text-primary)] mb-1">No slots available</p>
+                <p className="text-xs text-[var(--color-text-secondary)]">
                   {selectedPatient.name} has no sessions on {getDayName(date)}
                 </p>
               </div>
@@ -503,9 +503,9 @@ function BookAppointmentForm({
                     <button key={slot.time} onClick={() => setSelectedSlot(slot.time)}
                       className="relative px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
                       style={{
-                        background: isSelected ? "rgba(16,184,169,0.15)" : "rgba(255,255,255,0.04)",
-                        border: isSelected ? "1px solid #10B8A9" : "1px solid rgba(255,255,255,0.07)",
-                        color: isSelected ? "#10B8A9" : "white",
+                        background: isSelected ? "color-mix(in srgb, var(--color-primary) 15%, transparent)" : "var(--color-bg)",
+                        border: isSelected ? "1px solid var(--color-primary)" : "1px solid var(--color-border)",
+                        color: isSelected ? "var(--color-primary)" : "var(--color-text-primary)",
                       }}>
                       {slot.time}
                       {bookingCount > 0 && (
@@ -520,7 +520,7 @@ function BookAppointmentForm({
               </div>
             )}
             {slots.length > 0 && (
-              <p className="text-xs mt-3" style={{ color: "#475569" }}>
+              <p className="text-xs mt-3 text-[var(--color-text-secondary)]">
                 🟡 Number on slot = existing bookings for that time
               </p>
             )}
@@ -538,7 +538,7 @@ function BookAppointmentForm({
 
         <button onClick={handleSubmit} disabled={isLoading}
           className="w-full py-4 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-          style={{ background: "linear-gradient(135deg,#10B8A9,#0d9488)", boxShadow: "0 4px 20px rgba(16,184,169,0.3)" }}>
+          style={{ background: "linear-gradient(135deg,var(--color-primary),color-mix(in srgb, var(--color-primary) 80%, black))", boxShadow: "0 4px 20px color-mix(in srgb, var(--color-primary) 30%, transparent)" }}>
           {isLoading ? "Booking..." : "Book Appointment ✓"}
         </button>
       </div>
@@ -563,7 +563,7 @@ export default function AppointmentsPage({
   const [activeAppointment, setActiveAppointment] = useState(null);
   const [preSelectedPatient, setPreSelectedPatient] = useState(null);
 
-  const fetchAppointments = async () => {
+  const fetchAppointments = useCallback(async () => {
     setIsLoading(true);
     try {
       let url = "/appointments?";
@@ -576,9 +576,9 @@ export default function AppointmentsPage({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [activeFilter, dateFilter]);
 
-  useEffect(() => { fetchAppointments(); }, [dateFilter, activeFilter]);
+  useEffect(() => { fetchAppointments(); }, [fetchAppointments]);
 
   useEffect(() => {
     if (initialPatient) {
@@ -625,12 +625,12 @@ export default function AppointmentsPage({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-xl font-bold text-white">Appointments</h2>
-          <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>{appointments.length} appointments</p>
+          <h2 className="text-xl font-bold text-[var(--color-text-primary)]">Appointments</h2>
+          <p className="text-xs mt-0.5 text-[var(--color-text-secondary)]">{appointments.length} appointments</p>
         </div>
         <button onClick={() => setView("book")}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:scale-105 hover:opacity-90 w-fit"
-          style={{ background: "linear-gradient(135deg,#10B8A9,#0d9488)", boxShadow: "0 4px 15px rgba(16,184,169,0.25)" }}>
+          style={{ background: "linear-gradient(135deg,var(--color-primary),color-mix(in srgb, var(--color-primary) 80%, black))", boxShadow: "0 4px 15px color-mix(in srgb, var(--color-primary) 25%, transparent)" }}>
           + Book Appointment
         </button>
       </div>
@@ -643,9 +643,9 @@ export default function AppointmentsPage({
             <button key={s} onClick={() => setActiveFilter(s)}
               className="px-3 py-2 rounded-xl text-xs font-semibold transition-all"
               style={{
-                background: activeFilter === s ? "rgba(16,184,169,0.15)" : "rgba(255,255,255,0.04)",
-                border: activeFilter === s ? "1px solid rgba(16,184,169,0.3)" : "1px solid rgba(255,255,255,0.07)",
-                color: activeFilter === s ? "#10B8A9" : "#64748b",
+                background: activeFilter === s ? "color-mix(in srgb, var(--color-primary) 15%, transparent)" : "var(--color-bg)",
+                border: activeFilter === s ? "1px solid color-mix(in srgb, var(--color-primary) 35%, transparent)" : "1px solid var(--color-border)",
+                color: activeFilter === s ? "var(--color-primary)" : "var(--color-text-secondary)",
               }}>
               {s}
             </button>
@@ -656,12 +656,11 @@ export default function AppointmentsPage({
         <div className="flex items-center gap-2 ml-auto">
           <input type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)}
             className="px-3 py-2 rounded-xl text-xs outline-none transition-all"
-            style={{ ...S.input, colorScheme: "dark" }}
+            style={{ ...S.input, colorScheme: "auto" }}
             onFocus={focusInput} onBlur={blurInput} />
           {dateFilter && (
             <button onClick={() => setDateFilter("")}
-              className="text-xs px-2 py-2 rounded-xl transition-all hover:bg-white hover:bg-opacity-5"
-              style={{ color: "#64748b" }}>✕</button>
+              className="text-xs px-2 py-2 rounded-xl transition-all hover:bg-[var(--color-bg)] text-[var(--color-text-secondary)]">✕</button>
           )}
         </div>
       </div>
@@ -671,24 +670,24 @@ export default function AppointmentsPage({
 
         {/* Desktop Header */}
         <div className="hidden sm:grid grid-cols-5 gap-4 px-5 py-3"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.02)" }}>
+          style={{ borderBottom: "1px solid var(--color-border)", background: "var(--color-bg)" }}>
           {["Patient", "Date & Time", "Type", "Status", "Action"].map((h) => (
-            <p key={h} className="text-xs font-bold uppercase tracking-wide" style={{ color: "#334155" }}>{h}</p>
+            <p key={h} className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-secondary)]">{h}</p>
           ))}
         </div>
 
         {isLoading && (
           <div className="flex justify-center py-16">
             <div className="w-8 h-8 rounded-full border-2 animate-spin"
-              style={{ borderColor: "#10B8A9", borderTopColor: "transparent" }} />
+              style={{ borderColor: "var(--color-primary)", borderTopColor: "transparent" }} />
           </div>
         )}
 
         {!isLoading && appointments.length === 0 && (
           <div className="text-center py-16">
             <div className="text-5xl mb-3">📅</div>
-            <p className="text-sm font-bold text-white mb-1">No appointments found</p>
-            <p className="text-xs" style={{ color: "#475569" }}>
+            <p className="text-sm font-bold text-[var(--color-text-primary)] mb-1">No appointments found</p>
+            <p className="text-xs text-[var(--color-text-secondary)]">
               {activeFilter !== "All" || dateFilter ? "Try changing filters" : "Book your first appointment"}
             </p>
           </div>
@@ -697,20 +696,20 @@ export default function AppointmentsPage({
         {!isLoading && appointments.map((apt) => (
           <div key={apt._id}
             className="group cursor-pointer transition-all duration-200"
-            style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(16,184,169,0.04)")}
+            style={{ borderBottom: "1px solid var(--color-border)" }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "color-mix(in srgb, var(--color-primary) 6%, transparent)")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
             onClick={() => { setActiveAppointment(apt); setView("detail"); }}>
 
             {/* Mobile */}
             <div className="sm:hidden flex items-center gap-3 px-4 py-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0"
-                style={{ background: "rgba(16,184,169,0.1)" }}>
+                style={{ background: "color-mix(in srgb, var(--color-primary) 12%, transparent)" }}>
                 {TYPE_ICONS[apt.type] || "🩺"}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-white truncate">{apt.patient?.name || "Unknown"}</p>
-                <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>
+                <p className="text-sm font-bold text-[var(--color-text-primary)] truncate">{apt.patient?.name || "Unknown"}</p>
+                <p className="text-xs mt-0.5 text-[var(--color-text-secondary)]">
                   {formatDate(apt.date)} at {apt.slot} · {apt.type}
                 </p>
               </div>
@@ -721,21 +720,21 @@ export default function AppointmentsPage({
             <div className="hidden sm:grid grid-cols-5 gap-4 items-center px-5 py-4">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm shrink-0"
-                  style={{ background: "rgba(16,184,169,0.1)" }}>
+                  style={{ background: "color-mix(in srgb, var(--color-primary) 12%, transparent)" }}>
                   {TYPE_ICONS[apt.type] || "🩺"}
                 </div>
-                <span className="text-sm font-semibold text-white truncate">{apt.patient?.name || "Unknown"}</span>
+                <span className="text-sm font-semibold text-[var(--color-text-primary)] truncate">{apt.patient?.name || "Unknown"}</span>
               </div>
               <div>
-                <p className="text-sm text-white">{formatDate(apt.date)}</p>
-                <p className="text-xs" style={{ color: "#64748b" }}>{apt.slot}</p>
+                <p className="text-sm text-[var(--color-text-primary)]">{formatDate(apt.date)}</p>
+                <p className="text-xs text-[var(--color-text-secondary)]">{apt.slot}</p>
               </div>
-              <span className="text-sm" style={{ color: "#94a3b8" }}>{apt.type}</span>
+              <span className="text-sm text-[var(--color-text-secondary)]">{apt.type}</span>
               <StatusBadge status={apt.status} />
               <div className="flex items-center">
                 <button
                   className="text-xs px-3 py-1.5 rounded-lg font-semibold transition-all opacity-0 group-hover:opacity-100"
-                  style={{ background: "rgba(16,184,169,0.1)", color: "#10B8A9" }}>
+                  style={{ background: "color-mix(in srgb, var(--color-primary) 10%, transparent)", color: "var(--color-primary)" }}>
                   View →
                 </button>
               </div>

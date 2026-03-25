@@ -47,7 +47,7 @@ export default function PrescriptionModal({ checkup, patient, onClose, onSaved }
       }
     };
     generate();
-  }, [checkup?._id]);
+  }, [checkup?._id, onSaved]);
 
   const handleDownload = () => {
     if (!pdfBase64) return;
@@ -95,25 +95,21 @@ export default function PrescriptionModal({ checkup, patient, onClose, onSaved }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)" }}>
-      <div className="w-full max-w-md rounded-3xl overflow-hidden animate-in"
-        style={{ background: "#0f1923", border: "1px solid rgba(255,255,255,0.08)" }}>
+      <div className="w-full max-w-md rounded-3xl overflow-hidden animate-in border border-[var(--color-border)] bg-[var(--color-card)]">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4"
-          style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)]">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ background: "rgba(16,184,169,0.12)" }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--color-primary)]/15">
               <span className="text-lg">📋</span>
             </div>
             <div>
-              <h3 className="text-sm font-bold text-white">Prescription</h3>
-              <p className="text-xs" style={{ color: "#64748b" }}>{patient?.name}</p>
+              <h3 className="text-sm font-bold text-[var(--color-text-primary)]">Prescription</h3>
+              <p className="text-xs text-[var(--color-text-secondary)]">{patient?.name}</p>
             </div>
           </div>
           <button onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-white hover:bg-opacity-5"
-            style={{ color: "#64748b", border: "1px solid rgba(255,255,255,0.07)" }}>
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-[var(--color-bg)] text-[var(--color-text-secondary)] border border-[var(--color-border)]">
             ✕
           </button>
         </div>
@@ -124,48 +120,45 @@ export default function PrescriptionModal({ checkup, patient, onClose, onSaved }
           {/* Status */}
           {isGenerating ? (
             <div className="flex flex-col items-center justify-center py-8">
-              <div className="w-10 h-10 rounded-full border-2 animate-spin mb-3"
-                style={{ borderColor: "#10B8A9", borderTopColor: "transparent" }} />
-              <p className="text-sm font-semibold text-white">Generating prescription...</p>
-              <p className="text-xs mt-1" style={{ color: "#64748b" }}>This may take a moment</p>
+              <div className="w-10 h-10 rounded-full border-2 animate-spin mb-3 border-[var(--color-primary)] border-t-transparent" />
+              <p className="text-sm font-semibold text-[var(--color-text-primary)]">Generating prescription...</p>
+              <p className="text-xs mt-1 text-[var(--color-text-secondary)]">This may take a moment</p>
             </div>
           ) : isSaving ? (
             <div className="flex flex-col items-center justify-center py-8">
-              <div className="w-10 h-10 rounded-full border-2 animate-spin mb-3"
-                style={{ borderColor: "#10B8A9", borderTopColor: "transparent" }} />
-              <p className="text-sm font-semibold text-white">Saving to cloud...</p>
+              <div className="w-10 h-10 rounded-full border-2 animate-spin mb-3 border-[var(--color-primary)] border-t-transparent" />
+              <p className="text-sm font-semibold text-[var(--color-text-primary)]">Saving to cloud...</p>
             </div>
           ) : pdfBase64 ? (
             <>
               {/* Success indicator */}
-              <div className="flex items-center gap-3 p-4 rounded-2xl"
-                style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.15)" }}>
+              <div className="flex items-center gap-3 p-4 rounded-2xl border border-[var(--color-success)]/25 bg-[var(--color-success)]/10">
                 <span className="text-2xl">✅</span>
                 <div>
-                  <p className="text-sm font-bold" style={{ color: "#22c55e" }}>
+                  <p className="text-sm font-bold text-[var(--color-success)]">
                     {saved ? "Prescription Generated & Saved" : "Prescription Generated"}
                   </p>
-                  <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>
+                  <p className="text-xs mt-0.5 text-[var(--color-text-secondary)]">
                     PDF opened in new tab for preview
                   </p>
                 </div>
               </div>
 
               {/* Prescription summary */}
-              <div className="p-4 rounded-2xl" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <div className="p-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)]">
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-xs" style={{ color: "#64748b" }}>Diagnosis</span>
-                    <span className="text-xs font-semibold text-white">{checkup?.prescription?.diagnosis}</span>
+                    <span className="text-xs text-[var(--color-text-secondary)]">Diagnosis</span>
+                    <span className="text-xs font-semibold text-[var(--color-text-primary)]">{checkup?.prescription?.diagnosis}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-xs" style={{ color: "#64748b" }}>Medicines</span>
-                    <span className="text-xs font-semibold text-white">{checkup?.prescription?.medicines?.length || 0}</span>
+                    <span className="text-xs text-[var(--color-text-secondary)]">Medicines</span>
+                    <span className="text-xs font-semibold text-[var(--color-text-primary)]">{checkup?.prescription?.medicines?.length || 0}</span>
                   </div>
                   {checkup?.prescription?.labTests?.length > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-xs" style={{ color: "#64748b" }}>Lab Tests</span>
-                      <span className="text-xs font-semibold text-white">{checkup.prescription.labTests.length}</span>
+                      <span className="text-xs text-[var(--color-text-secondary)]">Lab Tests</span>
+                      <span className="text-xs font-semibold text-[var(--color-text-primary)]">{checkup.prescription.labTests.length}</span>
                     </div>
                   )}
                 </div>
@@ -174,14 +167,12 @@ export default function PrescriptionModal({ checkup, patient, onClose, onSaved }
               {/* Action buttons */}
               <div className="space-y-2">
                 <button onClick={handleViewPdf}
-                  className="w-full py-3 rounded-xl text-sm font-bold transition-all hover:opacity-90"
-                  style={{ background: "rgba(16,184,169,0.12)", border: "1px solid rgba(16,184,169,0.25)", color: "#10B8A9" }}>
+                  className="w-full py-3 rounded-xl text-sm font-bold transition-all hover:opacity-90 border border-[var(--color-primary)]/25 bg-[var(--color-primary)]/12 text-[var(--color-primary)]">
                   👁️ View PDF Again
                 </button>
 
                 <button onClick={handleDownload}
-                  className="w-full py-3 rounded-xl text-sm font-bold transition-all hover:opacity-90"
-                  style={{ background: "rgba(56,189,248,0.1)", border: "1px solid rgba(56,189,248,0.2)", color: "#38bdf8" }}>
+                  className="w-full py-3 rounded-xl text-sm font-bold transition-all hover:opacity-90 border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
                   ⬇️ Download PDF
                 </button>
 
@@ -201,17 +192,16 @@ export default function PrescriptionModal({ checkup, patient, onClose, onSaved }
           ) : (
             <div className="flex flex-col items-center justify-center py-8">
               <span className="text-4xl mb-3">❌</span>
-              <p className="text-sm font-semibold text-white">Failed to generate prescription</p>
-              <p className="text-xs mt-1" style={{ color: "#64748b" }}>Please try again</p>
+              <p className="text-sm font-semibold text-[var(--color-text-primary)]">Failed to generate prescription</p>
+              <p className="text-xs mt-1 text-[var(--color-text-secondary)]">Please try again</p>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+        <div className="px-6 py-4 border-t border-[var(--color-border)]">
           <button onClick={onClose}
-            className="w-full py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-80"
-            style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "#94a3b8" }}>
+            className="w-full py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-80 bg-[var(--color-bg)] border border-[var(--color-border)] text-[var(--color-text-secondary)]">
             Close
           </button>
         </div>

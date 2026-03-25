@@ -37,35 +37,23 @@ const SPECIALIZATION_SUGGESTIONS = [
 // ─── Shared Styles ────────────────────────────────────────────────────────────
 
 const S = {
-  input: {
-    background: "rgba(255,255,255,0.05)",
-    border: "1px solid rgba(16,184,169,0.15)",
-    color: "white",
-  },
-  card: {
-    background: "rgba(255,255,255,0.03)",
-    border: "1px solid rgba(255,255,255,0.07)",
-  },
-  section: {
-    background: "rgba(255,255,255,0.02)",
-    border: "1px solid rgba(255,255,255,0.05)",
-  },
+  input: "w-full px-4 py-3 rounded-xl text-sm outline-none transition-all bg-[var(--color-bg)]/50 border border-[var(--color-border)] text-[var(--color-text-primary)] focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]/50",
+  card: "rounded-2xl border bg-[var(--color-card)] border-[var(--color-border)]",
+  section: "rounded-xl border bg-[var(--color-bg)]/50 border-[var(--color-border)]",
 };
 
-const focusStyle = (e) => (e.target.style.border = "1px solid #10B8A9");
-const blurStyle = (e) => (e.target.style.border = "1px solid rgba(16,184,169,0.15)");
-const inputCls = "w-full px-4 py-3 rounded-xl text-sm outline-none transition-all";
+const inputCls = "w-full px-4 py-3 rounded-xl text-sm outline-none transition-all bg-[var(--color-bg)]/50 border border-[var(--color-border)] text-[var(--color-text-primary)] focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]/50";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function SectionLabel({ text }) {
-  return <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: "#475569" }}>{text}</p>;
+  return <p className="text-xs font-bold uppercase tracking-widest mb-4 text-[var(--color-text-secondary)]">{text}</p>;
 }
 
 function FieldLabel({ text, optional }) {
   return (
-    <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>
-      {text} {optional ? <span className="opacity-50">(optional)</span> : <span style={{ color: "#10B8A9" }}>*</span>}
+    <label className="block text-xs font-medium mb-1.5 text-[var(--color-text-secondary)]">
+      {text} {optional ? <span className="opacity-50">(optional)</span> : <span style={{ color: "var(--color-primary)" }}>*</span>}
     </label>
   );
 }
@@ -74,8 +62,8 @@ function SaveButton({ onClick, isLoading, label = "Save Changes" }) {
   return (
     <div className="flex justify-end pt-2">
       <button onClick={onClick} disabled={isLoading}
-        className="px-6 py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-        style={{ background: "linear-gradient(135deg,#10B8A9,#0d9488)", boxShadow: "0 4px 15px rgba(16,184,169,0.25)" }}>
+        className="px-6 py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 bg-[var(--color-primary)] shadow-lg hover:shadow-xl"
+        style={{}}>
         {isLoading ? "Saving..." : label}
       </button>
     </div>
@@ -90,16 +78,15 @@ function SuggestInput({ value, onChange, suggestions, placeholder }) {
   return (
     <div className="relative">
       <input value={value} onChange={(e) => { onChange(e.target.value); setOpen(true); }}
-        onFocus={(e) => { focusStyle(e); setOpen(true); }}
-        onBlur={(e) => { blurStyle(e); setTimeout(() => setOpen(false), 150); }}
-        placeholder={placeholder} className={inputCls} style={S.input} />
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        placeholder={placeholder} className={inputCls} />
       {open && value && filtered.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 rounded-xl overflow-hidden shadow-xl"
-          style={{ background: "#0a1628", border: "1px solid rgba(16,184,169,0.2)", maxHeight: "180px", overflowY: "auto" }}>
+        <div className="absolute z-50 w-full mt-1 rounded-xl overflow-hidden shadow-xl bg-[var(--color-card)] border border-[var(--color-border)]"
+          style={{ maxHeight: "180px", overflowY: "auto" }}>
           {filtered.map((s) => (
             <button key={s} type="button"
-              className="w-full text-left px-4 py-2.5 text-sm transition-all hover:bg-teal-500 hover:bg-opacity-10"
-              style={{ color: "#94a3b8" }}
+              className="w-full text-left px-4 py-2.5 text-sm transition-all hover:bg-[var(--color-primary)]/10 text-[var(--color-text-secondary)]"
               onMouseDown={() => { onChange(s); setOpen(false); }}>
               {s}
             </button>
@@ -128,24 +115,20 @@ function TagListInput({ items, onAdd, onRemove, placeholder, suggestions = [] })
       <div className="relative flex gap-2">
         <input value={input}
           onChange={(e) => { setInput(e.target.value); setOpen(true); }}
-          onFocus={(e) => { focusStyle(e); setOpen(true); }}
-          onBlur={(e) => { blurStyle(e); setTimeout(() => setOpen(false), 150); }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 150)}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
           placeholder={placeholder}
-          className="flex-1 px-4 py-3 rounded-xl text-sm outline-none transition-all"
-          style={S.input} />
+          className={inputCls} />
         <button type="button" onClick={add}
-          className="px-4 py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-80"
-          style={{ background: "rgba(16,184,169,0.12)", color: "#10B8A9" }}>
+          className="px-4 py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-80 bg-[var(--color-primary)]/10 text-[var(--color-primary)] border border-[var(--color-primary)]/20">
           + Add
         </button>
         {open && input && filtered.length > 0 && (
-          <div className="absolute z-50 top-full left-0 right-16 mt-1 rounded-xl overflow-hidden shadow-xl"
-            style={{ background: "#0a1628", border: "1px solid rgba(16,184,169,0.2)" }}>
+          <div className="absolute z-50 top-full left-0 right-16 mt-1 rounded-xl overflow-hidden shadow-xl bg-[var(--color-card)] border border-[var(--color-border)]">
             {filtered.map((s) => (
               <button key={s} type="button"
-                className="w-full text-left px-4 py-2.5 text-sm transition-all hover:bg-teal-500 hover:bg-opacity-10"
-                style={{ color: "#94a3b8" }}
+                className="w-full text-left px-4 py-2.5 text-sm transition-all hover:bg-[var(--color-primary)]/10 text-[var(--color-text-secondary)]"
                 onMouseDown={() => { onAdd(s); setInput(""); setOpen(false); }}>
                 {s}
               </button>
@@ -156,11 +139,10 @@ function TagListInput({ items, onAdd, onRemove, placeholder, suggestions = [] })
       {items.length > 0 && (
         <div className="flex flex-wrap gap-2 mt-2">
           {items.map((item, i) => (
-            <span key={i} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
-              style={{ background: "rgba(16,184,169,0.1)", border: "1px solid rgba(16,184,169,0.2)", color: "#10B8A9" }}>
+            <span key={i} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20 text-[var(--color-primary)]">
               {item}
               <button type="button" onClick={() => onRemove(i)}
-                className="opacity-70 hover:opacity-100" style={{ color: "#ef4444", fontSize: "10px" }}>✕</button>
+                className="opacity-70 hover:opacity-100 text-red-500" style={{ fontSize: "10px" }}>✕</button>
             </span>
           ))}
         </div>
@@ -202,14 +184,13 @@ function LocationCard({ location, index, type, allClinics, allHospitals, onChang
   const removeSession = (si) => onChange({ ...location, sessions: location.sessions.filter((_, i) => i !== si) });
 
   return (
-    <div className="rounded-2xl p-4 sm:p-5" style={S.card}>
+    <div className="rounded-2xl p-4 sm:p-5 border bg-[var(--color-card)] border-[var(--color-border)]">
       <div className="flex items-center justify-between mb-4">
         <span className="text-sm font-bold text-white flex items-center gap-2">
           {type === "clinic" ? "🏥" : "🏨"} {type === "clinic" ? "Clinic" : "Hospital"} {index + 1}
         </span>
         <button onClick={onRemove}
-          className="text-xs px-2.5 py-1.5 rounded-lg transition-all hover:bg-red-500 hover:bg-opacity-10"
-          style={{ color: "#ef4444", border: "1px solid rgba(239,68,68,0.2)" }}>
+          className="text-xs px-2.5 py-1.5 rounded-lg transition-all hover:bg-red-500/10 text-red-500 border border-red-500/20">
           Remove
         </button>
       </div>
@@ -218,57 +199,54 @@ function LocationCard({ location, index, type, allClinics, allHospitals, onChang
           <FieldLabel text="Name" />
           <input value={location.name} onChange={(e) => onChange({ ...location, name: e.target.value })}
             placeholder={type === "clinic" ? "e.g. Doctors Hospital" : "e.g. Services Hospital"}
-            className={inputCls} style={S.input} onFocus={focusStyle} onBlur={blurStyle} />
+            className={inputCls} />
         </div>
         <div>
           <FieldLabel text="Address" />
           <input value={location.address} onChange={(e) => onChange({ ...location, address: e.target.value })}
             placeholder="e.g. Gulberg, Lahore"
-            className={inputCls} style={S.input} onFocus={focusStyle} onBlur={blurStyle} />
+            className={inputCls} />
         </div>
       </div>
 
       <SectionLabel text="Sessions" />
       {location.sessions.length === 0 && (
-        <p className="text-xs mb-3" style={{ color: "#475569" }}>No sessions added yet</p>
+        <p className="text-xs mb-3 text-[var(--color-text-secondary)]">No sessions added yet</p>
       )}
       <div className="space-y-2 mb-3">
         {location.sessions.map((session, si) => {
           const overlap = isOverlapping(session.day, session.startTime, session.endTime, occupied);
           return (
-            <div key={session.id ?? si} className="grid grid-cols-1 sm:grid-cols-4 gap-2 p-3 rounded-xl items-end"
+            <div key={session.id ?? si} className="grid grid-cols-1 sm:grid-cols-4 gap-2 p-3 rounded-xl items-end border"
               style={{
-                background: overlap ? "rgba(239,68,68,0.06)" : "rgba(255,255,255,0.02)",
-                border: overlap ? "1px solid rgba(239,68,68,0.2)" : "1px solid rgba(255,255,255,0.05)",
+                background: overlap ? "var(--color-danger)/10" : "var(--color-bg)/50",
+                borderColor: overlap ? "var(--color-danger)/20" : "var(--color-border)",
               }}>
               <div>
-                <label className="block text-xs mb-1" style={{ color: "#64748b" }}>Day</label>
+                <label className="block text-xs mb-1 text-[var(--color-text-secondary)]">Day</label>
                 <select value={session.day} onChange={(e) => updateSession(si, "day", e.target.value)}
-                  className={inputCls} style={{ ...S.input, opacity: overlap ? 0.6 : 1 }}
-                  onFocus={focusStyle} onBlur={blurStyle}>
-                  {DAYS.map((d) => <option key={d} value={d} style={{ background: "#0a1628" }}>{d}</option>)}
+                  className={inputCls + (overlap ? " opacity-60" : "")}
+                  style={{}}
+                  >
+                  {DAYS.map((d) => <option key={d} value={d}>{d}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-xs mb-1" style={{ color: "#64748b" }}>Start</label>
+                <label className="block text-xs mb-1 text-[var(--color-text-secondary)]">Start</label>
                 <input type="time" value={session.startTime} onChange={(e) => updateSession(si, "startTime", e.target.value)}
-                  className={inputCls} style={{ ...S.input, colorScheme: "dark", opacity: overlap ? 0.6 : 1 }}
-                  onFocus={focusStyle} onBlur={blurStyle} />
+                  className={inputCls + (overlap ? " opacity-60" : "")} />
               </div>
               <div>
-                <label className="block text-xs mb-1" style={{ color: "#64748b" }}>End</label>
+                <label className="block text-xs mb-1 text-[var(--color-text-secondary)]">End</label>
                 <input type="time" value={session.endTime} onChange={(e) => updateSession(si, "endTime", e.target.value)}
-                  className={inputCls} style={{ ...S.input, colorScheme: "dark", opacity: overlap ? 0.6 : 1 }}
-                  onFocus={focusStyle} onBlur={blurStyle} />
+                  className={inputCls + (overlap ? " opacity-60" : "")} />
               </div>
               <div className="flex items-end gap-2">
                 {overlap && (
-                  <span className="text-xs px-2 py-1 rounded-lg flex-1 text-center"
-                    style={{ background: "rgba(239,68,68,0.1)", color: "#ef4444" }}>⚠ Overlap</span>
+                  <span className="text-xs px-2 py-1 rounded-lg flex-1 text-center bg-red-500/10 text-red-500">⚠ Overlap</span>
                 )}
                 <button onClick={() => removeSession(si)}
-                  className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:bg-red-500 hover:bg-opacity-10 shrink-0"
-                  style={{ color: "#ef4444", border: "1px solid rgba(239,68,68,0.15)" }}>
+                  className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:bg-red-500/10 shrink-0 border border-red-500/15 text-red-500">
                   🗑
                 </button>
               </div>
@@ -277,8 +255,7 @@ function LocationCard({ location, index, type, allClinics, allHospitals, onChang
         })}
       </div>
       <button onClick={addSession}
-        className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-80"
-        style={{ background: "rgba(16,184,169,0.06)", border: "1px dashed rgba(16,184,169,0.3)", color: "#10B8A9" }}>
+        className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-80 border border-dashed border-[var(--color-primary)]/30 text-[var(--color-primary)] bg-[var(--color-primary)]/5">
         + Add Session
       </button>
     </div>
@@ -425,8 +402,7 @@ export default function SettingsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 rounded-full border-2 animate-spin"
-          style={{ borderColor: "#10B8A9", borderTopColor: "transparent" }} />
+        <div className="w-8 h-8 rounded-full border-2 animate-spin border-[var(--color-primary)] border-t-transparent" />
       </div>
     );
   }
@@ -434,14 +410,13 @@ export default function SettingsPage() {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-white">Settings</h2>
-        <p className="text-xs mt-0.5" style={{ color: "#64748b" }}>Manage your profile and practice information</p>
+        <h2 className="text-xl font-bold text-[var(--color-text-primary)]">Settings</h2>
+        <p className="text-xs mt-0.5 text-[var(--color-text-secondary)]">Manage your profile and practice information</p>
       </div>
 
       {/* Profile Picture Placeholder */}
-      <div className="flex items-center gap-4 p-5 rounded-2xl mb-6" style={S.card}>
-        <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold text-white shrink-0"
-          style={{ background: "linear-gradient(135deg,#10B8A9,#0d9488)" }}>
+      <div className="flex items-center gap-4 p-5 rounded-2xl mb-6 border bg-[var(--color-card)] border-[var(--color-border)]">
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold text-white shrink-0 bg-[var(--color-primary)]">
           {doctor?.profilePicture ? (
             <img src={doctor.profilePicture} alt="Profile" className="w-full h-full object-cover rounded-2xl" />
           ) : (
@@ -449,8 +424,8 @@ export default function SettingsPage() {
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-base font-bold text-white">{doctor?.fullName || "Doctor"}</p>
-          <p className="text-sm" style={{ color: "#10B8A9" }}>{doctor?.specialization || "Specialist"}</p>
+          <p className="text-base font-bold text-[var(--color-text-primary)]">{doctor?.fullName || "Doctor"}</p>
+          <p className="text-sm text-[var(--color-primary)]">{doctor?.specialization || "Specialist"}</p>
         </div>
         <input
           type="file"
@@ -478,21 +453,20 @@ export default function SettingsPage() {
           }}
         />
         <label htmlFor="profilePicUpload"
-          className="px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer transition-all hover:opacity-80"
-          style={{ background: "rgba(16,184,169,0.12)", color: "#10B8A9", border: "1px solid rgba(16,184,169,0.2)" }}>
+          className="px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer transition-all hover:opacity-80 bg-[var(--color-primary)]/10 text-[var(--color-primary)] border border-[var(--color-primary)]/20">
           📷 Upload Photo
         </label>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 p-1 rounded-2xl overflow-x-auto" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)" }}>
+      <div className="flex gap-1 mb-6 p-1 rounded-2xl overflow-x-auto border bg-[var(--color-bg)]/30 border-[var(--color-border)]">
         {TABS.map((tab) => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-            className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap flex-1 justify-center"
+            className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap flex-1 justify-center border"
             style={{
-              background: activeTab === tab.key ? "rgba(16,184,169,0.15)" : "transparent",
-              color: activeTab === tab.key ? "#10B8A9" : "#64748b",
-              border: activeTab === tab.key ? "1px solid rgba(16,184,169,0.3)" : "1px solid transparent",
+              background: activeTab === tab.key ? "var(--color-primary)/15" : "transparent",
+              color: activeTab === tab.key ? "var(--color-primary)" : "var(--color-text-secondary)",
+              borderColor: activeTab === tab.key ? "var(--color-primary)/30" : "transparent",
             }}>
             <span>{tab.icon}</span>
             <span className="hidden sm:inline">{tab.label}</span>
@@ -502,25 +476,24 @@ export default function SettingsPage() {
 
       {/* ── PERSONAL TAB ── */}
       {activeTab === "personal" && (
-        <div className="rounded-2xl p-5 sm:p-6 space-y-5" style={S.card}>
+        <div className="rounded-2xl p-5 sm:p-6 space-y-5 border bg-[var(--color-card)] border-[var(--color-border)]">
           <SectionLabel text="Personal Information" />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
               <FieldLabel text="Full Name" />
               <input value={personal.fullName} onChange={(e) => setPersonal((p) => ({ ...p, fullName: e.target.value }))}
-                placeholder="Dr. Ahmed Raza" className={inputCls} style={S.input}
-                onFocus={focusStyle} onBlur={blurStyle} />
+                placeholder="Dr. Ahmed Raza" className={inputCls} />
             </div>
             <div className="sm:col-span-2">
               <FieldLabel text="Gender" />
               <div className="flex gap-2">
                 {GENDERS.map((g) => (
                   <button key={g} onClick={() => setPersonal((p) => ({ ...p, gender: g }))}
-                    className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
+                    className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all border"
                     style={{
-                      background: personal.gender === g ? "rgba(16,184,169,0.15)" : "rgba(255,255,255,0.04)",
-                      border: personal.gender === g ? "1px solid #10B8A9" : "1px solid rgba(16,184,169,0.15)",
-                      color: personal.gender === g ? "#10B8A9" : "#64748b",
+                      background: personal.gender === g ? "var(--color-primary)/15" : "var(--color-bg)/50",
+                      borderColor: personal.gender === g ? "var(--color-primary)/30" : "var(--color-border)",
+                      color: personal.gender === g ? "var(--color-primary)" : "var(--color-text-secondary)",
                     }}>
                     {g}
                   </button>
@@ -530,8 +503,7 @@ export default function SettingsPage() {
             <div className="sm:col-span-2">
               <FieldLabel text="Phone" />
               <input value={personal.phone} onChange={(e) => setPersonal((p) => ({ ...p, phone: e.target.value }))}
-                placeholder="03001234567" className={inputCls} style={S.input}
-                onFocus={focusStyle} onBlur={blurStyle} />
+                placeholder="03001234567" className={inputCls} />
             </div>
           </div>
           <SaveButton onClick={savePersonal} isLoading={isSaving} />
@@ -540,7 +512,7 @@ export default function SettingsPage() {
 
       {/* ── PROFESSIONAL TAB ── */}
       {activeTab === "professional" && (
-        <div className="rounded-2xl p-5 sm:p-6 space-y-5" style={S.card}>
+        <div className="rounded-2xl p-5 sm:p-6 space-y-5 border bg-[var(--color-card)] border-[var(--color-border)]">
           <SectionLabel text="Professional Information" />
 
           <div>
@@ -548,11 +520,11 @@ export default function SettingsPage() {
             <div className="flex gap-2">
               {TITLES.map((t) => (
                 <button key={t} onClick={() => setProfessional((p) => ({ ...p, title: t }))}
-                  className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
+                  className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all border"
                   style={{
-                    background: professional.title === t ? "rgba(16,184,169,0.15)" : "rgba(255,255,255,0.04)",
-                    border: professional.title === t ? "1px solid #10B8A9" : "1px solid rgba(16,184,169,0.15)",
-                    color: professional.title === t ? "#10B8A9" : "#64748b",
+                    background: professional.title === t ? "var(--color-primary)/15" : "var(--color-bg)/50",
+                    borderColor: professional.title === t ? "var(--color-primary)/30" : "var(--color-border)",
+                    color: professional.title === t ? "var(--color-primary)" : "var(--color-text-secondary)",
                   }}>
                   {t}
                 </button>
@@ -586,14 +558,14 @@ export default function SettingsPage() {
               <input value={professional.university}
                 onChange={(e) => setProfessional((p) => ({ ...p, university: e.target.value }))}
                 placeholder="e.g. King Edward Medical University"
-                className={inputCls} style={S.input} onFocus={focusStyle} onBlur={blurStyle} />
+                className={inputCls} />
             </div>
             <div>
               <FieldLabel text="Graduation Year" />
               <input type="number" value={professional.graduationYear}
                 onChange={(e) => setProfessional((p) => ({ ...p, graduationYear: e.target.value }))}
                 placeholder="e.g. 2015" min="1970" max={new Date().getFullYear()}
-                className={inputCls} style={S.input} onFocus={focusStyle} onBlur={blurStyle} />
+                className={inputCls} />
             </div>
             <div className="sm:col-span-2">
               <FieldLabel text="Postgraduate Training" optional />
@@ -608,18 +580,18 @@ export default function SettingsPage() {
               <input type="number" value={professional.yearsOfExperience}
                 onChange={(e) => setProfessional((p) => ({ ...p, yearsOfExperience: e.target.value }))}
                 placeholder="e.g. 8" min="0"
-                className={inputCls} style={S.input} onFocus={focusStyle} onBlur={blurStyle} />
+                className={inputCls} />
             </div>
             <div>
               <FieldLabel text="Appointment Slot Duration (min)" />
               <div className="flex gap-2 flex-wrap">
                 {[10, 15, 20, 30, 45, 60].map((d) => (
                   <button key={d} onClick={() => setProfessional((p) => ({ ...p, slotDuration: d }))}
-                    className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                    className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border"
                     style={{
-                      background: professional.slotDuration === d ? "rgba(16,184,169,0.15)" : "rgba(255,255,255,0.04)",
-                      border: professional.slotDuration === d ? "1px solid #10B8A9" : "1px solid rgba(16,184,169,0.15)",
-                      color: professional.slotDuration === d ? "#10B8A9" : "#64748b",
+                      background: professional.slotDuration === d ? "var(--color-primary)/15" : "var(--color-bg)/50",
+                      borderColor: professional.slotDuration === d ? "var(--color-primary)/30" : "var(--color-border)",
+                      color: professional.slotDuration === d ? "var(--color-primary)" : "var(--color-text-secondary)",
                     }}>
                     {d} min
                   </button>
@@ -633,7 +605,7 @@ export default function SettingsPage() {
 
       {/* ── LICENSING TAB ── */}
       {activeTab === "licensing" && (
-        <div className="rounded-2xl p-5 sm:p-6 space-y-5" style={S.card}>
+        <div className="rounded-2xl p-5 sm:p-6 space-y-5 border bg-[var(--color-card)] border-[var(--color-border)]">
           <SectionLabel text="Licensing Information" />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
@@ -641,18 +613,18 @@ export default function SettingsPage() {
               <input value={licensing.pmdcNumber}
                 onChange={(e) => setLicensing((p) => ({ ...p, pmdcNumber: e.target.value }))}
                 placeholder="e.g. PMDC-12345"
-                className={inputCls} style={S.input} onFocus={focusStyle} onBlur={blurStyle} />
+                className={inputCls} />
             </div>
             <div className="sm:col-span-2">
               <FieldLabel text="License Status" />
               <div className="flex gap-2">
                 {LICENSE_STATUSES.map((s) => (
                   <button key={s} onClick={() => setLicensing((p) => ({ ...p, licenseStatus: s }))}
-                    className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
+                    className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all border"
                     style={{
-                      background: licensing.licenseStatus === s ? "rgba(16,184,169,0.15)" : "rgba(255,255,255,0.04)",
-                      border: licensing.licenseStatus === s ? "1px solid #10B8A9" : "1px solid rgba(16,184,169,0.15)",
-                      color: licensing.licenseStatus === s ? "#10B8A9" : "#64748b",
+                      background: licensing.licenseStatus === s ? "var(--color-primary)/15" : "var(--color-bg)/50",
+                      borderColor: licensing.licenseStatus === s ? "var(--color-primary)/30" : "var(--color-border)",
+                      color: licensing.licenseStatus === s ? "var(--color-primary)" : "var(--color-text-secondary)",
                     }}>
                     {s}
                   </button>
@@ -663,40 +635,34 @@ export default function SettingsPage() {
               <FieldLabel text="License Issue Date" />
               <input type="date" value={licensing.licenseIssueDate}
                 onChange={(e) => setLicensing((p) => ({ ...p, licenseIssueDate: e.target.value }))}
-                className={inputCls} style={{ ...S.input, colorScheme: "dark" }}
-                onFocus={focusStyle} onBlur={blurStyle} />
+                className={inputCls} />
             </div>
             <div>
               <FieldLabel text="License Expiry Date" optional />
               <input type="date" value={licensing.licenseExpiryDate}
                 onChange={(e) => setLicensing((p) => ({ ...p, licenseExpiryDate: e.target.value }))}
-                className={inputCls} style={{ ...S.input, colorScheme: "dark" }}
-                onFocus={focusStyle} onBlur={blurStyle} />
+                className={inputCls} />
             </div>
             <div className="sm:col-span-2">
               <FieldLabel text="PMDC Certificate" optional />
               <input type="file" id="pmdcUpload" accept=".pdf,image/*" className="hidden"
                 onChange={(e) => { handlePmdcUpload(e.target.files[0]); e.target.value = ""; }} />
               {pmdcCertificate ? (
-                <div className="flex items-center gap-3 px-4 py-3 rounded-xl"
-                  style={{ background: "rgba(16,184,169,0.06)", border: "1px solid rgba(16,184,169,0.2)" }}>
-                  <span style={{ color: "#10B8A9" }}>📎</span>
-                  <span className="text-sm flex-1" style={{ color: "#10B8A9" }}>Certificate uploaded</span>
+                <div className="flex items-center gap-3 px-4 py-3 rounded-xl border bg-[var(--color-primary)]/5 border-[var(--color-primary)]/20">
+                  <span className="text-[var(--color-primary)]">📎</span>
+                  <span className="text-sm flex-1 text-[var(--color-primary)]">Certificate uploaded</span>
                   <a href={pmdcCertificate} target="_blank" rel="noreferrer"
-                    className="text-xs px-3 py-1.5 rounded-lg font-semibold"
-                    style={{ background: "rgba(16,184,169,0.12)", color: "#10B8A9" }}>
+                    className="text-xs px-3 py-1.5 rounded-lg font-semibold bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
                     View
                   </a>
                   <label htmlFor="pmdcUpload"
-                    className="text-xs px-3 py-1.5 rounded-lg font-semibold cursor-pointer"
-                    style={{ background: "rgba(255,255,255,0.07)", color: "#64748b" }}>
+                    className="text-xs px-3 py-1.5 rounded-lg font-semibold cursor-pointer bg-[var(--color-bg)]/50 text-[var(--color-text-secondary)]">
                     {isUploadingPmdc ? "Uploading..." : "Replace"}
                   </label>
                 </div>
               ) : (
                 <label htmlFor="pmdcUpload"
-                  className="w-full px-4 py-3 rounded-xl text-sm flex items-center gap-2 cursor-pointer transition-all hover:opacity-80"
-                  style={{ background: "rgba(255,255,255,0.02)", border: "1px dashed rgba(16,184,169,0.3)", color: "#10B8A9" }}>
+                  className="w-full px-4 py-3 rounded-xl text-sm flex items-center gap-2 cursor-pointer transition-all hover:opacity-80 border border-dashed border-[var(--color-primary)]/30 text-[var(--color-primary)] bg-[var(--color-primary)]/5">
                   {isUploadingPmdc ? "⏳ Uploading..." : "📎 Upload PMDC Certificate (PDF or Image)"}
                 </label>
               )}
@@ -710,19 +676,17 @@ export default function SettingsPage() {
       {activeTab === "locations" && (
         <div className="space-y-5">
           {/* Clinics */}
-          <div className="rounded-2xl p-5 sm:p-6" style={S.card}>
+          <div className="rounded-2xl p-5 sm:p-6 border bg-[var(--color-card)] border-[var(--color-border)]">
             <div className="flex items-center justify-between mb-4">
-              <p className="text-sm font-bold text-white">🏥 Clinics</p>
+              <p className="text-sm font-bold text-[var(--color-text-primary)]">🏥 Clinics</p>
               <button onClick={() => setClinics((p) => [...p, { id: Date.now(), name: "", address: "", sessions: [] }])}
-                className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
-                style={{ background: "rgba(16,184,169,0.12)", color: "#10B8A9" }}>
+                className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:opacity-80 bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
                 + Add Clinic
               </button>
             </div>
             {clinics.length === 0 && (
-              <div className="text-center py-6 rounded-xl"
-                style={{ background: "rgba(255,255,255,0.02)", border: "1px dashed rgba(255,255,255,0.06)" }}>
-                <p className="text-xs" style={{ color: "#475569" }}>No clinics added</p>
+              <div className="text-center py-6 rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-bg)]/30">
+                <p className="text-xs text-[var(--color-text-secondary)]">No clinics added</p>
               </div>
             )}
             <div className="space-y-3">
@@ -736,19 +700,17 @@ export default function SettingsPage() {
           </div>
 
           {/* Hospitals */}
-          <div className="rounded-2xl p-5 sm:p-6" style={S.card}>
+          <div className="rounded-2xl p-5 sm:p-6 border bg-[var(--color-card)] border-[var(--color-border)]">
             <div className="flex items-center justify-between mb-4">
-              <p className="text-sm font-bold text-white">🏨 Hospitals</p>
+              <p className="text-sm font-bold text-[var(--color-text-primary)]">🏨 Hospitals</p>
               <button onClick={() => setHospitals((p) => [...p, { id: Date.now(), name: "", address: "", sessions: [] }])}
-                className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
-                style={{ background: "rgba(16,184,169,0.12)", color: "#10B8A9" }}>
+                className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:opacity-80 bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
                 + Add Hospital
               </button>
             </div>
             {hospitals.length === 0 && (
-              <div className="text-center py-6 rounded-xl"
-                style={{ background: "rgba(255,255,255,0.02)", border: "1px dashed rgba(255,255,255,0.06)" }}>
-                <p className="text-xs" style={{ color: "#475569" }}>No hospitals added</p>
+              <div className="text-center py-6 rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-bg)]/30">
+                <p className="text-xs text-[var(--color-text-secondary)]">No hospitals added</p>
               </div>
             )}
             <div className="space-y-3">

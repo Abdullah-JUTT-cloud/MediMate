@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
-import logo from "../assets/logo.svg";
+import logo from "../assets/logo-compact.webp";
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -40,7 +40,7 @@ export default function ResetPasswordPage() {
       toast.error("Invalid reset link. Please start again.");
       navigate("/forgot-password");
     }
-  }, []);
+  }, [email, navigate, resetToken]);
 
   const handleSubmit = async () => {
     if (!form.password) { toast.error("Password is required"); return; }
@@ -64,69 +64,69 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "linear-gradient(135deg, #0f1923 0%, #0d2137 50%, #0a1628 100%)" }}>
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 rounded-full opacity-10" style={{ background: "radial-gradient(circle, #10B8A9, transparent)", filter: "blur(60px)" }} />
-        <div className="absolute bottom-20 right-10 w-96 h-96 rounded-full opacity-10" style={{ background: "radial-gradient(circle, #10B8A9, transparent)", filter: "blur(80px)" }} />
-        <div className="absolute inset-0 opacity-5" style={{ backgroundImage: `linear-gradient(rgba(16,184,169,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(16,184,169,0.3) 1px, transparent 1px)`, backgroundSize: "60px 60px" }} />
+    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)]">
+      <div className="pointer-events-none fixed inset-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-primary)]/8 via-transparent to-[var(--color-primary)]/5" />
       </div>
 
-      <nav className="relative z-10 px-4 sm:px-6 py-4 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(16,184,169,0.1)" }}>
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
-          <img src={logo} alt="MedAlerto" className="h-8 w-auto brightness-0 invert" />
+      <nav className="relative z-10 border-b bg-[var(--color-card)]/90 backdrop-blur">
+        <div className="flex w-full items-center justify-between px-4 py-4 sm:px-8 lg:px-10 xl:px-14">
+          <button className="flex items-center gap-3" onClick={() => navigate("/")}>
+            <img src={logo} alt="MedAlerto" className="h-8 w-auto" />
+            <span className="text-sm font-extrabold sm:text-base">MedAlerto</span>
+          </button>
+          <button
+            onClick={() => navigate("/login")}
+            className="text-xs font-semibold text-[var(--color-text-secondary)] transition hover:text-[var(--color-primary)] sm:text-sm"
+          >
+            Back to <span className="text-[var(--color-primary)]">Login</span>
+          </button>
         </div>
-        <button onClick={() => navigate("/login")} className="text-sm font-medium hover:text-teal-400 transition-colors" style={{ color: "#94a3b8" }}>
-          Back to <span style={{ color: "#10B8A9" }}>Login</span>
-        </button>
       </nav>
 
-      <div className="relative z-10 flex-1 flex items-center justify-center px-4 sm:px-6 py-12">
-        <div className="w-full max-w-md">
-
-          <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl" style={{ background: "rgba(16,184,169,0.1)", border: "1px solid rgba(16,184,169,0.25)" }}>
+      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-73px)] w-full max-w-6xl items-center justify-center px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+        <section className="w-full max-w-md rounded-xl border bg-[var(--color-card)] p-6 shadow-sm sm:p-8">
+          <div className="mb-6 flex justify-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-xl border bg-[var(--color-primary)]/10 text-3xl sm:h-20 sm:w-20 sm:text-4xl">
               🛡️
             </div>
           </div>
 
-          <div className="text-center mb-8">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-2">Set New Password</h1>
-            <p className="text-sm sm:text-base" style={{ color: "#94a3b8" }}>
+          <header className="mb-8 text-center">
+            <h1 className="mb-2 text-2xl font-extrabold sm:text-3xl">Set New Password</h1>
+            <p className="text-sm text-[var(--color-text-secondary)] sm:text-base">
               Create a strong new password for your account
             </p>
-          </div>
+          </header>
 
-          <div className="rounded-2xl sm:rounded-3xl p-6 sm:p-8" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(16,184,169,0.15)", backdropFilter: "blur(12px)" }}>
+          <div className="rounded-xl border bg-[var(--color-bg)] p-4 sm:p-6">
             <div className="space-y-4">
-
-              {/* New Password */}
               <div>
-                <label className="block text-xs sm:text-sm font-medium mb-1.5" style={{ color: "#94a3b8" }}>New Password</label>
+                <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)] sm:text-sm">New Password</label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
                     value={form.password}
                     onChange={(e) => setForm({ ...form, password: e.target.value })}
                     placeholder="Min 8 characters"
-                    className="w-full px-4 py-3 pr-12 rounded-xl text-sm outline-none transition-all"
-                    style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "white" }}
-                    onFocus={e => e.target.style.border = "1px solid #10B8A9"}
-                    onBlur={e => e.target.style.border = "1px solid rgba(255,255,255,0.1)"}
+                    className="w-full rounded-xl border bg-[var(--color-card)] px-4 py-3 pr-12 text-sm outline-none transition focus:border-[var(--color-primary)]"
                   />
-                  <button onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs transition-colors hover:text-teal-400" style={{ color: "#64748b" }}>
+                  <button
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-[var(--color-text-secondary)] transition hover:text-[var(--color-primary)]"
+                  >
                     {showPassword ? "Hide" : "Show"}
                   </button>
                 </div>
 
-                {/* Password strength bar */}
                 {form.password && (
                   <div className="mt-2">
-                    <div className="flex gap-1 mb-1">
+                    <div className="mb-1 flex gap-1">
                       {[1, 2, 3, 4].map((level) => (
                         <div
                           key={level}
-                          className="flex-1 h-1 rounded-full transition-all duration-300"
-                          style={{ background: strength.score >= level ? strength.color : "rgba(255,255,255,0.1)" }}
+                          className="h-1 flex-1 rounded-full transition-all duration-300"
+                          style={{ background: strength.score >= level ? strength.color : "var(--color-border)" }}
                         />
                       ))}
                     </div>
@@ -137,9 +137,8 @@ export default function ResetPasswordPage() {
                 )}
               </div>
 
-              {/* Confirm Password */}
               <div>
-                <label className="block text-xs sm:text-sm font-medium mb-1.5" style={{ color: "#94a3b8" }}>Confirm Password</label>
+                <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)] sm:text-sm">Confirm Password</label>
                 <div className="relative">
                   <input
                     type={showConfirm ? "text" : "password"}
@@ -147,26 +146,26 @@ export default function ResetPasswordPage() {
                     onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
                     onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
                     placeholder="Repeat your password"
-                    className="w-full px-4 py-3 pr-12 rounded-xl text-sm outline-none transition-all"
+                    className="w-full rounded-xl border bg-[var(--color-card)] px-4 py-3 pr-12 text-sm outline-none transition focus:border-[var(--color-primary)]"
                     style={{
-                      background: "rgba(255,255,255,0.05)",
-                      border: form.confirmPassword
+                      borderColor: form.confirmPassword
                         ? form.password === form.confirmPassword
-                          ? "1px solid #22c55e"
-                          : "1px solid #ef4444"
-                        : "1px solid rgba(255,255,255,0.1)",
-                      color: "white"
+                          ? "var(--color-success)"
+                          : "var(--color-danger)"
+                        : "var(--color-border)",
                     }}
-                    onFocus={e => { if (!form.confirmPassword) e.target.style.border = "1px solid #10B8A9"; }}
-                    onBlur={e => { if (!form.confirmPassword) e.target.style.border = "1px solid rgba(255,255,255,0.1)"; }}
                   />
-                  <button onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs transition-colors hover:text-teal-400" style={{ color: "#64748b" }}>
+                  <button
+                    onClick={() => setShowConfirm(!showConfirm)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-[var(--color-text-secondary)] transition hover:text-[var(--color-primary)]"
+                  >
                     {showConfirm ? "Hide" : "Show"}
                   </button>
                 </div>
+
                 {form.confirmPassword && (
-                  <p className="text-xs mt-1" style={{ color: form.password === form.confirmPassword ? "#22c55e" : "#ef4444" }}>
-                    {form.password === form.confirmPassword ? "✓ Passwords match" : "✕ Passwords do not match"}
+                  <p className="mt-1 text-xs" style={{ color: form.password === form.confirmPassword ? "var(--color-success)" : "var(--color-danger)" }}>
+                    {form.password === form.confirmPassword ? "Passwords match" : "Passwords do not match"}
                   </p>
                 )}
               </div>
@@ -175,14 +174,13 @@ export default function ResetPasswordPage() {
             <button
               onClick={handleSubmit}
               disabled={isLoading}
-              className="w-full mt-6 py-3 sm:py-4 rounded-xl text-sm sm:text-base font-semibold text-white transition-all duration-200 hover:scale-105 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-              style={{ background: "linear-gradient(135deg, #10B8A9, #0d9488)", boxShadow: "0 4px 15px rgba(16,184,169,0.3)" }}
+              className="mt-6 w-full rounded-xl bg-[var(--color-primary)] py-3 text-sm font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 sm:py-4 sm:text-base"
             >
-              {isLoading ? "Resetting..." : "Reset Password ✓"}
+              {isLoading ? "Resetting..." : "Reset Password"}
             </button>
           </div>
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   );
 }

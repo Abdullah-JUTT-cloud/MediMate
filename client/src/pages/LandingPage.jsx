@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import logo from "../assets/logo.svg";
-import doc from "../assets/doc.jpg";
+import logo from "../assets/logo-compact.webp";
+import doc from "../assets/doc-hero.webp";
 
 const features = [
   {
@@ -67,167 +67,135 @@ export default function LandingPage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  return (
-    <div className="min-h-screen font-sans" style={{ background: "#ffffff", color: "#1a1a2e" }}>
+  const navBaseClass = scrolled
+    ? "border-b bg-[var(--color-card)]/95 shadow-sm backdrop-blur"
+    : "border-b border-transparent bg-[var(--color-card)]/80";
 
-      {/* NAVBAR */}
-      <nav
-        className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
-        style={{
-          background: scrolled ? "rgba(15,25,35,0.97)" : "#0f1923",
-          backdropFilter: scrolled ? "blur(12px)" : "none",
-          boxShadow: scrolled ? "0 2px 20px rgba(16,184,169,0.15)" : "none",
-        }}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center gap-2">
-            <img src={logo} alt="MedAlerto Logo" className="h-8 sm:h-10 w-auto brightness-0 invert" />
+  return (
+    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)]">
+      <nav className={`fixed left-0 right-0 top-0 z-50 transition ${navBaseClass}`}>
+        <div className="flex w-full items-center justify-between px-4 py-4 sm:px-8 lg:px-10 xl:px-14">
+          <div className="flex items-center gap-3">
+            <img src={logo} alt="MedAlerto Logo" className="h-8 w-auto" />
+            <p className="text-sm font-extrabold tracking-tight text-[var(--color-text-primary)] sm:text-base">MedAlerto</p>
           </div>
 
-          {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-6 lg:gap-8">
-            <a href="#features" className="text-sm font-medium transition-colors hover:text-teal-400" style={{ color: "#94a3b8" }}>Features</a>
-            <a href="#stats" className="text-sm font-medium transition-colors hover:text-teal-400" style={{ color: "#94a3b8" }}>Why MedAlerto</a>
-            <a href="#contact" className="text-sm font-medium transition-colors hover:text-teal-400" style={{ color: "#94a3b8" }}>Contact</a>
+          <div className="hidden items-center gap-6 md:flex">
+            <a href="#features" className="text-sm font-semibold text-[var(--color-text-secondary)] transition hover:text-[var(--color-primary)]">Features</a>
+            <a href="#stats" className="text-sm font-semibold text-[var(--color-text-secondary)] transition hover:text-[var(--color-primary)]">Why MedAlerto</a>
+            <a href="#contact" className="text-sm font-semibold text-[var(--color-text-secondary)] transition hover:text-[var(--color-primary)]">Contact</a>
             <button
               onClick={() => navigate("/login")}
-              className="text-sm font-semibold px-4 lg:px-5 py-2 rounded-xl transition-all duration-200"
-              style={{ color: "#10b8a9", border: "1.5px solid #10b8a9" }}
-              onMouseEnter={e => e.target.style.background = "rgba(16,184,169,0.1)"}
-              onMouseLeave={e => e.target.style.background = "transparent"}
+              className="rounded-xl border border-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-[var(--color-primary)] transition hover:bg-[var(--color-primary)]/10"
             >
               Login
             </button>
             <button
               onClick={() => navigate("/signup")}
-              className="text-sm font-semibold px-4 lg:px-5 py-2 rounded-xl text-white transition-all duration-200 hover:opacity-90 hover:scale-105"
-              style={{ background: "linear-gradient(135deg, #10b8a9, #0d9488)", boxShadow: "0 4px 15px rgba(16,184,169,0.4)" }}
+              className="rounded-xl bg-[var(--color-primary)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
             >
               Create Account
             </button>
           </div>
 
-          {/* Mobile Menu Button */}
-          <button className="md:hidden p-2" onClick={() => setMenuOpen(!menuOpen)}>
-            <div className="space-y-1.5">
-              <span className={`block w-6 h-0.5 transition-all duration-300 ${menuOpen ? "rotate-45 translate-y-2" : ""}`} style={{ background: "#10b8a9" }}></span>
-              <span className={`block w-6 h-0.5 transition-all duration-300 ${menuOpen ? "opacity-0" : ""}`} style={{ background: "#10b8a9" }}></span>
-              <span className={`block w-6 h-0.5 transition-all duration-300 ${menuOpen ? "-rotate-45 -translate-y-2" : ""}`} style={{ background: "#10b8a9" }}></span>
+          <button
+            type="button"
+            className="rounded-xl border p-2 text-[var(--color-text-primary)] md:hidden"
+            onClick={() => setMenuOpen((prev) => !prev)}
+            aria-label="Toggle menu"
+          >
+            <div className="space-y-1">
+              <span className={`block h-0.5 w-5 bg-current transition ${menuOpen ? "translate-y-1.5 rotate-45" : ""}`} />
+              <span className={`block h-0.5 w-5 bg-current transition ${menuOpen ? "opacity-0" : ""}`} />
+              <span className={`block h-0.5 w-5 bg-current transition ${menuOpen ? "-translate-y-1.5 -rotate-45" : ""}`} />
             </div>
           </button>
         </div>
 
-        {/* Mobile Menu */}
         {menuOpen && (
-          <div className="md:hidden px-4 pb-5 pt-2 flex flex-col gap-3" style={{ background: "#0f1923", borderTop: "1px solid rgba(16,184,169,0.2)" }}>
-            <a href="#features" className="text-sm font-medium py-2" style={{ color: "#94a3b8" }} onClick={() => setMenuOpen(false)}>Features</a>
-            <a href="#stats" className="text-sm font-medium py-2" style={{ color: "#94a3b8" }} onClick={() => setMenuOpen(false)}>Why MedAlerto</a>
-            <a href="#contact" className="text-sm font-medium py-2" style={{ color: "#94a3b8" }} onClick={() => setMenuOpen(false)}>Contact</a>
-            <button onClick={() => { navigate("/login"); setMenuOpen(false); }} className="text-sm font-semibold py-3 rounded-xl w-full" style={{ color: "#10b8a9", border: "1.5px solid #10b8a9" }}>Login</button>
-            <button onClick={() => { navigate("/signup"); setMenuOpen(false); }} className="text-sm font-semibold py-3 rounded-xl text-white w-full" style={{ background: "linear-gradient(135deg, #10b8a9, #0d9488)" }}>Create Account</button>
+          <div className="border-t bg-[var(--color-card)] px-4 py-4 md:hidden">
+            <div className="flex flex-col gap-3">
+              <a href="#features" className="text-sm font-semibold text-[var(--color-text-secondary)]" onClick={() => setMenuOpen(false)}>Features</a>
+              <a href="#stats" className="text-sm font-semibold text-[var(--color-text-secondary)]" onClick={() => setMenuOpen(false)}>Why MedAlerto</a>
+              <a href="#contact" className="text-sm font-semibold text-[var(--color-text-secondary)]" onClick={() => setMenuOpen(false)}>Contact</a>
+              <button
+                onClick={() => {
+                  navigate("/login");
+                  setMenuOpen(false);
+                }}
+                className="rounded-xl border border-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-[var(--color-primary)]"
+              >
+                Login
+              </button>
+              <button
+                onClick={() => {
+                  navigate("/signup");
+                  setMenuOpen(false);
+                }}
+                className="rounded-xl bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-white"
+              >
+                Create Account
+              </button>
+            </div>
           </div>
         )}
       </nav>
 
-      {/* HERO SECTION */}
-      <section
-        className="relative min-h-screen flex items-center overflow-hidden pt-16"
-        style={{ background: "linear-gradient(135deg, #0f1923 0%, #1a2f3f 60%, #0f2a2a 100%)" }}
-      >
-        {/* Background decorations */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-10 w-72 h-72 rounded-full opacity-10" style={{ background: "radial-gradient(circle, #10b8a9, transparent)", filter: "blur(60px)" }} />
-          <div className="absolute bottom-20 right-10 w-96 h-96 rounded-full opacity-10" style={{ background: "radial-gradient(circle, #10b8a9, transparent)", filter: "blur(80px)" }} />
-          <div className="absolute inset-0 opacity-5" style={{ backgroundImage: `linear-gradient(rgba(16,184,169,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(16,184,169,0.3) 1px, transparent 1px)`, backgroundSize: "60px 60px" }} />
-        </div>
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 w-full py-16 sm:py-24">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-
-            {/* Left — Text content */}
-            <div className="text-center lg:text-left">
-              {/* Badge */}
-              <div
-                className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium mb-6"
-                style={{ background: "rgba(16,184,169,0.15)", color: "#10b8a9", border: "1px solid rgba(16,184,169,0.3)" }}
-              >
-                <span className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
-                Built for Modern Doctors
-              </div>
-
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-5 leading-tight text-white">
-                A Great Place to
-                <br />
-                <span style={{ background: "linear-gradient(135deg, #10b8a9, #34d399)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                  Care for Yourself
-                </span>
-              </h1>
-
-              <p className="text-base sm:text-lg max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed" style={{ color: "#94a3b8" }}>
-                MedAlerto automates prescriptions, appointments, and patient records —
-                so you spend less time on paperwork and more time with patients.
-              </p>
-
-              {/* Stats row */}
-              <div className="flex flex-wrap justify-center lg:justify-start gap-6 mb-8">
-                {[["500+", "Doctors"], ["50k+", "Patients"], ["99%", "Satisfaction"]].map(([val, label]) => (
-                  <div key={label} className="text-center lg:text-left">
-                    <div className="text-xl sm:text-2xl font-extrabold" style={{ color: "#10b8a9" }}>{val}</div>
-                    <div className="text-xs" style={{ color: "#64748b" }}>{label}</div>
-                  </div>
-                ))}
-              </div>
-
-              {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4">
-                {/* <button
-                  onClick={() => navigate("/signup")}
-                  className="group w-full sm:w-auto px-6 sm:px-8 py-3.5 rounded-2xl text-white font-semibold text-sm sm:text-base transition-all duration-300 hover:scale-105 hover:shadow-2xl flex items-center justify-center gap-2"
-                  style={{ background: "linear-gradient(135deg, #10b8a9, #0d9488)", boxShadow: "0 8px 30px rgba(16,184,169,0.4)" }}
-                >
-                  Book Appointment
-                  <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
-                </button> */}
-                <button
-                  onClick={() => navigate("/login")}
-                  className="w-full sm:w-auto px-6 sm:px-8 py-3.5 rounded-2xl font-semibold text-sm sm:text-base transition-all duration-200"
-                  style={{ color: "#10b8a9", border: "1.5px solid rgba(16,184,169,0.5)", background: "rgba(16,184,169,0.05)" }}
-                  onMouseEnter={e => e.currentTarget.style.background = "rgba(16,184,169,0.1)"}
-                  onMouseLeave={e => e.currentTarget.style.background = "rgba(16,184,169,0.05)"}
-                >
-                  Sign In to Dashboard
-                </button>
-              </div>
+      <section className="relative overflow-hidden border-b pt-24">
+        <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-primary)]/8 via-transparent to-[var(--color-primary)]/5" />
+        <div className="relative mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-8 px-4 py-8 sm:px-6 md:grid-cols-2 lg:px-8 lg:py-8">
+          <div className="space-y-6">
+            <div className="inline-flex items-center rounded-xl border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/10 px-3 py-2 text-xs font-semibold text-[var(--color-primary)]">
+              Built for modern clinics
             </div>
 
-            {/* Right — Doctor image placeholder */}
-            <div className="relative flex justify-center lg:justify-end">
-              <div
-                className="relative w-72 sm:w-80 lg:w-96 h-96 sm:h-[450px] lg:h-[500px] rounded-3xl overflow-hidden flex items-end justify-center"
-                style={{ background: "linear-gradient(180deg, rgba(16,184,169,0.15) 0%, rgba(16,184,169,0.3) 100%)", border: "1px solid rgba(16,184,169,0.2)" }}
-              >
-                {/* Replace this div with your doctor image */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center" style={{ color: "rgba(16,184,169,0.4)" }}>
-                  <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                    <circle cx="12" cy="7" r="4"/>
-                  </svg>
-                  <img src={doc} alt="" />
-                </div>
+            <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">
+              Doctor workflow,
+              <span className="block text-[var(--color-primary)]">without the friction.</span>
+            </h1>
 
-                {/* Floating info cards */}
-                <div
-                  className="absolute top-6 left-4 px-3 py-2 rounded-xl text-xs font-medium"
-                  style={{ background: "rgba(15,25,35,0.9)", border: "1px solid rgba(16,184,169,0.3)", color: "#10b8a9", backdropFilter: "blur(10px)" }}
-                >
-                  ✓ 500+ Doctors Online
+            <p className="max-w-xl text-base leading-relaxed text-[var(--color-text-secondary)] sm:text-lg">
+              MedAlerto helps you manage prescriptions, appointments, and patient history in one clean interface so you can focus on better care.
+            </p>
+
+            <div className="flex flex-wrap gap-6">
+              {[["500+", "Doctors"], ["50k+", "Patients"], ["99%", "Satisfaction"]].map(([value, label]) => (
+                <div key={label}>
+                  <p className="text-2xl font-extrabold text-[var(--color-primary)]">{value}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]">{label}</p>
                 </div>
-                <div
-                  className="absolute bottom-6 right-4 px-3 py-2 rounded-xl text-xs font-medium"
-                  style={{ background: "rgba(15,25,35,0.9)", border: "1px solid rgba(16,184,169,0.3)", color: "white", backdropFilter: "blur(10px)" }}
-                >
-                  📋 Prescription Sent via WhatsApp
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <button
+                onClick={() => navigate("/signup")}
+                className="w-full rounded-xl bg-[var(--color-primary)] px-6 py-3 text-sm font-bold text-white shadow-sm transition hover:opacity-90 sm:w-auto"
+              >
+                Create Your Free Account
+              </button>
+              <button
+                onClick={() => navigate("/login")}
+                className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] px-6 py-3 text-sm font-bold text-[var(--color-text-primary)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] sm:w-auto"
+              >
+                Sign In to Dashboard
+              </button>
+            </div>
+          </div>
+
+          <div className="relative">
+            <div className="rounded-xl border bg-[var(--color-card)] p-4 shadow-sm sm:p-6">
+              <div className="overflow-hidden rounded-xl border">
+                <img src={doc} alt="Doctor using MedAlerto dashboard" className="h-100 w-full object-cover sm:h-96 md:h-[620px]" />
+              </div>
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border bg-[var(--color-bg)] p-3">
+                  <p className="text-xs font-semibold text-[var(--color-text-secondary)]">Active doctors</p>
+                  <p className="mt-2 text-sm font-bold text-[var(--color-text-primary)]">5000+ using now</p>
+                </div>
+                <div className="rounded-xl border bg-[var(--color-bg)] p-3">
+                  <p className="text-xs font-semibold text-[var(--color-text-secondary)]">Prescription delivery</p>
+                  <p className="mt-2 text-sm font-bold text-[var(--color-success)]">WhatsApp enabled</p>
                 </div>
               </div>
             </div>
@@ -235,131 +203,75 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* STATS SECTION */}
-      <section id="stats" className="py-14 sm:py-20" style={{ background: "#f8fafc", borderTop: "1px solid #e2e8f0", borderBottom: "1px solid #e2e8f0" }}>
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8">
-            {stats.map(({ value, label }) => (
-              <div key={label} className="text-center">
-                <div className="text-3xl sm:text-4xl font-extrabold mb-1 sm:mb-2" style={{ color: "#10b8a9" }}>{value}</div>
-                <div className="text-xs sm:text-sm font-medium" style={{ color: "#64748b" }}>{label}</div>
-              </div>
-            ))}
-          </div>
+      <section id="stats" className="border-b bg-[var(--color-card)] py-8">
+        <div className="mx-auto grid w-full max-w-6xl grid-cols-2 gap-6 px-4 sm:px-6 md:grid-cols-4 lg:px-8">
+          {stats.map(({ value, label }) => (
+            <div key={label} className="rounded-xl border bg-[var(--color-bg)] p-4 text-center">
+              <p className="text-3xl font-extrabold text-[var(--color-primary)]">{value}</p>
+              <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]">{label}</p>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* FEATURES SECTION */}
-      <section id="features" className="py-16 sm:py-24" style={{ background: "#ffffff" }}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-10 sm:mb-16">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold mb-4 uppercase tracking-wider" style={{ background: "rgba(16,184,169,0.1)", color: "#10b8a9" }}>
-              What We Provide
-            </div>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight mb-3 sm:mb-4" style={{ color: "#0f1923" }}>
-              See What We Provide
-              <br />
-              <span style={{ color: "#10b8a9" }}>to Keep You Healthy</span>
-            </h2>
-            <p className="text-base sm:text-lg max-w-xl mx-auto px-4" style={{ color: "#585858" }}>
-              From digital prescriptions to smart appointments — MedAlerto handles it all.
+      <section id="features" className="py-8 sm:py-8">
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-primary)]">What we provide</p>
+            <h2 className="mt-3 text-3xl font-extrabold sm:text-4xl">Built for daily clinical operations</h2>
+            <p className="mt-4 text-base text-[var(--color-text-secondary)]">
+              Every core workflow from prescription creation to patient follow-ups is designed to reduce manual effort.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {features.map(({ icon, title, description }, i) => (
-              <div
-                key={title}
-                className="group p-5 sm:p-6 rounded-2xl sm:rounded-3xl transition-all duration-300 hover:-translate-y-1 cursor-default"
-                style={{
-                  background: i % 3 === 0 ? "linear-gradient(135deg, #0f1923, #1a2f3f)" : "white",
-                  border: "1px solid #e2e8f0",
-                  boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
-                }}
-                onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 8px 30px rgba(16,184,169,0.15)"; e.currentTarget.style.borderColor = "rgba(16,184,169,0.3)"; }}
-                onMouseLeave={e => { e.currentTarget.style.boxShadow = "0 2px 12px rgba(0,0,0,0.04)"; e.currentTarget.style.borderColor = "#e2e8f0"; }}
-              >
-                <div
-                  className="w-10 sm:w-12 h-10 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center text-xl sm:text-2xl mb-3 sm:mb-4 transition-transform duration-300 group-hover:scale-110"
-                  style={{ background: "rgba(16,184,169,0.15)" }}
-                >
+          <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {features.map(({ icon, title, description }) => (
+              <article key={title} className="rounded-xl border bg-[var(--color-card)] p-6 shadow-sm">
+                <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-primary)]/10 text-xl">
                   {icon}
                 </div>
-                <h3 className="text-base sm:text-lg font-bold mb-1.5 sm:mb-2" style={{ color: i % 3 === 0 ? "white" : "#0f1923" }}>{title}</h3>
-                <p className="text-sm leading-relaxed" style={{ color: i % 3 === 0 ? "#94a3b8" : "#585858" }}>{description}</p>
-              </div>
+                <h3 className="mt-4 text-lg font-bold text-[var(--color-text-primary)]">{title}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-[var(--color-text-secondary)]">{description}</p>
+              </article>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA SECTION */}
-      <section className="py-16 sm:py-24 px-4 sm:px-6" style={{ background: "#f8fafc" }}>
-        <div
-          className="max-w-4xl mx-auto rounded-2xl sm:rounded-3xl p-8 sm:p-12 text-center relative overflow-hidden"
-          style={{ background: "linear-gradient(135deg, #0f1923, #0f2a2a)", boxShadow: "0 30px 80px rgba(16,184,169,0.2)", border: "1px solid rgba(16,184,169,0.2)" }}
-        >
-          <div className="absolute top-0 right-0 w-48 sm:w-64 h-48 sm:h-64 rounded-full opacity-20" style={{ background: "radial-gradient(circle, #10b8a9, transparent)", transform: "translate(30%, -30%)" }} />
-          <div className="absolute bottom-0 left-0 w-40 h-40 rounded-full opacity-10" style={{ background: "radial-gradient(circle, #10b8a9, transparent)", transform: "translate(-30%, 30%)" }} />
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-3 sm:mb-4 tracking-tight">
-            Ready to Modernize
-            <br />
-            <span style={{ color: "#10b8a9" }}>Your Clinic?</span>
-          </h2>
-          <p className="text-base sm:text-lg mb-6 sm:mb-8 max-w-xl mx-auto px-2" style={{ color: "#94a3b8" }}>
-            Join doctors already using MedAlerto to save time, reduce errors, and deliver better care.
-          </p>
-          <button
-            onClick={() => navigate("/signup")}
-            className="px-8 sm:px-10 py-3.5 sm:py-4 rounded-2xl font-bold text-sm sm:text-base transition-all duration-300 hover:scale-105 text-white"
-            style={{ background: "linear-gradient(135deg, #10b8a9, #0d9488)", boxShadow: "0 8px 30px rgba(16,184,169,0.4)" }}
-          >
-            Create Your Free Account →
-          </button>
+      <section className="bg-[var(--color-card)] py-8 sm:py-8">
+        <div className="mx-auto w-full max-w-4xl px-4 sm:px-6 lg:px-8">
+          <div className="rounded-xl border bg-[var(--color-bg)] p-8 text-center sm:p-8">
+            <h2 className="text-3xl font-extrabold sm:text-4xl">Ready to modernize your clinic?</h2>
+            <p className="mx-auto mt-4 max-w-xl text-base text-[var(--color-text-secondary)]">
+              Join doctors using MedAlerto to save time, reduce mistakes, and keep every patient record in one place.
+            </p>
+            <button
+              onClick={() => navigate("/signup")}
+              className="mt-6 rounded-xl bg-[var(--color-primary)] px-8 py-3 text-sm font-bold text-white transition hover:opacity-90"
+            >
+              Create Your Free Account
+            </button>
+          </div>
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer id="contact" style={{ background: "#0f1923", color: "#94a3b8" }}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-8 sm:gap-10">
-            {/* Brand column */}
+      <footer id="contact" className="border-t bg-[var(--color-card)]">
+        <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-5">
             <div className="col-span-2 sm:col-span-3 lg:col-span-1">
-              <div className="flex items-center gap-2 mb-4">
-                <img src={logo} alt="MedAlerto Logo" className="h-8 w-auto brightness-0 invert" />
-              </div>
-              <p className="text-sm leading-relaxed mb-5" style={{ color: "#64748b" }}>
-                The modern clinic management platform built for doctors who care about their patients.
+              <img src={logo} alt="MedAlerto Logo" className="h-8 w-auto" />
+              <p className="mt-4 text-sm leading-relaxed text-[var(--color-text-secondary)]">
+                Trusted clinic management for doctors who value reliable and clear patient communication.
               </p>
-              <div className="flex gap-3">
-                {["𝕏", "in", "✉"].map((icon, i) => (
-                  <div
-                    key={i}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-xs cursor-pointer transition-all"
-                    style={{ background: "#1e293b", color: "#94a3b8" }}
-                    onMouseEnter={e => { e.currentTarget.style.background = "#10b8a9"; e.currentTarget.style.color = "white"; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = "#1e293b"; e.currentTarget.style.color = "#94a3b8"; }}
-                  >
-                    {icon}
-                  </div>
-                ))}
-              </div>
             </div>
 
-            {/* Link columns */}
             {Object.entries(footerLinks).map(([category, links]) => (
               <div key={category}>
-                <h4 className="text-sm font-semibold mb-4" style={{ color: "#f1f5f9" }}>{category}</h4>
-                <ul className="space-y-2.5">
+                <h4 className="text-sm font-bold text-[var(--color-text-primary)]">{category}</h4>
+                <ul className="mt-4 space-y-3">
                   {links.map((link) => (
                     <li key={link}>
-                      <a
-                        href="#"
-                        className="text-sm transition-colors"
-                        style={{ color: "#64748b" }}
-                        onMouseEnter={e => e.target.style.color = "#10b8a9"}
-                        onMouseLeave={e => e.target.style.color = "#64748b"}
-                      >
+                      <a href="#" className="text-sm text-[var(--color-text-secondary)] transition hover:text-[var(--color-primary)]">
                         {link}
                       </a>
                     </li>
@@ -369,49 +281,30 @@ export default function LandingPage() {
             ))}
           </div>
 
-          {/* Newsletter */}
-          <div className="mt-10 sm:mt-12 p-5 sm:p-6 rounded-2xl" style={{ background: "#1e293b", border: "1px solid rgba(16,184,169,0.2)" }}>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="mt-8 rounded-xl border bg-[var(--color-bg)] p-4 sm:p-6">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h4 className="text-sm font-semibold mb-1" style={{ color: "#f1f5f9" }}>Stay updated with MedAlerto</h4>
-                <p className="text-xs" style={{ color: "#64748b" }}>Get the latest features and updates delivered to your inbox.</p>
+                <h4 className="text-sm font-bold">Stay updated with MedAlerto</h4>
+                <p className="mt-2 text-xs text-[var(--color-text-secondary)]">Get product updates and release notes in your inbox.</p>
               </div>
-              <div className="flex gap-2 w-full sm:w-auto">
+              <div className="flex w-full gap-3 sm:w-auto">
                 <input
                   type="email"
                   placeholder="Enter your email"
-                  className="flex-1 sm:w-56 px-4 py-2 rounded-xl text-sm outline-none"
-                  style={{ background: "#0f1923", border: "1px solid rgba(16,184,169,0.2)", color: "#f1f5f9" }}
+                  className="w-full rounded-xl border bg-[var(--color-card)] px-4 py-2 text-sm outline-none focus:border-[var(--color-primary)] sm:w-64"
                 />
-                <button
-                  className="px-4 py-2 rounded-xl text-white text-sm font-semibold whitespace-nowrap transition-all hover:opacity-90"
-                  style={{ background: "linear-gradient(135deg, #10b8a9, #0d9488)" }}
-                >
-                  Subscribe
-                </button>
+                <button className="rounded-xl bg-[var(--color-primary)] px-4 py-2 text-sm font-bold text-white">Subscribe</button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Bottom bar */}
-        <div style={{ borderTop: "1px solid #1e293b" }}>
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-xs text-center sm:text-left" style={{ color: "#475569" }}>
-              © 2026 MedAlerto. All rights reserved. Built for doctors who care.
-            </p>
-            <div className="flex flex-wrap justify-center gap-4 sm:gap-6">
+        <div className="border-t">
+          <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-3 px-4 py-4 text-xs text-[var(--color-text-secondary)] sm:flex-row sm:px-6 lg:px-8">
+            <p>© 2026 MedAlerto. All rights reserved. Built for doctors who care.</p>
+            <div className="flex flex-wrap justify-center gap-4">
               {["Privacy Policy", "Terms of Service", "Cookie Policy"].map((item) => (
-                <a
-                  key={item}
-                  href="#"
-                  className="text-xs transition-colors"
-                  style={{ color: "#475569" }}
-                  onMouseEnter={e => e.target.style.color = "#10b8a9"}
-                  onMouseLeave={e => e.target.style.color = "#475569"}
-                >
-                  {item}
-                </a>
+                <a key={item} href="#" className="transition hover:text-[var(--color-primary)]">{item}</a>
               ))}
             </div>
           </div>

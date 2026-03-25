@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
-import logo from "../assets/logo.svg";
+import logo from "../assets/logo-compact.webp";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -48,19 +48,19 @@ const SPECIALIZATION_SUGGESTIONS = [
 
 const S = {
   input: {
-    background: "rgba(255,255,255,0.05)",
-    border: "1px solid rgba(16,184,169,0.15)",
-    color: "white",
+    background: "var(--color-bg)",
+    border: "1px solid var(--color-border)",
+    color: "var(--color-text-primary)",
   },
   card: {
-    background: "rgba(255,255,255,0.03)",
-    border: "1px solid rgba(16,184,169,0.12)",
+    background: "var(--color-card)",
+    border: "1px solid var(--color-border)",
   },
 };
 
-const focusStyle = (e) => (e.target.style.border = "1px solid #10B8A9");
-const blurStyle = (e) => (e.target.style.border = "1px solid rgba(16,184,169,0.15)");
-const inputCls = "w-full px-4 py-3 rounded-xl text-sm outline-none transition-all";
+const focusStyle = (e) => (e.target.style.border = "1px solid var(--color-primary)");
+const blurStyle = (e) => (e.target.style.border = "1px solid var(--color-border)");
+const inputCls = "w-full rounded-xl px-4 py-3 text-sm outline-none transition";
 
 // ─── Searchable Input with Suggestions ───────────────────────────────────────
 
@@ -73,8 +73,8 @@ function SuggestInput({ value, onChange, suggestions, placeholder, label, requir
   return (
     <div className="relative">
       {label && (
-        <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>
-          {label} {required && <span style={{ color: "#10B8A9" }}>*</span>}
+        <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)]">
+          {label} {required && <span className="text-[var(--color-primary)]">*</span>}
         </label>
       )}
       <input
@@ -87,12 +87,10 @@ function SuggestInput({ value, onChange, suggestions, placeholder, label, requir
         style={S.input}
       />
       {open && value && filtered.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 rounded-xl overflow-hidden shadow-xl"
-          style={{ background: "#0a1628", border: "1px solid rgba(16,184,169,0.2)", maxHeight: "200px", overflowY: "auto" }}>
+        <div className="absolute z-50 mt-1 max-h-[200px] w-full overflow-y-auto rounded-xl border bg-[var(--color-card)] shadow-lg">
           {filtered.map((s) => (
             <button key={s} type="button"
-              className="w-full text-left px-4 py-2.5 text-sm transition-all hover:bg-teal-500 hover:bg-opacity-10"
-              style={{ color: "#94a3b8" }}
+              className="w-full px-4 py-2.5 text-left text-sm text-[var(--color-text-secondary)] transition hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)]"
               onMouseDown={() => { onChange(s); setOpen(false); }}>
               {s}
             </button>
@@ -122,7 +120,7 @@ function TagListInput({ label, items, onAdd, onRemove, placeholder, suggestions 
 
   return (
     <div>
-      <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>{label}</label>
+      <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)]">{label}</label>
       <div className="relative flex gap-2">
         <input value={input}
           onChange={(e) => { setInput(e.target.value); setOpen(true); }}
@@ -133,17 +131,14 @@ function TagListInput({ label, items, onAdd, onRemove, placeholder, suggestions 
           className="flex-1 px-4 py-3 rounded-xl text-sm outline-none transition-all"
           style={S.input} />
         <button type="button" onClick={add}
-          className="px-4 py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-80"
-          style={{ background: "rgba(16,184,169,0.12)", color: "#10B8A9" }}>
+          className="rounded-xl border border-[var(--color-primary)] bg-[var(--color-primary)]/10 px-4 py-3 text-sm font-semibold text-[var(--color-primary)] transition hover:bg-[var(--color-primary)]/20">
           + Add
         </button>
         {open && input && filtered.length > 0 && (
-          <div className="absolute z-50 top-full left-0 right-16 mt-1 rounded-xl overflow-hidden shadow-xl"
-            style={{ background: "#0a1628", border: "1px solid rgba(16,184,169,0.2)" }}>
+          <div className="absolute left-0 right-16 top-full z-50 mt-1 overflow-hidden rounded-xl border bg-[var(--color-card)] shadow-lg">
             {filtered.map((s) => (
               <button key={s} type="button"
-                className="w-full text-left px-4 py-2.5 text-sm transition-all hover:bg-teal-500 hover:bg-opacity-10"
-                style={{ color: "#94a3b8" }}
+                className="w-full px-4 py-2.5 text-left text-sm text-[var(--color-text-secondary)] transition hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)]"
                 onMouseDown={() => { onAdd(s); setInput(""); setOpen(false); }}>
                 {s}
               </button>
@@ -155,7 +150,7 @@ function TagListInput({ label, items, onAdd, onRemove, placeholder, suggestions 
         <div className="flex flex-wrap gap-2 mt-2">
           {items.map((item, i) => (
             <span key={i} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
-              style={{ background: "rgba(16,184,169,0.1)", border: "1px solid rgba(16,184,169,0.2)", color: "#10B8A9" }}>
+              style={{ background: "rgba(37,99,235,0.1)", border: "1px solid rgba(37,99,235,0.25)", color: "var(--color-primary)" }}>
               {item}
               <button type="button" onClick={() => onRemove(i)}
                 className="opacity-70 hover:opacity-100" style={{ color: "#ef4444", fontSize: "10px" }}>✕</button>
@@ -182,20 +177,20 @@ function StepIndicator({ current }) {
           <div className="flex flex-col items-center">
             <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${current >= step.num ? "text-white" : ""}`}
               style={{
-                background: current >= step.num ? "linear-gradient(135deg,#10B8A9,#0d9488)" : "rgba(255,255,255,0.05)",
-                border: current >= step.num ? "none" : "1px solid rgba(255,255,255,0.1)",
-                color: current >= step.num ? "white" : "#475569",
-                boxShadow: current >= step.num ? "0 4px 12px rgba(16,184,169,0.3)" : "none",
+                background: current >= step.num ? "var(--color-primary)" : "var(--color-card)",
+                border: current >= step.num ? "1px solid var(--color-primary)" : "1px solid var(--color-border)",
+                color: current >= step.num ? "white" : "var(--color-text-secondary)",
+                boxShadow: current >= step.num ? "0 4px 12px rgba(37,99,235,0.25)" : "none",
               }}>
               {current > step.num ? "✓" : step.num}
             </div>
-            <span className="text-xs mt-1 font-medium" style={{ color: current >= step.num ? "#10B8A9" : "#475569" }}>
+            <span className="text-xs mt-1 font-medium" style={{ color: current >= step.num ? "var(--color-primary)" : "var(--color-text-secondary)" }}>
               {step.label}
             </span>
           </div>
           {i < steps.length - 1 && (
             <div className="w-16 sm:w-24 h-0.5 mb-4 mx-2 transition-all duration-300"
-              style={{ background: current > step.num ? "#10B8A9" : "rgba(255,255,255,0.08)" }} />
+              style={{ background: current > step.num ? "var(--color-primary)" : "var(--color-border)" }} />
           )}
         </div>
       ))}
@@ -264,21 +259,21 @@ function LocationCard({ location, index, type, allClinics, allHospitals, onChang
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <span className="text-base">{type === "clinic" ? "🏥" : "🏨"}</span>
-          <span className="text-sm font-bold text-white">
+          <span className="text-sm font-bold text-[var(--color-text-primary)]">
             {type === "clinic" ? "Clinic" : "Hospital"} {index + 1}
           </span>
         </div>
         <button type="button" onClick={onRemove}
           className="text-xs px-2.5 py-1.5 rounded-lg transition-all hover:bg-red-500 hover:bg-opacity-10"
-          style={{ color: "#ef4444", border: "1px solid rgba(239,68,68,0.2)" }}>
+          style={{ color: "var(--color-danger)", border: "1px solid rgba(239,68,68,0.25)" }}>
           Remove
         </button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
         <div>
-          <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>
-            {type === "clinic" ? "Clinic" : "Hospital"} Name <span style={{ color: "#10B8A9" }}>*</span>
+          <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)]">
+            {type === "clinic" ? "Clinic" : "Hospital"} Name <span className="text-[var(--color-primary)]">*</span>
           </label>
           <input value={location.name}
             onChange={(e) => onChange({ ...location, name: e.target.value })}
@@ -286,8 +281,8 @@ function LocationCard({ location, index, type, allClinics, allHospitals, onChang
             className={inputCls} style={S.input} onFocus={focusStyle} onBlur={blurStyle} />
         </div>
         <div>
-          <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>
-            Address <span style={{ color: "#10B8A9" }}>*</span>
+          <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)]">
+            Address <span className="text-[var(--color-primary)]">*</span>
           </label>
           <input value={location.address}
             onChange={(e) => onChange({ ...location, address: e.target.value })}
@@ -298,9 +293,9 @@ function LocationCard({ location, index, type, allClinics, allHospitals, onChang
 
       {/* Sessions */}
       <div>
-        <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: "#475569" }}>Working Sessions</p>
+        <p className="mb-3 text-xs font-bold uppercase tracking-widest text-[var(--color-text-secondary)]">Working Sessions</p>
         {location.sessions.length === 0 && (
-          <p className="text-xs mb-3" style={{ color: "#475569" }}>No sessions added yet</p>
+          <p className="mb-3 text-xs text-[var(--color-text-secondary)]">No sessions added yet</p>
         )}
         <div className="space-y-2 mb-3">
           {location.sessions.map((session, si) => {
@@ -308,41 +303,41 @@ function LocationCard({ location, index, type, allClinics, allHospitals, onChang
             return (
               <div key={si} className="grid grid-cols-1 sm:grid-cols-4 gap-2 p-3 rounded-xl items-end"
                 style={{
-                  background: overlapping ? "rgba(239,68,68,0.06)" : "rgba(255,255,255,0.02)",
-                  border: overlapping ? "1px solid rgba(239,68,68,0.2)" : "1px solid rgba(255,255,255,0.05)",
+                  background: overlapping ? "rgba(239,68,68,0.06)" : "var(--color-bg)",
+                  border: overlapping ? "1px solid rgba(239,68,68,0.25)" : "1px solid var(--color-border)",
                 }}>
                 <div>
-                  <label className="block text-xs mb-1" style={{ color: "#64748b" }}>Day</label>
+                  <label className="mb-1 block text-xs text-[var(--color-text-secondary)]">Day</label>
                   <select value={session.day} onChange={(e) => updateSession(si, "day", e.target.value)}
                     className={inputCls} style={{ ...S.input, opacity: overlapping ? 0.6 : 1 }}
                     onFocus={focusStyle} onBlur={blurStyle}>
-                    {DAYS.map((d) => <option key={d} value={d} style={{ background: "#0a1628" }}>{d}</option>)}
+                    {DAYS.map((d) => <option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs mb-1" style={{ color: "#64748b" }}>Start Time</label>
+                  <label className="mb-1 block text-xs text-[var(--color-text-secondary)]">Start Time</label>
                   <input type="time" value={session.startTime}
                     onChange={(e) => updateSession(si, "startTime", e.target.value)}
-                    className={inputCls} style={{ ...S.input, colorScheme: "dark", opacity: overlapping ? 0.6 : 1 }}
+                    className={inputCls} style={{ ...S.input, opacity: overlapping ? 0.6 : 1 }}
                     onFocus={focusStyle} onBlur={blurStyle} />
                 </div>
                 <div>
-                  <label className="block text-xs mb-1" style={{ color: "#64748b" }}>End Time</label>
+                  <label className="mb-1 block text-xs text-[var(--color-text-secondary)]">End Time</label>
                   <input type="time" value={session.endTime}
                     onChange={(e) => updateSession(si, "endTime", e.target.value)}
-                    className={inputCls} style={{ ...S.input, colorScheme: "dark", opacity: overlapping ? 0.6 : 1 }}
+                    className={inputCls} style={{ ...S.input, opacity: overlapping ? 0.6 : 1 }}
                     onFocus={focusStyle} onBlur={blurStyle} />
                 </div>
                 <div className="flex items-end gap-2">
                   {overlapping && (
                     <span className="text-xs px-2 py-1 rounded-lg flex-1 text-center"
-                      style={{ background: "rgba(239,68,68,0.1)", color: "#ef4444" }}>
+                      style={{ background: "rgba(239,68,68,0.1)", color: "var(--color-danger)" }}>
                       ⚠ Overlap
                     </span>
                   )}
                   <button type="button" onClick={() => removeSession(si)}
                     className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:bg-red-500 hover:bg-opacity-10 flex-shrink-0"
-                    style={{ color: "#ef4444", border: "1px solid rgba(239,68,68,0.15)" }}>
+                    style={{ color: "var(--color-danger)", border: "1px solid rgba(239,68,68,0.2)" }}>
                     🗑
                   </button>
                 </div>
@@ -352,7 +347,7 @@ function LocationCard({ location, index, type, allClinics, allHospitals, onChang
         </div>
         <button type="button" onClick={addSession}
           className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-80"
-          style={{ background: "rgba(16,184,169,0.06)", border: "1px dashed rgba(16,184,169,0.3)", color: "#10B8A9" }}>
+          style={{ background: "rgba(37,99,235,0.08)", border: "1px dashed rgba(37,99,235,0.35)", color: "var(--color-primary)" }}>
           + Add Session
         </button>
       </div>
@@ -448,7 +443,7 @@ export default function SignupPage() {
     if (!validateStep3()) return;
     setIsLoading(true);
     try {
-      const { confirmPassword, ...personalData } = personal;
+      const { confirmPassword: _confirmPassword, ...personalData } = personal;
       await axiosInstance.post("/auth/register", {
         ...personalData,
         ...professional,
@@ -474,20 +469,21 @@ export default function SignupPage() {
   const removeHospital = (i) => setHospitals((p) => p.filter((_, idx) => idx !== i));
 
   return (
-    <div className="min-h-screen flex items-start justify-center py-8 px-4" style={{ background: "#0f1923" }}>
-      <div className="w-full max-w-2xl">
+    <div className="relative min-h-screen bg-[var(--color-bg)] px-4 py-8 sm:px-6">
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[var(--color-primary)]/8 via-transparent to-[var(--color-primary)]/5" />
+      <div className="relative mx-auto w-full max-w-3xl">
 
         {/* Logo */}
         <div className="flex justify-center mb-6">
-          <img src={logo} alt="MedAlerto" className="h-10 brightness-0 invert" />
+          <img src={logo} alt="MedAlerto" className="h-10" />
         </div>
 
         {/* Header */}
         <div className="text-center mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1">Create your account</h1>
-          <p className="text-sm" style={{ color: "#64748b" }}>
+          <h1 className="mb-1 text-2xl font-bold text-[var(--color-text-primary)] sm:text-3xl">Create your account</h1>
+          <p className="text-sm text-[var(--color-text-secondary)]">
             Already have an account?{" "}
-            <Link to="/login" className="font-semibold transition-colors hover:opacity-80" style={{ color: "#10B8A9" }}>
+            <Link to="/login" className="font-semibold text-[var(--color-primary)] transition hover:opacity-80">
               Sign in
             </Link>
           </p>
@@ -497,17 +493,17 @@ export default function SignupPage() {
         <StepIndicator current={step} />
 
         {/* Card */}
-        <div className="rounded-3xl p-5 sm:p-8" style={{ background: "#0a1628", border: "1px solid rgba(16,184,169,0.12)" }}>
+        <div className="rounded-xl border bg-[var(--color-card)] p-5 shadow-sm sm:p-8">
 
           {/* ── STEP 1: Personal Info ── */}
           {step === 1 && (
             <div className="space-y-4">
-              <h2 className="text-lg font-bold text-white mb-5">Personal Information</h2>
+              <h2 className="mb-5 text-lg font-bold text-[var(--color-text-primary)]">Personal Information</h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>
-                    Full Name <span style={{ color: "#10B8A9" }}>*</span>
+                  <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)]">
+                    Full Name <span className="text-[var(--color-primary)]">*</span>
                   </label>
                   <input value={personal.fullName} onChange={(e) => updatePersonal("fullName", e.target.value)}
                     placeholder="Dr. Ahmed Raza" className={inputCls} style={S.input}
@@ -515,17 +511,17 @@ export default function SignupPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>
-                    Gender <span style={{ color: "#10B8A9" }}>*</span>
+                  <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)]">
+                    Gender <span className="text-[var(--color-primary)]">*</span>
                   </label>
                   <div className="flex gap-2">
                     {GENDERS.map((g) => (
                       <button key={g} type="button" onClick={() => updatePersonal("gender", g)}
                         className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
                         style={{
-                          background: personal.gender === g ? "rgba(16,184,169,0.15)" : "rgba(255,255,255,0.04)",
-                          border: personal.gender === g ? "1px solid #10B8A9" : "1px solid rgba(16,184,169,0.15)",
-                          color: personal.gender === g ? "#10B8A9" : "#64748b",
+                          background: personal.gender === g ? "rgba(37,99,235,0.15)" : "var(--color-bg)",
+                          border: personal.gender === g ? "1px solid var(--color-primary)" : "1px solid var(--color-border)",
+                          color: personal.gender === g ? "var(--color-primary)" : "var(--color-text-secondary)",
                         }}>
                         {g}
                       </button>
@@ -534,8 +530,8 @@ export default function SignupPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>
-                    Phone <span style={{ color: "#10B8A9" }}>*</span>
+                  <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)]">
+                    Phone <span className="text-[var(--color-primary)]">*</span>
                   </label>
                   <input value={personal.phone} onChange={(e) => updatePersonal("phone", e.target.value)}
                     placeholder="03001234567" className={inputCls} style={S.input}
@@ -543,8 +539,8 @@ export default function SignupPage() {
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>
-                    Email <span style={{ color: "#10B8A9" }}>*</span>
+                  <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)]">
+                    Email <span className="text-[var(--color-primary)]">*</span>
                   </label>
                   <input type="email" value={personal.email} onChange={(e) => updatePersonal("email", e.target.value)}
                     placeholder="doctor@example.com" className={inputCls} style={S.input}
@@ -552,8 +548,8 @@ export default function SignupPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>
-                    Password <span style={{ color: "#10B8A9" }}>*</span>
+                  <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)]">
+                    Password <span className="text-[var(--color-primary)]">*</span>
                   </label>
                   <div className="relative">
                     <input type={showPassword ? "text" : "password"}
@@ -561,24 +557,24 @@ export default function SignupPage() {
                       placeholder="Min. 8 characters" className={inputCls + " pr-10"} style={S.input}
                       onFocus={focusStyle} onBlur={blurStyle} />
                     <button type="button" onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: "#64748b" }}>
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-text-secondary)]">
                       {showPassword ? "🙈" : "👁"}
                     </button>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>
-                    Confirm Password <span style={{ color: "#10B8A9" }}>*</span>
+                  <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)]">
+                    Confirm Password <span className="text-[var(--color-primary)]">*</span>
                   </label>
                   <div className="relative">
                     <input type={showConfirm ? "text" : "password"}
                       value={personal.confirmPassword} onChange={(e) => updatePersonal("confirmPassword", e.target.value)}
                       placeholder="Repeat password" className={inputCls + " pr-10"}
-                      style={{ ...S.input, borderColor: personal.confirmPassword ? (personal.password === personal.confirmPassword ? "#10B8A9" : "#ef4444") : "rgba(16,184,169,0.15)" }}
+                      style={{ ...S.input, borderColor: personal.confirmPassword ? (personal.password === personal.confirmPassword ? "var(--color-primary)" : "var(--color-danger)") : "var(--color-border)" }}
                       onFocus={focusStyle} onBlur={blurStyle} />
                     <button type="button" onClick={() => setShowConfirm(!showConfirm)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: "#64748b" }}>
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-text-secondary)]">
                       {showConfirm ? "🙈" : "👁"}
                     </button>
                   </div>
@@ -590,21 +586,21 @@ export default function SignupPage() {
           {/* ── STEP 2: Professional Info ── */}
           {step === 2 && (
             <div className="space-y-4">
-              <h2 className="text-lg font-bold text-white mb-5">Professional Information</h2>
+              <h2 className="mb-5 text-lg font-bold text-[var(--color-text-primary)]">Professional Information</h2>
 
               {/* Title */}
               <div>
-                <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>
-                  Professional Title <span style={{ color: "#10B8A9" }}>*</span>
+                <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)]">
+                  Professional Title <span className="text-[var(--color-primary)]">*</span>
                 </label>
                 <div className="flex gap-2">
                   {TITLES.map((t) => (
                     <button key={t} type="button" onClick={() => updateProfessional("title", t)}
                       className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
                       style={{
-                        background: professional.title === t ? "rgba(16,184,169,0.15)" : "rgba(255,255,255,0.04)",
-                        border: professional.title === t ? "1px solid #10B8A9" : "1px solid rgba(16,184,169,0.15)",
-                        color: professional.title === t ? "#10B8A9" : "#64748b",
+                        background: professional.title === t ? "rgba(37,99,235,0.15)" : "var(--color-bg)",
+                        border: professional.title === t ? "1px solid var(--color-primary)" : "1px solid var(--color-border)",
+                        color: professional.title === t ? "var(--color-primary)" : "var(--color-text-secondary)",
                       }}>
                       {t}
                     </button>
@@ -635,8 +631,8 @@ export default function SignupPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>
-                    Medical University <span style={{ color: "#10B8A9" }}>*</span>
+                  <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)]">
+                    Medical University <span className="text-[var(--color-primary)]">*</span>
                   </label>
                   <input value={professional.university}
                     onChange={(e) => updateProfessional("university", e.target.value)}
@@ -645,8 +641,8 @@ export default function SignupPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>
-                    Graduation Year <span style={{ color: "#10B8A9" }}>*</span>
+                  <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)]">
+                    Graduation Year <span className="text-[var(--color-primary)]">*</span>
                   </label>
                   <input type="number" value={professional.graduationYear}
                     onChange={(e) => updateProfessional("graduationYear", e.target.value)}
@@ -663,8 +659,8 @@ export default function SignupPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>
-                    Years of Experience <span style={{ color: "#10B8A9" }}>*</span>
+                  <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)]">
+                    Years of Experience <span className="text-[var(--color-primary)]">*</span>
                   </label>
                   <input type="number" value={professional.yearsOfExperience}
                     onChange={(e) => updateProfessional("yearsOfExperience", e.target.value)}
@@ -673,8 +669,8 @@ export default function SignupPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>
-                    PMDC Registration Number <span style={{ color: "#10B8A9" }}>*</span>
+                  <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)]">
+                    PMDC Registration Number <span className="text-[var(--color-primary)]">*</span>
                   </label>
                   <input value={professional.pmdcNumber}
                     onChange={(e) => updateProfessional("pmdcNumber", e.target.value)}
@@ -684,15 +680,15 @@ export default function SignupPage() {
 
                 {/* License Status */}
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>License Status</label>
+                  <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)]">License Status</label>
                   <div className="flex gap-2">
                     {LICENSE_STATUSES.map((s) => (
                       <button key={s} type="button" onClick={() => updateProfessional("licenseStatus", s)}
                         className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all"
                         style={{
-                          background: professional.licenseStatus === s ? "rgba(16,184,169,0.15)" : "rgba(255,255,255,0.04)",
-                          border: professional.licenseStatus === s ? "1px solid #10B8A9" : "1px solid rgba(16,184,169,0.15)",
-                          color: professional.licenseStatus === s ? "#10B8A9" : "#64748b",
+                          background: professional.licenseStatus === s ? "rgba(37,99,235,0.15)" : "var(--color-bg)",
+                          border: professional.licenseStatus === s ? "1px solid var(--color-primary)" : "1px solid var(--color-border)",
+                          color: professional.licenseStatus === s ? "var(--color-primary)" : "var(--color-text-secondary)",
                         }}>
                         {s}
                       </button>
@@ -701,32 +697,32 @@ export default function SignupPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>
-                    License Issue Date <span style={{ color: "#10B8A9" }}>*</span>
+                  <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)]">
+                    License Issue Date <span className="text-[var(--color-primary)]">*</span>
                   </label>
                   <input type="date" value={professional.licenseIssueDate}
                     onChange={(e) => updateProfessional("licenseIssueDate", e.target.value)}
-                    className={inputCls} style={{ ...S.input, colorScheme: "dark" }}
+                    className={inputCls} style={S.input}
                     onFocus={focusStyle} onBlur={blurStyle} />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>
+                  <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)]">
                     License Expiry Date <span className="text-xs opacity-60">(optional)</span>
                   </label>
                   <input type="date" value={professional.licenseExpiryDate}
                     onChange={(e) => updateProfessional("licenseExpiryDate", e.target.value)}
-                    className={inputCls} style={{ ...S.input, colorScheme: "dark" }}
+                    className={inputCls} style={S.input}
                     onFocus={focusStyle} onBlur={blurStyle} />
                 </div>
 
                 {/* PMDC Certificate Upload — disabled until Cloudinary */}
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-medium mb-1.5" style={{ color: "#94a3b8" }}>
+                  <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)]">
                     PMDC Certificate <span className="text-xs opacity-60">(optional — coming soon)</span>
                   </label>
                   <div className="w-full px-4 py-3 rounded-xl text-sm flex items-center gap-2 cursor-not-allowed"
-                    style={{ background: "rgba(255,255,255,0.02)", border: "1px dashed rgba(255,255,255,0.08)", color: "#475569" }}>
+                    style={{ background: "var(--color-bg)", border: "1px dashed var(--color-border)", color: "var(--color-text-secondary)" }}>
                     📎 Upload will be available soon
                   </div>
                 </div>
@@ -737,25 +733,25 @@ export default function SignupPage() {
           {/* ── STEP 3: Clinics & Hospitals ── */}
           {step === 3 && (
             <div className="space-y-5">
-              <h2 className="text-lg font-bold text-white mb-2">Clinics & Hospitals</h2>
-              <p className="text-xs mb-5" style={{ color: "#64748b" }}>
+              <h2 className="mb-2 text-lg font-bold text-[var(--color-text-primary)]">Clinics & Hospitals</h2>
+              <p className="mb-5 text-xs text-[var(--color-text-secondary)]">
                 Add your practice locations. Sessions with overlapping times will be highlighted.
               </p>
 
               {/* Clinics */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm font-bold text-white">🏥 Clinics</p>
+                  <p className="text-sm font-bold text-[var(--color-text-primary)]">🏥 Clinics</p>
                   <button type="button" onClick={addClinic}
                     className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
-                    style={{ background: "rgba(16,184,169,0.12)", color: "#10B8A9" }}>
+                    style={{ background: "rgba(37,99,235,0.12)", color: "var(--color-primary)" }}>
                     + Add Clinic
                   </button>
                 </div>
                 {clinics.length === 0 && (
                   <div className="text-center py-6 rounded-2xl mb-2"
-                    style={{ background: "rgba(255,255,255,0.02)", border: "1px dashed rgba(255,255,255,0.06)" }}>
-                    <p className="text-xs" style={{ color: "#475569" }}>No clinics added yet</p>
+                    style={{ background: "var(--color-bg)", border: "1px dashed var(--color-border)" }}>
+                    <p className="text-xs text-[var(--color-text-secondary)]">No clinics added yet</p>
                   </div>
                 )}
                 <div className="space-y-3">
@@ -771,17 +767,17 @@ export default function SignupPage() {
               {/* Hospitals */}
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm font-bold text-white">🏨 Hospitals</p>
+                  <p className="text-sm font-bold text-[var(--color-text-primary)]">🏨 Hospitals</p>
                   <button type="button" onClick={addHospital}
                     className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
-                    style={{ background: "rgba(16,184,169,0.12)", color: "#10B8A9" }}>
+                    style={{ background: "rgba(37,99,235,0.12)", color: "var(--color-primary)" }}>
                     + Add Hospital
                   </button>
                 </div>
                 {hospitals.length === 0 && (
                   <div className="text-center py-6 rounded-2xl mb-2"
-                    style={{ background: "rgba(255,255,255,0.02)", border: "1px dashed rgba(255,255,255,0.06)" }}>
-                    <p className="text-xs" style={{ color: "#475569" }}>No hospitals added yet</p>
+                    style={{ background: "var(--color-bg)", border: "1px dashed var(--color-border)" }}>
+                    <p className="text-xs text-[var(--color-text-secondary)]">No hospitals added yet</p>
                   </div>
                 )}
                 <div className="space-y-3">
@@ -801,20 +797,20 @@ export default function SignupPage() {
             {step > 1 && (
               <button type="button" onClick={() => setStep(step - 1)}
                 className="flex-1 py-3.5 rounded-2xl text-sm font-bold transition-all hover:opacity-80"
-                style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "#94a3b8" }}>
+                style={{ background: "var(--color-bg)", border: "1px solid var(--color-border)", color: "var(--color-text-secondary)" }}>
                 ← Back
               </button>
             )}
             {step < 3 ? (
               <button type="button" onClick={handleNext}
                 className="flex-1 py-3.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 hover:scale-105"
-                style={{ background: "linear-gradient(135deg,#10B8A9,#0d9488)", boxShadow: "0 4px 20px rgba(16,184,169,0.3)" }}>
+                style={{ background: "var(--color-primary)", boxShadow: "0 4px 20px rgba(37,99,235,0.25)" }}>
                 Continue →
               </button>
             ) : (
               <button type="button" onClick={handleSubmit} disabled={isLoading}
                 className="flex-1 py-3.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                style={{ background: "linear-gradient(135deg,#10B8A9,#0d9488)", boxShadow: "0 4px 20px rgba(16,184,169,0.3)" }}>
+                style={{ background: "var(--color-primary)", boxShadow: "0 4px 20px rgba(37,99,235,0.25)" }}>
                 {isLoading ? "Creating Account..." : "Create Account ✓"}
               </button>
             )}

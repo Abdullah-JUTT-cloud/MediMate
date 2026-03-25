@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
-import logo from "../assets/logo.svg";
+import logo from "../assets/logo-compact.webp";
 
 export default function VerifyEmailPage() {
   const navigate = useNavigate();
@@ -20,7 +20,7 @@ export default function VerifyEmailPage() {
       navigate("/signup");
     }
     inputRefs.current[0]?.focus();
-  }, []);
+  }, [email, navigate]);
 
   // ─── OTP Input Handler ───────────────────────────────────
 
@@ -91,83 +91,50 @@ export default function VerifyEmailPage() {
   };
 
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{ background: "linear-gradient(135deg, #0f1923 0%, #0d2137 50%, #0a1628 100%)" }}
-    >
-      {/* Background decorations */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-72 h-72 rounded-full opacity-10"
-          style={{ background: "radial-gradient(circle, #10B8A9, transparent)", filter: "blur(60px)" }} />
-        <div className="absolute bottom-20 right-10 w-96 h-96 rounded-full opacity-10"
-          style={{ background: "radial-gradient(circle, #10B8A9, transparent)", filter: "blur(80px)" }} />
-        <div className="absolute inset-0 opacity-5"
-          style={{
-            backgroundImage: `linear-gradient(rgba(16,184,169,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(16,184,169,0.3) 1px, transparent 1px)`,
-            backgroundSize: "60px 60px"
-          }} />
+    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)]">
+      <div className="pointer-events-none fixed inset-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-primary)]/8 via-transparent to-[var(--color-primary)]/5" />
       </div>
 
-      {/* Navbar */}
-      <nav
-        className="relative z-10 px-4 sm:px-6 py-4 flex items-center justify-between"
-        style={{ borderBottom: "1px solid rgba(16,184,169,0.1)" }}
-      >
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
-          <img src={logo} alt="MedAlerto" className="h-8 w-auto brightness-0 invert" />
+      <nav className="relative z-10 border-b bg-[var(--color-card)]/90 backdrop-blur">
+        <div className="flex w-full items-center justify-between px-4 py-4 sm:px-8 lg:px-10 xl:px-14">
+          <button className="flex items-center gap-3" onClick={() => navigate("/")}>
+            <img src={logo} alt="MedAlerto" className="h-8 w-auto" />
+            <span className="text-sm font-extrabold sm:text-base">MedAlerto</span>
+          </button>
+          <button
+            onClick={() => navigate("/login")}
+            className="text-xs font-semibold text-[var(--color-text-secondary)] transition hover:text-[var(--color-primary)] sm:text-sm"
+          >
+            Back to <span className="text-[var(--color-primary)]">Login</span>
+          </button>
         </div>
-        <button
-          onClick={() => navigate("/login")}
-          className="text-sm font-medium transition-colors hover:text-teal-400"
-          style={{ color: "#94a3b8" }}
-        >
-          Back to <span style={{ color: "#10B8A9" }}>Login</span>
-        </button>
       </nav>
 
-      {/* Main content */}
-      <div className="relative z-10 flex-1 flex items-center justify-center px-4 sm:px-6 py-12">
-        <div className="w-full max-w-md">
-
-          {/* Icon */}
-          <div className="flex justify-center mb-6">
-            <div
-              className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex items-center justify-center text-3xl sm:text-4xl"
-              style={{ background: "rgba(16,184,169,0.1)", border: "1px solid rgba(16,184,169,0.25)" }}
-            >
+      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-73px)] w-full max-w-6xl items-center justify-center px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+        <section className="w-full max-w-md rounded-xl border bg-[var(--color-card)] p-6 shadow-sm sm:p-8">
+          <div className="mb-6 flex justify-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-xl border bg-[var(--color-primary)]/10 text-3xl sm:h-20 sm:w-20 sm:text-4xl">
               📧
             </div>
           </div>
 
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white mb-2">Check Your Email</h1>
-            <p className="text-sm sm:text-base mb-1" style={{ color: "#94a3b8" }}>
+          <header className="mb-8 text-center">
+            <h1 className="mb-2 text-2xl font-extrabold sm:text-3xl">Check Your Email</h1>
+            <p className="mb-1 text-sm text-[var(--color-text-secondary)] sm:text-base">
               We sent a 6-digit OTP to
             </p>
-            <p className="text-sm sm:text-base font-semibold" style={{ color: "#10B8A9" }}>
+            <p className="text-sm font-semibold text-[var(--color-primary)] sm:text-base break-all">
               {email}
             </p>
-          </div>
+          </header>
 
-          {/* Card */}
-          <div
-            className="rounded-2xl sm:rounded-3xl p-6 sm:p-8"
-            style={{
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(16,184,169,0.15)",
-              backdropFilter: "blur(12px)"
-            }}
-          >
-            <p className="text-xs sm:text-sm text-center mb-6" style={{ color: "#64748b" }}>
+          <div className="rounded-xl border bg-[var(--color-bg)] p-4 sm:p-6">
+            <p className="mb-6 text-center text-xs text-[var(--color-text-secondary)] sm:text-sm">
               Enter the 6-digit code below. The code expires in 30 minutes.
             </p>
 
-            {/* OTP Inputs */}
-            <div
-              className="flex items-center justify-center gap-2 sm:gap-3 mb-8"
-              onPaste={handlePaste}
-            >
+            <div className="mb-8 flex items-center justify-center gap-2 sm:gap-3" onPaste={handlePaste}>
               {otp.map((digit, index) => (
                 <input
                   key={index}
@@ -178,39 +145,32 @@ export default function VerifyEmailPage() {
                   value={digit}
                   onChange={(e) => handleChange(index, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(index, e)}
-                  className="w-10 h-12 sm:w-12 sm:h-14 text-center text-lg sm:text-xl font-bold rounded-xl outline-none transition-all duration-200"
+                  className="h-12 w-10 rounded-xl border text-center text-lg font-bold outline-none transition focus:border-[var(--color-primary)] sm:h-14 sm:w-12 sm:text-xl"
                   style={{
-                    background: digit ? "rgba(16,184,169,0.1)" : "rgba(255,255,255,0.05)",
-                    border: digit ? "1.5px solid #10B8A9" : "1.5px solid rgba(255,255,255,0.1)",
-                    color: "white",
-                    boxShadow: digit ? "0 0 12px rgba(16,184,169,0.2)" : "none",
+                    background: digit ? "rgba(37,99,235,0.1)" : "var(--color-card)",
+                    borderColor: digit ? "var(--color-primary)" : "var(--color-border)",
+                    color: "var(--color-text-primary)",
+                    boxShadow: digit ? "0 0 12px rgba(37,99,235,0.18)" : "none",
                   }}
                 />
               ))}
             </div>
 
-            {/* Verify Button */}
             <button
               onClick={handleSubmit}
               disabled={isLoading || otp.join("").length < 6}
-              className="w-full py-3 sm:py-4 rounded-xl text-sm sm:text-base font-semibold text-white transition-all duration-200 hover:scale-105 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
-              style={{
-                background: "linear-gradient(135deg, #10B8A9, #0d9488)",
-                boxShadow: "0 4px 15px rgba(16,184,169,0.3)"
-              }}
+              className="w-full rounded-xl bg-[var(--color-primary)] py-3 text-sm font-bold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:py-4 sm:text-base"
             >
-              {isLoading ? "Verifying..." : "Verify Email ✓"}
+              {isLoading ? "Verifying..." : "Verify Email"}
             </button>
 
-            {/* Resend */}
-            <div className="text-center mt-5">
-              <p className="text-xs sm:text-sm" style={{ color: "#64748b" }}>
+            <div className="mt-5 text-center">
+              <p className="text-xs text-[var(--color-text-secondary)] sm:text-sm">
                 Didn't receive the code?{" "}
                 <button
                   onClick={handleResend}
                   disabled={resending}
-                  className="font-semibold transition-colors hover:text-teal-300 disabled:opacity-50"
-                  style={{ color: "#10B8A9" }}
+                  className="font-semibold text-[var(--color-primary)] transition hover:opacity-90 disabled:opacity-50"
                 >
                   {resending ? "Sending..." : "Resend OTP"}
                 </button>
@@ -218,19 +178,17 @@ export default function VerifyEmailPage() {
             </div>
           </div>
 
-          {/* Note */}
-          <p className="text-center text-xs mt-6" style={{ color: "#475569" }}>
+          <p className="mt-6 text-center text-xs text-[var(--color-text-secondary)]">
             Wrong email?{" "}
             <button
               onClick={() => navigate("/signup")}
-              className="transition-colors hover:text-teal-300"
-              style={{ color: "#10B8A9" }}
+              className="font-semibold text-[var(--color-primary)] transition hover:opacity-90"
             >
               Go back and register again
             </button>
           </p>
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   );
 }

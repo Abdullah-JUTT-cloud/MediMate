@@ -1,11 +1,36 @@
 import axios from "axios";
+import useAuthStore from "../store/authStore";
+
+function getApiBaseUrl() {
+    const envBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+    if (envBaseUrl) {
+        return envBaseUrl.replace(/\/$/, "");
+    }
+
+    // Use local API in development and same-origin API in production by default.
+    return import.meta.env.DEV ? "http://localhost:3000/api" : "/api";
+}
 
 const axiosInstance = axios.create({
-    baseURL: "http://localhost:3000/api",
+    baseURL: getApiBaseUrl(),
     headers: {
         "Content-Type": "application/json",
     },
     withCredentials: true,
 });
+
+axiosInstance.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error?.response?.status === 401) {
+            const { isAuthenticated, logout } = useAuthStore.getState();
+            if (isAuthenticated) {
+                logout();
+            }
+        }
+
+        return Promise.reject(error);
+    }
+);
 
 export default axiosInstance;
