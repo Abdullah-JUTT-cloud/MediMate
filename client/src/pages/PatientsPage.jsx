@@ -415,7 +415,7 @@ function PatientDetailPage({ patient: initialPatient, onBack, onNewCheckup, onEd
     const fetchCheckups = async () => {
       setIsLoading(true);
       try {
-        const res = await axiosInstance.get(`/checkups/${patient._id}`);
+        const res = await axiosInstance.get(`/checkups/${patient._id}?limit=500`);
         setCheckups(res.data.checkups);
       } catch { toast.error("Failed to load checkups"); }
       finally { setIsLoading(false); }
@@ -875,6 +875,7 @@ function AddPatientForm({ onBack, onAdded }) {
 export default function PatientsPage() {
   const [view, setView] = useState("list");
   const [patients, setPatients] = useState([]);
+  const [patientsTotal, setPatientsTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activePatient, setActivePatient] = useState(null);
@@ -884,8 +885,11 @@ export default function PatientsPage() {
   const fetchPatients = async (q = "") => {
     setIsLoading(true);
     try {
-      const res = await axiosInstance.get(`/patients${q ? `?search=${q}` : ""}`);
+      const params = new URLSearchParams({ limit: "500" });
+      if (q) params.set("search", q);
+      const res = await axiosInstance.get(`/patients?${params.toString()}`);
       setPatients(res.data.patients);
+      setPatientsTotal(Number(res?.data?.pagination?.total || res?.data?.patients?.length || 0));
     } catch { toast.error("Failed to load patients"); }
     finally { setIsLoading(false); }
   };
@@ -943,7 +947,7 @@ export default function PatientsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h2 className="text-xl font-bold text-[var(--color-text-primary)]">Patients</h2>
-          <p className="text-xs mt-0.5 text-[var(--color-text-secondary)]">{patients.length} total patients</p>
+          <p className="text-xs mt-0.5 text-[var(--color-text-secondary)]">{patientsTotal} total patients</p>
         </div>
         <button onClick={() => setView("add")}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:scale-105 hover:opacity-90 w-fit"

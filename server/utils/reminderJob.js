@@ -5,6 +5,56 @@ import client from './whatsapp.js';
 const cronSchedule = '*/30 * * * *';
 const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
 const ONE_HOUR_MS = 60 * 60 * 1000;
+const LOCK_KEY = 'reminder-job-lock';
+const LOCK_TTL_MS = 25 * 60 * 1000;
+const INSTANCE_ID = `${process.pid}-${Math.random().toString(36).slice(2, 8)}`;
+
+let lockIndexInitialized = false;
+
+const getJobLocksCollection = () => Appointment.db.collection('job_locks');
+
+const ensureLockIndexes = async () => {
+	if (lockIndexInitialized) return;
+	const locks = getJobLocksCollection();
+	await locks.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+	lockIndexInitialized = true;
+};
+
+const acquireReminderLock = async () => {
+	await ensureLockIndexes();
+	const now = new Date();
+	const expiresAt = new Date(now.getTime() + LOCK_TTL_MS);
+	const locks = getJobLocksCollection();
+
+	const updateResult = await locks.updateOne(
+		{
+			_id: LOCK_KEY,
+			$or: [{ expiresAt: { $lte: now } }, { holder: INSTANCE_ID }],
+		},
+		{
+			$set: { holder: INSTANCE_ID, lockedAt: now, expiresAt },
+		},
+		{ upsert: false }
+	);
+
+	if (updateResult.matchedCount === 1 || updateResult.modifiedCount === 1) return true;
+
+	try {
+		await locks.insertOne({ _id: LOCK_KEY, holder: INSTANCE_ID, lockedAt: now, expiresAt });
+		return true;
+	} catch (error) {
+		if (error?.code === 11000) return false;
+		throw error;
+	}
+};
+
+const releaseReminderLock = async () => {
+	const locks = getJobLocksCollection();
+	await locks.updateOne(
+		{ _id: LOCK_KEY, holder: INSTANCE_ID },
+		{ $set: { expiresAt: new Date(0) }, $unset: { holder: '', lockedAt: '' } }
+	);
+};
 
 const formatWhatsAppPhone = (phone) => {
 	const digits = String(phone || '').replace(/\D/g, '');
@@ -26,6 +76,15 @@ const getAppointmentDateTime = (appointment) => {
 
 export const startReminderJob = () => {
 	cron.schedule(cronSchedule, async () => {
+		const lockAcquired = await acquireReminderLock().catch((error) => {
+			console.error('Reminder lock acquire failed:', error.message);
+			return false;
+		});
+
+		if (!lockAcquired) {
+			return;
+		}
+
 		try {
 			const now = new Date();
 
@@ -84,6 +143,10 @@ export const startReminderJob = () => {
 			}
 		} catch (error) {
 			console.error('Reminder job error:', error.message);
+		} finally {
+			await releaseReminderLock().catch((error) => {
+				console.error('Reminder lock release failed:', error.message);
+			});
 		}
 	});
 

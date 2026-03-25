@@ -276,7 +276,7 @@ function BookAppointmentForm({
       if (!search.trim()) { setPatients([]); return; }
       setSearchLoading(true);
       try {
-        const res = await axiosInstance.get("/patients", { params: { search } });
+        const res = await axiosInstance.get("/patients", { params: { search, limit: 200 } });
         setPatients(res.data.patients);
       } catch {
         toast.error("Failed to search patients");
@@ -340,7 +340,8 @@ function BookAppointmentForm({
     // Fetch already booked slots for this date
     const fetchBooked = async () => {
       try {
-        const res = await axiosInstance.get(`/appointments?date=${date}`);
+        const params = new URLSearchParams({ date, limit: "500" });
+        const res = await axiosInstance.get(`/appointments?${params.toString()}`);
         setBookedSlots(
           res.data.appointments
             .filter((a) => !["Cancelled", "Completed"].includes(a.status))
@@ -501,18 +502,30 @@ function BookAppointmentForm({
                 {slots.map((slot) => {
                   const bookingCount = bookedSlots.filter((b) => b === slot.time).length;
                   const isSelected = selectedSlot === slot.time;
+                  const isFull = bookingCount >= 3;
                   return (
                     <button key={slot.time} onClick={() => setSelectedSlot(slot.time)}
+                      disabled={isFull}
                       className="relative px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
                       style={{
-                        background: isSelected ? "color-mix(in srgb, var(--color-primary) 15%, transparent)" : "var(--color-bg)",
-                        border: isSelected ? "1px solid var(--color-primary)" : "1px solid var(--color-border)",
-                        color: isSelected ? "var(--color-primary)" : "var(--color-text-primary)",
+                        background: isFull
+                          ? "color-mix(in srgb, var(--color-danger) 12%, transparent)"
+                          : isSelected
+                            ? "color-mix(in srgb, var(--color-primary) 15%, transparent)"
+                            : "var(--color-bg)",
+                        border: isFull
+                          ? "1px solid color-mix(in srgb, var(--color-danger) 35%, transparent)"
+                          : isSelected
+                            ? "1px solid var(--color-primary)"
+                            : "1px solid var(--color-border)",
+                        color: isFull ? "var(--color-danger)" : isSelected ? "var(--color-primary)" : "var(--color-text-primary)",
+                        opacity: isFull ? 0.85 : 1,
+                        cursor: isFull ? "not-allowed" : "pointer",
                       }}>
                       {slot.time}
                       {bookingCount > 0 && (
                         <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-xs flex items-center justify-center font-bold"
-                          style={{ background: "#f59e0b", color: "white", fontSize: "9px" }}>
+                          style={{ background: bookingCount >= 3 ? "#ef4444" : "#f59e0b", color: "white", fontSize: "9px" }}>
                           {bookingCount}
                         </span>
                       )}
@@ -568,10 +581,10 @@ export default function AppointmentsPage({
   const fetchAppointments = useCallback(async () => {
     setIsLoading(true);
     try {
-      let url = "/appointments?";
-      if (dateFilter) url += `date=${dateFilter}&`;
-      if (activeFilter !== "All") url += `status=${activeFilter}`;
-      const res = await axiosInstance.get(url);
+      const params = new URLSearchParams({ limit: "500" });
+      if (dateFilter) params.set("date", dateFilter);
+      if (activeFilter !== "All") params.set("status", activeFilter);
+      const res = await axiosInstance.get(`/appointments?${params.toString()}`);
       setAppointments(res.data.appointments);
     } catch {
       toast.error("Failed to load appointments");

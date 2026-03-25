@@ -41,4 +41,11 @@ const appointmentSchema = new mongoose.Schema({
     
 },{timestamps:true});
 
+// Speed up hot paths for date/status dashboard queries and listing.
+appointmentSchema.index({ doctor: 1, date: 1, status: 1 });
+appointmentSchema.index({ doctor: 1, createdAt: -1 });
+
+// Slot lookup index used by max-capacity checks in controllers.
+appointmentSchema.index({ doctor: 1, date: 1, slot: 1, status: 1 });
+
 export default mongoose.model("Appointment", appointmentSchema);

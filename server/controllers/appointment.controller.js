@@ -2,7 +2,9 @@ import mongoose from "mongoose";
 import Appointment from "../models/appointment.model.js";
 import Patient from "../models/patient.model.js";
 import client from "../utils/whatsapp.js";
-import { Doctor } from "../models/doctor.model.js";
+
+const MAX_APPOINTMENTS_PER_SLOT = 3;
+const INACTIVE_STATUSES = ["Cancelled", "Completed"];
 
 const sendAppointmentWhatsApp = async (patient, appointment, message) => {
   try {
@@ -14,6 +16,7 @@ const sendAppointmentWhatsApp = async (patient, appointment, message) => {
     console.error("Appointment WhatsApp error:", err.message);
   }
 };
+
 const formatAppointmentMessage = (patientName, date, slot, type) => {
   const formattedDate = new Date(date).toLocaleDateString("en-PK", {
     weekday: "long",
@@ -27,8 +30,8 @@ const formatAppointmentMessage = (patientName, date, slot, type) => {
 export const getAppointments = async (req, res) => {
   try {
     const { date, status, page = 1, limit = 50 } = req.query;
-    const pageNum = Math.max(1, parseInt(page) || 1);
-    const limitNum = Math.min(500, Math.max(1, parseInt(limit) || 50));
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(500, Math.max(1, parseInt(limit, 10) || 50));
     const skip = (pageNum - 1) * limitNum;
 
     const query = { doctor: req.doctorId };
@@ -56,7 +59,15 @@ export const getAppointments = async (req, res) => {
 
     const total = await Appointment.countDocuments(query);
 
-    res.status(200).json({ appointments, pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) } });
+    res.status(200).json({
+      appointments,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum),
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
   }
@@ -68,6 +79,7 @@ export const getAppointment = async (req, res) => {
     if (!mongoose.isValidObjectId(id)) {
       return res.status(400).json({ message: "Invalid appointment ID" });
     }
+
     const appointment = await Appointment.findOne({
       doctor: req.doctorId,
       _id: id,
@@ -97,6 +109,7 @@ export const createAppointment = async (req, res) => {
     if (!type) {
       return res.status(400).json({ message: "Type is required" });
     }
+
     const patient = await Patient.findOne({
       doctor: req.doctorId,
       _id: patientId,
@@ -104,15 +117,18 @@ export const createAppointment = async (req, res) => {
     if (!patient) {
       return res.status(404).json({ message: "Patient not found" });
     }
-    const existing = await Appointment.findOne({
+
+    const activeCount = await Appointment.countDocuments({
       doctor: req.doctorId,
       date,
       slot,
-      status: { $nin: ["Cancelled", "Completed"] },
+      status: { $nin: INACTIVE_STATUSES },
     });
-    if (existing) {
-      return res.status(409).json({ message: "This slot is already booked" });
+
+    if (activeCount >= MAX_APPOINTMENTS_PER_SLOT) {
+      return res.status(409).json({ message: "This slot has reached the maximum capacity (3 appointments)" });
     }
+
     const appointment = new Appointment({
       patient: patientId,
       doctor: req.doctorId,
@@ -121,27 +137,21 @@ export const createAppointment = async (req, res) => {
       type,
       notes,
     });
-    try {
-      await appointment.save();
-    } catch (saveError) {
-      // Handle duplicate key error if unique index is added
-      if (saveError.code === 11000) {
-        return res.status(409).json({ message: "This slot is already booked" });
-      }
-      throw saveError;
-    }
+
+    await appointment.save();
+
     const populated = await appointment.populate("patient", "name phone age");
     const msg = formatAppointmentMessage(patient.name, date, slot, type);
-    try {
-      await sendAppointmentWhatsApp(patient, appointment, msg);
-    } catch (whatsappError) {
-      console.error("WhatsApp send failed, but appointment was saved:", whatsappError.message);
-    }
+    await sendAppointmentWhatsApp(patient, appointment, msg);
+
     res.status(201).json({
       message: "Appointment created successfully",
       appointment: populated,
     });
   } catch (error) {
+    if (error?.code === 11000) {
+      return res.status(409).json({ message: "This slot has reached the maximum capacity (3 appointments)" });
+    }
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -152,7 +162,9 @@ export const updateAppointment = async (req, res) => {
     if (!mongoose.isValidObjectId(id)) {
       return res.status(400).json({ message: "Invalid appointment ID" });
     }
+
     const { status, date, slot, type, notes, emergencyCancelled } = req.body;
+
     const appointment = await Appointment.findOne({
       doctor: req.doctorId,
       _id: id,
@@ -161,18 +173,24 @@ export const updateAppointment = async (req, res) => {
       return res.status(404).json({ message: "Appointment not found" });
     }
 
-    if (typeof date !== "undefined" || typeof slot !== "undefined") {
-      const nextDate = typeof date !== "undefined" ? date : appointment.date;
-      const nextSlot = typeof slot !== "undefined" ? slot : appointment.slot;
-      const conflict = await Appointment.findOne({
+    const nextDate = typeof date !== "undefined" ? date : appointment.date;
+    const nextSlot = typeof slot !== "undefined" ? slot : appointment.slot;
+    const nextStatus = typeof status !== "undefined" ? status : appointment.status;
+    const wasActive = !INACTIVE_STATUSES.includes(appointment.status);
+    const willBeActive = !INACTIVE_STATUSES.includes(nextStatus);
+    const dateOrSlotChanged = typeof date !== "undefined" || typeof slot !== "undefined";
+
+    // Re-check capacity if slot changes or this appointment is becoming active.
+    if ((dateOrSlotChanged || (!wasActive && willBeActive)) && willBeActive) {
+      const activeCount = await Appointment.countDocuments({
         doctor: req.doctorId,
         _id: { $ne: appointment._id },
         date: nextDate,
         slot: nextSlot,
-        status: { $nin: ["Cancelled", "Completed"] },
+        status: { $nin: INACTIVE_STATUSES },
       });
-      if (conflict) {
-        return res.status(400).json({ message: "This slot is already booked" });
+      if (activeCount >= MAX_APPOINTMENTS_PER_SLOT) {
+        return res.status(400).json({ message: "This slot has reached the maximum capacity (3 appointments)" });
       }
     }
 
@@ -193,10 +211,8 @@ export const updateAppointment = async (req, res) => {
     }
 
     await appointment.save();
-    const populated = await Appointment.findById(appointment._id).populate(
-      "patient",
-      "name phone age",
-    );
+
+    const populated = await Appointment.findById(appointment._id).populate("patient", "name phone age");
     if (date || slot) {
       const msg = formatAppointmentMessage(
         populated.patient.name,
@@ -206,11 +222,15 @@ export const updateAppointment = async (req, res) => {
       );
       await sendAppointmentWhatsApp(populated.patient, populated, msg);
     }
+
     res.status(200).json({
       message: "Appointment updated successfully",
       appointment: populated,
     });
   } catch (error) {
+    if (error?.code === 11000) {
+      return res.status(409).json({ message: "This slot has reached the maximum capacity (3 appointments)" });
+    }
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -257,11 +277,10 @@ export const emergencyCancel = async (req, res) => {
     const appointments = await Appointment.find({
       doctor: req.doctorId,
       date: { $gte: startDay, $lte: endDay },
-      status: { $nin: ["Cancelled", "Completed"] },
+      status: { $nin: INACTIVE_STATUSES },
     }).populate("patient", "name phone");
 
     const toCancel = appointments.filter((apt) => {
-      if (["Cancelled", "Completed"].includes(apt.status)) return false;
       const [aptHour, aptMin] = apt.slot.split(":").map(Number);
       const aptMinutesSinceMidnight = aptHour * 60 + aptMin;
       const [startHour, startMin] = startTime.split(":").map(Number);
@@ -281,22 +300,16 @@ export const emergencyCancel = async (req, res) => {
       cancelledAppointments.push(appointment);
 
       try {
-        const formattedDate = new Date(appointment.date).toLocaleDateString(
-          "en-PK",
-          {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          }
-        );
+        const formattedDate = new Date(appointment.date).toLocaleDateString("en-PK", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        });
         const msg = `Dear ${appointment.patient.name}, your appointment on ${formattedDate} at ${appointment.slot} has been cancelled due to an emergency. We apologize for the inconvenience. - MedAlerto`;
         await sendAppointmentWhatsApp(appointment.patient, appointment, msg);
       } catch (error) {
-        console.error(
-          `WhatsApp send failed for appointment ${appointment._id}:`,
-          error.message
-        );
+        console.error(`WhatsApp send failed for appointment ${appointment._id}:`, error.message);
       }
     }
 

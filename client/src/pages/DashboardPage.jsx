@@ -61,7 +61,7 @@ export default function DashboardPage() {
   const fetchCancelledAppointments = async () => {
     setIsLoadingCancelled(true);
     try {
-      const res = await axiosInstance.get("/appointments?status=Cancelled");
+      const res = await axiosInstance.get("/appointments?status=Cancelled&limit=500");
       const emergency = res.data.appointments.filter((a) => a.emergencyCancelled === true);
       setCancelledAppointments(emergency);
     } catch {
@@ -80,8 +80,8 @@ export default function DashboardPage() {
        const now = new Date();
 const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
         const [appointmentsRes, patientsRes] = await Promise.all([
-          axiosInstance.get("/appointments?date=" + today),
-          axiosInstance.get("/patients"),
+          axiosInstance.get("/appointments?date=" + today + "&limit=500"),
+          axiosInstance.get("/patients?limit=500"),
         ]);
         const appointments = appointmentsRes && appointmentsRes.data && Array.isArray(appointmentsRes.data.appointments)
           ? appointmentsRes.data.appointments
@@ -94,8 +94,8 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
         setTodayAppointments(activeTodayAppointments);
         setRecentPatients(Array.isArray(patients) ? patients.slice(0, 4) : []);
         setTotalPatients(
-          patientsRes && patientsRes.data && Number.isFinite(Number(patientsRes.data.total))
-            ? Number(patientsRes.data.total)
+          patientsRes && patientsRes.data && Number.isFinite(Number(patientsRes.data?.pagination?.total))
+            ? Number(patientsRes.data.pagination.total)
             : patients.length,
         );
       } catch {
