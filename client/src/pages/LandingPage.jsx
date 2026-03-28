@@ -98,20 +98,24 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="relative">
-            <div className="rounded-xl border bg-[var(--color-card)] p-4 shadow-sm sm:p-6">
-              <div className="overflow-hidden rounded-xl border">
-                <img src={doc} alt="Doctor using MedAlerto dashboard" className="h-100 w-full object-cover sm:h-96 md:h-[620px]" />
+          <div className="relative mx-auto w-full max-w-[480px]">
+            <div className="pointer-events-none absolute -inset-6 rounded-[2.2rem] bg-gradient-to-br from-slate-900 via-sky-900 to-teal-700 opacity-95" />
+
+            <div className="relative overflow-hidden rounded-[2rem] border border-cyan-400/35 shadow-[0_35px_90px_-40px_rgba(13,148,136,0.8)]">
+              <img
+                src={doc}
+                alt="Doctor using MedAlerto dashboard"
+                className="h-[540px] w-full object-cover object-center sm:h-[560px]"
+              />
+
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-slate-950/55 via-transparent to-transparent" />
+
+              <div className="absolute left-4 top-4 rounded-xl border border-cyan-400/45 bg-slate-900/75 px-3 py-2 backdrop-blur-sm sm:left-5 sm:top-5">
+                <p className="text-xs font-semibold text-cyan-200">✓ 5000+ Doctors Currently Using</p>
               </div>
-              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="rounded-xl border bg-[var(--color-bg)] p-3">
-                  <p className="text-xs font-semibold text-[var(--color-text-secondary)]">Active doctors</p>
-                  <p className="mt-2 text-sm font-bold text-[var(--color-text-primary)]">5000+ using now</p>
-                </div>
-                <div className="rounded-xl border bg-[var(--color-bg)] p-3">
-                  <p className="text-xs font-semibold text-[var(--color-text-secondary)]">Prescription delivery</p>
-                  <p className="mt-2 text-sm font-bold text-[var(--color-success)]">WhatsApp enabled</p>
-                </div>
+
+              <div className="absolute bottom-4 right-4 rounded-xl border border-slate-300/20 bg-slate-900/75 px-3 py-2 backdrop-blur-sm sm:bottom-5 sm:right-5">
+                <p className="text-xs font-semibold text-slate-100">📋 Prescription Sent via WhatsApp</p>
               </div>
             </div>
           </div>

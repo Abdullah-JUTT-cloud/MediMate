@@ -15,6 +15,11 @@ const PAYMENT_METHODS = ["Cash","Card","Online Transfer"];
 const getInitials = (name) => name?.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "P";
 const formatDate = (date) => new Date(date).toLocaleDateString("en-PK", { day: "numeric", month: "short", year: "numeric" });
 const emptyMedicine = () => ({ name: "", dosage: "", frequency: "", duration: "", instructions: "" });
+const getTodayDateInput = () => {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split("T")[0];
+};
 
 const S = {
   input: { background: "var(--color-bg)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)" },
@@ -88,6 +93,7 @@ function TagInput({ value, onChange, onAdd, onRemove, items, placeholder }) {
 // ══════════════════════════════════════════════════════════════════════════════
 function CheckupForm({ patient, existingCheckup, onBack, onSaved }) {
   const isEdit = !!existingCheckup;
+  const minAppointmentDate = getTodayDateInput();
 
   const [diseases, setDiseases] = useState(existingCheckup?.diseases || []);
   const [diseaseInput, setDiseaseInput] = useState("");
@@ -116,6 +122,15 @@ function CheckupForm({ patient, existingCheckup, onBack, onSaved }) {
 
   const canGenerate = diagnosis.trim().length > 0 && medicines.some((m) => m.name.trim().length > 0);
 
+  const validateNextAppointment = () => {
+    if (!nextAppointment) return true;
+    if (nextAppointment < minAppointmentDate) {
+      toast.error("Next appointment cannot be in the past");
+      return false;
+    }
+    return true;
+  };
+
   const updateMedicine = (i, field, val) =>
     setMedicines((p) => p.map((m, idx) => idx === i ? { ...m, [field]: val } : m));
   const addMedicine = () => setMedicines((p) => [...p, emptyMedicine()]);
@@ -139,6 +154,7 @@ function CheckupForm({ patient, existingCheckup, onBack, onSaved }) {
 
   const handleGeneratePrescription = async () => {
     if (!canGenerate) return;
+    if (!validateNextAppointment()) return;
     if (medicines.some((m) => !m.name.trim() || !m.dosage.trim() || !m.frequency || !m.duration)) {
       toast.error("Fill all required medicine fields"); return;
     }
@@ -175,6 +191,7 @@ function CheckupForm({ patient, existingCheckup, onBack, onSaved }) {
 
   const handleSave = async () => {
     if (!diagnosis.trim()) { toast.error("Diagnosis is required"); return; }
+    if (!validateNextAppointment()) return;
     if (medicines.some((m) => !m.name.trim() || !m.dosage.trim() || !m.frequency || !m.duration)) {
       toast.error("Fill all required medicine fields"); return;
     }
@@ -259,6 +276,7 @@ function CheckupForm({ patient, existingCheckup, onBack, onSaved }) {
             <div>
               <label className="block text-xs font-medium mb-1.5 text-[var(--color-text-secondary)]">Next Appointment (optional)</label>
               <input type="date" value={nextAppointment} onChange={(e) => setNextAppointment(e.target.value)}
+                min={minAppointmentDate}
                 className={inputCls} style={{ ...S.input, colorScheme: "auto" }} onFocus={focusInput} onBlur={blurInput} />
             </div>
             <div>

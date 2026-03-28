@@ -2,6 +2,30 @@ import mongoose from "mongoose";
 import Checkup from "../models/checkup.model.js";
 import Patient from "../models/patient.model.js";
 
+const getStartOfToday = () => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+};
+
+const validateNextAppointmentDate = (value) => {
+  if (value === undefined || value === null || value === "") {
+    return { valid: true };
+  }
+
+  const appointmentDate = new Date(value);
+  if (Number.isNaN(appointmentDate.getTime())) {
+    return { valid: false, message: "Invalid next appointment date" };
+  }
+
+  appointmentDate.setHours(0, 0, 0, 0);
+  if (appointmentDate < getStartOfToday()) {
+    return { valid: false, message: "Next appointment cannot be in the past" };
+  }
+
+  return { valid: true };
+};
+
 export const getCheckups = async (req, res) => {
   try {
     const patientId = req.params.id;
@@ -66,6 +90,10 @@ export const addCheckup = async (req, res) => {
         .status(400)
         .json({ message: "At least one medicine is required" });
     }
+    const nextAppointmentValidation = validateNextAppointmentDate(prescription?.nextAppointment);
+    if (!nextAppointmentValidation.valid) {
+      return res.status(400).json({ message: nextAppointmentValidation.message });
+    }
     if (payment?.amount === undefined || payment?.amount === null) {
       return res.status(400).json({ message: "Payment amount is required" });
     }
@@ -117,6 +145,11 @@ export const updateCheckup = async (req, res) => {
     if (diseases !== undefined) checkup.diseases = diseases;
     if (notes !== undefined) checkup.notes = notes;
     if (prescription !== undefined) {
+      const nextAppointmentValidation = validateNextAppointmentDate(prescription.nextAppointment);
+      if (!nextAppointmentValidation.valid) {
+        return res.status(400).json({ message: nextAppointmentValidation.message });
+      }
+
       // Merge prescription fields individually to ensure Mongoose tracks changes
       if (prescription.diagnosis !== undefined) checkup.prescription.diagnosis = prescription.diagnosis;
       if (prescription.nextAppointment !== undefined) checkup.prescription.nextAppointment = prescription.nextAppointment;
