@@ -74,8 +74,8 @@ export default function DashboardPage() {
   useEffect(() => {
     if (activeNav !== "dashboard") return;
     fetchCancelledAppointments();
-    const fetchDashboardData = async () => {
-      setIsLoadingData(true);
+    const fetchDashboardData = async ({ withLoader = false } = {}) => {
+      if (withLoader) setIsLoadingData(true);
       try {
        const now = new Date();
 const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -104,14 +104,21 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
         setIsLoadingData(false);
       }
     };
-    fetchDashboardData();
+    fetchDashboardData({ withLoader: true });
+
+    const onFocus = () => fetchDashboardData({ withLoader: false });
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+    };
   }, [activeNav]);
 
   useEffect(() => {
     if (activeNav !== "dashboard") return;
 
-    const fetchTodayEarnings = async () => {
-      setIsLoadingTodayEarnings(true);
+    const fetchTodayEarnings = async ({ withLoader = false } = {}) => {
+      if (withLoader) setIsLoadingTodayEarnings(true);
       try {
         const res = await axiosInstance.get("/insights");
         setTodayEarnings(Number(res?.data?.earnings?.today || 0));
@@ -128,7 +135,14 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
       }
     };
 
-    fetchTodayEarnings();
+    fetchTodayEarnings({ withLoader: true });
+
+    const onFocus = () => fetchTodayEarnings({ withLoader: false });
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+    };
   }, [activeNav]);
 
   const handleEmergencyRescheduleComplete = async (cancelledAppointmentId) => {

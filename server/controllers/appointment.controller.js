@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Appointment from "../models/appointment.model.js";
 import Patient from "../models/patient.model.js";
+import { Doctor } from "../models/doctor.model.js";
 import client from "../utils/whatsapp.js";
 
 const MAX_APPOINTMENTS_PER_SLOT = 3;
@@ -17,14 +18,15 @@ const sendAppointmentWhatsApp = async (patient, appointment, message) => {
   }
 };
 
-const formatAppointmentMessage = (patientName, date, slot, type) => {
+const formatAppointmentMessage = (patientName, date, slot, type, doctorName, facilityName, facilityType) => {
   const formattedDate = new Date(date).toLocaleDateString("en-PK", {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
   });
-  return `Dear ${patientName}, your appointment is scheduled for ${formattedDate} at ${slot}. Type: ${type}. - MedAlerto`;
+  const facility = facilityName ? `${facilityType === "Clinic" ? "Clinic" : "Hospital"}: ${facilityName}` : "";
+  return `Dear ${patientName},\n\nYour appointment is confirmed with Dr. ${doctorName}\nDate: ${formattedDate}\nTime: ${slot}\nType: ${type}\n${facility}\n\nSee you soon! - MedAlerto`;
 };
 
 export const getAppointments = async (req, res) => {
@@ -139,8 +141,12 @@ export const createAppointment = async (req, res) => {
     });
     await appointment.save();
 
+    const doctor = await Doctor.findById(req.doctorId);
+    const facilityName = type === "Clinic" ? doctor?.clinics?.[0]?.name : doctor?.hospitals?.[0]?.name;
+    const facilityType = type === "Clinic" ? "Clinic" : "Hospital";
+
     const populated = await appointment.populate("patient", "name phone age");
-    const msg = formatAppointmentMessage(patient.name, date, slot, type);
+    const msg = formatAppointmentMessage(patient.name, date, slot, type, doctor?.fullName || "Doctor", facilityName, facilityType);
     await sendAppointmentWhatsApp(patient, appointment, msg);
 
     res.status(201).json({
@@ -354,7 +360,11 @@ export const sendRescheduleWhatsApp = async (req, res) => {
       return res.status(400).json({ message: "Patient phone number not found" });
     }
 
-    const msg = `Dear ${appointment.patient.name}, your appointment was cancelled due to an emergency. Please wait while we reschedule your appointment. - MedAlerto`;
+    const doctor = await Doctor.findById(req.doctorId);
+    const facilityName = appointment.type === "Clinic" ? doctor?.clinics?.[0]?.name : doctor?.hospitals?.[0]?.name;
+    const facilityType = appointment.type === "Clinic" ? "Clinic" : "Hospital";
+
+    const msg = `Dear ${appointment.patient.name},\n\nYour appointment with Dr. ${doctor?.fullName || "Doctor"} was cancelled due to an emergency.\n${facilityType}: ${facilityName}\n\nPlease wait while we reschedule your appointment.\n\nWe apologize for the inconvenience. - MedAlerto`;
     await sendAppointmentWhatsApp(appointment.patient, appointment, msg);
 
     res.status(200).json({ message: "Reschedule WhatsApp sent successfully" });

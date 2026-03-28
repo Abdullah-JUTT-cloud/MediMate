@@ -132,7 +132,9 @@ export const sendWhatsApp=async(req,res)=>{
       return res.status(404).json({ message: "Doctor not found" });
     }
     const pdfBuffer = await generatePrescriptionPdf(doctor, patient, checkup);
-    await sendPrescriptionWhatsApp(patient.phone, patient.name, pdfBuffer);
+    const facilityName = checkup.visitedFacility?.locationName || "";
+    const facilityType = checkup.visitedFacility?.locationType || "";
+    await sendPrescriptionWhatsApp(patient.phone, patient.name, doctor.fullName, facilityName, facilityType, pdfBuffer);
     return res.status(200).json({ message: "Prescription sent successfully" });
   } catch (error) {
     console.error("[sendWhatsApp]", error);

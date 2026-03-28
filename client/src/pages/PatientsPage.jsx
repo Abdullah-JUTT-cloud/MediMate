@@ -92,6 +92,7 @@ function TagInput({ value, onChange, onAdd, onRemove, items, placeholder }) {
 // CHECKUP FORM
 // ══════════════════════════════════════════════════════════════════════════════
 function CheckupForm({ patient, existingCheckup, onBack, onSaved }) {
+  const { doctor } = useAuthStore();
   const isEdit = !!existingCheckup;
   const minAppointmentDate = getTodayDateInput();
 
@@ -111,12 +112,15 @@ function CheckupForm({ patient, existingCheckup, onBack, onSaved }) {
   );
   const [labTests, setLabTests] = useState(existingCheckup?.prescription?.labTests || []);
   const [labInput, setLabInput] = useState("");
+  const [patientAdvice, setPatientAdvice] = useState(existingCheckup?.prescription?.patientAdvice || "");
+  const [visitedFacility, setVisitedFacility] = useState(existingCheckup?.visitedFacility || null);
   const [payment, setPayment] = useState(
     existingCheckup?.payment || { amount: "", method: "Cash", isPaid: false }
   );
   const [savedCheckupId, setSavedCheckupId] = useState(existingCheckup?._id || null);
   const [currentPdfUrl, setCurrentPdfUrl] = useState(existingCheckup?.prescription?.pdfUrl || "");
   const [prescriptionCheckup, setPrescriptionCheckup] = useState(null);
+  const [autoGeneratePrescription, setAutoGeneratePrescription] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
 
@@ -142,11 +146,13 @@ function CheckupForm({ patient, existingCheckup, onBack, onSaved }) {
   const buildPayload = () => ({
     diseases,
     notes,
+    visitedFacility,
     prescription: {
       diagnosis,
       nextAppointment: nextAppointment || undefined,
       medicines,
       labTests,
+      patientAdvice,
       pdfUrl: currentPdfUrl,
     },
     payment: { amount: Number(payment.amount) || 0, method: payment.method, isPaid: payment.isPaid },
@@ -177,10 +183,13 @@ function CheckupForm({ patient, existingCheckup, onBack, onSaved }) {
           nextAppointment: nextAppointment || undefined,
           medicines: [...medicines],
           labTests: [...labTests],
+          patientAdvice,
           pdfUrl: currentPdfUrl,
         },
         notes,
+        visitedFacility,
       };
+      setAutoGeneratePrescription(true);
       setPrescriptionCheckup(tempCheckup);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to auto-save checkup");
@@ -220,7 +229,11 @@ function CheckupForm({ patient, existingCheckup, onBack, onSaved }) {
         <PrescriptionModal
           checkup={prescriptionCheckup}
           patient={patient}
-          onClose={() => setPrescriptionCheckup(null)}
+          autoGenerateOnOpen={autoGeneratePrescription}
+          onClose={() => {
+            setPrescriptionCheckup(null);
+            setAutoGeneratePrescription(false);
+          }}
           onSaved={(url) => {
             setCurrentPdfUrl(url);
             setPrescriptionCheckup((prev) =>
@@ -272,6 +285,41 @@ function CheckupForm({ patient, existingCheckup, onBack, onSaved }) {
               <input value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)}
                 placeholder="e.g. Hypertension Stage 2"
                 className={inputCls} style={S.input} onFocus={focusInput} onBlur={blurInput} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1.5 text-[var(--color-text-secondary)]">Visit Location (will show on prescription) *</label>
+              <select value={visitedFacility ? JSON.stringify(visitedFacility) : ""} 
+                onChange={(e) => {
+                  if (e.target.value) {
+                    setVisitedFacility(JSON.parse(e.target.value));
+                  } else {
+                    setVisitedFacility(null);
+                  }
+                }}
+                className={inputCls} style={{ ...S.input, colorScheme: "auto" }} onFocus={focusInput} onBlur={blurInput}>
+                <option value="" style={{ background: "var(--color-card)", color: "var(--color-text-primary)" }}>Select clinic or hospital</option>
+                {[
+                  ...(doctor?.clinics || []).map((c, i) => ({ 
+                    locationType: "Clinic", 
+                    locationName: c.name,
+                    locationAddress: c.address
+                  })),
+                  ...(doctor?.hospitals || []).map((h, i) => ({ 
+                    locationType: "Hospital", 
+                    locationName: h.name,
+                    locationAddress: h.address
+                  })),
+                ].map((loc, idx) => (
+                  <option key={idx} value={JSON.stringify(loc)} style={{ background: "var(--color-card)", color: "var(--color-text-primary)" }}>
+                    {loc.locationType === "Clinic" ? "🏥" : "🏨"} {loc.locationName}
+                  </option>
+                ))}
+              </select>
+              {visitedFacility && (
+                <p className="text-xs mt-2 px-3 py-2 rounded-lg" style={{ background: "color-mix(in srgb, var(--color-primary) 10%, transparent)", color: "var(--color-text-secondary)" }}>
+                  <span className="font-semibold">Patient visited at:</span> {visitedFacility.locationType === "Clinic" ? "🏥" : "🏨"} {visitedFacility.locationName}
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-medium mb-1.5 text-[var(--color-text-secondary)]">Next Appointment (optional)</label>
@@ -344,6 +392,21 @@ function CheckupForm({ patient, existingCheckup, onBack, onSaved }) {
                 onRemove={(i) => setLabTests((p) => p.filter((_, idx) => idx !== i))}
                 items={labTests} placeholder="e.g. CBC, Blood Sugar" />
             </div>
+
+            <div>
+              <label className="block text-xs font-medium mb-1.5 text-[var(--color-text-secondary)]">Patient Advice (shown on prescription)</label>
+              <textarea
+                value={patientAdvice}
+                onChange={(e) => setPatientAdvice(e.target.value)}
+                placeholder="e.g. Walk 30 minutes daily, avoid oily food, stay hydrated"
+                rows={3}
+                className="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none"
+                style={S.input}
+                onFocus={focusInput}
+                onBlur={blurInput}
+              />
+            </div>
+
             <button onClick={handleGeneratePrescription}
               disabled={isAutoSaving || !canGenerate}
               className="w-full py-3 rounded-xl text-sm font-bold transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
@@ -421,6 +484,7 @@ function PatientDetailPage({ patient: initialPatient, onBack, onNewCheckup, onEd
   const [checkups, setCheckups] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [prescriptionCheckup, setPrescriptionCheckup] = useState(null);
+  const [autoGeneratePrescription, setAutoGeneratePrescription] = useState(false);
   const [isEditingPatient, setIsEditingPatient] = useState(false);
   const [editForm, setEditForm] = useState({
     name: initialPatient.name, age: initialPatient.age, gender: initialPatient.gender,
@@ -467,7 +531,11 @@ function PatientDetailPage({ patient: initialPatient, onBack, onNewCheckup, onEd
         <PrescriptionModal
           checkup={prescriptionCheckup}
           patient={patient}
-          onClose={() => setPrescriptionCheckup(null)}
+          autoGenerateOnOpen={autoGeneratePrescription}
+          onClose={() => {
+            setPrescriptionCheckup(null);
+            setAutoGeneratePrescription(false);
+          }}
           onSaved={(url) => {
             setCheckups((prev) => prev.map((c) =>
               c._id === prescriptionCheckup._id
@@ -638,7 +706,10 @@ function PatientDetailPage({ patient: initialPatient, onBack, onNewCheckup, onEd
               {checkup.prescription?.pdfUrl ? (
                 <div className="cursor-pointer rounded-xl transition-all hover:opacity-90"
                   style={{ background: "color-mix(in srgb, var(--color-primary) 7%, transparent)", border: "1px solid color-mix(in srgb, var(--color-primary) 24%, transparent)" }}
-                  onClick={() => setPrescriptionCheckup(checkup)}>
+                  onClick={() => {
+                    setAutoGeneratePrescription(false);
+                    setPrescriptionCheckup(checkup);
+                  }}>
                   <div className="flex items-center gap-3 p-3">
                     {/* Mini PDF preview icon */}
                     <div className="w-10 h-14 rounded-lg flex-shrink-0 flex flex-col overflow-hidden"
@@ -666,7 +737,10 @@ function PatientDetailPage({ patient: initialPatient, onBack, onNewCheckup, onEd
                   </div>
                 </div>
               ) : checkup.prescription?.medicines?.length > 0 ? (
-                <button onClick={() => setPrescriptionCheckup(checkup)}
+                <button onClick={() => {
+                  setAutoGeneratePrescription(true);
+                  setPrescriptionCheckup(checkup);
+                }}
                   className="w-full py-2.5 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
                   style={{ background: "color-mix(in srgb, var(--color-primary) 7%, transparent)", border: "1px dashed color-mix(in srgb, var(--color-primary) 35%, transparent)", color: "var(--color-primary)" }}>
                   📋 Generate Prescription PDF
@@ -729,6 +803,14 @@ function PatientDetailPage({ patient: initialPatient, onBack, onNewCheckup, onEd
                       </span>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* ── Patient Advice */}
+              {checkup.prescription?.patientAdvice && (
+                <div className="p-3 rounded-xl" style={S.section}>
+                  <p className="text-xs font-bold uppercase tracking-wide mb-1.5 text-[var(--color-text-secondary)]">Patient Advice</p>
+                  <p className="text-sm text-[var(--color-text-secondary)]">{checkup.prescription.patientAdvice}</p>
                 </div>
               )}
 

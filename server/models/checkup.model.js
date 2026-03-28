@@ -33,7 +33,16 @@ const checkupSchema = new mongoose.Schema(
       nextAppointment: { type: Date },
       medicines: { type: [medicineSchema], default: [] },
       labTests: { type: [String], default: [] },
+      patientAdvice: { type: String, default: "", trim: true },
       pdfUrl: { type: String, default: "" },
+    },
+    visitedFacility: {
+      type: {
+        locationType: { type: String, enum: ["Clinic", "Hospital"] },
+        locationName: String,
+        locationAddress: String,
+      },
+      default: null,
     },
     payment: {
       amount: { type: Number, required: true, default: 0 },

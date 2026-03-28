@@ -63,7 +63,7 @@ export const generatePrescriptionPdf = (doctor, patient, checkup) => {
           width: 280,
         });
 
-      // Right: MedAlerto branding + date + clinic
+      // Right: MedAlerto branding + date
       doc
         .fontSize(16)
         .font("Helvetica-Bold")
@@ -76,33 +76,53 @@ export const generatePrescriptionPdf = (doctor, patient, checkup) => {
         .fillColor(gray)
         .text(date, 330, 72, { width: 215, align: "right" });
 
-      if (doctor.clinics?.length) {
-        doc
-          .fontSize(9)
-          .fillColor(lightGray)
-          .text(doctor.clinics[0].name, 330, 86, {
-            width: 215,
-            align: "right",
-          });
+      // Get all facilities (clinics + hospitals)
+      const clinics = (doctor.clinics || []).map(c => ({ name: c.name, address: c.address }));
+      const hospitals = (doctor.hospitals || []).map(h => ({ name: h.name, address: h.address }));
+      const visitedFacility = checkup.visitedFacility;
+      
+      let facilitiesY = 86;
+      
+      // Display clinic names
+      if (clinics.length > 0) {
+        clinics.forEach((clinic, idx) => {
+          const isVisitedClinic = visitedFacility && visitedFacility.locationType === "Clinic" && visitedFacility.locationName === clinic.name;
+          doc
+            .fontSize(8)
+            .font(isVisitedClinic ? "Helvetica-Bold" : "Helvetica")
+            .fillColor(isVisitedClinic ? teal : lightGray)
+            .text(`Clinic name: ${clinic.name}`, 330, facilitiesY, {
+              width: 215,
+              align: "right",
+            });
+          facilitiesY += 11;
+        });
+      }
+      
+      // Display hospital names
+      if (hospitals.length > 0) {
+        hospitals.forEach((hospital, idx) => {
+          const isVisitedHospital = visitedFacility && visitedFacility.locationType === "Hospital" && visitedFacility.locationName === hospital.name;
+          doc
+            .fontSize(8)
+            .font(isVisitedHospital ? "Helvetica-Bold" : "Helvetica")
+            .fillColor(isVisitedHospital ? teal : lightGray)
+            .text(`Hospital name: ${hospital.name}`, 330, facilitiesY, {
+              width: 215,
+              align: "right",
+            });
+          facilitiesY += 11;
+        });
+      }
+      
+      // Highlight patient visited facility
+      if (visitedFacility) {
+        facilitiesY += 2;
         doc
           .fontSize(8)
-          .fillColor(lightGray)
-          .text(doctor.clinics[0].address, 330, 100, {
-            width: 215,
-            align: "right",
-          });
-      } else if (doctor.hospitals?.length) {
-        doc
-          .fontSize(9)
-          .fillColor(lightGray)
-          .text(doctor.hospitals[0].name, 330, 86, {
-            width: 215,
-            align: "right",
-          });
-        doc
-          .fontSize(8)
-          .fillColor(lightGray)
-          .text(doctor.hospitals[0].address, 330, 100, {
+          .font("Helvetica-Bold")
+          .fillColor(teal)
+          .text(`Patient visited to ${visitedFacility.locationType.toLowerCase()}: ${visitedFacility.locationName}`, 330, facilitiesY, {
             width: 215,
             align: "right",
           });
@@ -338,6 +358,55 @@ export const generatePrescriptionPdf = (doctor, patient, checkup) => {
         });
 
         currentY += 15;
+      }
+
+      // ══════════════════════════════════════════
+      // PATIENT ADVICE
+      // ══════════════════════════════════════════
+
+      const patientAdvice = String(prescription?.patientAdvice || "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+      if (patientAdvice) {
+        doc
+          .fontSize(7.5)
+          .font("Helvetica-Bold")
+          .fillColor(teal)
+          .text("PATIENT ADVICE", 50, currentY);
+        doc
+          .moveTo(50, currentY + 12)
+          .lineTo(545, currentY + 12)
+          .lineWidth(0.3)
+          .strokeColor("#e2e8f0")
+          .stroke();
+
+        const adviceY = currentY + 18;
+        const adviceHeight = Math.max(
+          44,
+          doc.font("Helvetica").fontSize(10).heightOfString(patientAdvice, {
+            width: W - 24,
+            lineGap: 2,
+          }) + 16,
+        );
+
+        doc
+          .rect(50, adviceY, W, adviceHeight)
+          .fillColor(tealBg)
+          .lineWidth(0.5)
+          .strokeColor(teal)
+          .fillAndStroke();
+
+        doc
+          .fontSize(10)
+          .font("Helvetica")
+          .fillColor(dark)
+          .text(patientAdvice, 62, adviceY + 8, {
+            width: W - 24,
+            lineGap: 2,
+          });
+
+        currentY = adviceY + adviceHeight + 15;
       }
 
       // ══════════════════════════════════════════

@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import { Skeleton } from "@mui/material";
 
-export default function PrescriptionModal({ checkup, patient, onClose, onSaved }) {
+export default function PrescriptionModal({ checkup, patient, onClose, onSaved, autoGenerateOnOpen = false }) {
   const [pdfBase64, setPdfBase64] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -19,9 +19,9 @@ export default function PrescriptionModal({ checkup, patient, onClose, onSaved }
     return new Blob([byteArray], { type: "application/pdf" });
   };
 
-  // Generate a fresh PDF on mount so regenerate always reflects latest edits.
+  // Keep view-only opens read-only. Auto-generate only when explicitly requested.
   useEffect(() => {
-    if (!checkup?._id) return;
+    if (!checkup?._id || !autoGenerateOnOpen) return;
 
     let cancelled = false;
     const generate = async () => {
@@ -61,7 +61,7 @@ export default function PrescriptionModal({ checkup, patient, onClose, onSaved }
     generate();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [checkup?._id]);
+  }, [checkup?._id, autoGenerateOnOpen]);
 
   const handleDownload = async () => {
     const filename = `prescription_${patient?.name?.replace(/\s+/g, "_") || "patient"}_${new Date().toISOString().split("T")[0]}.pdf`;
@@ -212,8 +212,8 @@ export default function PrescriptionModal({ checkup, patient, onClose, onSaved }
           ) : (
             <div className="flex flex-col items-center justify-center py-8">
               <span className="text-4xl mb-3">❌</span>
-              <p className="text-sm font-semibold text-[var(--color-text-primary)]">Failed to generate prescription</p>
-              <p className="text-xs mt-1 text-[var(--color-text-secondary)]">Please try again</p>
+              <p className="text-sm font-semibold text-[var(--color-text-primary)]">No prescription PDF available</p>
+              <p className="text-xs mt-1 text-[var(--color-text-secondary)]">Generate a prescription first</p>
             </div>
           )}
         </div>

@@ -73,7 +73,7 @@ export const getCheckup = async (req, res) => {
 
 export const addCheckup = async (req, res) => {
   try {
-    const { diseases, notes, prescription,payment } = req.body;
+    const { diseases, notes, prescription, payment, visitedFacility } = req.body;
     const patientId = req.params.id;
     const patient = await Patient.findOne({
       _id: patientId,
@@ -108,6 +108,7 @@ export const addCheckup = async (req, res) => {
       notes,
       prescription,
       payment,
+      visitedFacility,
     });
     await checkup.save();
     res.status(201).json({ message: "Checkup added successfully", checkup });
@@ -137,13 +138,14 @@ export const deleteCheckup = async (req, res) => {
 };
 export const updateCheckup = async (req, res) => {
   try {
-    const { diseases, notes, prescription, payment } = req.body;
+    const { diseases, notes, prescription, payment, visitedFacility } = req.body;
     const checkup = await Checkup.findOne({ _id: req.params.id, doctor: req.doctorId });
     if (!checkup) {
       return res.status(404).json({ message: "Checkup not found" });
     }
     if (diseases !== undefined) checkup.diseases = diseases;
     if (notes !== undefined) checkup.notes = notes;
+    if (visitedFacility !== undefined) checkup.visitedFacility = visitedFacility;
     if (prescription !== undefined) {
       const nextAppointmentValidation = validateNextAppointmentDate(prescription.nextAppointment);
       if (!nextAppointmentValidation.valid) {
@@ -155,10 +157,26 @@ export const updateCheckup = async (req, res) => {
       if (prescription.nextAppointment !== undefined) checkup.prescription.nextAppointment = prescription.nextAppointment;
       if (prescription.medicines !== undefined) checkup.prescription.medicines = prescription.medicines;
       if (prescription.labTests !== undefined) checkup.prescription.labTests = prescription.labTests;
+      if (prescription.patientAdvice !== undefined) checkup.prescription.patientAdvice = prescription.patientAdvice;
       if (prescription.pdfUrl !== undefined) checkup.prescription.pdfUrl = prescription.pdfUrl;
       checkup.markModified("prescription");
     }
-    if (payment !== undefined) checkup.payment = payment;
+    if (payment !== undefined) {
+      if (payment.amount === undefined || payment.amount === null) {
+        return res.status(400).json({ message: "Payment amount is required" });
+      }
+      if (!payment.method) {
+        return res.status(400).json({ message: "Payment method is required" });
+      }
+
+      // Merge payment fields explicitly and mark modified so fee updates are always persisted.
+      checkup.payment.amount = payment.amount;
+      checkup.payment.method = payment.method;
+      if (typeof payment.isPaid !== "undefined") {
+        checkup.payment.isPaid = payment.isPaid;
+      }
+      checkup.markModified("payment");
+    }
     await checkup.save();
     res.status(200).json({ message: "Checkup updated successfully", checkup });
   } catch (error) {
