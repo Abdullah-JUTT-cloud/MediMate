@@ -18,14 +18,24 @@ const sendAppointmentWhatsApp = async (patient, appointment, message) => {
   }
 };
 
-const formatAppointmentMessage = (patientName, date, slot, type, doctorName, facilityName, facilityType) => {
+const formatAppointmentMessage = (
+  patientName,
+  date,
+  slot,
+  type,
+  doctorName,
+  facilityName,
+  facilityType,
+) => {
   const formattedDate = new Date(date).toLocaleDateString("en-PK", {
     weekday: "long",
     day: "numeric",
     month: "long",
     year: "numeric",
   });
-  const facility = facilityName ? `${facilityType === "Clinic" ? "Clinic" : "Hospital"}: ${facilityName}` : "";
+  const facility = facilityName
+    ? `${facilityType === "Clinic" ? "Clinic" : "Hospital"}: ${facilityName}`
+    : "";
   return `Dear ${patientName},\n\nYour appointment is confirmed with Dr. ${doctorName}\nDate: ${formattedDate}\nTime: ${slot}\nType: ${type}\n${facility}\n\nSee you soon! - MedAlerto`;
 };
 
@@ -128,7 +138,12 @@ export const createAppointment = async (req, res) => {
     });
 
     if (activeCount >= MAX_APPOINTMENTS_PER_SLOT) {
-      return res.status(409).json({ message: "This slot has reached the maximum capacity (3 appointments)" });
+      return res
+        .status(409)
+        .json({
+          message:
+            "This slot has reached the maximum capacity (3 appointments)",
+        });
     }
 
     const appointment = new Appointment({
@@ -142,11 +157,22 @@ export const createAppointment = async (req, res) => {
     await appointment.save();
 
     const doctor = await Doctor.findById(req.doctorId);
-    const facilityName = type === "Clinic" ? doctor?.clinics?.[0]?.name : doctor?.hospitals?.[0]?.name;
+    const facilityName =
+      type === "Clinic"
+        ? doctor?.clinics?.[0]?.name
+        : doctor?.hospitals?.[0]?.name;
     const facilityType = type === "Clinic" ? "Clinic" : "Hospital";
 
     const populated = await appointment.populate("patient", "name phone age");
-    const msg = formatAppointmentMessage(patient.name, date, slot, type, doctor?.fullName || "Doctor", facilityName, facilityType);
+    const msg = formatAppointmentMessage(
+      patient.name,
+      date,
+      slot,
+      type,
+      doctor?.fullName || "Doctor",
+      facilityName,
+      facilityType,
+    );
     await sendAppointmentWhatsApp(patient, appointment, msg);
 
     res.status(201).json({
@@ -156,7 +182,12 @@ export const createAppointment = async (req, res) => {
   } catch (error) {
     console.error("[createAppointment]", error);
     if (error?.code === 11000) {
-      return res.status(409).json({ message: "This slot has reached the maximum capacity (3 appointments)" });
+      return res
+        .status(409)
+        .json({
+          message:
+            "This slot has reached the maximum capacity (3 appointments)",
+        });
     }
     res.status(500).json({ message: "Internal server error" });
   }
@@ -181,10 +212,12 @@ export const updateAppointment = async (req, res) => {
 
     const nextDate = typeof date !== "undefined" ? date : appointment.date;
     const nextSlot = typeof slot !== "undefined" ? slot : appointment.slot;
-    const nextStatus = typeof status !== "undefined" ? status : appointment.status;
+    const nextStatus =
+      typeof status !== "undefined" ? status : appointment.status;
     const wasActive = !INACTIVE_STATUSES.includes(appointment.status);
     const willBeActive = !INACTIVE_STATUSES.includes(nextStatus);
-    const dateOrSlotChanged = typeof date !== "undefined" || typeof slot !== "undefined";
+    const dateOrSlotChanged =
+      typeof date !== "undefined" || typeof slot !== "undefined";
 
     // Re-check capacity if slot changes or this appointment is becoming active.
     if ((dateOrSlotChanged || (!wasActive && willBeActive)) && willBeActive) {
@@ -196,7 +229,12 @@ export const updateAppointment = async (req, res) => {
         status: { $nin: INACTIVE_STATUSES },
       });
       if (activeCount >= MAX_APPOINTMENTS_PER_SLOT) {
-        return res.status(400).json({ message: "This slot has reached the maximum capacity (3 appointments)" });
+        return res
+          .status(400)
+          .json({
+            message:
+              "This slot has reached the maximum capacity (3 appointments)",
+          });
       }
     }
 
@@ -205,7 +243,8 @@ export const updateAppointment = async (req, res) => {
     if (slot) appointment.slot = slot;
     if (type) appointment.type = type;
     if (typeof notes !== "undefined") appointment.notes = notes;
-    if (typeof emergencyCancelled !== "undefined") appointment.emergencyCancelled = emergencyCancelled;
+    if (typeof emergencyCancelled !== "undefined")
+      appointment.emergencyCancelled = emergencyCancelled;
 
     // Allow reminder to be recalculated after rescheduling.
     if (typeof date !== "undefined" || typeof slot !== "undefined") {
@@ -218,7 +257,10 @@ export const updateAppointment = async (req, res) => {
 
     await appointment.save();
 
-    const populated = await Appointment.findById(id).populate("patient", "name phone age");
+    const populated = await Appointment.findById(id).populate(
+      "patient",
+      "name phone age",
+    );
     if (date || slot) {
       const msg = formatAppointmentMessage(
         populated.patient.name,
@@ -236,7 +278,12 @@ export const updateAppointment = async (req, res) => {
   } catch (error) {
     console.error("[updateAppointment]", error);
     if (error?.code === 11000) {
-      return res.status(409).json({ message: "This slot has reached the maximum capacity (3 appointments)" });
+      return res
+        .status(409)
+        .json({
+          message:
+            "This slot has reached the maximum capacity (3 appointments)",
+        });
     }
     res.status(500).json({ message: "Internal server error" });
   }
@@ -265,7 +312,9 @@ export const emergencyCancel = async (req, res) => {
   try {
     const { startDate, startTime, endDate, endTime } = req.body;
     if (!startDate || !startTime || !endDate || !endTime) {
-      return res.status(400).json({ message: "Start date/time and end date/time are required" });
+      return res
+        .status(400)
+        .json({ message: "Start date/time and end date/time are required" });
     }
 
     const start = new Date(`${startDate}T${startTime}:00Z`);
@@ -275,7 +324,9 @@ export const emergencyCancel = async (req, res) => {
       return res.status(400).json({ message: "Invalid date/time format" });
     }
     if (start > end) {
-      return res.status(400).json({ message: "Start datetime must be before end datetime" });
+      return res
+        .status(400)
+        .json({ message: "Start datetime must be before end datetime" });
     }
 
     const startDay = new Date(`${startDate}T00:00:00Z`);
@@ -294,18 +345,32 @@ export const emergencyCancel = async (req, res) => {
       const startMinutesSinceMidnight = startHour * 60 + startMin;
       const [endHour, endMin] = endTime.split(":").map(Number);
       const endMinutesSinceMidnight = endHour * 60 + endMin;
-      return aptMinutesSinceMidnight >= startMinutesSinceMidnight && aptMinutesSinceMidnight <= endMinutesSinceMidnight;
+      return (
+        aptMinutesSinceMidnight >= startMinutesSinceMidnight &&
+        aptMinutesSinceMidnight <= endMinutesSinceMidnight
+      );
     });
 
     if (toCancel.length === 0) {
-      return res.status(200).json({ message: "0 appointment(s) cancelled successfully", cancelledAppointments: [] });
+      return res
+        .status(200)
+        .json({
+          message: "0 appointment(s) cancelled successfully",
+          cancelledAppointments: [],
+        });
     }
 
     // Single atomic write — replaces the sequential per-document save loop
     const cancelIds = toCancel.map((a) => a._id);
     await Appointment.updateMany(
       { _id: { $in: cancelIds } },
-      { $set: { status: "Cancelled", emergencyCancelled: true, reminderSent: true } }
+      {
+        $set: {
+          status: "Cancelled",
+          emergencyCancelled: true,
+          reminderSent: true,
+        },
+      },
     );
 
     // Re-fetch with updated status for the response and WhatsApp messages
@@ -318,16 +383,22 @@ export const emergencyCancel = async (req, res) => {
 
     for (const appointment of toCancel) {
       try {
-        const formattedDate = new Date(appointment.date).toLocaleDateString("en-PK", {
-          weekday: "long",
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        });
+        const formattedDate = new Date(appointment.date).toLocaleDateString(
+          "en-PK",
+          {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          },
+        );
         const msg = `Dear ${appointment.patient.name}, your appointment on ${formattedDate} at ${appointment.slot} has been cancelled due to an emergency. We apologize for the inconvenience. - MedAlerto`;
         await sendAppointmentWhatsApp(appointment.patient, appointment, msg);
       } catch (error) {
-        console.error(`WhatsApp send failed for appointment ${appointment._id}:`, error.message);
+        console.error(
+          `WhatsApp send failed for appointment ${appointment._id}:`,
+          error.message,
+        );
       }
     }
 
@@ -357,11 +428,16 @@ export const sendRescheduleWhatsApp = async (req, res) => {
       return res.status(404).json({ message: "Appointment not found" });
     }
     if (!appointment.patient?.phone) {
-      return res.status(400).json({ message: "Patient phone number not found" });
+      return res
+        .status(400)
+        .json({ message: "Patient phone number not found" });
     }
 
     const doctor = await Doctor.findById(req.doctorId);
-    const facilityName = appointment.type === "Clinic" ? doctor?.clinics?.[0]?.name : doctor?.hospitals?.[0]?.name;
+    const facilityName =
+      appointment.type === "Clinic"
+        ? doctor?.clinics?.[0]?.name
+        : doctor?.hospitals?.[0]?.name;
     const facilityType = appointment.type === "Clinic" ? "Clinic" : "Hospital";
 
     const msg = `Dear ${appointment.patient.name},\n\nYour appointment with Dr. ${doctor?.fullName || "Doctor"} was cancelled due to an emergency.\n${facilityType}: ${facilityName}\n\nPlease wait while we reschedule your appointment.\n\nWe apologize for the inconvenience. - MedAlerto`;
