@@ -474,8 +474,11 @@ export default function SignupPage() {
       <div className="relative mx-auto w-full max-w-3xl">
 
         {/* Logo */}
-        <div className="flex justify-center mb-6">
+        <div className="mb-6 flex flex-col items-center gap-3">
           <img src={logo} alt="MedAlerto" className="h-10" />
+          <span className="bg-gradient-to-r from-[var(--color-primary)] via-cyan-400 to-emerald-400 bg-clip-text text-lg font-black tracking-[0.3em] text-transparent sm:text-xl">
+            MEDALERTO
+          </span>
         </div>
 
         {/* Header */}

@@ -82,7 +82,12 @@ export default function VerifyResetOtpPage() {
       </div>
 
       <nav className="relative z-10 border-b bg-[var(--color-card)]/90 backdrop-blur">
-        <div className="flex w-full items-center justify-between px-4 py-4 sm:px-8 lg:px-10 xl:px-14">
+        <div className="relative flex w-full items-center justify-between px-4 py-4 sm:px-8 lg:px-10 xl:px-14">
+          <div className="pointer-events-none absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 md:block">
+            <span className="bg-gradient-to-r from-[var(--color-primary)] via-cyan-400 to-emerald-400 bg-clip-text text-xl font-black tracking-[0.34em] text-transparent lg:text-2xl">
+              MEDALERTO
+            </span>
+          </div>
           <button className="flex items-center gap-3" onClick={() => navigate("/")}>
             <img src={logo} alt="MedAlerto" className="h-8 w-auto" />
             <span className="text-sm font-extrabold sm:text-base">MedAlerto</span>
