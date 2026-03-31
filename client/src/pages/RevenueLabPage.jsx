@@ -82,7 +82,9 @@ export default function RevenueLabPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axiosInstance.get("/insights/revenue-lab");
+        const res = await axiosInstance.get("/insights/revenue-lab", {
+          params: { startDate, endDate },
+        });
         setData(res.data);
         setBillingLog(res.data?.billingLog || []);
       } catch {
@@ -92,7 +94,7 @@ export default function RevenueLabPage() {
       }
     };
     fetchData();
-  }, []);
+  }, [startDate, endDate]);
 
   const revenue = data?.revenue || {};
   const trends = revenue?.trends || {};

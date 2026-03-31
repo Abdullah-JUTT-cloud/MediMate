@@ -21,7 +21,7 @@ const navItems = [
   { icon: "📅", label: "Appointments", key: "appointments" },
   { icon: "📊", label: "Insights", key: "insights" },
   { icon: "💹", label: "Revenue Lab", key: "revenue-lab" },
-  { icon: "⚙️", label: "Settings", key: "settings" },
+  { icon: "⚙️", label: "Profile Page", key: "settings" },
 ];
 
 const CustomTooltip = ({ active, payload, label }) => {
@@ -235,8 +235,25 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="flex items-center justify-between px-4 sm:px-6 py-4 shrink-0"
+        <header className="relative flex items-center justify-between px-4 sm:px-6 py-4 shrink-0"
           style={{ background: "var(--color-card)", borderBottom: "1px solid var(--color-border)" }}>
+          <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 hidden md:flex flex-col items-center">
+            <span
+              className="text-base lg:text-lg font-black tracking-[0.28em]"
+              style={{
+                background: "linear-gradient(90deg, #38bdf8 0%, var(--color-primary) 45%, #22d3ee 100%)",
+                WebkitBackgroundClip: "text",
+                backgroundClip: "text",
+                color: "transparent",
+                textShadow: "0 0 28px color-mix(in srgb, var(--color-primary) 40%, transparent)",
+              }}
+            >
+              MEDALERTO
+            </span>
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[var(--color-text-secondary)]">
+              Smart Healthcare Workspace
+            </span>
+          </div>
           <div className="flex items-center gap-3">
             <button className="lg:hidden p-2 rounded-lg transition-colors hover:bg-[var(--color-bg)]" onClick={() => setSidebarOpen(true)}>
               <div className="space-y-1.5">
@@ -253,7 +270,11 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
               🔔
               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[var(--color-primary)]" />
             </button>
-            <div className="flex items-center gap-2 cursor-pointer px-2 py-1.5 rounded-xl transition-colors hover:bg-[var(--color-bg)]">
+            <button
+              type="button"
+              onClick={() => setActiveNav("settings")}
+              className="flex items-center gap-2 cursor-pointer px-2 py-1.5 rounded-xl transition-colors hover:bg-[var(--color-bg)]"
+            >
               <div className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold text-white"
                 style={{ background: "linear-gradient(135deg, var(--color-primary), color-mix(in srgb, var(--color-primary) 80%, black))" }}>
                 {doctor?.profilePicture ? (
@@ -263,7 +284,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                 )}
               </div>
               <span className="text-sm font-medium text-[var(--color-text-primary)] hidden sm:block">{doctor?.fullName?.split(" ")[0] || "Doctor"}</span>
-            </div>
+            </button>
           </div>
         </header>
 

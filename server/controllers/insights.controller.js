@@ -145,6 +145,7 @@ export const getInsights = async (req, res) => {
 };
 
   const PK_WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const APP_TIMEZONE = "Asia/Karachi";
 
   const startOfDay = (d) => {
     const x = new Date(d);
@@ -182,6 +183,19 @@ export const getInsights = async (req, res) => {
       const yearStart = new Date(now.getFullYear(), 0, 1);
       const nonReturningCutoff = new Date(now);
       nonReturningCutoff.setDate(nonReturningCutoff.getDate() - 90);
+
+      const requestedStart = req.query?.startDate ? new Date(req.query.startDate) : null;
+      const requestedEnd = req.query?.endDate ? new Date(req.query.endDate) : null;
+      const hasValidRange =
+        requestedStart instanceof Date &&
+        !Number.isNaN(requestedStart.getTime()) &&
+        requestedEnd instanceof Date &&
+        !Number.isNaN(requestedEnd.getTime()) &&
+        requestedStart <= requestedEnd;
+      const peakRangeStart = hasValidRange ? startOfDay(requestedStart) : monthStart;
+      const peakRangeEnd = hasValidRange
+        ? new Date(requestedEnd.getFullYear(), requestedEnd.getMonth(), requestedEnd.getDate(), 23, 59, 59, 999)
+        : monthEnd;
 
       const doctorId = new mongoose.Types.ObjectId(req.doctorId);
 
@@ -302,12 +316,12 @@ export const getInsights = async (req, res) => {
           {
             $match: {
               doctor: doctorId,
-              createdAt: { $gte: monthStart, $lte: monthEnd },
+              createdAt: { $gte: peakRangeStart, $lte: peakRangeEnd },
             },
           },
           {
             $group: {
-              _id: { $dayOfWeek: "$createdAt" },
+              _id: { $dayOfWeek: { date: "$createdAt", timezone: APP_TIMEZONE } },
               checkups: { $sum: 1 },
             },
           },
@@ -316,13 +330,26 @@ export const getInsights = async (req, res) => {
           {
             $match: {
               doctor: doctorId,
-              date: { $gte: monthStart, $lte: monthEnd },
-              status: { $in: ["Pending", "Confirmed", "Completed"] },
+              date: { $gte: peakRangeStart, $lte: peakRangeEnd },
+            },
+          },
+          {
+            $addFields: {
+              normalizedStatus: {
+                $toLower: {
+                  $trim: { input: { $ifNull: ["$status", "Pending"] } },
+                },
+              },
+            },
+          },
+          {
+            $match: {
+              normalizedStatus: { $nin: ["cancelled", "no-show"] },
             },
           },
           {
             $group: {
-              _id: { $dayOfWeek: "$date" },
+              _id: { $dayOfWeek: { date: "$date", timezone: APP_TIMEZONE } },
               appointments: { $sum: 1 },
             },
           },
