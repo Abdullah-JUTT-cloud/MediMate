@@ -1,6 +1,6 @@
 import express from "express";
 import { verifyToken } from "../middlewares/auth.middleware.js";
-import { getProfile, updateProfile, uploadProfilePicture,uploadPmdcCertificate } from "../controllers/doctor.controller.js";
+import { getProfile, updateProfile, uploadProfilePicture,uploadPmdcCertificate, deleteAccount } from "../controllers/doctor.controller.js";
 import upload, { verifyUploadedFileSignature } from "../middlewares/upload.middleware.js";
 
 const router = express.Router();
@@ -24,5 +24,7 @@ router.post(
   verifyUploadedFileSignature,
   uploadPmdcCertificate,
 );
+
+router.delete("/delete-account", verifyToken, deleteAccount);
 
 export default router;

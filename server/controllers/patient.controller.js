@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 import Patient from "../models/patient.model.js";
+import Appointment from "../models/appointment.model.js";
+import Checkup from "../models/checkup.model.js";
 
 export const getPatients = async (req, res) => {
   try {
@@ -122,11 +124,26 @@ export const deletePatient=async(req,res)=>{
         if (!mongoose.isValidObjectId(id)) {
             return res.status(400).json({ message: "Invalid patient ID" });
         }
-        const patient=await Patient.findOneAndDelete({ _id: id, doctor: req.doctorId });
+        const patient = await Patient.findOne({ _id: id, doctor: req.doctorId });
         if(!patient){
             return res.status(404).json({message:"Patient not found"});
         }
-        res.status(200).json({message:"Patient deleted successfully"});
+
+        const [appointmentsResult, checkupsResult] = await Promise.all([
+            Appointment.deleteMany({ doctor: req.doctorId, patient: id }),
+            Checkup.deleteMany({ doctor: req.doctorId, patient: id }),
+        ]);
+
+        await patient.deleteOne();
+
+        res.status(200).json({
+            message:"Patient and related data deleted successfully",
+            deleted: {
+                patient: 1,
+                appointments: appointmentsResult.deletedCount || 0,
+                checkups: checkupsResult.deletedCount || 0,
+            }
+        });
     } catch (error) {
         res.status(500).json({message:"Internal server error"});
     }

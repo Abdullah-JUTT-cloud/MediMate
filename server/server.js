@@ -20,6 +20,8 @@ import patientRoutes from "./routes/patient.routes.js";
 import checkupRoutes from "./routes/checkup.routes.js";
 import appointmentRoutes from "./routes/appointment.routes.js";
 import prescriptionRoutes from "./routes/prescription.routes.js";
+import reportsRoutes from "./routes/reports.routes.js";
+import billingRoutes from "./routes/billing.routes.js";
 import {startReminderJob} from "./utils/reminderJob.js";
 import insightsRoutes from "./routes/insights.routes.js";
 import helmet from "helmet";
@@ -76,6 +78,8 @@ app.use("/api/patients", dataLimiter, patientRoutes);
 app.use("/api/checkups", dataLimiter, checkupRoutes);
 app.use("/api/appointments", dataLimiter, appointmentRoutes);
 app.use("/api/prescriptions", dataLimiter, prescriptionRoutes);
+app.use("/api/reports", dataLimiter, reportsRoutes);
+app.use("/api/billing", dataLimiter, billingRoutes);
 
  app.use("/api/insights", dataLimiter, insightsRoutes)
 
@@ -84,6 +88,7 @@ connectDB()
     app.listen(PORT,async()=>{
         console.log(`Server is running on port ${PORT}`);
         const { default: _ } = await import("./utils/whatsapp.js");
+        console.log("WhatsApp integration initialized");
     })
     startReminderJob();
 })

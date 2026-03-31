@@ -191,7 +191,7 @@ function LocationCard({ location, index, type, allClinics, allHospitals, onChang
           {type === "clinic" ? "🏥" : "🏨"} {type === "clinic" ? "Clinic" : "Hospital"} {index + 1}
         </span>
         <button onClick={onRemove}
-          className="text-xs px-2.5 py-1.5 rounded-lg transition-all hover:bg-red-500/10 text-red-500 border border-red-500/20">
+          className="text-xs px-2.5 py-1.5 rounded-lg transition-all hover-danger-soft text-red-500 border border-red-500/20">
           Remove
         </button>
       </div>
@@ -247,7 +247,7 @@ function LocationCard({ location, index, type, allClinics, allHospitals, onChang
                   <span className="text-xs px-2 py-1 rounded-lg flex-1 text-center bg-red-500/10 text-red-500">⚠ Overlap</span>
                 )}
                 <button onClick={() => removeSession(si)}
-                  className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:bg-red-500/10 shrink-0 border border-red-500/15 text-red-500">
+                  className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover-danger-soft shrink-0 border border-red-500/15 text-red-500">
                   🗑
                 </button>
               </div>

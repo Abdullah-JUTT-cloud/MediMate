@@ -45,3 +45,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   opacity: 0.95;
   cursor: pointer;
 }
+
+/* Keep danger-action hovers soft and consistent across themes. */
+.hover-danger-soft:hover {
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+}

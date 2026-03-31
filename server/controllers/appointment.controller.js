@@ -5,7 +5,7 @@ import { Doctor } from "../models/doctor.model.js";
 import client from "../utils/whatsapp.js";
 
 const MAX_APPOINTMENTS_PER_SLOT = 3;
-const INACTIVE_STATUSES = ["Cancelled", "Completed"];
+const INACTIVE_STATUSES = ["Cancelled", "No-show", "Completed"];
 
 const sendAppointmentWhatsApp = async (patient, appointment, message) => {
   try {
@@ -200,7 +200,15 @@ export const updateAppointment = async (req, res) => {
       return res.status(400).json({ message: "Invalid appointment ID" });
     }
 
-    const { status, date, slot, type, notes, emergencyCancelled } = req.body;
+    const {
+      status,
+      date,
+      slot,
+      type,
+      notes,
+      emergencyCancelled,
+      cancellationReason,
+    } = req.body;
 
     const appointment = await Appointment.findOne({
       doctor: req.doctorId,
@@ -246,12 +254,22 @@ export const updateAppointment = async (req, res) => {
     if (typeof emergencyCancelled !== "undefined")
       appointment.emergencyCancelled = emergencyCancelled;
 
+    if (typeof cancellationReason !== "undefined") {
+      appointment.cancellationReason = cancellationReason || null;
+    } else if (status === "No-show") {
+      appointment.cancellationReason = "No-show";
+    } else if (status === "Cancelled" && !appointment.cancellationReason) {
+      appointment.cancellationReason = "Patient";
+    } else if (status !== "Cancelled" && status !== "No-show") {
+      appointment.cancellationReason = null;
+    }
+
     // Allow reminder to be recalculated after rescheduling.
     if (typeof date !== "undefined" || typeof slot !== "undefined") {
       appointment.reminderSent = false;
     }
 
-    if (status === "Cancelled" || status === "Completed") {
+    if (status === "Cancelled" || status === "No-show" || status === "Completed") {
       appointment.reminderSent = true;
     }
 
@@ -367,6 +385,7 @@ export const emergencyCancel = async (req, res) => {
       {
         $set: {
           status: "Cancelled",
+          cancellationReason: "Emergency",
           emergencyCancelled: true,
           reminderSent: true,
         },
@@ -377,6 +396,7 @@ export const emergencyCancel = async (req, res) => {
     const cancelledAppointments = toCancel.map((a) => ({
       ...a.toObject(),
       status: "Cancelled",
+      cancellationReason: "Emergency",
       emergencyCancelled: true,
       reminderSent: true,
     }));

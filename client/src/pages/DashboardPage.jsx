@@ -8,15 +8,19 @@ import SettingsPage from "./SettingsPage";
 import PatientsPage from "./PatientsPage";
 import AppointmentsPage from "./AppointmentsPage";
 import InsightsPage from "./InsightsPage";
+import RevenueLabPage from "./RevenueLabPage";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { CardSkeleton, RowSkeleton, AppointmentRowSkeleton, ChartSkeleton } from "../components/SkeletonLoaders";
 import { Skeleton } from "@mui/material";
+import ConfirmDialog from "../components/ConfirmDialog";
+import useConfirmDialog from "../hooks/useConfirmDialog";
 
 const navItems = [
   { icon: "⊞", label: "Dashboard", key: "dashboard" },
   { icon: "👥", label: "Patients", key: "patients" },
   { icon: "📅", label: "Appointments", key: "appointments" },
   { icon: "📊", label: "Insights", key: "insights" },
+  { icon: "💹", label: "Revenue Lab", key: "revenue-lab" },
   { icon: "⚙️", label: "Settings", key: "settings" },
 ];
 
@@ -35,6 +39,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 const getInitials = (name) => name?.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "P";
 
 export default function DashboardPage() {
+  const { confirm, dialogProps } = useConfirmDialog();
   const navigate = useNavigate();
   const { doctor, logout } = useAuthStore();
   const [activeNav, setActiveNav] = useState("dashboard");
@@ -222,7 +227,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
 
         <div className="px-3 py-4 border-t border-[var(--color-border)]">
           <button onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:bg-red-500 hover:bg-opacity-10"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover-danger-soft"
             style={{ color: "var(--color-danger)" }}>
             <span>🚪</span> Logout
           </button>
@@ -266,6 +271,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
           {activeNav === "settings" && <SettingsPage />}
           {activeNav === "patients" && <PatientsPage />}
           {activeNav === "insights" && <InsightsPage />}
+          {activeNav === "revenue-lab" && <RevenueLabPage />}
           {activeNav === "appointments" && (
             <AppointmentsPage
               initialPatient={rescheduleContext?.patient || null}
@@ -333,7 +339,14 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                       const startDateTime = new Date(`${emergencyStartDate}T${emergencyStartTime}:00`);
                       const endDateTime = new Date(`${emergencyEndDate}T${emergencyEndTime}:00`);
                       if (startDateTime > endDateTime) { toast.error("Start date/time must be before end date/time"); return; }
-                      if (!window.confirm(`Cancel ALL appointments from ${emergencyStartDate} ${emergencyStartTime} to ${emergencyEndDate} ${emergencyEndTime}?`)) return;
+                      const confirmed = await confirm({
+                        title: "Emergency Cancel",
+                        message: `Cancel all appointments from ${emergencyStartDate} ${emergencyStartTime} to ${emergencyEndDate} ${emergencyEndTime}?`,
+                        confirmText: "Yes, Cancel All",
+                        cancelText: "Keep Appointments",
+                        tone: "danger",
+                      });
+                      if (!confirmed) return;
                       setIsCancelling(true);
                       try {
                         const res = await axiosInstance.post("/appointments/emergency-cancel", {
@@ -586,7 +599,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
             </>
           )}
 
-          {!["dashboard", "settings", "patients", "appointments", "insights"].includes(activeNav) && (
+          {!["dashboard", "settings", "patients", "appointments", "insights", "revenue-lab"].includes(activeNav) && (
             <div className="flex items-center justify-center h-full">
               <div className="text-center py-20">
                 <div className="text-5xl mb-4">🚧</div>
@@ -597,6 +610,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
           )}
         </main>
       </div>
+      <ConfirmDialog {...dialogProps} />
     </div>
   );
 }

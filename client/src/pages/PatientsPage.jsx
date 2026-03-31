@@ -5,6 +5,8 @@ import useAuthStore from "../store/authStore";
 import PrescriptionModal from "./PrescriptionModal";
 import { RowSkeleton, ProfileHeaderSkeleton, FormFieldSkeleton } from "../components/SkeletonLoaders";
 import { Skeleton } from "@mui/material";
+import ConfirmDialog from "../components/ConfirmDialog";
+import useConfirmDialog from "../hooks/useConfirmDialog";
 
 const BLOOD_GROUPS = ["A+","A-","B+","B-","AB+","AB-","O+","O-","Unknown"];
 const GENDERS = ["Male","Female","Other"];
@@ -338,7 +340,7 @@ function CheckupForm({ patient, existingCheckup, onBack, onSaved }) {
                         💊 Medicine {i + 1}
                       </span>
                       <button onClick={() => removeMedicine(i)}
-                        className="text-xs px-2 py-1 rounded-lg transition-all hover:bg-red-500 hover:bg-opacity-10"
+                        className="text-xs px-2 py-1 rounded-lg transition-all hover-danger-soft"
                         style={{ color: "var(--color-danger)" }}>Remove</button>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -479,7 +481,7 @@ function CheckupForm({ patient, existingCheckup, onBack, onSaved }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // PATIENT DETAIL PAGE
 // ══════════════════════════════════════════════════════════════════════════════
-function PatientDetailPage({ patient: initialPatient, onBack, onNewCheckup, onEditCheckup, refreshTrigger }) {
+function PatientDetailPage({ patient: initialPatient, onBack, onNewCheckup, onEditCheckup, refreshTrigger, confirmAction }) {
   const [patient, setPatient] = useState(initialPatient);
   const [checkups, setCheckups] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -517,7 +519,14 @@ function PatientDetailPage({ patient: initialPatient, onBack, onNewCheckup, onEd
   };
 
   const handleDeleteCheckup = async (checkupId) => {
-    if (!window.confirm("Delete this checkup?")) return;
+    const confirmed = await confirmAction({
+      title: "Delete Checkup",
+      message: "This checkup record will be permanently deleted.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      tone: "danger",
+    });
+    if (!confirmed) return;
     try {
       await axiosInstance.delete(`/checkups/${checkupId}`);
       setCheckups((p) => p.filter((c) => c._id !== checkupId));
@@ -830,7 +839,7 @@ function PatientDetailPage({ patient: initialPatient, onBack, onNewCheckup, onEd
                   ✏️ Edit Checkup
                 </button>
                 <button onClick={() => handleDeleteCheckup(checkup._id)}
-                  className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl transition-all hover:bg-red-500 hover:bg-opacity-10"
+                  className="flex items-center gap-1.5 text-xs px-3 py-2 rounded-xl transition-all hover-danger-soft"
                   style={{ color: "var(--color-danger)", border: "1px solid color-mix(in srgb, var(--color-danger) 22%, transparent)" }}>
                   🗑 Delete
                 </button>
@@ -973,6 +982,7 @@ function AddPatientForm({ onBack, onAdded }) {
 // PATIENTS LIST
 // ══════════════════════════════════════════════════════════════════════════════
 export default function PatientsPage() {
+  const { confirm, dialogProps } = useConfirmDialog();
   const [view, setView] = useState("list");
   const [patients, setPatients] = useState([]);
   const [patientsTotal, setPatientsTotal] = useState(0);
@@ -1009,7 +1019,14 @@ export default function PatientsPage() {
 
   const handleDeletePatient = async (id, e) => {
     e.stopPropagation();
-    if (!window.confirm("Delete this patient?")) return;
+    const confirmed = await confirm({
+      title: "Delete Patient",
+      message: "This will remove the patient and all linked records.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      tone: "danger",
+    });
+    if (!confirmed) return;
     try {
       await axiosInstance.delete(`/patients/${id}`);
       setPatients((p) => p.filter((pt) => pt._id !== id));
@@ -1018,30 +1035,41 @@ export default function PatientsPage() {
   };
 
   if (view === "add") return (
-    <AddPatientForm onBack={() => setView("list")}
-      onAdded={(p) => { setPatients((prev) => [p, ...prev]); setView("list"); }} />
+    <>
+      <AddPatientForm onBack={() => setView("list")}
+        onAdded={(p) => { setPatients((prev) => [p, ...prev]); setView("list"); }} />
+      <ConfirmDialog {...dialogProps} />
+    </>
   );
 
   if (view === "detail" && activePatient) return (
-    <PatientDetailPage
-      patient={activePatient}
-      onBack={() => setView("list")}
-      onNewCheckup={() => { setEditingCheckup(null); setView("checkup"); }}
-      onEditCheckup={(checkup) => { setEditingCheckup(checkup); setView("checkup"); }}
-      refreshTrigger={refreshTrigger}
-    />
+    <>
+      <PatientDetailPage
+        patient={activePatient}
+        onBack={() => setView("list")}
+        onNewCheckup={() => { setEditingCheckup(null); setView("checkup"); }}
+        onEditCheckup={(checkup) => { setEditingCheckup(checkup); setView("checkup"); }}
+        refreshTrigger={refreshTrigger}
+        confirmAction={confirm}
+      />
+      <ConfirmDialog {...dialogProps} />
+    </>
   );
 
   if (view === "checkup" && activePatient) return (
-    <CheckupForm
-      patient={activePatient}
-      existingCheckup={editingCheckup}
-      onBack={() => setView("detail")}
-      onSaved={() => { setRefreshTrigger(p => p + 1); setView("detail"); }}
-    />
+    <>
+      <CheckupForm
+        patient={activePatient}
+        existingCheckup={editingCheckup}
+        onBack={() => setView("detail")}
+        onSaved={() => { setRefreshTrigger(p => p + 1); setView("detail"); }}
+      />
+      <ConfirmDialog {...dialogProps} />
+    </>
   );
 
   return (
+    <>
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
@@ -1110,7 +1138,7 @@ export default function PatientsPage() {
                   )}
                 </div>
                 <button onClick={(e) => handleDeletePatient(patient._id, e)}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-red-500 hover:bg-opacity-15 flex-shrink-0"
+                  className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover-danger-soft flex-shrink-0"
                   style={{ color: "var(--color-danger)", border: "1px solid color-mix(in srgb, var(--color-danger) 28%, transparent)" }}>🗑</button>
               </div>
 
@@ -1132,7 +1160,7 @@ export default function PatientsPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-[var(--color-text-secondary)]">{formatDate(patient.createdAt)}</span>
                   <button onClick={(e) => handleDeletePatient(patient._id, e)}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 hover:bg-red-500 hover:bg-opacity-15"
+                    className="w-8 h-8 rounded-lg flex items-center justify-center transition-all opacity-0 group-hover:opacity-100 hover-danger-soft"
                     style={{ color: "var(--color-danger)", border: "1px solid color-mix(in srgb, var(--color-danger) 28%, transparent)" }}>🗑</button>
                 </div>
               </div>
@@ -1141,5 +1169,7 @@ export default function PatientsPage() {
         )}
       </div>
     </div>
+    <ConfirmDialog {...dialogProps} />
+    </>
   );
 }

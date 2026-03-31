@@ -1,6 +1,9 @@
 import { Doctor } from "../models/doctor.model.js";
 import cloudinary from "../config/cloudinary.js";
 import { allowedImageMimeTypes } from "../middlewares/upload.middleware.js";
+import Patient from "../models/patient.model.js";
+import Appointment from "../models/appointment.model.js";
+import Checkup from "../models/checkup.model.js";
 export const getProfile = async (req, res) => {
   try {
     const doctor = await Doctor.findById(req.doctorId).select(
@@ -169,4 +172,35 @@ export const uploadPmdcCertificate = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 }
+
+export const deleteAccount = async (req, res) => {
+  try {
+    const doctor = await Doctor.findById(req.doctorId);
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    const [appointmentsResult, checkupsResult, patientsResult] = await Promise.all([
+      Appointment.deleteMany({ doctor: req.doctorId }),
+      Checkup.deleteMany({ doctor: req.doctorId }),
+      Patient.deleteMany({ doctor: req.doctorId }),
+    ]);
+
+    await doctor.deleteOne();
+    res.clearCookie("token");
+
+    return res.status(200).json({
+      message: "Doctor account and all related data deleted successfully",
+      deleted: {
+        doctor: 1,
+        patients: patientsResult.deletedCount || 0,
+        appointments: appointmentsResult.deletedCount || 0,
+        checkups: checkupsResult.deletedCount || 0,
+      },
+    });
+  } catch (error) {
+    console.error("[deleteAccount]", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
   

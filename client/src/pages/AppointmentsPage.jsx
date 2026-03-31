@@ -4,17 +4,21 @@ import axiosInstance from "../api/axios";
 import useAuthStore from "../store/authStore";
 import { RowSkeleton, AppointmentRowSkeleton, FormFieldSkeleton } from "../components/SkeletonLoaders";
 import { Skeleton } from "@mui/material";
+import ConfirmDialog from "../components/ConfirmDialog";
+import useConfirmDialog from "../hooks/useConfirmDialog";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const APPOINTMENT_TYPES = ["Consultation", "Follow-up", "Check-up", "Emergency"];
-const STATUSES = ["Pending", "Confirmed", "Completed", "Cancelled"];
+const STATUSES = ["Pending", "Confirmed", "Completed", "Cancelled", "No-show"];
+const CANCELLATION_REASONS = ["Patient", "Doctor", "Emergency", "No-show"];
 
 const STATUS_STYLES = {
   Pending:   { bg: "rgba(245,158,11,0.1)",  border: "rgba(245,158,11,0.2)",  color: "#f59e0b" },
   Confirmed: { bg: "color-mix(in srgb, var(--color-primary) 12%, transparent)",  border: "color-mix(in srgb, var(--color-primary) 24%, transparent)",  color: "var(--color-primary)" },
   Completed: { bg: "rgba(34,197,94,0.1)",   border: "rgba(34,197,94,0.2)",   color: "#22c55e" },
   Cancelled: { bg: "color-mix(in srgb, var(--color-danger) 12%, transparent)",   border: "color-mix(in srgb, var(--color-danger) 24%, transparent)",   color: "var(--color-danger)" },
+  "No-show": { bg: "rgba(239,68,68,0.12)", border: "rgba(239,68,68,0.28)", color: "#ef4444" },
 };
 
 const TYPE_ICONS = {
@@ -89,15 +93,30 @@ function StatusBadge({ status }) {
 // APPOINTMENT DETAIL PAGE
 // ══════════════════════════════════════════════════════════════════════════════
 
-function AppointmentDetailPage({ appointment, onBack, onUpdated, onDeleted }) {
+function AppointmentDetailPage({ appointment, onBack, onUpdated, onDeleted, confirmAction }) {
   const [status, setStatus] = useState(appointment.status);
   const [notes, setNotes] = useState(appointment.notes || "");
+  const [cancellationReason, setCancellationReason] = useState(
+    appointment.cancellationReason || (appointment.status === "No-show" ? "No-show" : "")
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSave = async () => {
     setIsLoading(true);
     try {
-      const res = await axiosInstance.put(`/appointments/${appointment._id}`, { status, notes });
+      const payload = {
+        status,
+        notes,
+      };
+
+      if (status === "Cancelled" || status === "No-show") {
+        payload.cancellationReason =
+          cancellationReason || (status === "No-show" ? "No-show" : "Patient");
+      } else {
+        payload.cancellationReason = null;
+      }
+
+      const res = await axiosInstance.put(`/appointments/${appointment._id}`, payload);
       toast.success("Appointment updated");
       onUpdated(res.data.appointment);
     } catch {
@@ -108,7 +127,14 @@ function AppointmentDetailPage({ appointment, onBack, onUpdated, onDeleted }) {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm("Delete this appointment?")) return;
+    const confirmed = await confirmAction({
+      title: "Delete Appointment",
+      message: "This appointment will be permanently removed.",
+      confirmText: "Delete",
+      cancelText: "Cancel",
+      tone: "danger",
+    });
+    if (!confirmed) return;
     if (isLoading) return;
     setIsLoading(true);
     try {
@@ -153,6 +179,7 @@ function AppointmentDetailPage({ appointment, onBack, onUpdated, onDeleted }) {
             { label: "Date", value: formatDate(appointment.date) },
             { label: "Time Slot", value: appointment.slot },
             { label: "Type", value: appointment.type },
+            { label: "Reason", value: appointment.cancellationReason || "—" },
           ].map(({ label, value }) => (
             <div key={label} className="p-3 rounded-xl" style={S.section}>
               <p className="text-xs mb-1 text-[var(--color-text-secondary)]">{label}</p>
@@ -182,6 +209,37 @@ function AppointmentDetailPage({ appointment, onBack, onUpdated, onDeleted }) {
           })}
         </div>
 
+        {(status === "Cancelled" || status === "No-show") && (
+          <>
+            <SectionLabel text="Cancellation Reason" />
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+              {CANCELLATION_REASONS.map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setCancellationReason(r)}
+                  className="py-2.5 rounded-xl text-xs font-bold transition-all"
+                  style={{
+                    background:
+                      cancellationReason === r
+                        ? "color-mix(in srgb, var(--color-danger) 12%, transparent)"
+                        : "var(--color-bg)",
+                    border:
+                      cancellationReason === r
+                        ? "1px solid color-mix(in srgb, var(--color-danger) 35%, transparent)"
+                        : "1px solid var(--color-border)",
+                    color:
+                      cancellationReason === r
+                        ? "var(--color-danger)"
+                        : "var(--color-text-secondary)",
+                  }}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
         <SectionLabel text="Notes" />
         <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
           placeholder="Add notes about this appointment..."
@@ -195,7 +253,7 @@ function AppointmentDetailPage({ appointment, onBack, onUpdated, onDeleted }) {
             {isLoading ? "Saving..." : "Save Changes ✓"}
           </button>
           <button onClick={handleDelete} disabled={isLoading}
-            className="px-4 py-3 rounded-xl text-sm font-bold transition-all hover:bg-red-500 hover:bg-opacity-10"
+            className="px-4 py-3 rounded-xl text-sm font-bold transition-all hover-danger-soft"
             style={{ color: "var(--color-danger)", border: "1px solid color-mix(in srgb, var(--color-danger) 30%, transparent)" }}>
             🗑 Delete
           </button>
@@ -344,7 +402,7 @@ function BookAppointmentForm({
         const res = await axiosInstance.get(`/appointments?${params.toString()}`);
         setBookedSlots(
           res.data.appointments
-            .filter((a) => !["Cancelled", "Completed"].includes(a.status))
+            .filter((a) => !["Cancelled", "No-show", "Completed"].includes(a.status))
             .map((a) => a.slot)
         );
       } catch {
@@ -364,7 +422,10 @@ function BookAppointmentForm({
     try {
       const res = await axiosInstance.post("/appointments", {
         patientId: selectedPatient._id,
-        date, slot: selectedSlot, type, notes,
+        date,
+        slot: selectedSlot,
+        type,
+        notes,
       });
       if (rescheduleCancelledAppointmentId && onEmergencyRescheduleComplete) {
         await onEmergencyRescheduleComplete(rescheduleCancelledAppointmentId);
@@ -570,6 +631,7 @@ export default function AppointmentsPage({
   rescheduleCancelledAppointmentId = null,
   onEmergencyRescheduleComplete,
 }) {
+  const { confirm, dialogProps } = useConfirmDialog();
   const [view, setView] = useState("list");
   const [appointments, setAppointments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -577,6 +639,8 @@ export default function AppointmentsPage({
   const [dateFilter, setDateFilter] = useState("");
   const [activeAppointment, setActiveAppointment] = useState(null);
   const [preSelectedPatient, setPreSelectedPatient] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const fetchAppointments = useCallback(async () => {
     setIsLoading(true);
@@ -594,6 +658,11 @@ export default function AppointmentsPage({
   }, [activeFilter, dateFilter]);
 
   useEffect(() => { fetchAppointments(); }, [fetchAppointments]);
+
+  useEffect(() => {
+    // Keep selection in sync when list changes by filter/date.
+    setSelectedIds((prev) => prev.filter((id) => appointments.some((a) => a._id === id)));
+  }, [appointments]);
 
   useEffect(() => {
     if (initialPatient) {
@@ -617,25 +686,84 @@ export default function AppointmentsPage({
     setView("list");
   };
 
+  const toggleSelected = (id) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAllVisible = () => {
+    if (appointments.length === 0) return;
+    if (selectedIds.length === appointments.length) {
+      setSelectedIds([]);
+      return;
+    }
+    setSelectedIds(appointments.map((a) => a._id));
+  };
+
+  const runBulkStatusUpdate = async (status) => {
+    if (selectedIds.length === 0) {
+      toast.error("Select at least one appointment first");
+      return;
+    }
+
+    let cancellationReason = null;
+
+    if (status === "No-show") {
+      cancellationReason = "No-show";
+    }
+
+    if (status === "Cancelled") {
+      cancellationReason = "Patient";
+    }
+
+    setBulkLoading(true);
+    try {
+      await Promise.all(
+        selectedIds.map((id) =>
+          axiosInstance.put(`/appointments/${id}`, {
+            status,
+            cancellationReason,
+          })
+        )
+      );
+      toast.success(`Updated ${selectedIds.length} appointment(s)`);
+      setSelectedIds([]);
+      await fetchAppointments();
+    } catch {
+      toast.error("Bulk update failed");
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
   if (view === "book") return (
-    <BookAppointmentForm
-      onBack={() => setView("list")}
-      onBooked={handleBooked}
-      preSelectedPatient={preSelectedPatient}
-      rescheduleCancelledAppointmentId={rescheduleCancelledAppointmentId}
-      onEmergencyRescheduleComplete={onEmergencyRescheduleComplete}
-    />
+    <>
+      <BookAppointmentForm
+        onBack={() => setView("list")}
+        onBooked={handleBooked}
+        preSelectedPatient={preSelectedPatient}
+        rescheduleCancelledAppointmentId={rescheduleCancelledAppointmentId}
+        onEmergencyRescheduleComplete={onEmergencyRescheduleComplete}
+      />
+      <ConfirmDialog {...dialogProps} />
+    </>
   );
   if (view === "detail" && activeAppointment) return (
-    <AppointmentDetailPage
-      appointment={activeAppointment}
-      onBack={() => setView("list")}
-      onUpdated={handleUpdated}
-      onDeleted={handleDeleted}
-    />
+    <>
+      <AppointmentDetailPage
+        appointment={activeAppointment}
+        onBack={() => setView("list")}
+        onUpdated={handleUpdated}
+        onDeleted={handleDeleted}
+        confirmAction={confirm}
+      />
+      <ConfirmDialog {...dialogProps} />
+    </>
   );
 
   return (
+    <>
     <div>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
@@ -680,12 +808,63 @@ export default function AppointmentsPage({
         </div>
       </div>
 
+      {selectedIds.length > 0 && (
+        <div className="mb-4 p-3 rounded-xl flex flex-wrap items-center gap-2"
+          style={{ background: "color-mix(in srgb, var(--color-primary) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--color-primary) 25%, transparent)" }}>
+          <p className="text-xs font-semibold text-[var(--color-text-primary)]">
+            {selectedIds.length} selected
+          </p>
+          <button
+            onClick={() => runBulkStatusUpdate("Confirmed")}
+            disabled={bulkLoading}
+            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold"
+            style={{ background: "rgba(16,184,129,0.14)", color: "#10b981", border: "1px solid rgba(16,184,129,0.35)" }}>
+            {bulkLoading ? "Saving..." : "Mark Confirmed"}
+          </button>
+          <button
+            onClick={() => runBulkStatusUpdate("Completed")}
+            disabled={bulkLoading}
+            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold"
+            style={{ background: "rgba(34,197,94,0.14)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.35)" }}>
+            {bulkLoading ? "Saving..." : "Mark Completed"}
+          </button>
+          <button
+            onClick={() => runBulkStatusUpdate("No-show")}
+            disabled={bulkLoading}
+            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold"
+            style={{ background: "rgba(239,68,68,0.14)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.35)" }}>
+            {bulkLoading ? "Saving..." : "Mark No-show"}
+          </button>
+          <button
+            onClick={() => runBulkStatusUpdate("Cancelled")}
+            disabled={bulkLoading}
+            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold"
+            style={{ background: "color-mix(in srgb, var(--color-danger) 14%, transparent)", color: "var(--color-danger)", border: "1px solid color-mix(in srgb, var(--color-danger) 35%, transparent)" }}>
+            {bulkLoading ? "Saving..." : "Mark Cancelled"}
+          </button>
+          <button
+            onClick={() => setSelectedIds([])}
+            disabled={bulkLoading}
+            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold"
+            style={{ background: "var(--color-bg)", color: "var(--color-text-secondary)", border: "1px solid var(--color-border)" }}>
+            Clear
+          </button>
+        </div>
+      )}
+
       {/* Appointments List */}
       <div className="rounded-2xl overflow-hidden" style={S.card}>
 
         {/* Desktop Header */}
-        <div className="hidden sm:grid grid-cols-5 gap-4 px-5 py-3"
+        <div className="hidden sm:grid grid-cols-6 gap-4 px-5 py-3"
           style={{ borderBottom: "1px solid var(--color-border)", background: "var(--color-bg)" }}>
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              checked={appointments.length > 0 && selectedIds.length === appointments.length}
+              onChange={toggleSelectAllVisible}
+            />
+          </div>
           {["Patient", "Date & Time", "Type", "Status", "Action"].map((h) => (
             <p key={h} className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-secondary)]">{h}</p>
           ))}
@@ -718,6 +897,15 @@ export default function AppointmentsPage({
 
               {/* Mobile */}
               <div className="sm:hidden flex items-center gap-3 px-4 py-4">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.includes(apt._id)}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    toggleSelected(apt._id);
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                />
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0"
                   style={{ background: "color-mix(in srgb, var(--color-primary) 12%, transparent)" }}>
                   {TYPE_ICONS[apt.type] || "🩺"}
@@ -729,10 +917,39 @@ export default function AppointmentsPage({
                   </p>
                 </div>
                 <StatusBadge status={apt.status} />
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    try {
+                      await axiosInstance.put(`/appointments/${apt._id}`, {
+                        status: "No-show",
+                        cancellationReason: "No-show",
+                      });
+                      toast.success("Marked as no-show");
+                      fetchAppointments();
+                    } catch {
+                      toast.error("Failed to update appointment");
+                    }
+                  }}
+                  className="text-[10px] px-2 py-1 rounded-lg font-semibold"
+                  style={{ background: "rgba(239,68,68,0.14)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.35)" }}>
+                  No-show
+                </button>
               </div>
 
               {/* Desktop */}
-              <div className="hidden sm:grid grid-cols-5 gap-4 items-center px-5 py-4">
+              <div className="hidden sm:grid grid-cols-6 gap-4 items-center px-5 py-4">
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(apt._id)}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      toggleSelected(apt._id);
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm shrink-0"
                     style={{ background: "color-mix(in srgb, var(--color-primary) 12%, transparent)" }}>
@@ -747,11 +964,31 @@ export default function AppointmentsPage({
                 <span className="text-sm text-[var(--color-text-secondary)]">{apt.type}</span>
                 <StatusBadge status={apt.status} />
                 <div className="flex items-center">
-                  <button
-                    className="text-xs px-3 py-1.5 rounded-lg font-semibold transition-all opacity-0 group-hover:opacity-100"
-                    style={{ background: "color-mix(in srgb, var(--color-primary) 10%, transparent)", color: "var(--color-primary)" }}>
-                    View →
-                  </button>
+                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        try {
+                          await axiosInstance.put(`/appointments/${apt._id}`, {
+                            status: "No-show",
+                            cancellationReason: "No-show",
+                          });
+                          toast.success("Marked as no-show");
+                          fetchAppointments();
+                        } catch {
+                          toast.error("Failed to update appointment");
+                        }
+                      }}
+                      className="text-xs px-2.5 py-1.5 rounded-lg font-semibold"
+                      style={{ background: "rgba(239,68,68,0.14)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.35)" }}>
+                      No-show
+                    </button>
+                    <button
+                      className="text-xs px-2.5 py-1.5 rounded-lg font-semibold"
+                      style={{ background: "color-mix(in srgb, var(--color-primary) 10%, transparent)", color: "var(--color-primary)", border: "1px solid color-mix(in srgb, var(--color-primary) 25%, transparent)" }}>
+                      View →
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -759,5 +996,7 @@ export default function AppointmentsPage({
         )}
       </div>
     </div>
+    <ConfirmDialog {...dialogProps} />
+    </>
   );
 }

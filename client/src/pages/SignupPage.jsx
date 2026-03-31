@@ -264,7 +264,7 @@ function LocationCard({ location, index, type, allClinics, allHospitals, onChang
           </span>
         </div>
         <button type="button" onClick={onRemove}
-          className="text-xs px-2.5 py-1.5 rounded-lg transition-all hover:bg-red-500 hover:bg-opacity-10"
+          className="text-xs px-2.5 py-1.5 rounded-lg transition-all hover-danger-soft"
           style={{ color: "var(--color-danger)", border: "1px solid rgba(239,68,68,0.25)" }}>
           Remove
         </button>
@@ -336,7 +336,7 @@ function LocationCard({ location, index, type, allClinics, allHospitals, onChang
                     </span>
                   )}
                   <button type="button" onClick={() => removeSession(si)}
-                    className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover:bg-red-500 hover:bg-opacity-10 flex-shrink-0"
+                    className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover-danger-soft flex-shrink-0"
                     style={{ color: "var(--color-danger)", border: "1px solid rgba(239,68,68,0.2)" }}>
                     🗑
                   </button>
