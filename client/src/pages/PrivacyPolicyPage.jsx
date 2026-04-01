@@ -5,7 +5,7 @@ const sections = [
   {
     title: "1. Scope of this policy",
     content:
-      "This Privacy Policy explains how MediMate collects, uses, stores, and protects information when doctors and clinic teams use the platform. It applies to account data, operational clinic data, and patient-related data entered by authorized users.",
+      "This Privacy Policy explains how MedAlerto collects, uses, stores, and protects information when doctors and clinic teams use the platform. It applies to account data, operational clinic data, and patient-related data entered by authorized users.",
   },
   {
     title: "2. Information we collect",
@@ -20,7 +20,7 @@ const sections = [
   {
     title: "4. Data sharing and disclosure",
     content:
-      "MediMate does not sell clinical or patient data. Information may only be shared with service providers strictly required for platform operation (for example communication and hosting infrastructure) under confidentiality and security obligations.",
+      "MedAlerto does not sell clinical or patient data. Information may only be shared with service providers strictly required for platform operation (for example communication and hosting infrastructure) under confidentiality and security obligations.",
   },
   {
     title: "5. Security safeguards",
@@ -59,7 +59,7 @@ export default function PrivacyPolicyPage() {
           <p className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--color-primary)]">Legal</p>
           <h1 className="mt-4 text-4xl font-extrabold sm:text-5xl">Privacy Policy</h1>
           <p className="mt-5 max-w-3xl text-lg leading-relaxed text-[var(--color-text-secondary)]">
-            Protecting clinical and patient information is a core responsibility of MediMate. This policy describes how information is handled across the platform.
+            Protecting clinical and patient information is a core responsibility of MedAlerto. This policy describes how information is handled across the platform.
           </p>
 
           <div className="mt-12 space-y-5">

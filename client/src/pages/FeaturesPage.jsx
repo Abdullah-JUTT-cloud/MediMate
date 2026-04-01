@@ -61,7 +61,7 @@ export default function FeaturesPage() {
           <p className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--color-primary)]">Product capabilities</p>
           <h1 className="mt-4 text-4xl font-extrabold sm:text-5xl">Everything your clinic needs to run smoothly</h1>
           <p className="mt-5 max-w-3xl text-lg leading-relaxed text-[var(--color-text-secondary)]">
-            MediMate combines consultation workflows, patient communication, and clinic operations into one focused platform.
+            MedAlerto combines consultation workflows, patient communication, and clinic operations into one focused platform.
             Each feature is designed to reduce administrative effort while improving care delivery consistency.
           </p>
 

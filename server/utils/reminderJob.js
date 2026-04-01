@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import Appointment from '../models/appointment.model.js';
-import client from './whatsapp.js';
+import { sendTextWhatsApp } from './whatsapp.js';
 
 const cronSchedule = '*/30 * * * *';
 const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
@@ -56,16 +56,6 @@ const releaseReminderLock = async () => {
 	);
 };
 
-const formatWhatsAppPhone = (phone) => {
-	const digits = String(phone || '').replace(/\D/g, '');
-
-	if (digits.startsWith('92')) return digits;
-	if (digits.startsWith('0')) return `92${digits.slice(1)}`;
-	if (digits.length === 10 && digits.startsWith('3')) return `92${digits}`;
-
-	return digits;
-};
-
 const getAppointmentDateTime = (appointment) => {
 	// Use appointment.date as-is and add the slot time from the string
 	const dateObj = new Date(appointment.date);
@@ -112,8 +102,6 @@ export const startReminderJob = () => {
 				if (now < reminderAt || now >= appointmentDateTime) continue;
 
 				try {
-					const whatsappPhone = formatWhatsAppPhone(patient.phone);
-					const chatId = `${whatsappPhone}@c.us`;
 					const dateLabel = new Date(appointment.date).toLocaleDateString('en-PK', {
 						year: 'numeric',
 						month: 'short',
@@ -124,7 +112,7 @@ export const startReminderJob = () => {
 						? `Dear ${patient.name}, reminder: your appointment is in ~6 hours on ${dateLabel} at ${appointment.slot}. - MedAlerto`
 						: `Dear ${patient.name}, reminder: your appointment is on ${dateLabel} at ${appointment.slot}. - MedAlerto`;
 
-					await client.sendMessage(chatId, reminderText);
+					await sendTextWhatsApp(patient.phone, reminderText);
 					await Appointment.updateOne(
 						{ _id: appointment._id, status: { $nin: ['Cancelled', 'Completed'] } },
 						{ $set: { reminderSent: true } }

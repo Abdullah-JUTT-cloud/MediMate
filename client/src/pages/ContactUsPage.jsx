@@ -13,7 +13,7 @@ const channels = [
     title: "WhatsApp assistance",
     description: "Fast help for onboarding, setup walkthroughs, and urgent workflow questions during clinic hours.",
     contactLabel: "Start WhatsApp chat",
-    contactHref: "https://wa.me/923195490028?text=Hello%20MediMate%20Support%2C%20I%20need%20assistance%20with%20...",
+    contactHref: "https://wa.me/923195490028?text=Hello%20MedAlerto%20Support%2C%20I%20need%20assistance%20with%20...",
     meta: "Typical response: same business day",
   },
   {
@@ -33,7 +33,7 @@ export default function ContactUsPage() {
       <main className="px-4 pb-20 pt-32 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-5xl">
           <p className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--color-primary)]">Support</p>
-          <h1 className="mt-4 text-4xl font-extrabold sm:text-5xl">Get in touch with the MediMate team</h1>
+          <h1 className="mt-4 text-4xl font-extrabold sm:text-5xl">Get in touch with the MedAlerto team</h1>
           <p className="mt-5 max-w-3xl text-lg leading-relaxed text-[var(--color-text-secondary)]">
             Whether you need onboarding guidance, product support, or policy clarification, our team is available to help your clinic operate without interruption.
           </p>

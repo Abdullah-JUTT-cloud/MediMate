@@ -24,6 +24,7 @@ const AboutUsPage = lazy(() => import("./pages/AboutUsPage"))
 const ContactUsPage = lazy(() => import("./pages/ContactUsPage"))
 const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicyPage"))
 const TermsOfServicePage = lazy(() => import("./pages/TermsOfServicePage"))
+const CookiePolicyPage = lazy(() => import("./pages/CookiePolicyPage"))
 
 function App() {
   const { theme, toggleTheme } = useTheme()
@@ -49,6 +50,7 @@ function App() {
           <Route path="/contact" element={<ContactUsPage />} />
           <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
           <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+          <Route path="/cookie-policy" element={<CookiePolicyPage />} />
           <Route
             path="/dashboard"
             element={

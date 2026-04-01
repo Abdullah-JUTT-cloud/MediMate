@@ -13,7 +13,8 @@ const footerLinks = {
   Support: [
     { name: "Contact Us", href: "/contact" },
     { name: "Privacy Policy", href: "/privacy-policy" },
-    { name: "Terms of Service", href: "/terms-of-service" }
+    { name: "Terms of Service", href: "/terms-of-service" },
+    { name: "Cookie Policy", href: "/cookie-policy" }
   ],
   Integrations: [
     { name: "WhatsApp", href: "#" },
@@ -110,7 +111,7 @@ export default function Footer() {
           <div className="flex flex-wrap justify-center gap-4">
             <Link to="/privacy-policy" className="transition hover:text-[var(--color-primary)]">Privacy Policy</Link>
             <Link to="/terms-of-service" className="transition hover:text-[var(--color-primary)]">Terms of Service</Link>
-            <Link to="#" className="transition hover:text-[var(--color-primary)]">Cookie Policy</Link>
+            <Link to="/cookie-policy" className="transition hover:text-[var(--color-primary)]">Cookie Policy</Link>
           </div>
         </div>
       </div>

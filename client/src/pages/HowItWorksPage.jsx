@@ -25,7 +25,7 @@ const steps = [
   {
     title: "Schedule follow-up and automate reminders",
     description:
-      "Book the next visit before the patient leaves and let MediMate handle confirmations and reminder messages automatically.",
+      "Book the next visit before the patient leaves and let MedAlerto handle confirmations and reminder messages automatically.",
   },
   {
     title: "Review performance and improve operations",
@@ -59,7 +59,7 @@ export default function HowItWorksPage() {
           <p className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--color-primary)]">Workflow overview</p>
           <h1 className="mt-4 text-4xl font-extrabold sm:text-5xl">A complete clinic workflow in one system</h1>
           <p className="mt-5 max-w-3xl text-lg leading-relaxed text-[var(--color-text-secondary)]">
-            From first consultation to follow-up reminders, MediMate keeps every step connected so doctors can spend less time on admin and more time on care.
+            From first consultation to follow-up reminders, MedAlerto keeps every step connected so doctors can spend less time on admin and more time on care.
           </p>
 
           <div className="mt-12 space-y-6">
@@ -93,7 +93,7 @@ export default function HowItWorksPage() {
           <section className="mt-12 rounded-2xl border bg-[var(--color-card)] p-6 sm:p-8">
             <h2 className="text-2xl font-bold">Built for real clinic conditions</h2>
             <p className="mt-4 leading-relaxed text-[var(--color-text-secondary)]">
-              MediMate is designed for fast-paced outpatient settings where consistency, speed, and communication quality directly
+              MedAlerto is designed for fast-paced outpatient settings where consistency, speed, and communication quality directly
               affect patient satisfaction and daily clinic outcomes.
             </p>
           </section>

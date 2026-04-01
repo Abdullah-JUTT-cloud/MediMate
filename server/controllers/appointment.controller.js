@@ -2,19 +2,19 @@ import mongoose from "mongoose";
 import Appointment from "../models/appointment.model.js";
 import Patient from "../models/patient.model.js";
 import { Doctor } from "../models/doctor.model.js";
-import client from "../utils/whatsapp.js";
+import { sendTextWhatsApp } from "../utils/whatsapp.js";
 
 const MAX_APPOINTMENTS_PER_SLOT = 3;
 const INACTIVE_STATUSES = ["Cancelled", "No-show", "Completed"];
 
 const sendAppointmentWhatsApp = async (patient, appointment, message) => {
   try {
-    const phone = patient.phone.replace(/\D/g, "");
-    const whatsappPhone = phone.startsWith("0") ? "92" + phone.slice(1) : phone;
-    const chatId = `${whatsappPhone}@c.us`;
-    await client.sendMessage(chatId, message);
+    await sendTextWhatsApp(patient.phone, message);
   } catch (err) {
-    console.error("Appointment WhatsApp error:", err.message);
+    console.error(
+      `Appointment WhatsApp error for appointment ${appointment?._id || "N/A"}:`,
+      err.message,
+    );
   }
 };
 

@@ -5,12 +5,12 @@ const sections = [
   {
     title: "1. Acceptance of terms",
     content:
-      "By creating an account or using MediMate, you agree to these Terms of Service and all applicable policies referenced within the platform.",
+      "By creating an account or using MedAlerto, you agree to these Terms of Service and all applicable policies referenced within the platform.",
   },
   {
     title: "2. Service description",
     content:
-      "MediMate provides software tools for clinic operations, including prescription management, appointment workflows, patient record organization, and communication support features.",
+      "MedAlerto provides software tools for clinic operations, including prescription management, appointment workflows, patient record organization, and communication support features.",
   },
   {
     title: "3. Clinical responsibility",
@@ -35,7 +35,7 @@ const sections = [
   {
     title: "7. Data and confidentiality",
     content:
-      "MediMate applies reasonable safeguards to protect account and operational data. Data handling practices are further described in the Privacy Policy.",
+      "MedAlerto applies reasonable safeguards to protect account and operational data. Data handling practices are further described in the Privacy Policy.",
   },
   {
     title: "8. Availability and updates",
@@ -45,7 +45,7 @@ const sections = [
   {
     title: "9. Limitation of liability",
     content:
-      "To the maximum extent permitted by law, MediMate is provided on an as-available basis, and we are not liable for indirect, incidental, or consequential damages arising from service use.",
+      "To the maximum extent permitted by law, MedAlerto is provided on an as-available basis, and we are not liable for indirect, incidental, or consequential damages arising from service use.",
   },
   {
     title: "10. Termination",
@@ -69,7 +69,7 @@ export default function TermsOfServicePage() {
           <p className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--color-primary)]">Legal</p>
           <h1 className="mt-4 text-4xl font-extrabold sm:text-5xl">Terms of Service</h1>
           <p className="mt-5 max-w-3xl text-lg leading-relaxed text-[var(--color-text-secondary)]">
-            These terms define the responsibilities, usage rules, and service boundaries for all MediMate accounts.
+            These terms define the responsibilities, usage rules, and service boundaries for all MedAlerto accounts.
           </p>
 
           <div className="mt-12 space-y-5">

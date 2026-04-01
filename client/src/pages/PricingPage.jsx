@@ -35,14 +35,14 @@ const faqs = [
   },
   {
     question: "Can my assistant or receptionist use the system?",
-    answer: "Yes. Clinic teams can use MediMate for appointment handling and patient coordination based on your configured workflow.",
+    answer: "Yes. Clinic teams can use MedAlerto for appointment handling and patient coordination based on your configured workflow.",
   },
   {
     question: "Do patients need an app to receive prescriptions?",
     answer: "No. Patients receive prescriptions as PDF files directly on WhatsApp, so no separate app installation is required.",
   },
   {
-    question: "Is my data secure on MediMate?",
+    question: "Is my data secure on MedAlerto?",
     answer: "Yes. We use practical security controls and restricted access practices to protect clinic and patient information.",
   },
   {
@@ -75,7 +75,7 @@ export default function PricingPage() {
           </p>
 
           <section className="mx-auto mt-12 max-w-3xl rounded-2xl border bg-[var(--color-card)] p-8 shadow-sm md:p-12">
-            <h2 className="text-center text-2xl font-bold">MediMate Professional</h2>
+            <h2 className="text-center text-2xl font-bold">MedAlerto Professional</h2>
             <p className="mt-2 text-center text-sm text-[var(--color-text-secondary)]">Designed for independent doctors and clinic teams</p>
 
             <div className="mb-6 mt-6 flex items-baseline justify-center gap-1">
