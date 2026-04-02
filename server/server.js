@@ -24,6 +24,9 @@ import reportsRoutes from "./routes/reports.routes.js";
 import billingRoutes from "./routes/billing.routes.js";
 import {startReminderJob} from "./utils/reminderJob.js";
 import insightsRoutes from "./routes/insights.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
+import issueTicketRoutes from "./routes/issueTicket.routes.js";
+import notificationRoutes from "./routes/notification.routes.js";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import mongoSanitize from "express-mongo-sanitize";
@@ -80,6 +83,9 @@ app.use("/api/appointments", dataLimiter, appointmentRoutes);
 app.use("/api/prescriptions", dataLimiter, prescriptionRoutes);
 app.use("/api/reports", dataLimiter, reportsRoutes);
 app.use("/api/billing", dataLimiter, billingRoutes);
+app.use("/api/admin", dataLimiter, adminRoutes);
+app.use("/api/issues", dataLimiter, issueTicketRoutes);
+app.use("/api/notifications", dataLimiter, notificationRoutes);
 
  app.use("/api/insights", dataLimiter, insightsRoutes)
 

@@ -15,6 +15,8 @@ const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"))
 const VerifyResetOtpPage = lazy(() => import("./pages/VerifyResetOtpPage"))
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"))
 const DashboardPage = lazy(() => import("./pages/DashboardPage"))
+const AdminLoginPage = lazy(() => import("./pages/AdminLoginPage"))
+const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage"))
 
 // Informational Pages
 const FeaturesPage = lazy(() => import("./pages/FeaturesPage"))
@@ -59,6 +61,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route path="/admin" element={<AdminDashboardPage />} />
         </Routes>
       </Suspense>
     </BrowserRouter>

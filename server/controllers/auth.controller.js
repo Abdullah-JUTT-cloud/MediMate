@@ -191,6 +191,10 @@ export const login = async (req, res) => {
       hospitals: doctor.hospitals,
       slotDuration: doctor.slotDuration,
       profilePicture: doctor.profilePicture,
+      profileVerificationStatus: doctor.profileVerificationStatus,
+      profileVerificationReviewedAt: doctor.profileVerificationReviewedAt,
+      profileVerificationReviewedBy: doctor.profileVerificationReviewedBy,
+      profileVerificationNotes: doctor.profileVerificationNotes,
     });
   } catch (error) {
     console.error("[login]", error);

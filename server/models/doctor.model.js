@@ -163,6 +163,25 @@ const doctorSchema = new Schema(
       type: String,
       default: "",
     },
+    profileVerificationStatus: {
+      type: String,
+      enum: ["Pending", "In Review", "Needs Changes", "Verified", "Approved"],
+      default: "Pending",
+    },
+    profileVerificationReviewedAt: {
+      type: Date,
+      default: null,
+    },
+    profileVerificationReviewedBy: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    profileVerificationNotes: {
+      type: String,
+      default: "",
+      trim: true,
+    },
   },
   { timestamps: true }
 );

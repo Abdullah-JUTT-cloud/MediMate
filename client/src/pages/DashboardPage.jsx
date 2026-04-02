@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
@@ -9,6 +9,8 @@ import PatientsPage from "./PatientsPage";
 import AppointmentsPage from "./AppointmentsPage";
 import InsightsPage from "./InsightsPage";
 import RevenueLabPage from "./RevenueLabPage";
+import SupportCenterPage from "./SupportCenterPage";
+import VerifiedBadge from "../components/VerifiedBadge";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { CardSkeleton, RowSkeleton, AppointmentRowSkeleton, ChartSkeleton } from "../components/SkeletonLoaders";
 import { Skeleton } from "@mui/material";
@@ -21,8 +23,11 @@ const navItems = [
   { icon: "📅", label: "Appointments", key: "appointments" },
   { icon: "📊", label: "Insights", key: "insights" },
   { icon: "💹", label: "Revenue Lab", key: "revenue-lab" },
+  { icon: "🛟", label: "Support", key: "support" },
   { icon: "⚙️", label: "Profile Page", key: "settings" },
 ];
+
+const LOCKED_PROFILE_STATUSES = ["Needs Changes", "Rejected"];
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
@@ -41,7 +46,7 @@ const getInitials = (name) => name?.split(" ").map((n) => n[0]).join("").toUpper
 export default function DashboardPage() {
   const { confirm, dialogProps } = useConfirmDialog();
   const navigate = useNavigate();
-  const { doctor, logout } = useAuthStore();
+  const { doctor, logout, setDoctor } = useAuthStore();
   const [activeNav, setActiveNav] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [todayAppointments, setTodayAppointments] = useState([]);
@@ -62,6 +67,44 @@ export default function DashboardPage() {
   const [monthlyEarnings, setMonthlyEarnings] = useState([]);
   const [totalPrescriptions, setTotalPrescriptions] = useState(null);
   const [thisYearEarnings, setThisYearEarnings] = useState(0);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+  const notificationsMenuRef = useRef(null);
+
+  const isProfileRestricted = LOCKED_PROFILE_STATUSES.includes(doctor?.profileVerificationStatus);
+  const visibleNavItems = isProfileRestricted ? navItems.filter((item) => item.key === "support") : navItems;
+
+  const loadUnreadCount = async () => {
+    try {
+      const res = await axiosInstance.get("/notifications/unread-count");
+      setUnreadCount(Number(res.data?.unreadCount || 0));
+    } catch {
+      setUnreadCount(0);
+    }
+  };
+
+  const loadNotifications = async () => {
+    setIsLoadingNotifications(true);
+    try {
+      const res = await axiosInstance.get("/notifications?limit=10");
+      setNotifications(Array.isArray(res.data?.notifications) ? res.data.notifications : []);
+    } catch {
+      setNotifications([]);
+    } finally {
+      setIsLoadingNotifications(false);
+    }
+  };
+
+  const syncVerificationStatus = async () => {
+    try {
+      const res = await axiosInstance.get("/doctor/verification-status");
+      setDoctor({ ...(doctor || {}), ...res.data });
+    } catch {
+      // Ignore errors to avoid blocking dashboard rendering.
+    }
+  };
 
   const fetchCancelledAppointments = async () => {
     setIsLoadingCancelled(true);
@@ -120,6 +163,40 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
   }, [activeNav]);
 
   useEffect(() => {
+    const bootstrap = async () => {
+      await Promise.all([syncVerificationStatus(), loadUnreadCount()]);
+    };
+
+    bootstrap();
+    const timer = setInterval(() => {
+      bootstrap();
+    }, 10000);
+
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (isProfileRestricted && activeNav !== "support") {
+      setActiveNav("support");
+    }
+  }, [isProfileRestricted, activeNav]);
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (!notificationsOpen) return;
+      if (notificationsMenuRef.current && !notificationsMenuRef.current.contains(event.target)) {
+        setNotificationsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, [notificationsOpen]);
+
+  useEffect(() => {
     if (activeNav !== "dashboard") return;
 
     const fetchTodayEarnings = async ({ withLoader = false } = {}) => {
@@ -175,7 +252,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
   };
 
   const todayStr = new Date().toLocaleDateString("en-PK", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
-  const pageTitle = navItems.find((n) => n.key === activeNav)?.label || "Dashboard";
+  const pageTitle = visibleNavItems.find((n) => n.key === activeNav)?.label || "Dashboard";
 
   return (
     <div className="flex h-screen overflow-hidden bg-[var(--color-bg)]">
@@ -201,7 +278,10 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
               )}
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-[var(--color-text-primary)] truncate">{doctor?.fullName || "Doctor"}</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-semibold text-[var(--color-text-primary)] truncate">{doctor?.fullName || "Doctor"}</p>
+                <VerifiedBadge isVerified={["Verified", "Approved"].includes(doctor?.profileVerificationStatus)} compact />
+              </div>
               <p className="text-xs truncate text-[var(--color-primary)]">
                 {[doctor?.title, doctor?.specialization || "Specialist"].filter(Boolean).join(" ")}
               </p>
@@ -211,7 +291,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
 
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
           <p className="text-xs font-semibold uppercase tracking-widest px-3 mb-3 text-[var(--color-text-secondary)]">Main Menu</p>
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <button key={item.key} onClick={() => { setActiveNav(item.key); setSidebarOpen(false); }}
               className="w-full cursor-pointer flex items-center gap-3 px-3 py-2.5 rounded-xl mb-1 text-sm font-medium transition-all duration-200"
               style={{
@@ -266,13 +346,83 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
-            <button className="relative p-2 rounded-xl transition-colors hover:bg-[var(--color-bg)] text-[var(--color-text-secondary)]">
-              🔔
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[var(--color-primary)]" />
-            </button>
+            <div className="relative" ref={notificationsMenuRef}>
+              <button
+                onClick={async () => {
+                  const nextState = !notificationsOpen;
+                  setNotificationsOpen(nextState);
+                  if (nextState) {
+                    await loadNotifications();
+                  }
+                }}
+                className="relative p-2 rounded-xl transition-colors hover:bg-[var(--color-bg)] text-[var(--color-text-secondary)]"
+              >
+                🔔
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-[var(--color-primary)] text-white text-[10px] font-bold flex items-center justify-center">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {notificationsOpen && (
+                <div className="absolute right-0 mt-2 w-80 max-w-[90vw] rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] shadow-xl z-40">
+                  <div className="px-3 py-2 border-b border-[var(--color-border)] flex items-center justify-between">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]">Notifications</p>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await axiosInstance.patch("/notifications/read-all");
+                          setUnreadCount(0);
+                          await loadNotifications();
+                        } catch {
+                          toast.error("Failed to mark notifications as read");
+                        }
+                      }}
+                      className="text-[11px] text-[var(--color-primary)] font-semibold"
+                    >
+                      Mark all read
+                    </button>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto p-2 space-y-1.5">
+                    {isLoadingNotifications ? (
+                      <p className="text-xs text-[var(--color-text-secondary)] p-2">Loading...</p>
+                    ) : notifications.length === 0 ? (
+                      <p className="text-xs text-[var(--color-text-secondary)] p-2">No notifications yet.</p>
+                    ) : (
+                      notifications.map((note) => (
+                        <button
+                          key={note._id}
+                          onClick={async () => {
+                            if (!note.isRead) {
+                              try {
+                                await axiosInstance.patch(`/notifications/${note._id}/read`);
+                                setUnreadCount((count) => Math.max(0, count - 1));
+                                setNotifications((prev) => prev.map((n) => n._id === note._id ? { ...n, isRead: true } : n));
+                              } catch {
+                                // Ignore mark-read failures on click.
+                              }
+                            }
+                            if (note.type === "issue-message" || note.type === "issue-status") {
+                              setActiveNav("support");
+                              setNotificationsOpen(false);
+                            }
+                          }}
+                          className="w-full text-left rounded-xl border border-[var(--color-border)] p-2 hover:bg-[var(--color-bg)]"
+                        >
+                          <p className="text-xs font-semibold text-[var(--color-text-primary)] line-clamp-1">{note.title}</p>
+                          <p className="text-[11px] mt-0.5 text-[var(--color-text-secondary)] line-clamp-2">{note.message}</p>
+                          {!note.isRead && <span className="inline-block mt-1 text-[10px] font-bold text-[var(--color-primary)]">New</span>}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             <button
               type="button"
-              onClick={() => setActiveNav("settings")}
+              onClick={() => setActiveNav(isProfileRestricted ? "support" : "settings")}
               className="flex items-center gap-2 cursor-pointer px-2 py-1.5 rounded-xl transition-colors hover:bg-[var(--color-bg)]"
             >
               <div className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold text-white"
@@ -283,16 +433,46 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                   doctor?.fullName?.charAt(0) || "D"
                 )}
               </div>
-              <span className="text-sm font-medium text-[var(--color-text-primary)] hidden sm:block">{doctor?.fullName?.split(" ")[0] || "Doctor"}</span>
+              <span className="text-sm font-medium text-[var(--color-text-primary)] hidden sm:flex sm:items-center sm:gap-1.5">
+                {doctor?.fullName?.split(" ")[0] || "Doctor"}
+                <VerifiedBadge isVerified={["Verified", "Approved"].includes(doctor?.profileVerificationStatus)} compact />
+              </span>
             </button>
           </div>
         </header>
 
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 bg-[var(--color-bg)]">
+          {isProfileRestricted && (
+            <div className="mb-4 rounded-2xl border border-amber-400/35 bg-amber-500/10 p-4">
+              <p className="text-sm font-bold text-amber-300">Profile access restricted</p>
+              <p className="text-xs mt-1 text-[var(--color-text-secondary)]">
+                Admin requested updates to your profile. Dashboard modules are locked until your profile is verified again. You can still use Support to contact admin.
+              </p>
+            </div>
+          )}
+
+          {isProfileRestricted && (
+            <div className="mb-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
+              <div className="pointer-events-none blur-sm opacity-70">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="h-20 rounded-xl bg-[var(--color-bg)]" />
+                  <div className="h-20 rounded-xl bg-[var(--color-bg)]" />
+                  <div className="h-20 rounded-xl bg-[var(--color-bg)]" />
+                  <div className="h-20 rounded-xl bg-[var(--color-bg)]" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {isProfileRestricted && activeNav === "support" && <SupportCenterPage />}
+
+          {!isProfileRestricted && (
+            <>
           {activeNav === "settings" && <SettingsPage />}
           {activeNav === "patients" && <PatientsPage />}
           {activeNav === "insights" && <InsightsPage />}
           {activeNav === "revenue-lab" && <RevenueLabPage />}
+          {activeNav === "support" && <SupportCenterPage />}
           {activeNav === "appointments" && (
             <AppointmentsPage
               initialPatient={rescheduleContext?.patient || null}
@@ -307,6 +487,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                 {[
                   { icon: "👤", label: "New Patient", color: "var(--color-primary)", onClick: () => setActiveNav("patients") },
                   { icon: "📅", label: "Book Appointment", color: "var(--color-primary)", onClick: () => setActiveNav("appointments") },
+                  { icon: "🛟", label: "Feedback/Problem", color: "var(--color-primary)", onClick: () => setActiveNav("support") },
                   { icon: "🚨", label: "Emergency Cancel", color: "var(--color-danger)", onClick: () => setShowEmergencySection((p) => !p) },
                 ].map((action) => (
                   <button key={action.label} onClick={action.onClick}
@@ -620,7 +801,10 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
             </>
           )}
 
-          {!["dashboard", "settings", "patients", "appointments", "insights", "revenue-lab"].includes(activeNav) && (
+          </>
+          )}
+
+          {!isProfileRestricted && !["dashboard", "settings", "patients", "appointments", "insights", "revenue-lab", "support"].includes(activeNav) && (
             <div className="flex items-center justify-center h-full">
               <div className="text-center py-20">
                 <div className="text-5xl mb-4">🚧</div>

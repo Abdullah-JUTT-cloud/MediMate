@@ -19,6 +19,28 @@ export const getProfile = async (req, res) => {
   }
 };
 
+export const getVerificationStatus = async (req, res) => {
+  try {
+    const doctor = await Doctor.findById(req.doctorId).select(
+      "profileVerificationStatus profileVerificationReviewedAt profileVerificationReviewedBy profileVerificationNotes"
+    );
+
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    return res.status(200).json({
+      profileVerificationStatus: doctor.profileVerificationStatus,
+      profileVerificationReviewedAt: doctor.profileVerificationReviewedAt,
+      profileVerificationReviewedBy: doctor.profileVerificationReviewedBy,
+      profileVerificationNotes: doctor.profileVerificationNotes,
+    });
+  } catch (error) {
+    console.error("[getVerificationStatus]", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 export const updateProfile = async (req, res) => {
   const {
     fullName,

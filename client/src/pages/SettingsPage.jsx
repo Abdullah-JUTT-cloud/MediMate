@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import useAuthStore from "../store/authStore";
 import { ProfileHeaderSkeleton, FormFieldSkeleton } from "../components/SkeletonLoaders";
+import VerifiedBadge from "../components/VerifiedBadge";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const TITLES = ["Dr.", "Prof.", "Consultant"];
@@ -438,7 +439,10 @@ export default function SettingsPage() {
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-base font-bold text-[var(--color-text-primary)]">{doctor?.fullName || "Doctor"}</p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-base font-bold text-[var(--color-text-primary)]">{doctor?.fullName || "Doctor"}</p>
+            <VerifiedBadge isVerified={["Verified", "Approved"].includes(doctor?.profileVerificationStatus)} />
+          </div>
           <p className="text-sm text-[var(--color-primary)]">{doctor?.specialization || "Specialist"}</p>
         </div>
         <input

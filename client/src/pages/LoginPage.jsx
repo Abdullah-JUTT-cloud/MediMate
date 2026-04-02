@@ -40,6 +40,10 @@ export default function LoginPage() {
         hospitals,
         slotDuration,
         profilePicture,
+        profileVerificationStatus,
+        profileVerificationReviewedAt,
+        profileVerificationReviewedBy,
+        profileVerificationNotes,
       } = res.data;
       setDoctor({
         fullName,
@@ -52,6 +56,10 @@ export default function LoginPage() {
         hospitals,
         slotDuration,
         profilePicture,
+        profileVerificationStatus,
+        profileVerificationReviewedAt,
+        profileVerificationReviewedBy,
+        profileVerificationNotes,
       });
       toast.success(`Welcome back, ${fullName}!`);
       navigate("/dashboard");
