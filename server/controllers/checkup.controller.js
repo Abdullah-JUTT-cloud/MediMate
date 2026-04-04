@@ -26,6 +26,27 @@ const validateNextAppointmentDate = (value) => {
   return { valid: true };
 };
 
+const normalizeDiseasesWithDiagnosis = (diseases, diagnosis) => {
+  const source = Array.isArray(diseases) ? diseases : [];
+  const cleaned = source
+    .map((item) => String(item || "").trim())
+    .filter(Boolean);
+
+  const unique = [];
+  const seen = new Set();
+  cleaned.forEach((item) => {
+    const key = item.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    unique.push(item);
+  });
+
+  if (unique.length > 0) return unique;
+
+  const diag = String(diagnosis || "").trim();
+  return diag ? [diag] : [];
+};
+
 export const getCheckups = async (req, res) => {
   try {
     const patientId = req.params.id;
@@ -101,10 +122,15 @@ export const addCheckup = async (req, res) => {
       return res.status(400).json({ message: "Payment method is required" });
     }
    
+    const normalizedDiseases = normalizeDiseasesWithDiagnosis(
+      diseases,
+      prescription?.diagnosis,
+    );
+
     const checkup = new Checkup({
       patient: patientId,
       doctor: req.doctorId,
-      diseases,
+      diseases: normalizedDiseases,
       notes,
       prescription,
       payment,
@@ -177,6 +203,18 @@ export const updateCheckup = async (req, res) => {
       }
       checkup.markModified("payment");
     }
+
+    const effectiveDiagnosis =
+      prescription?.diagnosis !== undefined
+        ? prescription.diagnosis
+        : checkup.prescription?.diagnosis;
+    const effectiveDiseases =
+      diseases !== undefined ? diseases : checkup.diseases;
+    checkup.diseases = normalizeDiseasesWithDiagnosis(
+      effectiveDiseases,
+      effectiveDiagnosis,
+    );
+
     await checkup.save();
     res.status(200).json({ message: "Checkup updated successfully", checkup });
   } catch (error) {

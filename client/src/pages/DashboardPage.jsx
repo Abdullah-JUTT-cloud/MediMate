@@ -202,11 +202,14 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
     const fetchTodayEarnings = async ({ withLoader = false } = {}) => {
       if (withLoader) setIsLoadingTodayEarnings(true);
       try {
-        const res = await axiosInstance.get("/insights");
-        setTodayEarnings(Number(res?.data?.earnings?.today || 0));
-        setMonthlyEarnings(res?.data?.monthly || []);
-        setTotalPrescriptions(res?.data?.counts?.prescriptions ?? null);
-        setThisYearEarnings(Number(res?.data?.earnings?.thisYear || 0));
+        const [revenueRes, insightsRes] = await Promise.all([
+          axiosInstance.get("/insights/revenue-lab"),
+          axiosInstance.get("/insights"),
+        ]);
+        setTodayEarnings(Number(revenueRes?.data?.revenue?.daily || 0));
+        setMonthlyEarnings(revenueRes?.data?.revenue?.monthlySeries || []);
+        setTotalPrescriptions(insightsRes?.data?.counts?.prescriptions ?? null);
+        setThisYearEarnings(Number(revenueRes?.data?.revenue?.yearly || 0));
       } catch {
         setTodayEarnings(0);
         setMonthlyEarnings([]);
