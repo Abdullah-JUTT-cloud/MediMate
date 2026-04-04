@@ -1,0 +1,94 @@
+.cyber-shell {
+  position: relative;
+  background: #0a0a0f;
+  color: #e0e0e0;
+}
+
+.cyber-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 255, 136, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 136, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+}
+
+.cyber-shell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.25) 2px,
+    rgba(0, 0, 0, 0.25) 4px
+  );
+  pointer-events: none;
+}
+
+.cyber-chamfer {
+  clip-path: polygon(
+    0 10px,
+    10px 0,
+    calc(100% - 10px) 0,
+    100% 10px,
+    100% calc(100% - 10px),
+    calc(100% - 10px) 100%,
+    10px 100%,
+    0 calc(100% - 10px)
+  );
+}
+
+.cyber-chamfer-sm {
+  clip-path: polygon(
+    0 6px,
+    6px 0,
+    calc(100% - 6px) 0,
+    100% 6px,
+    100% calc(100% - 6px),
+    calc(100% - 6px) 100%,
+    6px 100%,
+    0 calc(100% - 6px)
+  );
+}
+
+.cyber-heading {
+  font-family: "Orbitron", "Share Tech Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.cyber-label {
+  font-family: "Share Tech Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+.cyber-text {
+  font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+}
+
+.cyber-glitch {
+  position: relative;
+  text-shadow: -1px 0 #ff00ff, 1px 0 #00d4ff;
+  animation: rgbShift 2.4s infinite steps(2);
+}
+
+@keyframes rgbShift {
+  0%,
+  100% {
+    text-shadow: -1px 0 #ff00ff, 1px 0 #00d4ff;
+  }
+  50% {
+    text-shadow: 1px 0 #ff00ff, -1px 0 #00d4ff;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cyber-glitch {
+    animation: none;
+  }
+}

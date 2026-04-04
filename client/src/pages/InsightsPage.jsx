@@ -1,19 +1,40 @@
 import { useState, useEffect } from "react";
+import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import axiosInstance from "../api/axios";
 import { CardSkeleton } from "../components/SkeletonLoaders";
 
-const S = {
-  card: { background: "var(--color-card)", border: "1px solid var(--color-border)" },
-  section: { background: "var(--color-bg)", border: "1px solid var(--color-border)" },
+// Design tokens for Organic/Natural system
+const tokens = {
+  colors: {
+    background: "#FDFCF8",
+    foreground: "#2C2C24",
+    primary: "#5D7052",
+    primaryForeground: "#F3F4F1",
+    secondary: "#C18C5D",
+    secondary_foreground: "#FFFFFF",
+    accent: "#E6DCCD",
+    accentForeground: "#4A4A40",
+    muted: "#F0EBE5",
+    mutedForeground: "#78786C",
+    border: "#DED8CF",
+    destructive: "#A85448",
+  },
+  shadows: {
+    soft: "0 4px 20px -2px rgba(93, 112, 82, 0.15)",
+    float: "0 10px 40px -10px rgba(193, 140, 93, 0.2)",
+    deepHover: "0 6px 24px -4px rgba(93, 112, 82, 0.25)",
+  },
 };
 
 const pct = (n) => `${Math.round(Number(n || 0))}%`;
 const safeNum = (n) => Number(n || 0);
 
 const trendText = (trend) => {
-  if (trend === "up") return { icon: "↑", label: "Increasing", color: "#ef4444" };
-  if (trend === "down") return { icon: "↓", label: "Decreasing", color: "#22c55e" };
-  return { icon: "→", label: "Stable", color: "#94a3b8" };
+  if (trend === "up")
+    return { icon: TrendingUp, label: "Increasing", color: tokens.colors.destructive };
+  if (trend === "down")
+    return { icon: TrendingDown, label: "Decreasing", color: tokens.colors.primary };
+  return { icon: Minus, label: "Stable", color: tokens.colors.mutedForeground };
 };
 
 export default function InsightsPage() {
@@ -39,15 +60,19 @@ export default function InsightsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-xl font-bold text-[var(--color-text-primary)]">Insights</h2>
-          <p className="text-xs mt-0.5 text-[var(--color-text-secondary)]">Simple clinical and clinic operations summary</p>
+          <h2 className="text-3xl font-bold text-[#2C2C24]" style={{ fontFamily: "Fraunces" }}>
+            Insights
+          </h2>
+          <p className="text-sm mt-2 text-[#78786C]">
+            Simple clinical and clinic operations summary
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => <CardSkeleton key={i} />)}
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <CardSkeleton />
           <CardSkeleton />
         </div>
@@ -85,91 +110,225 @@ export default function InsightsPage() {
   const peakHour = ops?.peakLoad?.bestHour?.hour || "N/A";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h2 className="text-xl font-bold text-[var(--color-text-primary)]">Insights</h2>
-        <p className="text-xs mt-0.5 text-[var(--color-text-secondary)]">Simple clinical and clinic operations summary</p>
+        <h1 className="text-4xl md:text-5xl font-bold text-[#2C2C24] mb-2" style={{ fontFamily: "Fraunces", fontWeight: 700 }}>
+          Insights
+        </h1>
+        <p className="text-base text-[#78786C]">
+          Simple clinical and clinic operations summary
+        </p>
       </div>
 
       <div>
-        <p className="text-xs font-bold uppercase tracking-widest mb-3 text-[var(--color-text-secondary)]">Today At A Glance</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <h3 className="text-xs font-bold uppercase tracking-widest mb-4 text-[#78786C]">
+          Today At A Glance
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: "Follow-ups This Week", value: followUpsDue, hint: "Patients due for review", color: "#10B8A9", icon: "🗓" },
-            { label: "Patients Needing Attention", value: needsAttention, hint: "Overdue + repeat complaints", color: "#ef4444", icon: "⚠️" },
-            { label: "No-show Rate", value: noShowRate, hint: "Last 30 days", color: "#f59e0b", icon: "🚫" },
-            { label: "Prescription Coverage", value: prescriptionCoverage, hint: "Checkups with prescription", color: "#38bdf8", icon: "📋" },
+            { 
+              label: "Follow-ups This Week", 
+              value: followUpsDue, 
+              hint: "Patients due for review", 
+              color: tokens.colors.primary,
+              Icon: null
+            },
+            { 
+              label: "Patients Needing Attention", 
+              value: needsAttention, 
+              hint: "Overdue + repeat complaints", 
+              color: tokens.colors.destructive,
+              Icon: null 
+            },
+            { 
+              label: "No-show Rate", 
+              value: noShowRate, 
+              hint: "Last 30 days", 
+              color: tokens.colors.secondary,
+              Icon: null 
+            },
+            { 
+              label: "Prescription Coverage", 
+              value: prescriptionCoverage, 
+              hint: "Checkups with prescription", 
+              color: tokens.colors.primary,
+              Icon: null 
+            },
           ].map((card) => (
-            <div key={card.label} className="rounded-2xl p-4" style={S.card}>
-              <div className="text-lg mb-2">{card.icon}</div>
-              <p className="text-2xl font-extrabold text-[var(--color-text-primary)] leading-none">{card.value}</p>
-              <p className="text-xs font-semibold mt-1" style={{ color: card.color }}>{card.label}</p>
-              <p className="text-[11px] mt-1 text-[var(--color-text-secondary)]">{card.hint}</p>
+            <div
+              key={card.label}
+              className="rounded-3xl p-6 transition-all duration-300 hover:scale-105 hover:shadow-lg cursor-pointer group"
+              style={{
+                background: tokens.colors.background,
+                border: `1px solid ${tokens.colors.border}`,
+                boxShadow: tokens.shadows.soft,
+              }}
+            >
+              <p className="text-4xl md:text-5xl font-bold text-[#2C2C24] leading-none mb-3">
+                {card.value}
+              </p>
+              <p className="text-sm font-semibold mb-1" style={{ color: card.color }}>
+                {card.label}
+              </p>
+              <p className="text-xs text-[#78786C]">{card.hint}</p>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <div className="rounded-2xl p-4 sm:p-5" style={S.card}>
-          <h3 className="text-sm sm:text-base font-bold text-[var(--color-text-primary)] mb-1">Patient Flow</h3>
-          <p className="text-xs mb-3 text-[var(--color-text-secondary)]">How patients are moving through your clinic</p>
+      {/* Two-Column Layout */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* Patient Flow */}
+        <div
+          className="rounded-3xl p-6 transition-all duration-300 hover:shadow-lg"
+          style={{
+            background: tokens.colors.background,
+            border: `1px solid ${tokens.colors.border}`,
+            boxShadow: tokens.shadows.soft,
+          }}
+        >
+          <h3 className="text-lg md:text-xl font-bold text-[#2C2C24] mb-2" style={{ fontFamily: "Fraunces" }}>
+            Patient Flow
+          </h3>
+          <p className="text-sm text-[#78786C] mb-4">
+            How patients are moving through your clinic
+          </p>
 
-          <div className="space-y-2">
-            <div className="rounded-xl p-3" style={S.section}>
-              <p className="text-xs text-[var(--color-text-secondary)]">New vs Returning (Last 30 Days)</p>
-              <p className="text-sm font-semibold text-[var(--color-text-primary)]">New: {new30} • Returning: {returning30}</p>
+          <div className="space-y-3">
+            <div
+              className="rounded-2xl p-4"
+              style={{
+                background: `${tokens.colors.muted}20`,
+                border: `1px solid ${tokens.colors.border}`,
+              }}
+            >
+              <p className="text-xs text-[#78786C] font-medium">New vs Returning (Last 30 Days)</p>
+              <p className="text-base font-semibold text-[#2C2C24] mt-1">
+                New: {new30} • Returning: {returning30}
+              </p>
             </div>
-            <div className="rounded-xl p-3" style={S.section}>
-              <p className="text-xs text-[var(--color-text-secondary)]">Average revisit interval</p>
-              <p className="text-sm font-semibold text-[var(--color-text-primary)]">{revisitDays} days</p>
+            <div
+              className="rounded-2xl p-4"
+              style={{
+                background: `${tokens.colors.muted}20`,
+                border: `1px solid ${tokens.colors.border}`,
+              }}
+            >
+              <p className="text-xs text-[#78786C] font-medium">Average revisit interval</p>
+              <p className="text-base font-semibold text-[#2C2C24] mt-1">{revisitDays} days</p>
             </div>
-            <div className="rounded-xl p-3" style={S.section}>
-              <p className="text-xs text-[var(--color-text-secondary)]">Dormant patients (90+ days)</p>
-              <p className="text-sm font-semibold text-[var(--color-text-primary)]">{dormant90}</p>
+            <div
+              className="rounded-2xl p-4"
+              style={{
+                background: `${tokens.colors.muted}20`,
+                border: `1px solid ${tokens.colors.border}`,
+              }}
+            >
+              <p className="text-xs text-[#78786C] font-medium">Dormant patients (90+ days)</p>
+              <p className="text-base font-semibold text-[#2C2C24] mt-1">{dormant90}</p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-2xl p-4 sm:p-5" style={S.card}>
-          <h3 className="text-sm sm:text-base font-bold text-[var(--color-text-primary)] mb-1">Clinic Reliability</h3>
-          <p className="text-xs mb-3 text-[var(--color-text-secondary)]">Appointment operations health</p>
+        {/* Clinic Reliability */}
+        <div
+          className="rounded-3xl p-6 transition-all duration-300 hover:shadow-lg"
+          style={{
+            background: tokens.colors.background,
+            border: `1px solid ${tokens.colors.border}`,
+            boxShadow: tokens.shadows.soft,
+          }}
+        >
+          <h3 className="text-lg md:text-xl font-bold text-[#2C2C24] mb-2" style={{ fontFamily: "Fraunces" }}>
+            Clinic Reliability
+          </h3>
+          <p className="text-sm text-[#78786C] mb-4">
+            Appointment operations health
+          </p>
 
-          <div className="space-y-2">
-            <div className="rounded-xl p-3" style={S.section}>
-              <p className="text-xs text-[var(--color-text-secondary)]">On-time completion rate</p>
-              <p className="text-sm font-semibold text-[var(--color-text-primary)]">{completionRate} (Last 30 days)</p>
+          <div className="space-y-3">
+            <div
+              className="rounded-2xl p-4"
+              style={{
+                background: `${tokens.colors.muted}20`,
+                border: `1px solid ${tokens.colors.border}`,
+              }}
+            >
+              <p className="text-xs text-[#78786C] font-medium">On-time completion rate</p>
+              <p className="text-base font-semibold text-[#2C2C24] mt-1">
+                {completionRate} (Last 30 days)
+              </p>
             </div>
-            <div className="rounded-xl p-3" style={S.section}>
-              <p className="text-xs text-[var(--color-text-secondary)]">Peak clinic load</p>
-              <p className="text-sm font-semibold text-[var(--color-text-primary)]">{peakDay} at {peakHour}</p>
+            <div
+              className="rounded-2xl p-4"
+              style={{
+                background: `${tokens.colors.muted}20`,
+                border: `1px solid ${tokens.colors.border}`,
+              }}
+            >
+              <p className="text-xs text-[#78786C] font-medium">Peak clinic load</p>
+              <p className="text-base font-semibold text-[#2C2C24] mt-1">
+                {peakDay} at {peakHour}
+              </p>
             </div>
-            <div className="rounded-xl p-3" style={S.section}>
-              <p className="text-xs text-[var(--color-text-secondary)]">Most common cancellation reason</p>
-              <p className="text-sm font-semibold text-[var(--color-text-primary)]">{topCancelReason}</p>
+            <div
+              className="rounded-2xl p-4"
+              style={{
+                background: `${tokens.colors.muted}20`,
+                border: `1px solid ${tokens.colors.border}`,
+              }}
+            >
+              <p className="text-xs text-[#78786C] font-medium">Most common cancellation reason</p>
+              <p className="text-base font-semibold text-[#2C2C24] mt-1">{topCancelReason}</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <div className="rounded-2xl p-4 sm:p-5" style={S.card}>
-          <h3 className="text-sm sm:text-base font-bold text-[var(--color-text-primary)] mb-1">Top Health Concerns</h3>
-          <p className="text-xs mb-3 text-[var(--color-text-secondary)]">Most frequent diagnoses and direction</p>
+      {/* Bottom Row: Health Concerns & Quick Totals */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* Top Health Concerns */}
+        <div
+          className="rounded-3xl p-6 transition-all duration-300 hover:shadow-lg"
+          style={{
+            background: tokens.colors.background,
+            border: `1px solid ${tokens.colors.border}`,
+            boxShadow: tokens.shadows.soft,
+          }}
+        >
+          <h3 className="text-lg md:text-xl font-bold text-[#2C2C24] mb-2" style={{ fontFamily: "Fraunces" }}>
+            Top Health Concerns
+          </h3>
+          <p className="text-sm text-[#78786C] mb-4">
+            Most frequent diagnoses and direction
+          </p>
 
           <div className="space-y-2">
             {topDiagnosesMoM.length === 0 ? (
-              <p className="text-sm text-[var(--color-text-secondary)]">Not enough history yet</p>
+              <p className="text-sm text-[#78786C]">Not enough history yet</p>
             ) : (
               topDiagnosesMoM.map((item) => {
                 const t = trendText(item.trend);
+                const IconComponent = t.icon;
                 return (
-                  <div key={item.disease} className="rounded-xl p-3 flex items-center justify-between" style={S.section}>
+                  <div
+                    key={item.disease}
+                    className="rounded-2xl p-4 flex items-center justify-between transition-all duration-300 hover:shadow-md"
+                    style={{
+                      background: `${tokens.colors.muted}20`,
+                      border: `1px solid ${tokens.colors.border}`,
+                    }}
+                  >
                     <div>
-                      <p className="text-sm font-semibold text-[var(--color-text-primary)]">{item.disease}</p>
-                      <p className="text-[11px] text-[var(--color-text-secondary)]">{item.currentCount} this month</p>
+                      <p className="text-sm font-semibold text-[#2C2C24]">{item.disease}</p>
+                      <p className="text-xs text-[#78786C] mt-1">{item.currentCount} this month</p>
                     </div>
-                    <p className="text-xs font-bold" style={{ color: t.color }}>{t.icon} {t.label}</p>
+                    <div className="flex items-center gap-2">
+                      <IconComponent size={18} color={t.color} />
+                      <p className="text-xs font-semibold" style={{ color: t.color }}>
+                        {t.label}
+                      </p>
+                    </div>
                   </div>
                 );
               })
@@ -177,45 +336,74 @@ export default function InsightsPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl p-4 sm:p-5" style={S.card}>
-          <h3 className="text-sm sm:text-base font-bold text-[var(--color-text-primary)] mb-1">Quick Totals</h3>
-          <p className="text-xs mb-3 text-[var(--color-text-secondary)]">Current totals in your practice</p>
+        {/* Quick Totals */}
+        <div
+          className="rounded-3xl p-6 transition-all duration-300 hover:shadow-lg"
+          style={{
+            background: tokens.colors.background,
+            border: `1px solid ${tokens.colors.border}`,
+            boxShadow: tokens.shadows.soft,
+          }}
+        >
+          <h3 className="text-lg md:text-xl font-bold text-[#2C2C24] mb-2" style={{ fontFamily: "Fraunces" }}>
+            Quick Totals
+          </h3>
+          <p className="text-sm text-[#78786C] mb-4">
+            Current totals in your practice
+          </p>
 
-          <div className="grid grid-cols-2 gap-2 mb-3">
+          <div className="grid grid-cols-2 gap-3 mb-4">
             {[
               { label: "Patients", value: counts.patients || 0 },
               { label: "Appointments", value: counts.appointments || 0 },
               { label: "Checkups", value: counts.checkups || 0 },
               { label: "Prescriptions", value: counts.prescriptions || 0 },
             ].map((item) => (
-              <div key={item.label} className="rounded-xl p-3" style={S.section}>
-                <p className="text-[11px] text-[var(--color-text-secondary)]">{item.label}</p>
-                <p className="text-lg font-bold text-[var(--color-text-primary)]">{item.value}</p>
+              <div
+                key={item.label}
+                className="rounded-2xl p-4 transition-all duration-300 hover:scale-105"
+                style={{
+                  background: `${tokens.colors.muted}20`,
+                  border: `1px solid ${tokens.colors.border}`,
+                }}
+              >
+                <p className="text-xs text-[#78786C] font-medium">{item.label}</p>
+                <p className="text-2xl font-bold text-[#2C2C24] mt-2">{item.value}</p>
               </div>
             ))}
           </div>
 
-          <div className="rounded-xl p-3" style={S.section}>
-            <p className="text-xs text-[var(--color-text-secondary)] mb-1">Top Medicines Given</p>
+          <div
+            className="rounded-2xl p-4"
+            style={{
+              background: `${tokens.colors.muted}20`,
+              border: `1px solid ${tokens.colors.border}`,
+            }}
+          >
+            <p className="text-xs text-[#78786C] font-medium mb-2">Top Medicines Given</p>
             {topMedicines.length === 0 ? (
-              <p className="text-sm text-[var(--color-text-secondary)]">Not enough history yet</p>
+              <p className="text-sm text-[#78786C]">Not enough history yet</p>
             ) : (
-              <div className="space-y-1.5">
-                {topMedicines.slice(0, 3).map((item) => {
-                  return (
-                    <div key={`med-${item.medicine}`} className="flex justify-between text-sm">
-                      <span className="text-[var(--color-text-primary)]">{item.medicine}</span>
-                      <span className="font-semibold text-[var(--color-text-secondary)]">{item.count}</span>
-                    </div>
-                  );
-                })}
+              <div className="space-y-2">
+                {topMedicines.slice(0, 3).map((item) => (
+                  <div key={`med-${item.medicine}`} className="flex justify-between text-sm">
+                    <span className="text-[#2C2C24]">{item.medicine}</span>
+                    <span className="font-semibold text-[#78786C]">{item.count}</span>
+                  </div>
+                ))}
               </div>
             )}
           </div>
 
-          <div className="mt-3 rounded-xl p-3" style={S.section}>
-            <p className="text-xs text-[var(--color-text-secondary)]">Most common diseases (all time)</p>
-            <p className="text-sm text-[var(--color-text-primary)] mt-1">
+          <div
+            className="rounded-2xl p-4 mt-3"
+            style={{
+              background: `${tokens.colors.muted}20`,
+              border: `1px solid ${tokens.colors.border}`,
+            }}
+          >
+            <p className="text-xs text-[#78786C] font-medium">Most common diseases (all time)</p>
+            <p className="text-sm text-[#2C2C24] mt-2">
               {topDiseases.slice(0, 2).map((d) => d.disease).join(" • ") || "Not enough history yet"}
             </p>
           </div>

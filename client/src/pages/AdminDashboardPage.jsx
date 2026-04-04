@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, Building2, LifeBuoy, LogOut, Search, Send, ShieldCheck, UserCog } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import VerifiedBadge from "../components/VerifiedBadge";
+import { cyberCardStyle, cyberInputStyle, cyberpunkTheme } from "../styles/cyberpunkTheme";
+import "../styles/cyberpunk.css";
 
 const VERIFY_STATUS_OPTIONS = ["Pending", "In Review", "Needs Changes", "Verified"];
 const ISSUE_STATUS_OPTIONS = ["In Progress", "Resolved", "Closed"];
@@ -13,19 +16,20 @@ const normalizeStatusLabel = (status) => (status === "Approved" ? "Verified" : s
 function StatusPill({ value }) {
   const status = normalizeStatusLabel(value);
   const tone = {
-    Pending: "text-amber-300 bg-amber-500/10 border-amber-400/30",
-    "In Review": "text-cyan-300 bg-cyan-500/10 border-cyan-400/30",
-    "Needs Changes": "text-orange-300 bg-orange-500/10 border-orange-400/30",
-    Verified: "text-emerald-300 bg-emerald-500/10 border-emerald-400/30",
-    Open: "text-amber-300 bg-amber-500/10 border-amber-400/30",
-    "In Progress": "text-blue-300 bg-blue-500/10 border-blue-400/30",
-    Resolved: "text-emerald-300 bg-emerald-500/10 border-emerald-400/30",
-    Reopened: "text-orange-300 bg-orange-500/10 border-orange-400/30",
-    Closed: "text-zinc-300 bg-zinc-500/10 border-zinc-400/30",
+    Pending: { color: "#00d4ff", bg: "rgba(0,212,255,0.12)", border: "rgba(0,212,255,0.35)" },
+    "In Review": { color: "#00ff88", bg: "rgba(0,255,136,0.12)", border: "rgba(0,255,136,0.35)" },
+    "Needs Changes": { color: "#ff00ff", bg: "rgba(255,0,255,0.12)", border: "rgba(255,0,255,0.35)" },
+    Verified: { color: "#00ff88", bg: "rgba(0,255,136,0.15)", border: "rgba(0,255,136,0.4)" },
+    Open: { color: "#00d4ff", bg: "rgba(0,212,255,0.12)", border: "rgba(0,212,255,0.35)" },
+    "In Progress": { color: "#00ff88", bg: "rgba(0,255,136,0.12)", border: "rgba(0,255,136,0.35)" },
+    Resolved: { color: "#00ff88", bg: "rgba(0,255,136,0.15)", border: "rgba(0,255,136,0.4)" },
+    Reopened: { color: "#ff00ff", bg: "rgba(255,0,255,0.12)", border: "rgba(255,0,255,0.35)" },
+    Closed: { color: "#6b7280", bg: "rgba(107,114,128,0.1)", border: "rgba(107,114,128,0.3)" },
   };
+  const state = tone[status] || tone.Pending;
 
   return (
-    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${tone[status] || tone.Pending}`}>
+    <span className="cyber-label inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold" style={{ color: state.color, background: state.bg, borderColor: state.border }}>
       {status}
     </span>
   );
@@ -33,9 +37,9 @@ function StatusPill({ value }) {
 
 function ProfileStat({ label, value }) {
   return (
-    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] p-3">
-      <p className="text-[11px] uppercase tracking-wide text-[var(--color-text-secondary)]">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-[var(--color-text-primary)]">{value || "-"}</p>
+    <div className="cyber-chamfer-sm border p-3" style={{ background: cyberpunkTheme.colors.muted, borderColor: cyberpunkTheme.colors.border }}>
+      <p className="cyber-label text-[10px] text-[#6b7280]">{label}</p>
+      <p className="cyber-text mt-1 text-sm font-semibold text-[#e0e0e0]">{value || "-"}</p>
     </div>
   );
 }
@@ -236,35 +240,44 @@ export default function AdminDashboardPage() {
   const doctorName = useMemo(() => selectedDoctor?.fullName || "Doctor", [selectedDoctor?.fullName]);
 
   if (isCheckingAuth) {
-    return <div className="min-h-screen bg-[var(--color-bg)]" />;
+    return <div className="cyber-shell min-h-screen" />;
   }
 
   if (!admin) return null;
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] p-4 sm:p-6">
+    <div className="cyber-shell min-h-screen p-4 sm:p-6">
       <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-5">
-        <aside className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 h-fit">
-          <p className="text-xs uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">Admin Panel</p>
-          <h1 className="text-lg font-black mt-2 text-[var(--color-text-primary)]">{admin.name || "Admin"}</h1>
-          <p className="text-xs mt-1 text-[var(--color-text-secondary)]">{admin.email}</p>
+        <aside className="cyber-chamfer border p-4 h-fit" style={{ ...cyberCardStyle, boxShadow: cyberpunkTheme.shadows.neonSm }}>
+          <p className="cyber-label text-[10px] text-[#6b7280]">Admin Panel</p>
+          <h1 className="cyber-heading cyber-glitch text-lg font-black mt-2 text-[#e0e0e0]">{admin.name || "Admin"}</h1>
+          <p className="cyber-text text-xs mt-1 text-[#6b7280]">{admin.email}</p>
 
           <div className="mt-5 space-y-2">
             <button
               onClick={() => setActiveSection("doctors")}
-              className={`w-full rounded-xl px-3 py-2 text-left text-sm font-semibold border ${activeSection === "doctors" ? "border-[var(--color-primary)]/40 bg-[var(--color-primary)]/12 text-[var(--color-primary)]" : "border-transparent text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)]"}`}
+              className="cyber-chamfer-sm w-full px-3 py-2 text-left text-sm font-semibold border inline-flex items-center gap-2"
+              style={activeSection === "doctors"
+                ? { borderColor: "rgba(0,255,136,0.4)", background: "rgba(0,255,136,0.12)", color: "#00ff88" }
+                : { borderColor: "transparent", color: "#6b7280", background: "transparent" }}
             >
+              <UserCog size={15} />
               Doctors
             </button>
             <button
               onClick={() => setActiveSection("issues")}
-              className={`w-full rounded-xl px-3 py-2 text-left text-sm font-semibold border ${activeSection === "issues" ? "border-[var(--color-primary)]/40 bg-[var(--color-primary)]/12 text-[var(--color-primary)]" : "border-transparent text-[var(--color-text-secondary)] hover:bg-[var(--color-bg)]"}`}
+              className="cyber-chamfer-sm w-full px-3 py-2 text-left text-sm font-semibold border inline-flex items-center gap-2"
+              style={activeSection === "issues"
+                ? { borderColor: "rgba(255,0,255,0.4)", background: "rgba(255,0,255,0.12)", color: "#ff00ff" }
+                : { borderColor: "transparent", color: "#6b7280", background: "transparent" }}
             >
+              <LifeBuoy size={15} />
               Issues
             </button>
           </div>
 
-          <button onClick={logout} className="mt-8 w-full rounded-xl px-3 py-2 text-sm font-semibold border border-red-500/30 text-red-400">
+          <button onClick={logout} className="cyber-chamfer-sm mt-8 w-full px-3 py-2 text-sm font-semibold border inline-flex items-center justify-center gap-2" style={{ borderColor: "rgba(255,51,102,0.5)", color: cyberpunkTheme.colors.destructive }}>
+            <LogOut size={14} />
             Logout
           </button>
         </aside>
@@ -272,20 +285,22 @@ export default function AdminDashboardPage() {
         <main className="space-y-5">
           {activeSection === "doctors" && (
             <>
-              <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
+              <section className="cyber-chamfer border p-4" style={cyberCardStyle}>
                 <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
                   <div>
-                    <h2 className="text-lg font-bold text-[var(--color-text-primary)]">Doctor Directory</h2>
-                    <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">Review doctor profiles, verification state, and issue history in one place.</p>
+                    <h2 className="cyber-heading text-lg font-bold text-[#e0e0e0]">Doctor Directory</h2>
+                    <p className="cyber-text text-xs text-[#6b7280] mt-0.5">Review doctor profiles, verification state, and issue history in one place.</p>
                   </div>
                   <div className="flex gap-2 w-full md:w-auto">
                     <input
                       value={doctorSearch}
                       onChange={(e) => setDoctorSearch(e.target.value)}
                       placeholder="Search doctor"
-                      className="w-full md:w-64 rounded-xl px-3 py-2 border bg-[var(--color-bg)] border-[var(--color-border)] text-sm"
+                      className="cyber-text w-full md:w-64 cyber-chamfer-sm pl-9 pr-3 py-2 border text-sm"
+                      style={cyberInputStyle}
                     />
-                    <button onClick={loadDoctors} className="rounded-xl px-3 py-2 text-sm font-semibold border border-[var(--color-border)]">
+                    <button onClick={loadDoctors} className="cyber-chamfer-sm px-3 py-2 text-sm font-semibold border inline-flex items-center gap-1.5" style={{ borderColor: "#2a2a3a", color: "#00ff88" }}>
+                      <Search size={13} />
                       Search
                     </button>
                   </div>
@@ -295,7 +310,8 @@ export default function AdminDashboardPage() {
                   <select
                     value={doctorStatusFilter}
                     onChange={(e) => setDoctorStatusFilter(e.target.value)}
-                    className="w-full md:w-64 rounded-xl px-3 py-2 border bg-[var(--color-bg)] border-[var(--color-border)] text-sm"
+                    className="cyber-text w-full md:w-64 cyber-chamfer-sm px-3 py-2 border text-sm"
+                    style={cyberInputStyle}
                   >
                     <option value="">All Statuses</option>
                     {VERIFY_STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -307,13 +323,16 @@ export default function AdminDashboardPage() {
                     <button
                       key={d._id}
                       onClick={() => setSelectedDoctorId(d._id)}
-                      className={`rounded-xl p-3 border text-left ${selectedDoctorId === d._id ? "border-[var(--color-primary)] bg-[var(--color-primary)]/10" : "border-[var(--color-border)]"}`}
+                      className="cyber-chamfer-sm p-3 border text-left"
+                      style={selectedDoctorId === d._id
+                        ? { borderColor: "rgba(0,255,136,0.45)", background: "rgba(0,255,136,0.1)" }
+                        : { borderColor: "#2a2a3a", background: "#12121a" }}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-bold text-[var(--color-text-primary)] line-clamp-1">{d.fullName}</p>
+                        <p className="cyber-text text-sm font-bold text-[#e0e0e0] line-clamp-1">{d.fullName}</p>
                         <VerifiedBadge isVerified={isDoctorVerified(d.profileVerificationStatus)} compact />
                       </div>
-                      <p className="text-xs mt-1 text-[var(--color-text-secondary)] line-clamp-1">{d.specialization || "Specialist"}</p>
+                      <p className="cyber-text text-xs mt-1 text-[#6b7280] line-clamp-1">{d.specialization || "Specialist"}</p>
                       <div className="mt-2"><StatusPill value={d.profileVerificationStatus} /></div>
                     </button>
                   ))}
@@ -321,24 +340,26 @@ export default function AdminDashboardPage() {
                 </div>
               </section>
 
-              <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
+              <section className="cyber-chamfer border p-4" style={cyberCardStyle}>
                 {!selectedDoctor ? (
-                  <p className="text-sm text-[var(--color-text-secondary)]">Select a doctor to view full profile details.</p>
+                  <p className="cyber-text text-sm text-[#6b7280]">Select a doctor to view full profile details.</p>
                 ) : (
                   <>
                     <div className="flex items-start justify-between gap-3 flex-wrap">
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="text-xl font-extrabold text-[var(--color-text-primary)]">{doctorName}</h3>
+                          <h3 className="cyber-heading text-xl font-extrabold text-[#e0e0e0]">{doctorName}</h3>
                           <VerifiedBadge isVerified={isDoctorVerified(selectedDoctor.profileVerificationStatus)} />
                         </div>
-                        <p className="text-sm text-[var(--color-text-secondary)] mt-1">{selectedDoctor.email}</p>
-                        <p className="text-sm text-[var(--color-text-secondary)]">{selectedDoctor.specialization || "Specialist"}</p>
+                        <p className="cyber-text text-sm text-[#6b7280] mt-1">{selectedDoctor.email}</p>
+                        <p className="cyber-text text-sm text-[#6b7280]">{selectedDoctor.specialization || "Specialist"}</p>
                       </div>
                       <button
                         onClick={() => openDoctorIssues(selectedDoctor._id)}
-                        className="rounded-xl px-3 py-2 text-xs font-semibold border border-[var(--color-primary)]/30 text-[var(--color-primary)]"
+                        className="cyber-chamfer-sm px-3 py-2 text-xs font-semibold border inline-flex items-center gap-1.5"
+                        style={{ borderColor: "rgba(0,212,255,0.4)", color: "#00d4ff" }}
                       >
+                        <AlertTriangle size={12} />
                         Open Doctor Issues
                       </button>
                     </div>
@@ -351,18 +372,19 @@ export default function AdminDashboardPage() {
                     </div>
 
                     <div className="mt-5 grid grid-cols-1 xl:grid-cols-2 gap-4">
-                      <div className="rounded-xl border border-[var(--color-border)] p-3 space-y-3">
-                        <p className="text-xs uppercase tracking-[0.15em] text-[var(--color-text-secondary)]">Verification Workflow</p>
+                      <div className="cyber-chamfer-sm border p-3 space-y-3" style={{ borderColor: "#2a2a3a", background: "#1c1c2e" }}>
+                        <p className="cyber-label text-[10px] text-[#6b7280]">Verification Workflow</p>
                         <div className="flex items-center gap-2 flex-wrap">
                           <StatusPill value={selectedDoctor.profileVerificationStatus} />
-                          <span className="text-xs text-[var(--color-text-secondary)]">
+                          <span className="cyber-text text-xs text-[#6b7280]">
                             Reviewed by {selectedDoctor.profileVerificationReviewedBy || "-"}
                           </span>
                         </div>
                         <select
                           value={verificationStatus}
                           onChange={(e) => setVerificationStatus(e.target.value)}
-                          className="w-full rounded-xl px-3 py-2.5 border bg-[var(--color-bg)] border-[var(--color-border)] text-sm"
+                          className="cyber-text w-full cyber-chamfer-sm px-3 py-2.5 border text-sm"
+                          style={cyberInputStyle}
                         >
                           {VERIFY_STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
                         </select>
@@ -371,26 +393,28 @@ export default function AdminDashboardPage() {
                           onChange={(e) => setVerificationNotes(e.target.value)}
                           placeholder="Review notes"
                           rows={3}
-                          className="w-full rounded-xl px-3 py-2.5 border bg-[var(--color-bg)] border-[var(--color-border)] text-sm resize-none"
+                          className="cyber-text w-full cyber-chamfer-sm px-3 py-2.5 border text-sm resize-none"
+                          style={cyberInputStyle}
                         />
-                        <button onClick={updateVerification} className="rounded-xl px-4 py-2.5 text-sm font-semibold text-white bg-[var(--color-primary)]">
+                        <button onClick={updateVerification} className="cyber-chamfer-sm cyber-heading px-4 py-2.5 text-xs font-semibold text-[#0a0a0f]" style={{ background: "#00ff88", boxShadow: cyberpunkTheme.shadows.neon }}>
+                          <ShieldCheck size={12} className="inline mr-1" />
                           Update Verification
                         </button>
                       </div>
 
-                      <div className="rounded-xl border border-[var(--color-border)] p-3">
-                        <p className="text-xs uppercase tracking-[0.15em] text-[var(--color-text-secondary)]">Doctor Issue History</p>
+                      <div className="cyber-chamfer-sm border p-3" style={{ borderColor: "#2a2a3a", background: "#1c1c2e" }}>
+                        <p className="cyber-label text-[10px] text-[#6b7280]">Doctor Issue History</p>
                         <div className="mt-3 space-y-2 max-h-[220px] overflow-y-auto pr-1">
                           {doctorIssueHistory.length === 0 ? (
-                            <p className="text-sm text-[var(--color-text-secondary)]">No resolved/closed issues for this doctor.</p>
+                            <p className="cyber-text text-sm text-[#6b7280]">No resolved/closed issues for this doctor.</p>
                           ) : (
                             doctorIssueHistory.map((item) => (
-                              <div key={item._id} className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] p-2.5">
+                              <div key={item._id} className="cyber-chamfer-sm border p-2.5" style={{ borderColor: "#2a2a3a", background: "#12121a" }}>
                                 <div className="flex items-center justify-between gap-2">
-                                  <p className="text-sm font-semibold text-[var(--color-text-primary)] line-clamp-1">{item.title}</p>
+                                  <p className="cyber-text text-sm font-semibold text-[#e0e0e0] line-clamp-1">{item.title}</p>
                                   <StatusPill value={item.status} />
                                 </div>
-                                <p className="text-xs mt-1 text-[var(--color-text-secondary)]">{item.category}</p>
+                                <p className="cyber-text text-xs mt-1 text-[#6b7280]">{item.category}</p>
                               </div>
                             ))
                           )}
@@ -398,11 +422,11 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
 
-                    <div className="mt-4 rounded-xl border border-[var(--color-border)] p-3">
-                      <p className="text-xs uppercase tracking-[0.15em] text-[var(--color-text-secondary)]">Active Issues</p>
+                    <div className="mt-4 cyber-chamfer-sm border p-3" style={{ borderColor: "#2a2a3a", background: "#1c1c2e" }}>
+                      <p className="cyber-label text-[10px] text-[#6b7280]">Active Issues</p>
                       <div className="mt-3 flex flex-wrap gap-2">
                         {doctorActiveIssues.length === 0 ? (
-                          <p className="text-sm text-[var(--color-text-secondary)]">No active issues for this doctor.</p>
+                          <p className="cyber-text text-sm text-[#6b7280]">No active issues for this doctor.</p>
                         ) : (
                           doctorActiveIssues.map((item) => (
                             <button
@@ -411,10 +435,11 @@ export default function AdminDashboardPage() {
                                 setActiveSection("issues");
                                 setSelectedTicketId(item._id);
                               }}
-                              className="rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-2.5 py-1.5 text-left"
+                              className="cyber-chamfer-sm border px-2.5 py-1.5 text-left"
+                              style={{ borderColor: "#2a2a3a", background: "#12121a" }}
                             >
-                              <p className="text-xs font-semibold text-[var(--color-text-primary)] line-clamp-1">{item.title}</p>
-                              <p className="text-[11px] text-[var(--color-text-secondary)]">{normalizeStatusLabel(item.status)}</p>
+                              <p className="cyber-text text-xs font-semibold text-[#e0e0e0] line-clamp-1">{item.title}</p>
+                              <p className="cyber-text text-[11px] text-[#6b7280]">{normalizeStatusLabel(item.status)}</p>
                             </button>
                           ))
                         )}
@@ -427,22 +452,24 @@ export default function AdminDashboardPage() {
           )}
 
           {activeSection === "issues" && (
-            <section className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
+            <section className="cyber-chamfer border p-4" style={cyberCardStyle}>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-bold text-[var(--color-text-primary)]">Issue Inbox</h2>
-                  <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">Track all issue conversations and keep actions auditable.</p>
+                  <h2 className="cyber-heading text-lg font-bold text-[#e0e0e0]">Issue Inbox</h2>
+                  <p className="cyber-text text-xs text-[#6b7280] mt-0.5">Track all issue conversations and keep actions auditable.</p>
                 </div>
-                <div className="flex gap-2 rounded-xl border border-[var(--color-border)] p-1 bg-[var(--color-bg)]/40">
+                <div className="flex gap-2 rounded-full border p-1" style={{ borderColor: "#2a2a3a", background: "#1c1c2e" }}>
                   <button
                     onClick={() => setTicketFilter("active")}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${ticketFilter === "active" ? "bg-[var(--color-primary)]/15 text-[var(--color-primary)]" : "text-[var(--color-text-secondary)]"}`}
+                    className="rounded-full px-3 py-1.5 text-xs font-semibold"
+                    style={ticketFilter === "active" ? { background: "rgba(0,255,136,0.14)", color: "#00ff88" } : { color: "#6b7280" }}
                   >
                     Active
                   </button>
                   <button
                     onClick={() => setTicketFilter("history")}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${ticketFilter === "history" ? "bg-[var(--color-primary)]/15 text-[var(--color-primary)]" : "text-[var(--color-text-secondary)]"}`}
+                    className="rounded-full px-3 py-1.5 text-xs font-semibold"
+                    style={ticketFilter === "history" ? { background: "rgba(255,0,255,0.14)", color: "#ff00ff" } : { color: "#6b7280" }}
                   >
                     History
                   </button>
@@ -452,33 +479,37 @@ export default function AdminDashboardPage() {
               <div className="mt-4 grid grid-cols-1 xl:grid-cols-12 gap-4">
                 <div className="xl:col-span-4 space-y-2 max-h-[430px] overflow-y-auto pr-1">
                   {tickets.length === 0 ? (
-                    <p className="text-sm text-[var(--color-text-secondary)]">No issues available.</p>
+                    <p className="cyber-text text-sm text-[#6b7280]">No issues available.</p>
                   ) : (
                     tickets.map((t) => (
                       <button
                         key={t._id}
                         onClick={() => setSelectedTicketId(t._id)}
-                        className={`w-full rounded-xl p-3 border text-left ${selectedTicketId === t._id ? "border-[var(--color-primary)] bg-[var(--color-primary)]/10" : "border-[var(--color-border)]"}`}
+                        className="w-full cyber-chamfer-sm p-3 border text-left"
+                        style={selectedTicketId === t._id
+                          ? { borderColor: "rgba(255,0,255,0.42)", background: "rgba(255,0,255,0.1)" }
+                          : { borderColor: "#2a2a3a", background: "#12121a" }}
                       >
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-semibold text-[var(--color-text-primary)] line-clamp-1">{t.title}</p>
+                          <p className="cyber-text text-sm font-semibold text-[#e0e0e0] line-clamp-1">{t.title}</p>
                           <StatusPill value={t.status} />
                         </div>
-                        <p className="text-xs mt-1 text-[var(--color-text-secondary)] line-clamp-1">{t.doctor?.fullName || "Doctor"}</p>
+                        <p className="cyber-text text-xs mt-1 text-[#6b7280] line-clamp-1">{t.doctor?.fullName || "Doctor"}</p>
                       </button>
                     ))
                   )}
                 </div>
 
-                <div className="xl:col-span-8 rounded-xl border border-[var(--color-border)] p-3 flex flex-col min-h-[430px]">
+                <div className="xl:col-span-8 cyber-chamfer-sm border p-3 flex flex-col min-h-[430px]" style={{ borderColor: "#2a2a3a", background: "#0a0a0f" }}>
                   {!selectedTicket ? (
-                    <p className="m-auto text-sm text-[var(--color-text-secondary)]">Select a ticket to open chat.</p>
+                    <p className="cyber-text m-auto text-sm text-[#6b7280]">Select a ticket to open chat.</p>
                   ) : (
                     <>
-                      <div className="border-b border-[var(--color-border)] pb-3 flex flex-wrap items-center justify-between gap-2">
+                      <div className="border-b pb-3 flex flex-wrap items-center justify-between gap-2" style={{ borderColor: "#2a2a3a" }}>
                         <div>
-                          <h3 className="text-base font-bold text-[var(--color-text-primary)]">{selectedTicket.title}</h3>
-                          <p className="text-xs text-[var(--color-text-secondary)]">
+                          <h3 className="cyber-heading text-base font-bold text-[#e0e0e0]">{selectedTicket.title}</h3>
+                          <p className="cyber-text text-xs text-[#6b7280] inline-flex items-center gap-1">
+                            <Building2 size={12} />
                             {selectedTicket.doctor?.fullName || "Doctor"} • {selectedTicket.category}
                           </p>
                         </div>
@@ -488,7 +519,8 @@ export default function AdminDashboardPage() {
                             <button
                               key={status}
                               onClick={() => setTicketStatus(status)}
-                              className="rounded-lg px-2.5 py-1.5 text-xs font-semibold border border-[var(--color-border)]"
+                              className="cyber-chamfer-sm px-2.5 py-1.5 text-xs font-semibold border"
+                              style={{ borderColor: "#2a2a3a", color: "#00d4ff" }}
                             >
                               {status}
                             </button>
@@ -499,22 +531,24 @@ export default function AdminDashboardPage() {
                       <div className="flex-1 overflow-y-auto py-3 space-y-2">
                         {(selectedTicket.messages || []).map((m) => (
                           <div key={m._id || `${m.senderRole}-${m.createdAt}`} className={`flex ${m.senderRole === "admin" ? "justify-end" : "justify-start"}`}>
-                            <div className={`max-w-[80%] rounded-2xl px-3 py-2 border ${m.senderRole === "admin" ? "bg-[var(--color-primary)]/15 border-[var(--color-primary)]/30" : "bg-[var(--color-bg)] border-[var(--color-border)]"}`}>
-                              <p className="text-[11px] font-semibold mb-0.5 text-[var(--color-text-secondary)]">{m.senderName}</p>
-                              <p className="text-sm text-[var(--color-text-primary)] whitespace-pre-wrap">{m.text}</p>
+                            <div className="max-w-[80%] cyber-chamfer-sm px-3 py-2 border" style={m.senderRole === "admin" ? { background: "rgba(0,255,136,0.12)", borderColor: "rgba(0,255,136,0.35)" } : { background: "#12121a", borderColor: "#2a2a3a" }}>
+                              <p className="cyber-text text-[11px] font-semibold mb-0.5 text-[#6b7280]">{m.senderName}</p>
+                              <p className="cyber-text text-sm text-[#e0e0e0] whitespace-pre-wrap">{m.text}</p>
                             </div>
                           </div>
                         ))}
                       </div>
 
-                      <div className="pt-2 border-t border-[var(--color-border)] flex gap-2">
+                      <div className="pt-2 border-t flex gap-2" style={{ borderColor: "#2a2a3a" }}>
                         <input
                           value={adminReply}
                           onChange={(e) => setAdminReply(e.target.value)}
                           placeholder="Reply to doctor..."
-                          className="flex-1 rounded-xl px-3 py-2.5 border bg-[var(--color-bg)] border-[var(--color-border)] text-sm"
+                          className="cyber-text flex-1 cyber-chamfer-sm px-3 py-2.5 border text-sm"
+                          style={cyberInputStyle}
                         />
-                        <button onClick={sendAdminReply} className="rounded-xl px-4 py-2.5 text-sm font-semibold text-white bg-[var(--color-primary)]">
+                        <button onClick={sendAdminReply} className="cyber-chamfer-sm px-4 py-2.5 text-sm font-semibold text-[#0a0a0f] inline-flex items-center gap-1.5" style={{ background: "#00ff88", boxShadow: cyberpunkTheme.shadows.neon }}>
+                          <Send size={14} />
                           Send
                         </button>
                       </div>

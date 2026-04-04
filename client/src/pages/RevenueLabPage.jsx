@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowDownRight, ArrowRight, ArrowUpRight, BarChart3, CalendarDays, Coins, FileSpreadsheet, FileText, Wallet } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import {
@@ -14,12 +15,14 @@ import {
   Legend,
 } from "recharts";
 import { CardSkeleton, ChartSkeleton } from "../components/SkeletonLoaders";
+import { organicCardStyle, organicTheme } from "../styles/organicTheme";
 
 const S = {
-  card: { background: "var(--color-card)", border: "1px solid var(--color-border)" },
+  card: organicCardStyle,
   strongCard: {
-    background: "linear-gradient(145deg, color-mix(in srgb, var(--color-primary) 16%, var(--color-card)), var(--color-card))",
-    border: "1px solid color-mix(in srgb, var(--color-primary) 25%, var(--color-border))",
+    background: "linear-gradient(145deg, rgba(93,112,82,0.12), #FEFEFA)",
+    border: "1px solid rgba(93,112,82,0.28)",
+    boxShadow: organicTheme.shadows.soft,
   },
 };
 
@@ -27,16 +30,16 @@ const fmtMoney = (n) => `PKR ${Math.round(Number(n || 0)).toLocaleString()}`;
 
 const trendLabel = (n) => {
   const v = Number(n || 0);
-  if (v > 0) return { text: `+${v.toFixed(1)}%`, tone: "#22c55e", icon: "↗" };
-  if (v < 0) return { text: `${v.toFixed(1)}%`, tone: "#ef4444", icon: "↘" };
-  return { text: "0.0%", tone: "#94a3b8", icon: "→" };
+  if (v > 0) return { text: `+${v.toFixed(1)}%`, tone: "#5D7052", icon: ArrowUpRight };
+  if (v < 0) return { text: `${v.toFixed(1)}%`, tone: "#A85448", icon: ArrowDownRight };
+  return { text: "0.0%", tone: "#78786C", icon: ArrowRight };
 };
 
 const RevenueTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
     <div className="px-3 py-2 rounded-xl text-sm" style={S.card}>
-      <p className="font-semibold text-[var(--color-primary)]">{label}</p>
+      <p className="font-semibold" style={{ color: organicTheme.colors.primary }}>{label}</p>
       <p>{fmtMoney(payload[0].value)}</p>
     </div>
   );
@@ -48,7 +51,7 @@ const PeakTooltip = ({ active, payload, label }) => {
   const checkups = payload.find((p) => p.dataKey === "checkups")?.value || 0;
   return (
     <div className="px-3 py-2 rounded-xl text-sm" style={S.card}>
-      <p className="font-semibold text-[var(--color-primary)]">{label}</p>
+      <p className="font-semibold" style={{ color: organicTheme.colors.primary }}>{label}</p>
       <p>Appointments: {appointments}</p>
       <p>Checkups: {checkups}</p>
     </div>
@@ -109,7 +112,7 @@ export default function RevenueLabPage() {
       ...m,
       projected: monthlyRunRate,
     }));
-  }, [revenue]);
+  }, [revenue?.monthlySeries, revenue?.projectedYearly]);
 
   const handleExport = async (format) => {
     if (!startDate || !endDate) {
@@ -147,7 +150,7 @@ export default function RevenueLabPage() {
     }
   };
 
-  const fetchBillingLog = async () => {
+  const fetchBillingLog = useCallback(async () => {
     if (!startDate || !endDate) return;
     setBillingLoading(true);
     try {
@@ -166,11 +169,11 @@ export default function RevenueLabPage() {
     } finally {
       setBillingLoading(false);
     }
-  };
+  }, [billingSearch, billingStatusFilter, endDate, startDate]);
 
   useEffect(() => {
     fetchBillingLog();
-  }, [billingStatusFilter, billingSearch, startDate, endDate]);
+  }, [fetchBillingLog]);
 
   const handleToggleBillingStatus = async (row) => {
     setBillingUpdatingId(row.id);
@@ -219,8 +222,8 @@ export default function RevenueLabPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-xl font-bold text-[var(--color-text-primary)]">Revenue Lab</h2>
-          <p className="text-xs mt-0.5 text-[var(--color-text-secondary)]">Money intelligence for your practice</p>
+          <h2 className="text-4xl font-bold text-[#2C2C24]" style={{ fontFamily: "Fraunces" }}>Revenue Lab</h2>
+          <p className="text-sm mt-1 text-[#78786C]">Money intelligence for your practice</p>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[1, 2, 3, 4].map((i) => <CardSkeleton key={i} />)}
@@ -237,46 +240,48 @@ export default function RevenueLabPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap gap-3 items-end justify-between">
         <div>
-          <h2 className="text-xl font-bold text-[var(--color-text-primary)]">Revenue Lab</h2>
-          <p className="text-xs mt-0.5 text-[var(--color-text-secondary)]">If you keep going like this, here is what you will make this year.</p>
+          <h2 className="text-4xl font-bold text-[#2C2C24]" style={{ fontFamily: "Fraunces" }}>Revenue Lab</h2>
+          <p className="text-sm mt-1 text-[#78786C]">If you keep going like this, here is what you will make this year.</p>
         </div>
         <div className="flex flex-wrap gap-2 items-end">
           <div className="flex items-center gap-2">
             <div>
-              <label className="text-[10px] uppercase tracking-wider text-[var(--color-text-secondary)]">From</label>
+              <label className="text-[10px] uppercase tracking-wider text-[#78786C]">From</label>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="block mt-1 px-2 py-1 rounded-lg text-xs outline-none"
-                style={{ background: "var(--color-bg)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)" }}
+                className="block mt-1 px-3 py-2 rounded-full text-xs outline-none"
+                style={{ background: "rgba(255,255,255,0.65)", border: "1px solid #DED8CF", color: "#2C2C24" }}
               />
             </div>
             <div>
-              <label className="text-[10px] uppercase tracking-wider text-[var(--color-text-secondary)]">To</label>
+              <label className="text-[10px] uppercase tracking-wider text-[#78786C]">To</label>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="block mt-1 px-2 py-1 rounded-lg text-xs outline-none"
-                style={{ background: "var(--color-bg)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)" }}
+                className="block mt-1 px-3 py-2 rounded-full text-xs outline-none"
+                style={{ background: "rgba(255,255,255,0.65)", border: "1px solid #DED8CF", color: "#2C2C24" }}
               />
             </div>
           </div>
           <button
             onClick={() => handleExport("xlsx")}
             disabled={isExporting}
-            className="px-3 py-2 rounded-xl text-xs font-semibold"
-            style={{ background: "color-mix(in srgb, var(--color-primary) 12%, transparent)", color: "var(--color-primary)", border: "1px solid color-mix(in srgb, var(--color-primary) 28%, transparent)" }}
+            className="px-4 py-2.5 rounded-full text-xs font-semibold inline-flex items-center gap-1"
+            style={{ background: "rgba(93,112,82,0.12)", color: "#5D7052", border: "1px solid rgba(93,112,82,0.28)" }}
           >
+            <FileSpreadsheet size={14} />
             {isExporting ? "Exporting..." : "Export Excel (.xlsx)"}
           </button>
           <button
             onClick={() => handleExport("pdf")}
             disabled={isExporting}
-            className="px-3 py-2 rounded-xl text-xs font-semibold"
-            style={{ background: "var(--color-bg)", color: "var(--color-text-secondary)", border: "1px solid var(--color-border)" }}
+            className="px-4 py-2.5 rounded-full text-xs font-semibold inline-flex items-center gap-1"
+            style={{ background: "rgba(240,235,229,0.45)", color: "#78786C", border: "1px solid #DED8CF" }}
           >
+            <FileText size={14} />
             {isExporting ? "Exporting..." : "Export PDF"}
           </button>
           <input
@@ -285,22 +290,22 @@ export default function RevenueLabPage() {
             max="3000"
             value={taxYear}
             onChange={(e) => setTaxYear(Number(e.target.value || new Date().getFullYear()))}
-            className="px-2 py-2 rounded-xl text-xs w-[84px] outline-none"
-            style={{ background: "var(--color-bg)", color: "var(--color-text-primary)", border: "1px solid var(--color-border)" }}
+            className="px-3 py-2.5 rounded-full text-xs w-[90px] outline-none"
+            style={{ background: "rgba(255,255,255,0.65)", color: "#2C2C24", border: "1px solid #DED8CF" }}
           />
           <button
             onClick={() => handleExportTax("xlsx")}
             disabled={isExporting}
-            className="px-3 py-2 rounded-xl text-xs font-semibold"
-            style={{ background: "rgba(56,189,248,0.12)", color: "#38bdf8", border: "1px solid rgba(56,189,248,0.3)" }}
+            className="px-3 py-2.5 rounded-full text-xs font-semibold"
+            style={{ background: "rgba(193,140,93,0.14)", color: "#C18C5D", border: "1px solid rgba(193,140,93,0.3)" }}
           >
             Tax XLSX
           </button>
           <button
             onClick={() => handleExportTax("pdf")}
             disabled={isExporting}
-            className="px-3 py-2 rounded-xl text-xs font-semibold"
-            style={{ background: "rgba(56,189,248,0.08)", color: "#38bdf8", border: "1px solid rgba(56,189,248,0.25)" }}
+            className="px-3 py-2.5 rounded-full text-xs font-semibold"
+            style={{ background: "rgba(193,140,93,0.08)", color: "#C18C5D", border: "1px solid rgba(193,140,93,0.24)" }}
           >
             Tax PDF
           </button>
@@ -309,20 +314,20 @@ export default function RevenueLabPage() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: "Daily Income", value: fmtMoney(revenue.daily), trend: trendLabel(trends.dailyPct), icon: "💵" },
-          { label: "Weekly Income", value: fmtMoney(revenue.weekly), trend: trendLabel(trends.weeklyPct), icon: "📆" },
-          { label: "Monthly Income", value: fmtMoney(revenue.monthly), trend: trendLabel(trends.monthlyPct), icon: "🧾" },
-          { label: "Year Projection", value: fmtMoney(revenue.projectedYearly), trend: { text: "Run-rate model", tone: "#38bdf8", icon: "⌁" }, icon: "🚀" },
+          { label: "Daily Income", value: fmtMoney(revenue.daily), trend: trendLabel(trends.dailyPct), Icon: Coins },
+          { label: "Weekly Income", value: fmtMoney(revenue.weekly), trend: trendLabel(trends.weeklyPct), Icon: CalendarDays },
+          { label: "Monthly Income", value: fmtMoney(revenue.monthly), trend: trendLabel(trends.monthlyPct), Icon: Wallet },
+          { label: "Year Projection", value: fmtMoney(revenue.projectedYearly), trend: { text: "Run-rate model", tone: "#C18C5D", icon: ArrowRight }, Icon: BarChart3 },
         ].map((card) => (
-          <div key={card.label} className="rounded-2xl p-4" style={card.label === "Year Projection" ? S.strongCard : S.card}>
+          <div key={card.label} className="rounded-[2rem] p-4" style={card.label === "Year Projection" ? S.strongCard : S.card}>
             <div className="flex items-start justify-between mb-2">
-              <span className="text-lg">{card.icon}</span>
+              <span className="h-10 w-10 rounded-2xl flex items-center justify-center" style={{ background: "rgba(93,112,82,0.12)", color: "#5D7052" }}><card.Icon size={18} /></span>
               <span className="text-xs font-semibold" style={{ color: card.trend.tone }}>
-                {card.trend.icon} {card.trend.text}
+                <span className="inline-flex items-center gap-1"><card.trend.icon size={14} /> {card.trend.text}</span>
               </span>
             </div>
-            <p className="text-base sm:text-lg font-extrabold text-[var(--color-text-primary)]">{card.value}</p>
-            <p className="text-xs text-[var(--color-text-secondary)]">{card.label}</p>
+            <p className="text-base sm:text-lg font-extrabold text-[#2C2C24]">{card.value}</p>
+            <p className="text-xs text-[#78786C]">{card.label}</p>
           </div>
         ))}
       </div>

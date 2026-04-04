@@ -1,9 +1,33 @@
 import { useState, useEffect } from "react";
+import { Upload, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import useAuthStore from "../store/authStore";
 import { ProfileHeaderSkeleton, FormFieldSkeleton } from "../components/SkeletonLoaders";
 import VerifiedBadge from "../components/VerifiedBadge";
+
+// ─── Design Tokens ────────────────────────────────────────────────────────────
+const tokens = {
+  colors: {
+    background: "#FDFCF8",
+    foreground: "#2C2C24",
+    primary: "#5D7052",
+    primaryForeground: "#F3F4F1",
+    secondary: "#C18C5D",
+    secondary_foreground: "#FFFFFF",
+    accent: "#E6DCCD",
+    accentForeground: "#4A4A40",
+    muted: "#F0EBE5",
+    mutedForeground: "#78786C",
+    border: "#DED8CF",
+    destructive: "#A85448",
+  },
+  shadows: {
+    soft: "0 4px 20px -2px rgba(93, 112, 82, 0.15)",
+    float: "0 10px 40px -10px rgba(193, 140, 93, 0.2)",
+    deepHover: "0 6px 24px -4px rgba(93, 112, 82, 0.25)",
+  },
+};
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const TITLES = ["Dr.", "Prof.", "Consultant"];
@@ -36,60 +60,89 @@ const SPECIALIZATION_SUGGESTIONS = [
   "Radiologist", "Anesthesiologist", "Pathologist", "Physical Therapist",
 ];
 
-// ─── Shared Styles ────────────────────────────────────────────────────────────
-
-const S = {
-  input: "w-full px-4 py-3 rounded-xl text-sm outline-none transition-all bg-[var(--color-bg)]/50 border border-[var(--color-border)] text-[var(--color-text-primary)] focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]/50",
-  card: "rounded-2xl border bg-[var(--color-card)] border-[var(--color-border)]",
-  section: "rounded-xl border bg-[var(--color-bg)]/50 border-[var(--color-border)]",
-};
-
-const inputCls = "w-full px-4 py-3 rounded-xl text-sm outline-none transition-all bg-[var(--color-bg)]/50 border border-[var(--color-border)] text-[var(--color-text-primary)] focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)]/50";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Input Styling ────────────────────────────────────────────────────────────
+const inputCls = "w-full px-5 py-3 rounded-full text-sm outline-none transition-all bg-white border border-[#DED8CF] text-[#2C2C24] placeholder:text-[#78786C]/50 focus:border-[#5D7052] focus:ring-2 focus:ring-[#5D7052]/20 focus:shadow-[0_0_0_0.5px_rgba(93,112,82,0.1)]";
 
 function SectionLabel({ text }) {
-  return <p className="text-xs font-bold uppercase tracking-widest mb-4 text-[var(--color-text-secondary)]">{text}</p>;
+  return (
+    <p className="text-xs font-bold uppercase tracking-widest mb-4 text-[#78786C]">
+      {text}
+    </p>
+  );
 }
 
 function FieldLabel({ text, optional }) {
   return (
-    <label className="block text-xs font-medium mb-1.5 text-[var(--color-text-secondary)]">
-      {text} {optional ? <span className="opacity-50">(optional)</span> : <span style={{ color: "var(--color-primary)" }}>*</span>}
+    <label className="block text-sm font-medium mb-2.5 text-[#2C2C24]">
+      {text}{" "}
+      {optional ? (
+        <span className="opacity-50 text-[#78786C]">(optional)</span>
+      ) : (
+        <span style={{ color: tokens.colors.primary }}>*</span>
+      )}
     </label>
   );
 }
 
 function SaveButton({ onClick, isLoading, label = "Save Changes" }) {
   return (
-    <div className="flex justify-end pt-2">
-      <button onClick={onClick} disabled={isLoading}
-        className="px-6 py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 bg-[var(--color-primary)] shadow-lg hover:shadow-xl"
-        style={{}}>
+    <div className="flex justify-end pt-4">
+      <button
+        onClick={onClick}
+        disabled={isLoading}
+        className="px-8 py-3 rounded-full text-sm font-bold text-white transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+        style={{
+          background: tokens.colors.primary,
+          boxShadow: tokens.shadows.soft,
+        }}
+      >
         {isLoading ? "Saving..." : label}
       </button>
     </div>
   );
 }
 
-// ─── Searchable Input ─────────────────────────────────────────────────────────
+// ─── Searchable Input  ────────────────────────────────────────────────────────
 
 function SuggestInput({ value, onChange, suggestions, placeholder }) {
   const [open, setOpen] = useState(false);
-  const filtered = suggestions.filter((s) => s.toLowerCase().includes(value.toLowerCase())).slice(0, 8);
+  const filtered = suggestions
+    .filter((s) => s.toLowerCase().includes(value.toLowerCase()))
+    .slice(0, 8);
   return (
     <div className="relative">
-      <input value={value} onChange={(e) => { onChange(e.target.value); setOpen(true); }}
+      <input
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setOpen(true);
+        }}
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
-        placeholder={placeholder} className={inputCls} />
+        placeholder={placeholder}
+        className={inputCls}
+      />
       {open && value && filtered.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 rounded-xl overflow-hidden shadow-xl bg-[var(--color-card)] border border-[var(--color-border)]"
-          style={{ maxHeight: "180px", overflowY: "auto" }}>
+        <div
+          className="absolute z-50 w-full mt-2 rounded-2xl overflow-hidden border"
+          style={{
+            background: tokens.colors.background,
+            border: `1px solid ${tokens.colors.border}`,
+            boxShadow: tokens.shadows.float,
+            maxHeight: "200px",
+            overflowY: "auto",
+          }}
+        >
           {filtered.map((s) => (
-            <button key={s} type="button"
-              className="w-full text-left px-4 py-2.5 text-sm transition-all hover:bg-[var(--color-primary)]/10 text-[var(--color-text-secondary)]"
-              onMouseDown={() => { onChange(s); setOpen(false); }}>
+            <button
+              key={s}
+              type="button"
+              className="w-full text-left px-5 py-3 text-sm transition-all hover:bg-[#5D7052]/10 text-[#2C2C24] border-b border-[#DED8CF]/30 last:border-b-0"
+              onMouseDown={() => {
+                onChange(s);
+                setOpen(false);
+              }}
+            >
               {s}
             </button>
           ))}
@@ -99,12 +152,17 @@ function SuggestInput({ value, onChange, suggestions, placeholder }) {
   );
 }
 
-// ─── Tag List Input ───────────────────────────────────────────────────────────
+// ─── Tag List Input  ──────────────────────────────────────────────────────────
 
 function TagListInput({ items, onAdd, onRemove, placeholder, suggestions = [] }) {
   const [input, setInput] = useState("");
   const [open, setOpen] = useState(false);
-  const filtered = suggestions.filter((s) => s.toLowerCase().includes(input.toLowerCase()) && !items.includes(s)).slice(0, 6);
+  const filtered = suggestions
+    .filter(
+      (s) =>
+        s.toLowerCase().includes(input.toLowerCase()) && !items.includes(s)
+    )
+    .slice(0, 6);
 
   const add = () => {
     if (!input.trim() || items.includes(input.trim())) return;
@@ -115,23 +173,55 @@ function TagListInput({ items, onAdd, onRemove, placeholder, suggestions = [] })
   return (
     <div>
       <div className="relative flex gap-2">
-        <input value={input}
-          onChange={(e) => { setInput(e.target.value); setOpen(true); }}
+        <input
+          value={input}
+          onChange={(e) => {
+            setInput(e.target.value);
+            setOpen(true);
+          }}
           onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
-          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              add();
+            }
+          }}
           placeholder={placeholder}
-          className={inputCls} />
-        <button type="button" onClick={add}
-          className="px-4 py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-80 bg-[var(--color-primary)]/10 text-[var(--color-primary)] border border-[var(--color-primary)]/20">
+          className={inputCls}
+        />
+        <button
+          type="button"
+          onClick={add}
+          className="px-5 py-3 rounded-full text-sm font-semibold transition-all hover:opacity-90"
+          style={{
+            background: `${tokens.colors.primary}15`,
+            color: tokens.colors.primary,
+            border: `1.5px solid ${tokens.colors.primary}30`,
+          }}
+        >
           + Add
         </button>
         {open && input && filtered.length > 0 && (
-          <div className="absolute z-50 top-full left-0 right-16 mt-1 rounded-xl overflow-hidden shadow-xl bg-[var(--color-card)] border border-[var(--color-border)]">
+          <div
+            className="absolute z-50 top-full left-0 right-20 mt-2 rounded-2xl overflow-hidden border"
+            style={{
+              background: tokens.colors.background,
+              border: `1px solid ${tokens.colors.border}`,
+              boxShadow: tokens.shadows.float,
+            }}
+          >
             {filtered.map((s) => (
-              <button key={s} type="button"
-                className="w-full text-left px-4 py-2.5 text-sm transition-all hover:bg-[var(--color-primary)]/10 text-[var(--color-text-secondary)]"
-                onMouseDown={() => { onAdd(s); setInput(""); setOpen(false); }}>
+              <button
+                key={s}
+                type="button"
+                className="w-full text-left px-5 py-3 text-sm transition-all hover:bg-[#5D7052]/10 text-[#2C2C24] border-b border-[#DED8CF]/30 last:border-b-0"
+                onMouseDown={() => {
+                  onAdd(s);
+                  setInput("");
+                  setOpen(false);
+                }}
+              >
                 {s}
               </button>
             ))}
@@ -139,12 +229,26 @@ function TagListInput({ items, onAdd, onRemove, placeholder, suggestions = [] })
         )}
       </div>
       {items.length > 0 && (
-        <div className="flex flex-wrap gap-2 mt-2">
+        <div className="flex flex-wrap gap-2 mt-3">
           {items.map((item, i) => (
-            <span key={i} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20 text-[var(--color-primary)]">
+            <span
+              key={i}
+              className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium transition-all duration-200"
+              style={{
+                background: `${tokens.colors.primary}15`,
+                border: `1px solid ${tokens.colors.primary}30`,
+                color: tokens.colors.primary,
+              }}
+            >
               {item}
-              <button type="button" onClick={() => onRemove(i)}
-                className="opacity-70 hover:opacity-100 text-red-500" style={{ fontSize: "10px" }}>✕</button>
+              <button
+                type="button"
+                onClick={() => onRemove(i)}
+                className="opacity-70 hover:opacity-100 text-[#A85448]"
+                style={{ fontSize: "12px" }}
+              >
+                ✕
+              </button>
             </span>
           ))}
         </div>
@@ -181,83 +285,182 @@ function isOverlapping(day, start, end, occupied) {
 function LocationCard({ location, index, type, allClinics, allHospitals, onChange, onRemove }) {
   const occupied = getOccupiedSlots(allClinics, allHospitals, index, type);
 
-  const addSession = () => onChange({ ...location, sessions: [...location.sessions, { id: Date.now(), day: "Monday", startTime: "09:00", endTime: "17:00" }] });
-  const updateSession = (si, field, val) => onChange({ ...location, sessions: location.sessions.map((s, i) => i === si ? { ...s, [field]: val } : s) });
-  const removeSession = (si) => onChange({ ...location, sessions: location.sessions.filter((_, i) => i !== si) });
+  const addSession = () =>
+    onChange({
+      ...location,
+      sessions: [
+        ...location.sessions,
+        {
+          id: Date.now(),
+          day: "Monday",
+          startTime: "09:00",
+          endTime: "17:00",
+        },
+      ],
+    });
+  const updateSession = (si, field, val) =>
+    onChange({
+      ...location,
+      sessions: location.sessions.map((s, i) =>
+        i === si ? { ...s, [field]: val } : s
+      ),
+    });
+  const removeSession = (si) =>
+    onChange({
+      ...location,
+      sessions: location.sessions.filter((_, i) => i !== si),
+    });
 
   return (
-    <div className="rounded-2xl p-4 sm:p-5 border bg-[var(--color-card)] border-[var(--color-border)]">
+    <div
+      className="rounded-3xl p-6 transition-all duration-300 hover:shadow-lg"
+      style={{
+        background: tokens.colors.background,
+        border: `1px solid ${tokens.colors.border}`,
+        boxShadow: tokens.shadows.soft,
+      }}
+    >
       <div className="flex items-center justify-between mb-4">
-        <span className="text-sm font-bold text-white flex items-center gap-2">
-          {type === "clinic" ? "🏥" : "🏨"} {type === "clinic" ? "Clinic" : "Hospital"} {index + 1}
+        <span className="text-sm font-bold text-[#2C2C24] flex items-center gap-2">
+          {type === "clinic" ? "🏥" : "🏨"}{" "}
+          {type === "clinic" ? "Clinic" : "Hospital"} #{index + 1}
         </span>
-        <button onClick={onRemove}
-          className="text-xs px-2.5 py-1.5 rounded-lg transition-all hover-danger-soft text-red-500 border border-red-500/20">
+        <button
+          onClick={onRemove}
+          className="px-3 py-1.5 rounded-lg transition-all text-[#A85448] border"
+          style={{
+            borderColor: `${tokens.colors.destructive}30`,
+            background: `${tokens.colors.destructive}10`,
+          }}
+        >
+          <Trash2 size={16} className="inline mr-1" />
           Remove
         </button>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
         <div>
           <FieldLabel text="Name" />
-          <input value={location.name} onChange={(e) => onChange({ ...location, name: e.target.value })}
-            placeholder={type === "clinic" ? "e.g. Doctors Hospital" : "e.g. Services Hospital"}
-            className={inputCls} />
+          <input
+            value={location.name}
+            onChange={(e) => onChange({ ...location, name: e.target.value })}
+            placeholder={
+              type === "clinic"
+                ? "e.g. Doctors Hospital"
+                : "e.g. Services Hospital"
+            }
+            className={inputCls}
+          />
         </div>
         <div>
           <FieldLabel text="Address" />
-          <input value={location.address} onChange={(e) => onChange({ ...location, address: e.target.value })}
+          <input
+            value={location.address}
+            onChange={(e) => onChange({ ...location, address: e.target.value })}
             placeholder="e.g. Gulberg, Lahore"
-            className={inputCls} />
+            className={inputCls}
+          />
         </div>
       </div>
 
       <SectionLabel text="Sessions" />
       {location.sessions.length === 0 && (
-        <p className="text-xs mb-3 text-[var(--color-text-secondary)]">No sessions added yet</p>
+        <p className="text-xs mb-3 text-[#78786C]">No sessions added yet</p>
       )}
       <div className="space-y-2 mb-3">
         {location.sessions.map((session, si) => {
-          const overlap = isOverlapping(session.day, session.startTime, session.endTime, occupied);
+          const overlap = isOverlapping(
+            session.day,
+            session.startTime,
+            session.endTime,
+            occupied
+          );
           return (
-            <div key={session.id ?? si} className="grid grid-cols-1 sm:grid-cols-4 gap-2 p-3 rounded-xl items-end border"
+            <div
+              key={session.id ?? si}
+              className="grid grid-cols-1 sm:grid-cols-4 gap-2 p-3 rounded-2xl items-end border transition-all"
               style={{
-                background: overlap ? "var(--color-danger)/10" : "var(--color-bg)/50",
-                borderColor: overlap ? "var(--color-danger)/20" : "var(--color-border)",
-              }}>
+                background: overlap
+                  ? `${tokens.colors.destructive}10`
+                  : `${tokens.colors.muted}20`,
+                borderColor: overlap
+                  ? `${tokens.colors.destructive}30`
+                  : tokens.colors.border,
+              }}
+            >
               <div>
-                <label className="block text-xs mb-1 text-[var(--color-text-secondary)]">Day</label>
-                <select value={session.day} onChange={(e) => updateSession(si, "day", e.target.value)}
-                  className={inputCls + (overlap ? " opacity-60" : "")}
-                  style={{}}
-                  >
-                  {DAYS.map((d) => <option key={d} value={d}>{d}</option>)}
+                <label className="block text-xs mb-1.5 text-[#78786C] font-medium">
+                  Day
+                </label>
+                <select
+                  value={session.day}
+                  onChange={(e) =>
+                    updateSession(si, "day", e.target.value)
+                  }
+                  className={`${inputCls} ${overlap ? "opacity-60" : ""}`}
+                >
+                  {DAYS.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
-                <label className="block text-xs mb-1 text-[var(--color-text-secondary)]">Start</label>
-                <input type="time" value={session.startTime} onChange={(e) => updateSession(si, "startTime", e.target.value)}
-                  className={inputCls + (overlap ? " opacity-60" : "")} />
+                <label className="block text-xs mb-1.5 text-[#78786C] font-medium">
+                  Start
+                </label>
+                <input
+                  type="time"
+                  value={session.startTime}
+                  onChange={(e) =>
+                    updateSession(si, "startTime", e.target.value)
+                  }
+                  className={`${inputCls} ${overlap ? "opacity-60" : ""}`}
+                />
               </div>
               <div>
-                <label className="block text-xs mb-1 text-[var(--color-text-secondary)]">End</label>
-                <input type="time" value={session.endTime} onChange={(e) => updateSession(si, "endTime", e.target.value)}
-                  className={inputCls + (overlap ? " opacity-60" : "")} />
+                <label className="block text-xs mb-1.5 text-[#78786C] font-medium">
+                  End
+                </label>
+                <input
+                  type="time"
+                  value={session.endTime}
+                  onChange={(e) =>
+                    updateSession(si, "endTime", e.target.value)
+                  }
+                  className={`${inputCls} ${overlap ? "opacity-60" : ""}`}
+                />
               </div>
               <div className="flex items-end gap-2">
                 {overlap && (
-                  <span className="text-xs px-2 py-1 rounded-lg flex-1 text-center bg-red-500/10 text-red-500">⚠ Overlap</span>
+                  <span className="text-xs px-3 py-1.5 rounded-lg flex-1 text-center bg-[#A85448]/10 text-[#A85448] font-medium">
+                    ⚠ Overlap
+                  </span>
                 )}
-                <button onClick={() => removeSession(si)}
-                  className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover-danger-soft shrink-0 border border-red-500/15 text-red-500">
-                  🗑
+                <button
+                  onClick={() => removeSession(si)}
+                  className="w-10 h-10 rounded-xl flex items-center justify-center transition-all shrink-0 border text-[#A85448]"
+                  style={{
+                    borderColor: `${tokens.colors.destructive}30`,
+                    background: `${tokens.colors.destructive}10`,
+                  }}
+                >
+                  <Trash2 size={18} />
                 </button>
               </div>
             </div>
           );
         })}
       </div>
-      <button onClick={addSession}
-        className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-80 border border-dashed border-[var(--color-primary)]/30 text-[var(--color-primary)] bg-[var(--color-primary)]/5">
+      <button
+        onClick={addSession}
+        className="w-full py-3 rounded-full text-sm font-semibold transition-all hover:opacity-90 border border-dashed"
+        style={{
+          borderColor: `${tokens.colors.primary}30`,
+          color: tokens.colors.primary,
+          background: `${tokens.colors.primary}05`,
+        }}
+      >
         + Add Session
       </button>
     </div>
@@ -406,11 +609,20 @@ export default function SettingsPage() {
     return (
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-[var(--color-text-primary)]">Settings</h2>
-          <p className="text-xs mt-0.5 text-[var(--color-text-secondary)]">Manage your profile and practice information</p>
+          <h1 className="text-4xl md:text-5xl font-bold text-[#2C2C24] mb-2" style={{ fontFamily: "Fraunces" }}>
+            Settings
+          </h1>
+          <p className="text-base text-[#78786C]">
+            Manage your profile and practice information
+          </p>
         </div>
         <ProfileHeaderSkeleton />
-        <div className="rounded-2xl p-6 space-y-6 border bg-[var(--color-card)] border-[var(--color-border)]">
+        <div className="rounded-3xl p-6 space-y-6 border"
+          style={{
+            background: tokens.colors.background,
+            border: `1px solid ${tokens.colors.border}`,
+            boxShadow: tokens.shadows.soft,
+          }}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <FormFieldSkeleton />
             <FormFieldSkeleton />
@@ -425,25 +637,57 @@ export default function SettingsPage() {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-6">
-        <h2 className="text-xl font-bold text-[var(--color-text-primary)]">Settings</h2>
-        <p className="text-xs mt-0.5 text-[var(--color-text-secondary)]">Manage your profile and practice information</p>
+        <h1 className="text-4xl md:text-5xl font-bold text-[#2C2C24] mb-2" style={{ fontFamily: "Fraunces" }}>
+          Settings
+        </h1>
+        <p className="text-base text-[#78786C]">
+          Manage your profile and practice information
+        </p>
       </div>
 
-      {/* Profile Picture Placeholder */}
-      <div className="flex items-center gap-4 p-5 rounded-2xl mb-6 border bg-[var(--color-card)] border-[var(--color-border)]">
-        <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold text-white shrink-0 bg-[var(--color-primary)]">
+      {/* Profile Picture Section */}
+      <div
+        className="flex items-center gap-4 p-6 rounded-3xl mb-6 border transition-all hover:shadow-lg"
+        style={{
+          background: tokens.colors.background,
+          border: `1px solid ${tokens.colors.border}`,
+          boxShadow: tokens.shadows.soft,
+        }}
+      >
+        <div
+          className="w-20 h-20 rounded-3xl flex items-center justify-center text-3xl font-bold text-white shrink-0"
+          style={{ background: tokens.colors.primary }}
+        >
           {doctor?.profilePicture ? (
-            <img src={doctor.profilePicture} alt="Profile" className="w-full h-full object-cover rounded-2xl" />
+            <img
+              src={doctor.profilePicture}
+              alt="Profile"
+              className="w-full h-full object-cover rounded-3xl"
+            />
           ) : (
             doctor?.fullName?.charAt(0) || "D"
           )}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <p className="text-base font-bold text-[var(--color-text-primary)]">{doctor?.fullName || "Doctor"}</p>
-            <VerifiedBadge isVerified={["Verified", "Approved"].includes(doctor?.profileVerificationStatus)} />
+          <div className="flex items-center gap-2 mb-1">
+            <p
+              className="text-lg font-bold text-[#2C2C24]"
+              style={{ fontFamily: "Fraunces" }}
+            >
+              {doctor?.fullName || "Doctor"}
+            </p>
+            <VerifiedBadge
+              isVerified={["Verified", "Approved"].includes(
+                doctor?.profileVerificationStatus
+              )}
+            />
           </div>
-          <p className="text-sm text-[var(--color-primary)]">{doctor?.specialization || "Specialist"}</p>
+          <p
+            className="text-sm font-medium"
+            style={{ color: tokens.colors.primary }}
+          >
+            {doctor?.specialization || "Specialist"}
+          </p>
         </div>
         <input
           type="file"
@@ -458,9 +702,13 @@ export default function SettingsPage() {
             formData.append("profilePicture", file);
 
             try {
-              const res = await axiosInstance.post("/doctor/upload-profile-picture", formData, {
-                headers: { "Content-Type": "multipart/form-data" },
-              });
+              const res = await axiosInstance.post(
+                "/doctor/upload-profile-picture",
+                formData,
+                {
+                  headers: { "Content-Type": "multipart/form-data" },
+                }
+              );
               setDoctor({ ...(doctor || {}), profilePicture: res.data.profilePicture });
               toast.success("Profile picture updated!");
             } catch {
@@ -470,22 +718,50 @@ export default function SettingsPage() {
             }
           }}
         />
-        <label htmlFor="profilePicUpload"
-          className="px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer transition-all hover:opacity-80 bg-[var(--color-primary)]/10 text-[var(--color-primary)] border border-[var(--color-primary)]/20">
-          📷 Upload Photo
+        <label
+          htmlFor="profilePicUpload"
+          className="px-5 py-2.5 rounded-full text-xs font-semibold cursor-pointer transition-all hover:opacity-85"
+          style={{
+            background: `${tokens.colors.primary}15`,
+            color: tokens.colors.primary,
+            border: `1.5px solid ${tokens.colors.primary}30`,
+          }}
+        >
+          <Upload size={16} className="inline mr-1" />
+          Upload Photo
         </label>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 p-1 rounded-2xl overflow-x-auto border bg-[var(--color-bg)]/30 border-[var(--color-border)]">
+      <div
+        className="flex gap-2 mb-6 p-2 rounded-full overflow-x-auto border"
+        style={{
+          background: `${tokens.colors.muted}30`,
+          border: `1px solid ${tokens.colors.border}`,
+        }}
+      >
         {TABS.map((tab) => (
-          <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-            className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all whitespace-nowrap flex-1 justify-center border"
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all whitespace-nowrap border"
             style={{
-              background: activeTab === tab.key ? "var(--color-primary)/15" : "transparent",
-              color: activeTab === tab.key ? "var(--color-primary)" : "var(--color-text-secondary)",
-              borderColor: activeTab === tab.key ? "var(--color-primary)/30" : "transparent",
-            }}>
+              background:
+                activeTab === tab.key
+                  ? tokens.colors.primary
+                  : "transparent",
+              color:
+                activeTab === tab.key
+                  ? tokens.colors.primaryForeground
+                  : tokens.colors.mutedForeground,
+              borderColor:
+                activeTab === tab.key
+                  ? tokens.colors.primary
+                  : "transparent",
+              boxShadow:
+                activeTab === tab.key ? tokens.shadows.soft : "none",
+            }}
+          >
             <span>{tab.icon}</span>
             <span className="hidden sm:inline">{tab.label}</span>
           </button>
@@ -494,25 +770,58 @@ export default function SettingsPage() {
 
       {/* ── PERSONAL TAB ── */}
       {activeTab === "personal" && (
-        <div className="rounded-2xl p-5 sm:p-6 space-y-5 border bg-[var(--color-card)] border-[var(--color-border)]">
-          <SectionLabel text="Personal Information" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div
+          className="rounded-3xl p-6 sm:p-8 space-y-6 border transition-all hover:shadow-lg"
+          style={{
+            background: tokens.colors.background,
+            border: `1px solid ${tokens.colors.border}`,
+            boxShadow: tokens.shadows.soft,
+          }}
+        >
+          <h2
+            className="text-2xl font-bold text-[#2C2C24]"
+            style={{ fontFamily: "Fraunces" }}
+          >
+            Personal Information
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div className="sm:col-span-2">
               <FieldLabel text="Full Name" />
-              <input value={personal.fullName} onChange={(e) => setPersonal((p) => ({ ...p, fullName: e.target.value }))}
-                placeholder="Dr. Ahmed Raza" className={inputCls} />
+              <input
+                value={personal.fullName}
+                onChange={(e) =>
+                  setPersonal((p) => ({ ...p, fullName: e.target.value }))
+                }
+                placeholder="Dr. Ahmed Raza"
+                className={inputCls}
+              />
             </div>
             <div className="sm:col-span-2">
               <FieldLabel text="Gender" />
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 {GENDERS.map((g) => (
-                  <button key={g} onClick={() => setPersonal((p) => ({ ...p, gender: g }))}
-                    className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all border"
+                  <button
+                    key={g}
+                    onClick={() =>
+                      setPersonal((p) => ({ ...p, gender: g }))
+                    }
+                    className="flex-1 py-3 rounded-full text-sm font-semibold transition-all border"
                     style={{
-                      background: personal.gender === g ? "var(--color-primary)/15" : "var(--color-bg)/50",
-                      borderColor: personal.gender === g ? "var(--color-primary)/30" : "var(--color-border)",
-                      color: personal.gender === g ? "var(--color-primary)" : "var(--color-text-secondary)",
-                    }}>
+                      background:
+                        personal.gender === g
+                          ? tokens.colors.primary
+                          : `${tokens.colors.muted}20`,
+                      borderColor:
+                        personal.gender === g
+                          ? tokens.colors.primary
+                          : tokens.colors.border,
+                      color:
+                        personal.gender === g
+                          ? tokens.colors.primaryForeground
+                          : tokens.colors.foreground,
+                    }}
+                  >
                     {g}
                   </button>
                 ))}
@@ -520,130 +829,288 @@ export default function SettingsPage() {
             </div>
             <div className="sm:col-span-2">
               <FieldLabel text="Phone" />
-              <input value={personal.phone} onChange={(e) => setPersonal((p) => ({ ...p, phone: e.target.value }))}
-                placeholder="03001234567" className={inputCls} />
+              <input
+                value={personal.phone}
+                onChange={(e) =>
+                  setPersonal((p) => ({ ...p, phone: e.target.value }))
+                }
+                placeholder="03001234567"
+                className={inputCls}
+              />
             </div>
           </div>
-          <SaveButton onClick={savePersonal} isLoading={isSaving} />
+          <SaveButton
+            onClick={savePersonal}
+            isLoading={isSaving}
+          />
         </div>
       )}
 
       {/* ── PROFESSIONAL TAB ── */}
       {activeTab === "professional" && (
-        <div className="rounded-2xl p-5 sm:p-6 space-y-5 border bg-[var(--color-card)] border-[var(--color-border)]">
-          <SectionLabel text="Professional Information" />
+        <div
+          className="rounded-3xl p-6 sm:p-8 space-y-6 border transition-all hover:shadow-lg"
+          style={{
+            background: tokens.colors.background,
+            border: `1px solid ${tokens.colors.border}`,
+            boxShadow: tokens.shadows.soft,
+          }}
+        >
+          <h2
+            className="text-2xl font-bold text-[#2C2C24]"
+            style={{ fontFamily: "Fraunces" }}
+          >
+            Professional Information
+          </h2>
 
           <div>
             <FieldLabel text="Professional Title" />
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               {TITLES.map((t) => (
-                <button key={t} onClick={() => setProfessional((p) => ({ ...p, title: t }))}
-                  className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all border"
+                <button
+                  key={t}
+                  onClick={() =>
+                    setProfessional((p) => ({ ...p, title: t }))
+                  }
+                  className="flex-1 py-3 rounded-full text-sm font-semibold transition-all border"
                   style={{
-                    background: professional.title === t ? "var(--color-primary)/15" : "var(--color-bg)/50",
-                    borderColor: professional.title === t ? "var(--color-primary)/30" : "var(--color-border)",
-                    color: professional.title === t ? "var(--color-primary)" : "var(--color-text-secondary)",
-                  }}>
+                    background:
+                      professional.title === t
+                        ? tokens.colors.primary
+                        : `${tokens.colors.muted}20`,
+                    borderColor:
+                      professional.title === t
+                        ? tokens.colors.primary
+                        : tokens.colors.border,
+                    color:
+                      professional.title === t
+                        ? tokens.colors.primaryForeground
+                        : tokens.colors.foreground,
+                  }}
+                >
                   {t}
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
               <FieldLabel text="Specialization" />
-              <SuggestInput value={professional.specialization}
-                onChange={(v) => setProfessional((p) => ({ ...p, specialization: v }))}
-                suggestions={SPECIALIZATION_SUGGESTIONS} placeholder="e.g. Dermatologist" />
+              <SuggestInput
+                value={professional.specialization}
+                onChange={(v) =>
+                  setProfessional((p) => ({ ...p, specialization: v }))
+                }
+                suggestions={SPECIALIZATION_SUGGESTIONS}
+                placeholder="e.g. Dermatologist"
+              />
             </div>
             <div>
               <FieldLabel text="Primary Degree" />
-              <SuggestInput value={professional.primaryDegree}
-                onChange={(v) => setProfessional((p) => ({ ...p, primaryDegree: v }))}
-                suggestions={DEGREE_SUGGESTIONS} placeholder="e.g. MBBS" />
+              <SuggestInput
+                value={professional.primaryDegree}
+                onChange={(v) =>
+                  setProfessional((p) => ({ ...p, primaryDegree: v }))
+                }
+                suggestions={DEGREE_SUGGESTIONS}
+                placeholder="e.g. MBBS"
+              />
             </div>
             <div className="sm:col-span-2">
               <FieldLabel text="Additional Degrees" optional />
               <TagListInput
                 items={professional.additionalDegrees}
-                onAdd={(v) => setProfessional((p) => ({ ...p, additionalDegrees: [...p.additionalDegrees, v] }))}
-                onRemove={(i) => setProfessional((p) => ({ ...p, additionalDegrees: p.additionalDegrees.filter((_, idx) => idx !== i) }))}
-                placeholder="e.g. FCPS, MD" suggestions={DEGREE_SUGGESTIONS} />
+                onAdd={(v) =>
+                  setProfessional((p) => ({
+                    ...p,
+                    additionalDegrees: [...p.additionalDegrees, v],
+                  }))
+                }
+                onRemove={(i) =>
+                  setProfessional((p) => ({
+                    ...p,
+                    additionalDegrees: p.additionalDegrees.filter(
+                      (_, idx) => idx !== i
+                    ),
+                  }))
+                }
+                placeholder="e.g. FCPS, MD"
+                suggestions={DEGREE_SUGGESTIONS}
+              />
             </div>
             <div>
               <FieldLabel text="Medical University" />
-              <input value={professional.university}
-                onChange={(e) => setProfessional((p) => ({ ...p, university: e.target.value }))}
+              <input
+                value={professional.university}
+                onChange={(e) =>
+                  setProfessional((p) => ({
+                    ...p,
+                    university: e.target.value,
+                  }))
+                }
                 placeholder="e.g. King Edward Medical University"
-                className={inputCls} />
+                className={inputCls}
+              />
             </div>
             <div>
               <FieldLabel text="Graduation Year" />
-              <input type="number" value={professional.graduationYear}
-                onChange={(e) => setProfessional((p) => ({ ...p, graduationYear: e.target.value }))}
-                placeholder="e.g. 2015" min="1970" max={new Date().getFullYear()}
-                className={inputCls} />
+              <input
+                type="number"
+                value={professional.graduationYear}
+                onChange={(e) =>
+                  setProfessional((p) => ({
+                    ...p,
+                    graduationYear: e.target.value,
+                  }))
+                }
+                placeholder="e.g. 2015"
+                min="1970"
+                max={new Date().getFullYear()}
+                className={inputCls}
+              />
             </div>
             <div className="sm:col-span-2">
               <FieldLabel text="Postgraduate Training" optional />
               <TagListInput
                 items={professional.postgraduateTraining}
-                onAdd={(v) => setProfessional((p) => ({ ...p, postgraduateTraining: [...p.postgraduateTraining, v] }))}
-                onRemove={(i) => setProfessional((p) => ({ ...p, postgraduateTraining: p.postgraduateTraining.filter((_, idx) => idx !== i) }))}
-                placeholder="e.g. Hair Transplant Training" />
+                onAdd={(v) =>
+                  setProfessional((p) => ({
+                    ...p,
+                    postgraduateTraining: [
+                      ...p.postgraduateTraining,
+                      v,
+                    ],
+                  }))
+                }
+                onRemove={(i) =>
+                  setProfessional((p) => ({
+                    ...p,
+                    postgraduateTraining: p.postgraduateTraining.filter(
+                      (_, idx) => idx !== i
+                    ),
+                  }))
+                }
+                placeholder="e.g. Hair Transplant Training"
+              />
             </div>
             <div>
               <FieldLabel text="Years of Experience" />
-              <input type="number" value={professional.yearsOfExperience}
-                onChange={(e) => setProfessional((p) => ({ ...p, yearsOfExperience: e.target.value }))}
-                placeholder="e.g. 8" min="0"
-                className={inputCls} />
+              <input
+                type="number"
+                value={professional.yearsOfExperience}
+                onChange={(e) =>
+                  setProfessional((p) => ({
+                    ...p,
+                    yearsOfExperience: e.target.value,
+                  }))
+                }
+                placeholder="e.g. 8"
+                min="0"
+                className={inputCls}
+              />
             </div>
-            <div>
+            <div className="sm:col-span-2">
               <FieldLabel text="Appointment Slot Duration (min)" />
               <div className="flex gap-2 flex-wrap">
                 {[10, 15, 20, 30, 45, 60].map((d) => (
-                  <button key={d} onClick={() => setProfessional((p) => ({ ...p, slotDuration: d }))}
-                    className="px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border"
+                  <button
+                    key={d}
+                    onClick={() =>
+                      setProfessional((p) => ({
+                        ...p,
+                        slotDuration: d,
+                      }))
+                    }
+                    className="px-5 py-2.5 rounded-full text-sm font-semibold transition-all border"
                     style={{
-                      background: professional.slotDuration === d ? "var(--color-primary)/15" : "var(--color-bg)/50",
-                      borderColor: professional.slotDuration === d ? "var(--color-primary)/30" : "var(--color-border)",
-                      color: professional.slotDuration === d ? "var(--color-primary)" : "var(--color-text-secondary)",
-                    }}>
+                      background:
+                        professional.slotDuration === d
+                          ? tokens.colors.primary
+                          : `${tokens.colors.muted}20`,
+                      borderColor:
+                        professional.slotDuration === d
+                          ? tokens.colors.primary
+                          : tokens.colors.border,
+                      color:
+                        professional.slotDuration === d
+                          ? tokens.colors.primaryForeground
+                          : tokens.colors.foreground,
+                    }}
+                  >
                     {d} min
                   </button>
                 ))}
               </div>
             </div>
           </div>
-          <SaveButton onClick={saveProfessional} isLoading={isSaving} />
+          <SaveButton
+            onClick={saveProfessional}
+            isLoading={isSaving}
+          />
         </div>
       )}
 
       {/* ── LICENSING TAB ── */}
       {activeTab === "licensing" && (
-        <div className="rounded-2xl p-5 sm:p-6 space-y-5 border bg-[var(--color-card)] border-[var(--color-border)]">
-          <SectionLabel text="Licensing Information" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div
+          className="rounded-3xl p-6 sm:p-8 space-y-6 border transition-all hover:shadow-lg"
+          style={{
+            background: tokens.colors.background,
+            border: `1px solid ${tokens.colors.border}`,
+            boxShadow: tokens.shadows.soft,
+          }}
+        >
+          <h2
+            className="text-2xl font-bold text-[#2C2C24]"
+            style={{ fontFamily: "Fraunces" }}
+          >
+            Licensing Information
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div className="sm:col-span-2">
               <FieldLabel text="PMDC Registration Number" />
-              <input value={licensing.pmdcNumber}
-                onChange={(e) => setLicensing((p) => ({ ...p, pmdcNumber: e.target.value }))}
+              <input
+                value={licensing.pmdcNumber}
+                onChange={(e) =>
+                  setLicensing((p) => ({
+                    ...p,
+                    pmdcNumber: e.target.value,
+                  }))
+                }
                 placeholder="e.g. PMDC-12345"
-                className={inputCls} />
+                className={inputCls}
+              />
             </div>
             <div className="sm:col-span-2">
               <FieldLabel text="License Status" />
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 {LICENSE_STATUSES.map((s) => (
-                  <button key={s} onClick={() => setLicensing((p) => ({ ...p, licenseStatus: s }))}
-                    className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all border"
+                  <button
+                    key={s}
+                    onClick={() =>
+                      setLicensing((p) => ({
+                        ...p,
+                        licenseStatus: s,
+                      }))
+                    }
+                    className="flex-1 py-3 rounded-full text-sm font-semibold transition-all border"
                     style={{
-                      background: licensing.licenseStatus === s ? "var(--color-primary)/15" : "var(--color-bg)/50",
-                      borderColor: licensing.licenseStatus === s ? "var(--color-primary)/30" : "var(--color-border)",
-                      color: licensing.licenseStatus === s ? "var(--color-primary)" : "var(--color-text-secondary)",
-                    }}>
+                      background:
+                        licensing.licenseStatus === s
+                          ? tokens.colors.primary
+                          : `${tokens.colors.muted}20`,
+                      borderColor:
+                        licensing.licenseStatus === s
+                          ? tokens.colors.primary
+                          : tokens.colors.border,
+                      color:
+                        licensing.licenseStatus === s
+                          ? tokens.colors.primaryForeground
+                          : tokens.colors.foreground,
+                    }}
+                  >
                     {s}
                   </button>
                 ))}
@@ -651,97 +1118,264 @@ export default function SettingsPage() {
             </div>
             <div>
               <FieldLabel text="License Issue Date" />
-              <input type="date" value={licensing.licenseIssueDate}
-                onChange={(e) => setLicensing((p) => ({ ...p, licenseIssueDate: e.target.value }))}
-                className={inputCls} />
+              <input
+                type="date"
+                value={licensing.licenseIssueDate}
+                onChange={(e) =>
+                  setLicensing((p) => ({
+                    ...p,
+                    licenseIssueDate: e.target.value,
+                  }))
+                }
+                className={inputCls}
+              />
             </div>
             <div>
               <FieldLabel text="License Expiry Date" optional />
-              <input type="date" value={licensing.licenseExpiryDate}
-                onChange={(e) => setLicensing((p) => ({ ...p, licenseExpiryDate: e.target.value }))}
-                className={inputCls} />
+              <input
+                type="date"
+                value={licensing.licenseExpiryDate}
+                onChange={(e) =>
+                  setLicensing((p) => ({
+                    ...p,
+                    licenseExpiryDate: e.target.value,
+                  }))
+                }
+                className={inputCls}
+              />
             </div>
             <div className="sm:col-span-2">
               <FieldLabel text="PMDC Certificate" optional />
-              <input type="file" id="pmdcUpload" accept=".pdf,image/*" className="hidden"
-                onChange={(e) => { handlePmdcUpload(e.target.files[0]); e.target.value = ""; }} />
+              <input
+                type="file"
+                id="pmdcUpload"
+                accept=".pdf,image/*"
+                className="hidden"
+                onChange={(e) => {
+                  handlePmdcUpload(e.target.files[0]);
+                  e.target.value = "";
+                }}
+              />
               {pmdcCertificate ? (
-                <div className="flex items-center gap-3 px-4 py-3 rounded-xl border bg-[var(--color-primary)]/5 border-[var(--color-primary)]/20">
-                  <span className="text-[var(--color-primary)]">📎</span>
-                  <span className="text-sm flex-1 text-[var(--color-primary)]">Certificate uploaded</span>
-                  <a href={pmdcCertificate} target="_blank" rel="noreferrer"
-                    className="text-xs px-3 py-1.5 rounded-lg font-semibold bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+                <div
+                  className="flex items-center gap-3 px-5 py-3 rounded-2xl border"
+                  style={{
+                    background: `${tokens.colors.primary}10`,
+                    borderColor: `${tokens.colors.primary}30`,
+                  }}
+                >
+                  <span style={{ color: tokens.colors.primary }}>📎</span>
+                  <span
+                    className="text-sm flex-1 font-medium"
+                    style={{ color: tokens.colors.primary }}
+                  >
+                    Certificate uploaded
+                  </span>
+                  <a
+                    href={pmdcCertificate}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs px-3 py-1.5 rounded-lg font-semibold"
+                    style={{
+                      background: `${tokens.colors.primary}15`,
+                      color: tokens.colors.primary,
+                    }}
+                  >
                     View
                   </a>
-                  <label htmlFor="pmdcUpload"
-                    className="text-xs px-3 py-1.5 rounded-lg font-semibold cursor-pointer bg-[var(--color-bg)]/50 text-[var(--color-text-secondary)]">
+                  <label
+                    htmlFor="pmdcUpload"
+                    className="text-xs px-3 py-1.5 rounded-lg font-semibold cursor-pointer"
+                    style={{
+                      background: `${tokens.colors.muted}40`,
+                      color: tokens.colors.mutedForeground,
+                    }}
+                  >
                     {isUploadingPmdc ? "Uploading..." : "Replace"}
                   </label>
                 </div>
               ) : (
-                <label htmlFor="pmdcUpload"
-                  className="w-full px-4 py-3 rounded-xl text-sm flex items-center gap-2 cursor-pointer transition-all hover:opacity-80 border border-dashed border-[var(--color-primary)]/30 text-[var(--color-primary)] bg-[var(--color-primary)]/5">
-                  {isUploadingPmdc ? "⏳ Uploading..." : "📎 Upload PMDC Certificate (PDF or Image)"}
+                <label
+                  htmlFor="pmdcUpload"
+                  className="w-full px-5 py-3 rounded-2xl text-sm flex items-center gap-2 cursor-pointer transition-all hover:opacity-90 border border-dashed"
+                  style={{
+                    borderColor: `${tokens.colors.primary}30`,
+                    color: tokens.colors.primary,
+                    background: `${tokens.colors.primary}05`,
+                  }}
+                >
+                  {isUploadingPmdc ? (
+                    "⏳ Uploading..."
+                  ) : (
+                    <>
+                      📎 Upload PMDC Certificate (PDF or Image)
+                    </>
+                  )}
                 </label>
               )}
             </div>
           </div>
-          <SaveButton onClick={saveLicensing} isLoading={isSaving} />
+          <SaveButton
+            onClick={saveLicensing}
+            isLoading={isSaving}
+          />
         </div>
       )}
 
       {/* ── LOCATIONS TAB ── */}
       {activeTab === "locations" && (
-        <div className="space-y-5">
+        <div className="space-y-6">
           {/* Clinics */}
-          <div className="rounded-2xl p-5 sm:p-6 border bg-[var(--color-card)] border-[var(--color-border)]">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-sm font-bold text-[var(--color-text-primary)]">🏥 Clinics</p>
-              <button onClick={() => setClinics((p) => [...p, { id: Date.now(), name: "", address: "", sessions: [] }])}
-                className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:opacity-80 bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+          <div
+            className="rounded-3xl p-6 sm:p-8 border transition-all hover:shadow-lg"
+            style={{
+              background: tokens.colors.background,
+              border: `1px solid ${tokens.colors.border}`,
+              boxShadow: tokens.shadows.soft,
+            }}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h3
+                className="text-lg font-bold text-[#2C2C24]"
+                style={{ fontFamily: "Fraunces" }}
+              >
+                🏥 Clinics
+              </h3>
+              <button
+                onClick={() =>
+                  setClinics((p) => [
+                    ...p,
+                    {
+                      id: Date.now(),
+                      name: "",
+                      address: "",
+                      sessions: [],
+                    },
+                  ])
+                }
+                className="px-5 py-2.5 rounded-full text-xs font-semibold transition-all hover:opacity-90"
+                style={{
+                  background: `${tokens.colors.primary}15`,
+                  color: tokens.colors.primary,
+                  border: `1.5px solid ${tokens.colors.primary}30`,
+                }}
+              >
                 + Add Clinic
               </button>
             </div>
             {clinics.length === 0 && (
-              <div className="text-center py-6 rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-bg)]/30">
-                <p className="text-xs text-[var(--color-text-secondary)]">No clinics added</p>
+              <div
+                className="text-center py-8 rounded-2xl border border-dashed"
+                style={{
+                  borderColor: tokens.colors.border,
+                  background: `${tokens.colors.muted}20`,
+                }}
+              >
+                <p className="text-sm text-[#78786C]">No clinics added yet</p>
               </div>
             )}
-            <div className="space-y-3">
+            <div className="space-y-4">
               {clinics.map((clinic, i) => (
-                <LocationCard key={clinic.id} location={clinic} index={i} type="clinic"
-                  allClinics={clinics} allHospitals={hospitals}
-                  onChange={(data) => setClinics((p) => p.map((c, idx) => idx === i ? data : c))}
-                  onRemove={() => setClinics((p) => p.filter((_, idx) => idx !== i))} />
+                <LocationCard
+                  key={clinic.id}
+                  location={clinic}
+                  index={i}
+                  type="clinic"
+                  allClinics={clinics}
+                  allHospitals={hospitals}
+                  onChange={(data) =>
+                    setClinics((p) =>
+                      p.map((c, idx) => (idx === i ? data : c))
+                    )
+                  }
+                  onRemove={() =>
+                    setClinics((p) =>
+                      p.filter((_, idx) => idx !== i)
+                    )
+                  }
+                />
               ))}
             </div>
           </div>
 
           {/* Hospitals */}
-          <div className="rounded-2xl p-5 sm:p-6 border bg-[var(--color-card)] border-[var(--color-border)]">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-sm font-bold text-[var(--color-text-primary)]">🏨 Hospitals</p>
-              <button onClick={() => setHospitals((p) => [...p, { id: Date.now(), name: "", address: "", sessions: [] }])}
-                className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:opacity-80 bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+          <div
+            className="rounded-3xl p-6 sm:p-8 border transition-all hover:shadow-lg"
+            style={{
+              background: tokens.colors.background,
+              border: `1px solid ${tokens.colors.border}`,
+              boxShadow: tokens.shadows.soft,
+            }}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h3
+                className="text-lg font-bold text-[#2C2C24]"
+                style={{ fontFamily: "Fraunces" }}
+              >
+                🏨 Hospitals
+              </h3>
+              <button
+                onClick={() =>
+                  setHospitals((p) => [
+                    ...p,
+                    {
+                      id: Date.now(),
+                      name: "",
+                      address: "",
+                      sessions: [],
+                    },
+                  ])
+                }
+                className="px-5 py-2.5 rounded-full text-xs font-semibold transition-all hover:opacity-90"
+                style={{
+                  background: `${tokens.colors.primary}15`,
+                  color: tokens.colors.primary,
+                  border: `1.5px solid ${tokens.colors.primary}30`,
+                }}
+              >
                 + Add Hospital
               </button>
             </div>
             {hospitals.length === 0 && (
-              <div className="text-center py-6 rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-bg)]/30">
-                <p className="text-xs text-[var(--color-text-secondary)]">No hospitals added</p>
+              <div
+                className="text-center py-8 rounded-2xl border border-dashed"
+                style={{
+                  borderColor: tokens.colors.border,
+                  background: `${tokens.colors.muted}20`,
+                }}
+              >
+                <p className="text-sm text-[#78786C]">No hospitals added yet</p>
               </div>
             )}
-            <div className="space-y-3">
+            <div className="space-y-4">
               {hospitals.map((hospital, i) => (
-                <LocationCard key={hospital.id} location={hospital} index={i} type="hospital"
-                  allClinics={clinics} allHospitals={hospitals}
-                  onChange={(data) => setHospitals((p) => p.map((h, idx) => idx === i ? data : h))}
-                  onRemove={() => setHospitals((p) => p.filter((_, idx) => idx !== i))} />
+                <LocationCard
+                  key={hospital.id}
+                  location={hospital}
+                  index={i}
+                  type="hospital"
+                  allClinics={clinics}
+                  allHospitals={hospitals}
+                  onChange={(data) =>
+                    setHospitals((p) =>
+                      p.map((h, idx) => (idx === i ? data : h))
+                    )
+                  }
+                  onRemove={() =>
+                    setHospitals((p) =>
+                      p.filter((_, idx) => idx !== i)
+                    )
+                  }
+                />
               ))}
             </div>
           </div>
 
-          <SaveButton onClick={saveLocations} isLoading={isSaving} label="Save Locations" />
+          <SaveButton
+            onClick={saveLocations}
+            isLoading={isSaving}
+            label="Save Locations"
+          />
         </div>
       )}
     </div>

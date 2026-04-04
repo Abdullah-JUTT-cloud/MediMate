@@ -1,7 +1,10 @@
 import { useState } from "react";
+import { Cpu, Fingerprint, Mail, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
+import { cyberCardStyle, cyberInputStyle, cyberpunkTheme } from "../styles/cyberpunkTheme";
+import "../styles/cyberpunk.css";
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
@@ -27,31 +30,46 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-[var(--color-bg)]">
-      <div className="w-full max-w-md rounded-2xl border bg-[var(--color-card)] border-[var(--color-border)] p-6">
-        <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">Admin Login</h1>
-        <p className="text-sm mt-1 text-[var(--color-text-secondary)]">Use your env admin credentials.</p>
+    <div className="cyber-shell min-h-screen flex items-center justify-center px-4">
+      <div className="relative w-full max-w-md cyber-chamfer border p-6" style={{ ...cyberCardStyle, boxShadow: cyberpunkTheme.shadows.neonSm }}>
+        <div className="pointer-events-none absolute right-3 top-3 text-[#00ff88] opacity-70">
+          <Cpu size={18} />
+        </div>
+
+        <p className="cyber-label text-[10px] text-[#6b7280]">Restricted Node</p>
+        <h1 className="cyber-heading cyber-glitch mt-2 text-3xl font-black text-[#e0e0e0]">Admin Login</h1>
+        <p className="cyber-text text-sm mt-1 text-[#6b7280]">Use your environment admin credentials.</p>
 
         <div className="mt-5 space-y-3">
-          <input
-            type="email"
-            value={form.email}
-            onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-            placeholder="admin@email.com"
-            className="w-full rounded-xl px-3 py-2.5 border bg-[var(--color-bg)] border-[var(--color-border)]"
-          />
-          <input
-            type="password"
-            value={form.password}
-            onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-            placeholder="Password"
-            className="w-full rounded-xl px-3 py-2.5 border bg-[var(--color-bg)] border-[var(--color-border)]"
-          />
+          <label className="relative block">
+            <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#00ff88]" />
+            <input
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+              placeholder="> admin@email.com"
+              className="cyber-text w-full cyber-chamfer-sm pl-8 pr-3 py-2.5 border text-sm outline-none focus:ring-2"
+              style={{ ...cyberInputStyle, boxShadow: cyberpunkTheme.shadows.neonSm, borderColor: cyberpunkTheme.colors.border }}
+            />
+          </label>
+          <label className="relative block">
+            <Fingerprint size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#ff00ff]" />
+            <input
+              type="password"
+              value={form.password}
+              onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+              placeholder="> Password"
+              className="cyber-text w-full cyber-chamfer-sm pl-8 pr-3 py-2.5 border text-sm outline-none focus:ring-2"
+              style={{ ...cyberInputStyle, boxShadow: cyberpunkTheme.shadows.neonSm, borderColor: cyberpunkTheme.colors.border }}
+            />
+          </label>
           <button
             onClick={submit}
             disabled={isLoading}
-            className="w-full rounded-xl px-4 py-2.5 text-sm font-semibold text-white bg-[var(--color-primary)] disabled:opacity-60"
+            className="cyber-heading w-full cyber-chamfer-sm px-4 py-2.5 text-sm font-bold text-[#0a0a0f] disabled:opacity-60 inline-flex items-center justify-center gap-2 transition-all hover:brightness-110"
+            style={{ background: cyberpunkTheme.colors.accent, boxShadow: cyberpunkTheme.shadows.neon }}
           >
+            <Shield size={14} />
             {isLoading ? "Signing in..." : "Sign In"}
           </button>
         </div>

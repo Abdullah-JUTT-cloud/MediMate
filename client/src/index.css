@@ -1,27 +1,40 @@
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800&family=Nunito:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 
 :root {
-  --color-primary: #2563eb;
-  --color-bg: #f9fafb;
-  --color-card: #ffffff;
-  --color-text-primary: #0b1220;
-  --color-text-secondary: #334155;
-  --color-border: #e5e7eb;
-  --color-success: #16a34a;
-  --color-danger: #dc2626;
+  --font-body: "Nunito", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Fraunces", ui-serif, Georgia, serif;
+  --font-mono: "Nunito", ui-sans-serif, system-ui, sans-serif;
+  --organic-background: #fdfcf8;
+  --organic-foreground: #2c2c24;
+  --organic-primary: #5d7052;
+  --organic-secondary: #c18c5d;
+  --organic-accent: #e6dccd;
+  --organic-muted: #f0ebe5;
+  --organic-border: #ded8cf;
+}
+
+:root {
+  --color-primary: #5d7052;
+  --color-bg: #fdfcf8;
+  --color-card: #fefefa;
+  --color-text-primary: #2c2c24;
+  --color-text-secondary: #78786c;
+  --color-border: #ded8cf;
+  --color-success: #5d7052;
+  --color-danger: #a85448;
   color-scheme: light;
 }
 
 .dark {
-  --color-primary: #3b82f6;
-  --color-bg: #111827;
-  --color-card: #1f2937;
-  --color-text-primary: #f9fafb;
-  --color-text-secondary: #9ca3af;
-  --color-border: #374151;
-  --color-success: #22c55e;
-  --color-danger: #ef4444;
+  --color-primary: #5d7052;
+  --color-bg: #fdfcf8;
+  --color-card: #fefefa;
+  --color-text-primary: #2c2c24;
+  --color-text-secondary: #78786c;
+  --color-border: #ded8cf;
+  --color-success: #5d7052;
+  --color-danger: #a85448;
   color-scheme: dark;
 }
 
@@ -31,9 +44,35 @@
 
 body {
   margin: 0;
-  font-family: "Manrope", sans-serif;
+  font-family: var(--font-body);
   background-color: var(--color-bg);
   color: var(--color-text-primary);
+  position: relative;
+  isolation: isolate;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.04;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  background-size: 240px 240px;
+}
+
+.font-heading {
+  font-family: var(--font-heading);
+}
+
+.font-body {
+  font-family: var(--font-body);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
 }
 
 /* Keep native date-picker popups readable in dark theme browsers. */
@@ -49,4 +88,20 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 /* Keep danger-action hovers soft and consistent across themes. */
 .hover-danger-soft:hover {
   background: color-mix(in srgb, var(--color-danger) 12%, transparent);
+}
+
+/* Responsive polish: keep depth but avoid heavy haze and hard-edged blobs on small screens. */
+@media (max-width: 1024px) {
+  [class*="backdrop-blur"] {
+    -webkit-backdrop-filter: blur(6px) !important;
+    backdrop-filter: blur(6px) !important;
+  }
+
+  [class*="pointer-events-none"][class*="absolute"][class*="blur-"] {
+    opacity: 0.22 !important;
+  }
+
+  body::before {
+    opacity: 0.02;
+  }
 }

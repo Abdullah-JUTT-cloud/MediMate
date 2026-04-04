@@ -469,24 +469,28 @@ export default function SignupPage() {
   const removeHospital = (i) => setHospitals((p) => p.filter((_, idx) => idx !== i));
 
   return (
-    <div className="relative min-h-screen bg-[var(--color-bg)] px-4 py-8 sm:px-6">
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-[var(--color-primary)]/8 via-transparent to-[var(--color-primary)]/5" />
-      <div className="relative mx-auto w-full max-w-3xl">
+    <div className="relative min-h-screen overflow-hidden bg-[var(--color-bg)] px-4 py-8 sm:px-6">
+      <div aria-hidden="true" className="pointer-events-none absolute -left-24 top-10 h-80 w-80 rounded-[60%_40%_35%_65%/55%_35%_65%_45%] bg-[var(--color-accent)]/80 blur-3xl" />
+      <div aria-hidden="true" className="pointer-events-none absolute -right-24 top-24 h-96 w-96 rounded-[48%_52%_39%_61%/48%_34%_66%_52%] bg-[var(--color-primary)]/10 blur-3xl" />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(222,216,207,0.45)_1px,transparent_1px),linear-gradient(to_bottom,rgba(222,216,207,0.45)_1px,transparent_1px)] bg-size-[52px_52px] opacity-[0.18] [mask-image:radial-gradient(circle_at_center,black_45%,transparent_100%)]" />
+      <div className="relative mx-auto w-full max-w-4xl">
 
         {/* Logo */}
-        <div className="mb-6 flex flex-col items-center gap-3">
-          <img src={logo} alt="MedAlerto" className="h-10" />
-          <span className="bg-gradient-to-r from-[var(--color-primary)] via-cyan-400 to-emerald-400 bg-clip-text text-lg font-black tracking-[0.3em] text-transparent sm:text-xl">
+        <div className="mb-8 flex flex-col items-center gap-3">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full border border-[var(--color-border)]/80 bg-[var(--color-primary)] shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)]">
+            <img src={logo} alt="MedAlerto" className="h-10 w-auto rounded-full" />
+          </div>
+          <span className="bg-gradient-to-r from-[var(--color-primary)] via-[var(--color-secondary)] to-[var(--color-primary)] bg-clip-text text-lg font-black tracking-[0.3em] text-transparent sm:text-xl">
             MEDALERTO
           </span>
         </div>
 
         {/* Header */}
-        <div className="text-center mb-6">
-          <h1 className="mb-1 text-2xl font-bold text-[var(--color-text-primary)] sm:text-3xl">Create your account</h1>
+        <div className="mb-8 text-center">
+          <h1 className="mb-1 text-2xl font-heading font-semibold text-[var(--color-text-primary)] sm:text-3xl">Create your account</h1>
           <p className="text-sm text-[var(--color-text-secondary)]">
             Already have an account?{" "}
-            <Link to="/login" className="font-semibold text-[var(--color-primary)] transition hover:opacity-80">
+            <Link to="/login" className="font-semibold text-[var(--color-secondary)] transition hover:opacity-80">
               Sign in
             </Link>
           </p>
@@ -496,12 +500,12 @@ export default function SignupPage() {
         <StepIndicator current={step} />
 
         {/* Card */}
-        <div className="rounded-xl border bg-[var(--color-card)] p-5 shadow-sm sm:p-8">
+        <div className="rounded-[2rem] border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-5 shadow-[0_10px_40px_-10px_rgba(193,140,93,0.18)] backdrop-blur-md sm:p-8">
 
           {/* ── STEP 1: Personal Info ── */}
           {step === 1 && (
             <div className="space-y-4">
-              <h2 className="mb-5 text-lg font-bold text-[var(--color-text-primary)]">Personal Information</h2>
+              <h2 className="mb-5 text-lg font-heading font-semibold text-[var(--color-text-primary)]">Personal Information</h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
@@ -522,7 +526,7 @@ export default function SignupPage() {
                       <button key={g} type="button" onClick={() => updatePersonal("gender", g)}
                         className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
                         style={{
-                          background: personal.gender === g ? "rgba(37,99,235,0.15)" : "var(--color-bg)",
+                          background: personal.gender === g ? "rgba(93,112,82,0.15)" : "var(--color-bg)",
                           border: personal.gender === g ? "1px solid var(--color-primary)" : "1px solid var(--color-border)",
                           color: personal.gender === g ? "var(--color-primary)" : "var(--color-text-secondary)",
                         }}>
@@ -601,7 +605,7 @@ export default function SignupPage() {
                     <button key={t} type="button" onClick={() => updateProfessional("title", t)}
                       className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
                       style={{
-                        background: professional.title === t ? "rgba(37,99,235,0.15)" : "var(--color-bg)",
+                        background: professional.title === t ? "rgba(93,112,82,0.15)" : "var(--color-bg)",
                         border: professional.title === t ? "1px solid var(--color-primary)" : "1px solid var(--color-border)",
                         color: professional.title === t ? "var(--color-primary)" : "var(--color-text-secondary)",
                       }}>
@@ -689,7 +693,7 @@ export default function SignupPage() {
                       <button key={s} type="button" onClick={() => updateProfessional("licenseStatus", s)}
                         className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all"
                         style={{
-                          background: professional.licenseStatus === s ? "rgba(37,99,235,0.15)" : "var(--color-bg)",
+                          background: professional.licenseStatus === s ? "rgba(93,112,82,0.15)" : "var(--color-bg)",
                           border: professional.licenseStatus === s ? "1px solid var(--color-primary)" : "1px solid var(--color-border)",
                           color: professional.licenseStatus === s ? "var(--color-primary)" : "var(--color-text-secondary)",
                         }}>
@@ -724,8 +728,7 @@ export default function SignupPage() {
                   <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)]">
                     PMDC Certificate <span className="text-xs opacity-60">(optional — coming soon)</span>
                   </label>
-                  <div className="w-full px-4 py-3 rounded-xl text-sm flex items-center gap-2 cursor-not-allowed"
-                    style={{ background: "var(--color-bg)", border: "1px dashed var(--color-border)", color: "var(--color-text-secondary)" }}>
+                    <div className="w-full rounded-full border border-dashed border-[var(--color-border)] bg-[var(--color-muted)] px-4 py-3 text-sm text-[var(--color-text-secondary)]">
                     📎 Upload will be available soon
                   </div>
                 </div>
@@ -746,14 +749,12 @@ export default function SignupPage() {
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-sm font-bold text-[var(--color-text-primary)]">🏥 Clinics</p>
                   <button type="button" onClick={addClinic}
-                    className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
-                    style={{ background: "rgba(37,99,235,0.12)", color: "var(--color-primary)" }}>
+                    className="rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--color-primary)] transition-all hover:scale-105 hover:bg-[var(--color-primary)]/15 active:scale-95">
                     + Add Clinic
                   </button>
                 </div>
                 {clinics.length === 0 && (
-                  <div className="text-center py-6 rounded-2xl mb-2"
-                    style={{ background: "var(--color-bg)", border: "1px dashed var(--color-border)" }}>
+                  <div className="mb-2 rounded-[2rem] border border-dashed border-[var(--color-border)] bg-[var(--color-muted)] py-6 text-center">
                     <p className="text-xs text-[var(--color-text-secondary)]">No clinics added yet</p>
                   </div>
                 )}
@@ -772,14 +773,12 @@ export default function SignupPage() {
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-sm font-bold text-[var(--color-text-primary)]">🏨 Hospitals</p>
                   <button type="button" onClick={addHospital}
-                    className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
-                    style={{ background: "rgba(37,99,235,0.12)", color: "var(--color-primary)" }}>
+                    className="rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--color-primary)] transition-all hover:scale-105 hover:bg-[var(--color-primary)]/15 active:scale-95">
                     + Add Hospital
                   </button>
                 </div>
                 {hospitals.length === 0 && (
-                  <div className="text-center py-6 rounded-2xl mb-2"
-                    style={{ background: "var(--color-bg)", border: "1px dashed var(--color-border)" }}>
+                  <div className="mb-2 rounded-[2rem] border border-dashed border-[var(--color-border)] bg-[var(--color-muted)] py-6 text-center">
                     <p className="text-xs text-[var(--color-text-secondary)]">No hospitals added yet</p>
                   </div>
                 )}
@@ -799,21 +798,21 @@ export default function SignupPage() {
           <div className="flex gap-3 mt-8">
             {step > 1 && (
               <button type="button" onClick={() => setStep(step - 1)}
-                className="flex-1 py-3.5 rounded-2xl text-sm font-bold transition-all hover:opacity-80"
+                className="flex-1 rounded-full border border-[var(--color-border)] bg-[var(--color-card)] py-3.5 text-sm font-bold text-[var(--color-text-secondary)] transition-all hover:scale-105 hover:bg-[var(--color-muted)] active:scale-95"
                 style={{ background: "var(--color-bg)", border: "1px solid var(--color-border)", color: "var(--color-text-secondary)" }}>
                 ← Back
               </button>
             )}
             {step < 3 ? (
               <button type="button" onClick={handleNext}
-                className="flex-1 py-3.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 hover:scale-105"
-                style={{ background: "var(--color-primary)", boxShadow: "0 4px 20px rgba(37,99,235,0.25)" }}>
+                className="flex-1 rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)] py-3.5 text-sm font-bold text-[var(--color-primary-foreground)] shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)] transition-all hover:scale-105 hover:shadow-[0_6px_24px_-4px_rgba(93,112,82,0.25)] active:scale-95"
+                style={{ background: "var(--color-primary)", boxShadow: "0 4px 20px rgba(93,112,82,0.15)" }}>
                 Continue →
               </button>
             ) : (
               <button type="button" onClick={handleSubmit} disabled={isLoading}
-                className="flex-1 py-3.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-                style={{ background: "var(--color-primary)", boxShadow: "0 4px 20px rgba(37,99,235,0.25)" }}>
+                className="flex-1 rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)] py-3.5 text-sm font-bold text-[var(--color-primary-foreground)] shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)] transition-all hover:scale-105 hover:shadow-[0_6px_24px_-4px_rgba(93,112,82,0.25)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
+                style={{ background: "var(--color-primary)", boxShadow: "0 4px 20px rgba(93,112,82,0.15)" }}>
                 {isLoading ? "Creating Account..." : "Create Account ✓"}
               </button>
             )}

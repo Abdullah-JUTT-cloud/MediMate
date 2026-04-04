@@ -63,33 +63,35 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)]">
+    <div className="relative min-h-screen overflow-hidden bg-[#FDFCF8] text-[#2C2C24]">
+      <div aria-hidden="true" className="pointer-events-none absolute -left-20 top-24 h-80 w-80 rounded-[60%_40%_35%_65%/55%_35%_65%_45%] bg-[#E6DCCD]/60 blur-3xl" />
+      <div aria-hidden="true" className="pointer-events-none absolute -right-24 top-56 h-96 w-96 rounded-[48%_52%_39%_61%/48%_34%_66%_52%] bg-[#5D7052]/10 blur-3xl" />
       <Navbar />
 
-      <main className="px-4 pb-20 pt-32 sm:px-6 lg:px-8">
+      <main className="relative z-10 px-4 pb-20 pt-28 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-5xl">
-          <p className="text-center text-sm font-semibold uppercase tracking-[0.15em] text-[var(--color-primary)]">Pricing</p>
-          <h1 className="mt-4 text-center text-4xl font-extrabold sm:text-5xl">Simple pricing for growing clinics</h1>
-          <p className="mx-auto mt-5 max-w-3xl text-center text-lg leading-relaxed text-[var(--color-text-secondary)]">
+          <p className="text-center font-mono text-[11px] font-semibold uppercase tracking-[0.24em] text-[#5D7052]">Pricing</p>
+          <h1 className="mt-4 text-center font-heading text-4xl font-semibold leading-tight sm:text-5xl">Simple pricing for growing clinics</h1>
+          <p className="mx-auto mt-5 max-w-3xl text-center text-lg leading-relaxed text-[#78786C]">
             One transparent plan with the core capabilities required to run modern clinical operations without paying for unnecessary complexity.
           </p>
 
-          <section className="mx-auto mt-12 max-w-3xl rounded-2xl border bg-[var(--color-card)] p-8 shadow-sm md:p-12">
-            <h2 className="text-center text-2xl font-bold">MedAlerto Professional</h2>
-            <p className="mt-2 text-center text-sm text-[var(--color-text-secondary)]">Designed for independent doctors and clinic teams</p>
+          <section className="mx-auto mt-12 max-w-3xl rounded-4xl border border-[#DED8CF]/70 bg-[#FEFEFA]/95 p-8 shadow-[0_10px_40px_-10px_rgba(193,140,93,0.18)] md:p-12">
+            <h2 className="text-center font-heading text-2xl font-semibold">MedAlerto Professional</h2>
+            <p className="mt-2 text-center text-sm text-[#78786C]">Designed for independent doctors and clinic teams</p>
 
             <div className="mb-6 mt-6 flex items-baseline justify-center gap-1">
               <span className="text-3xl font-bold">Rs.</span>
               <span className="text-6xl font-extrabold">4,999</span>
-              <span className="text-[var(--color-text-secondary)] text-lg">PKR/month</span>
+              <span className="text-lg text-[#78786C]">PKR/month</span>
             </div>
 
             <div className="mb-8 text-left">
-              <h3 className="border-b pb-2 text-lg font-bold">Included in your subscription</h3>
+              <h3 className="border-b border-[#DED8CF]/80 pb-2 text-lg font-bold">Included in your subscription</h3>
               <ul className="space-y-3">
                 {included.map((item) => (
-                  <li key={item} className="mt-3 flex items-center gap-3 text-[var(--color-text-secondary)]">
-                    <span className="text-xl text-[var(--color-success)]">✓</span>
+                  <li key={item} className="mt-3 flex items-center gap-3 text-[#78786C]">
+                    <span className="text-xl text-[#5D7052]">✓</span>
                     <span>{item}</span>
                   </li>
                 ))}
@@ -97,30 +99,30 @@ export default function PricingPage() {
             </div>
 
             <div className="grid gap-4 text-left md:grid-cols-2">
-              <div className="rounded-xl border bg-[var(--color-bg)] p-4">
+              <div className="rounded-3xl border border-[#DED8CF]/80 bg-[#F0EBE5]/45 p-4">
                 <h3 className="text-base font-bold">Best suited for</h3>
-                <p className="mt-2 text-sm leading-relaxed text-[var(--color-text-secondary)]">
+                <p className="mt-2 text-sm leading-relaxed text-[#78786C]">
                   Single-doctor clinics, specialist practices, and teams that need consistent prescription and appointment workflows.
                 </p>
               </div>
-              <div className="rounded-xl border bg-[var(--color-bg)] p-4">
+              <div className="rounded-3xl border border-[#DED8CF]/80 bg-[#F0EBE5]/45 p-4">
                 <h3 className="text-base font-bold">Business impact</h3>
-                <p className="mt-2 text-sm leading-relaxed text-[var(--color-text-secondary)]">
+                <p className="mt-2 text-sm leading-relaxed text-[#78786C]">
                   Reduces manual admin time, improves patient communication quality, and supports more predictable clinic operations.
                 </p>
               </div>
             </div>
 
-            <button className="mt-10 w-full rounded-xl bg-[var(--color-primary)] py-4 text-lg font-bold text-white transition hover:opacity-90">
+            <button className="mt-10 w-full rounded-full border border-[#5D7052] bg-[#5D7052] py-4 text-lg font-bold text-[#F3F4F1] shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)] transition duration-300 hover:scale-[1.01] hover:shadow-[0_6px_24px_-4px_rgba(93,112,82,0.25)]">
               Start Subscription
             </button>
           </section>
 
-          <section className="mt-12 rounded-2xl border bg-[var(--color-card)] p-6 sm:p-8">
-            <h2 className="text-2xl font-bold">Frequently asked questions</h2>
+          <section className="mt-12 rounded-4xl border border-[#DED8CF]/70 bg-[#FEFEFA]/95 p-6 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] sm:p-8">
+            <h2 className="font-heading text-2xl font-semibold">Frequently asked questions</h2>
             <div className="mt-5 grid gap-4">
               {faqs.map((item, index) => (
-                <article key={item.question} className="overflow-hidden rounded-xl border bg-[var(--color-bg)]">
+                <article key={item.question} className="overflow-hidden rounded-3xl border border-[#DED8CF]/80 bg-[#F0EBE5]/45">
                   <button
                     type="button"
                     onClick={() => toggleFaq(index)}
@@ -129,13 +131,13 @@ export default function PricingPage() {
                     className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left sm:px-5"
                   >
                     <h3 className="text-base font-bold">{item.question}</h3>
-                    <span className="text-2xl font-semibold leading-none text-[var(--color-text-primary)]">
+                    <span className="text-2xl font-semibold leading-none text-[#2C2C24]">
                       {openFaqIndex === index ? "-" : "+"}
                     </span>
                   </button>
                   {openFaqIndex === index && (
                     <div id={`faq-answer-${index}`}>
-                      <p className="px-4 pb-4 text-sm leading-relaxed text-[var(--color-text-secondary)] sm:px-5">
+                      <p className="px-4 pb-4 text-sm leading-relaxed text-[#78786C] sm:px-5">
                         {item.answer}
                       </p>
                     </div>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { CalendarDays, ClipboardCheck, RefreshCcw, Search, Siren, Stethoscope, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import useAuthStore from "../store/authStore";
@@ -6,6 +7,7 @@ import { RowSkeleton, AppointmentRowSkeleton, FormFieldSkeleton } from "../compo
 import { Skeleton } from "@mui/material";
 import ConfirmDialog from "../components/ConfirmDialog";
 import useConfirmDialog from "../hooks/useConfirmDialog";
+import { organicCardStyle, organicInputStyle, organicSectionStyle, organicTheme } from "../styles/organicTheme";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -14,15 +16,22 @@ const STATUSES = ["Pending", "Confirmed", "Completed", "Cancelled", "No-show"];
 const CANCELLATION_REASONS = ["Patient", "Doctor", "Emergency", "No-show"];
 
 const STATUS_STYLES = {
-  Pending:   { bg: "rgba(245,158,11,0.1)",  border: "rgba(245,158,11,0.2)",  color: "#f59e0b" },
-  Confirmed: { bg: "color-mix(in srgb, var(--color-primary) 12%, transparent)",  border: "color-mix(in srgb, var(--color-primary) 24%, transparent)",  color: "var(--color-primary)" },
-  Completed: { bg: "rgba(34,197,94,0.1)",   border: "rgba(34,197,94,0.2)",   color: "#22c55e" },
-  Cancelled: { bg: "color-mix(in srgb, var(--color-danger) 12%, transparent)",   border: "color-mix(in srgb, var(--color-danger) 24%, transparent)",   color: "var(--color-danger)" },
-  "No-show": { bg: "rgba(239,68,68,0.12)", border: "rgba(239,68,68,0.28)", color: "#ef4444" },
+  Pending: { bg: "rgba(193,140,93,0.12)", border: "rgba(193,140,93,0.28)", color: "#C18C5D" },
+  Confirmed: {
+    bg: "rgba(93,112,82,0.12)",
+    border: "rgba(93,112,82,0.28)",
+    color: "#5D7052",
+  },
+  Completed: { bg: "rgba(93,112,82,0.16)", border: "rgba(93,112,82,0.34)", color: "#4E6245" },
+  Cancelled: { bg: "rgba(168,84,72,0.12)", border: "rgba(168,84,72,0.28)", color: "#A85448" },
+  "No-show": { bg: "rgba(168,84,72,0.15)", border: "rgba(168,84,72,0.34)", color: "#A85448" },
 };
 
 const TYPE_ICONS = {
-  Consultation: "🩺", "Follow-up": "🔄", "Check-up": "📋", Emergency: "🚨",
+  Consultation: Stethoscope,
+  "Follow-up": RefreshCcw,
+  "Check-up": ClipboardCheck,
+  Emergency: Siren,
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -56,27 +65,32 @@ const generateSlots = (startTime, endTime, slotDuration) => {
 // ─── Shared Styles ────────────────────────────────────────────────────────────
 
 const S = {
-  input: { background: "var(--color-bg)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)" },
-  card:  { background: "var(--color-card)", border: "1px solid var(--color-border)" },
-  section: { background: "var(--color-bg)", border: "1px solid var(--color-border)" },
+  input: organicInputStyle,
+  card: organicCardStyle,
+  section: organicSectionStyle,
 };
 
-const focusInput = (e) => (e.target.style.border = "1px solid var(--color-primary)");
-const blurInput  = (e) => (e.target.style.border = "1px solid var(--color-border)");
-const inputCls   = "w-full px-4 py-3 rounded-xl text-sm outline-none transition-all";
+const focusInput = (e) => (e.target.style.border = `1px solid ${organicTheme.colors.primary}`);
+const blurInput = (e) => (e.target.style.border = `1px solid ${organicTheme.colors.border}`);
+const inputCls = "w-full px-4 py-3 rounded-full text-sm outline-none transition-all focus:ring-2 focus:ring-[#5D7052]/30";
+
+const TypeIcon = ({ type, size = 18 }) => {
+  const Icon = TYPE_ICONS[type] || Stethoscope;
+  return <Icon size={size} strokeWidth={2} />;
+};
 
 function BackButton({ onClick, label = "Back" }) {
   return (
     <button onClick={onClick}
-      className="flex items-center gap-2 text-sm font-medium transition-all hover:opacity-80 mb-6"
-      style={{ color: "var(--color-primary)" }}>
+      className="flex items-center gap-2 text-sm font-semibold transition-all hover:opacity-80 mb-6"
+      style={{ color: organicTheme.colors.primary }}>
       ← {label}
     </button>
   );
 }
 
 function SectionLabel({ text }) {
-  return <p className="text-xs font-bold uppercase tracking-widest mb-3 text-[var(--color-text-secondary)]">{text}</p>;
+  return <p className="text-xs font-bold uppercase tracking-widest mb-3 text-[#78786C]">{text}</p>;
 }
 
 function StatusBadge({ status }) {
@@ -157,9 +171,9 @@ function AppointmentDetailPage({ appointment, onBack, onUpdated, onDeleted, conf
       {/* Header Card */}
       <div className="rounded-2xl p-5 sm:p-6 mb-5" style={S.card}>
         <div className="flex items-start gap-4 mb-5">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center text-xl shrink-0"
-            style={{ background: "color-mix(in srgb, var(--color-primary) 12%, transparent)" }}>
-            {TYPE_ICONS[appointment.type] || "🩺"}
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
+            style={{ background: "rgba(93,112,82,0.12)", color: organicTheme.colors.primary }}>
+            <TypeIcon type={appointment.type} size={20} />
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="text-lg font-bold text-[var(--color-text-primary)]">{patient?.name || "Unknown Patient"}</h2>
@@ -451,10 +465,12 @@ function BookAppointmentForm({
         <div className="rounded-2xl p-5" style={S.card}>
           <SectionLabel text="Select Patient" />
           <div className="relative mb-3">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-[var(--color-text-secondary)]">🔍</span>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: organicTheme.colors.mutedForeground }}>
+              <Search size={16} />
+            </span>
             <input value={search} onChange={(e) => { setSearch(e.target.value); setSelectedPatient(null); }}
               placeholder="Search patient by name or phone..."
-              className="w-full pl-10 pr-4 py-3 rounded-xl text-sm outline-none transition-all"
+              className="w-full pl-10 pr-4 py-3 rounded-full text-sm outline-none transition-all"
               style={S.input} onFocus={focusInput} onBlur={blurInput} />
           </div>
 
@@ -483,7 +499,7 @@ function BookAppointmentForm({
                   </div>
                   {p.locations?.map((loc, i) => (
                     <span key={i} className="text-xs px-2 py-1 rounded-full hidden sm:block"
-                      style={{ background: loc.locationType === "Clinic" ? "color-mix(in srgb, var(--color-primary) 12%, transparent)" : "rgba(56,189,248,0.1)", color: loc.locationType === "Clinic" ? "var(--color-primary)" : "#38bdf8" }}>
+                      style={{ background: loc.locationType === "Clinic" ? "rgba(93,112,82,0.12)" : "rgba(193,140,93,0.14)", color: loc.locationType === "Clinic" ? organicTheme.colors.primary : organicTheme.colors.secondary }}>
                       {loc.locationType === "Clinic" ? "🏥" : "🏨"} {loc.locationName}
                     </span>
                   ))}
@@ -510,7 +526,7 @@ function BookAppointmentForm({
         </div>
 
         {/* Date + Type */}
-        <div className="rounded-2xl p-5" style={S.card}>
+        <div className="rounded-[2rem] p-5" style={S.card}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div>
               <SectionLabel text="Date" />
@@ -530,7 +546,7 @@ function BookAppointmentForm({
                       border: type === t ? "1px solid var(--color-primary)" : "1px solid var(--color-border)",
                       color: type === t ? "var(--color-primary)" : "var(--color-text-secondary)",
                     }}>
-                    <span>{TYPE_ICONS[t]}</span> {t}
+                    <TypeIcon type={t} size={14} /> {t}
                   </button>
                 ))}
               </div>
@@ -604,7 +620,7 @@ function BookAppointmentForm({
         )}
 
         {/* Notes */}
-        <div className="rounded-2xl p-5" style={S.card}>
+        <div className="rounded-[2rem] p-5" style={S.card}>
           <SectionLabel text="Notes (optional)" />
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
             placeholder="Any notes about this appointment..."
@@ -613,8 +629,8 @@ function BookAppointmentForm({
         </div>
 
         <button onClick={handleSubmit} disabled={isLoading}
-          className="w-full py-4 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-          style={{ background: "linear-gradient(135deg,var(--color-primary),color-mix(in srgb, var(--color-primary) 80%, black))", boxShadow: "0 4px 20px color-mix(in srgb, var(--color-primary) 30%, transparent)" }}>
+          className="w-full py-4 rounded-full text-sm font-bold text-white transition-all hover:opacity-95 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+          style={{ background: organicTheme.colors.primary, boxShadow: organicTheme.shadows.button }}>
           {isLoading ? "Booking..." : "Book Appointment ✓"}
         </button>
       </div>
@@ -768,12 +784,12 @@ export default function AppointmentsPage({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-xl font-bold text-[var(--color-text-primary)]">Appointments</h2>
-          <p className="text-xs mt-0.5 text-[var(--color-text-secondary)]">{appointments.length} appointments</p>
+          <h2 className="text-3xl font-bold text-[#2C2C24]" style={{ fontFamily: "Fraunces" }}>Appointments</h2>
+          <p className="text-sm mt-1 text-[#78786C]">{appointments.length} appointments</p>
         </div>
         <button onClick={() => setView("book")}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:scale-105 hover:opacity-90 w-fit"
-          style={{ background: "linear-gradient(135deg,var(--color-primary),color-mix(in srgb, var(--color-primary) 80%, black))", boxShadow: "0 4px 15px color-mix(in srgb, var(--color-primary) 25%, transparent)" }}>
+          className="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold text-white transition-all hover:scale-105 active:scale-95 hover:opacity-95 w-fit"
+          style={{ background: organicTheme.colors.primary, boxShadow: organicTheme.shadows.button }}>
           + Book Appointment
         </button>
       </div>
@@ -783,12 +799,12 @@ export default function AppointmentsPage({
         {/* Date filter first so native calendar popup has room on the right */}
         <div className="flex items-center gap-2">
           <input type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)}
-            className="px-3 py-2 rounded-xl text-xs outline-none transition-all"
+            className="px-4 py-2.5 rounded-full text-xs outline-none transition-all"
             style={{ ...S.input, colorScheme: "light" }}
             onFocus={focusInput} onBlur={blurInput} />
           {dateFilter && (
             <button onClick={() => setDateFilter("")}
-              className="text-xs px-2 py-2 rounded-xl transition-all hover:bg-[var(--color-bg)] text-[var(--color-text-secondary)]">✕</button>
+              className="text-xs px-3 py-2 rounded-full transition-all text-[#78786C]">✕</button>
           )}
         </div>
 
@@ -796,11 +812,11 @@ export default function AppointmentsPage({
         <div className="flex gap-1.5 flex-wrap">
           {["All", ...STATUSES].map((s) => (
             <button key={s} onClick={() => setActiveFilter(s)}
-              className="px-3 py-2 rounded-xl text-xs font-semibold transition-all"
+              className="px-3 py-2 rounded-full text-xs font-semibold transition-all"
               style={{
-                background: activeFilter === s ? "color-mix(in srgb, var(--color-primary) 15%, transparent)" : "var(--color-bg)",
-                border: activeFilter === s ? "1px solid color-mix(in srgb, var(--color-primary) 35%, transparent)" : "1px solid var(--color-border)",
-                color: activeFilter === s ? "var(--color-primary)" : "var(--color-text-secondary)",
+                background: activeFilter === s ? "rgba(93,112,82,0.14)" : "rgba(240,235,229,0.35)",
+                border: activeFilter === s ? "1px solid rgba(93,112,82,0.35)" : "1px solid rgba(222,216,207,0.9)",
+                color: activeFilter === s ? organicTheme.colors.primary : organicTheme.colors.mutedForeground,
               }}>
               {s}
             </button>
@@ -906,9 +922,9 @@ export default function AppointmentsPage({
                   }}
                   onClick={(e) => e.stopPropagation()}
                 />
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0"
-                  style={{ background: "color-mix(in srgb, var(--color-primary) 12%, transparent)" }}>
-                  {TYPE_ICONS[apt.type] || "🩺"}
+                <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
+                  style={{ background: "rgba(93,112,82,0.12)", color: organicTheme.colors.primary }}>
+                  <TypeIcon type={apt.type} size={18} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-[var(--color-text-primary)] truncate">{apt.patient?.name || "Unknown"}</p>
@@ -951,9 +967,9 @@ export default function AppointmentsPage({
                   />
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm shrink-0"
-                    style={{ background: "color-mix(in srgb, var(--color-primary) 12%, transparent)" }}>
-                    {TYPE_ICONS[apt.type] || "🩺"}
+                  <div className="w-9 h-9 rounded-2xl flex items-center justify-center text-sm shrink-0"
+                    style={{ background: "rgba(93,112,82,0.12)", color: organicTheme.colors.primary }}>
+                    <TypeIcon type={apt.type} size={16} />
                   </div>
                   <span className="text-sm font-semibold text-[var(--color-text-primary)] truncate">{apt.patient?.name || "Unknown"}</span>
                 </div>
