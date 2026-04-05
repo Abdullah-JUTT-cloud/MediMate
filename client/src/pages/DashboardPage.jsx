@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { BarChart3, CalendarCheck2, CircleUserRound, LayoutDashboard, LifeBuoy, LogOut, Users } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import useAuthStore from "../store/authStore";
@@ -18,13 +19,13 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import useConfirmDialog from "../hooks/useConfirmDialog";
 
 const navItems = [
-  { icon: "⊞", label: "Dashboard", key: "dashboard" },
-  { icon: "👥", label: "Patients", key: "patients" },
-  { icon: "📅", label: "Appointments", key: "appointments" },
-  { icon: "📊", label: "Insights", key: "insights" },
-  { icon: "💹", label: "Revenue Lab", key: "revenue-lab" },
-  { icon: "🛟", label: "Support", key: "support" },
-  { icon: "⚙️", label: "Profile Page", key: "settings" },
+  { icon: LayoutDashboard, label: "Dashboard", key: "dashboard" },
+  { icon: Users, label: "Patients", key: "patients" },
+  { icon: CalendarCheck2, label: "Appointments", key: "appointments" },
+  { icon: BarChart3, label: "Insights", key: "insights" },
+  { icon: BarChart3, label: "Revenue Lab", key: "revenue-lab" },
+  { icon: LifeBuoy, label: "Support", key: "support" },
+  { icon: CircleUserRound, label: "Profile Page", key: "settings" },
 ];
 
 const LOCKED_PROFILE_STATUSES = ["Needs Changes", "Rejected"];
@@ -32,8 +33,8 @@ const LOCKED_PROFILE_STATUSES = ["Needs Changes", "Rejected"];
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="rounded-3xl border border-[#DED8CF]/80 bg-[#FEFEFA]/95 px-3 py-2 text-sm text-[#2C2C24] shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)]">
-        <p className="font-semibold text-[#5D7052]">{label}</p>
+      <div className="rounded-3xl border border-[var(--color-border)]/80 bg-[var(--color-card)]/95 px-3 py-2 text-sm text-[var(--color-text-primary)] shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)]">
+        <p className="font-semibold text-[var(--color-primary)]">{label}</p>
         <p>PKR {payload[0].value.toLocaleString()}</p>
       </div>
     );
@@ -258,23 +259,23 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
   const pageTitle = visibleNavItems.find((n) => n.key === activeNav)?.label || "Dashboard";
 
   return (
-    <div className="relative flex h-screen overflow-hidden bg-[#FDFCF8] text-[#2C2C24]">
-      <div aria-hidden="true" className="pointer-events-none absolute -left-24 top-24 h-96 w-96 rounded-[60%_40%_35%_65%/55%_35%_65%_45%] bg-[#E6DCCD]/55 blur-3xl" />
-      <div aria-hidden="true" className="pointer-events-none absolute -right-24 top-52 h-[26rem] w-[26rem] rounded-[48%_52%_39%_61%/48%_34%_66%_52%] bg-[#5D7052]/10 blur-3xl" />
+    <div className="relative flex h-screen overflow-hidden bg-[var(--color-bg)] text-[var(--color-text-primary)]">
+      <div aria-hidden="true" className="pointer-events-none absolute -left-24 top-24 h-96 w-96 rounded-[60%_40%_35%_65%/55%_35%_65%_45%] bg-[var(--color-accent)]/55 blur-3xl" />
+      <div aria-hidden="true" className="pointer-events-none absolute -right-24 top-52 h-[26rem] w-[26rem] rounded-[48%_52%_39%_61%/48%_34%_66%_52%] bg-[var(--color-primary)]/10 blur-3xl" />
       {sidebarOpen && <div className="fixed inset-0 z-20 bg-black bg-opacity-60 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
       <aside
-        className={"fixed inset-y-0 left-0 z-30 flex flex-col border-r border-[#DED8CF]/80 bg-[#FEFEFA]/95 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.2)] transition-transform duration-300 lg:static " + (sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0")}
+        className={"fixed inset-y-0 left-0 z-30 flex flex-col border-r border-[var(--color-border)]/80 bg-[var(--color-card)]/95 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.2)] transition-transform duration-300 lg:static " + (sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0")}
         style={{ width: "240px", flexShrink: 0 }}>
 
-        <div className="flex items-center gap-3 border-b border-[#DED8CF]/80 px-5 py-5">
+        <div className="flex items-center gap-3 border-b border-[var(--color-border)]/80 px-5 py-5">
           <img src={logo} alt="MedAlerto" className="h-8 w-auto" />
-          <button className="ml-auto rounded-full border border-[#DED8CF] px-2 py-1 text-[#78786C] transition hover:text-[#2C2C24] lg:hidden" onClick={() => setSidebarOpen(false)}>✕</button>
+          <button className="ml-auto rounded-full border border-[var(--color-border)] px-2 py-1 text-[var(--color-text-secondary)] transition hover:text-[var(--color-text-primary)] lg:hidden" onClick={() => setSidebarOpen(false)}>✕</button>
         </div>
 
-        <div className="border-b border-[#DED8CF]/80 px-5 py-4">
+        <div className="border-b border-[var(--color-border)]/80 px-5 py-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 shrink-0 rounded-full border border-[#DED8CF]/80 bg-[#5D7052] text-sm font-bold text-[#F3F4F1] shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)]"
+            <div className="h-10 w-10 shrink-0 rounded-full border border-[var(--color-border)]/80 bg-[var(--color-primary)] text-sm font-bold text-[var(--color-on-primary)] shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)]"
               style={{ background: "linear-gradient(135deg, var(--color-primary), color-mix(in srgb, var(--color-primary) 80%, black))" }}>
               {doctor?.profilePicture ? (
                 <img src={doctor.profilePicture} alt="Profile" className="h-full w-full rounded-full object-cover" />
@@ -284,10 +285,10 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <p className="truncate text-sm font-semibold text-[#2C2C24]">{doctor?.fullName || "Doctor"}</p>
+                <p className="truncate text-sm font-semibold text-[var(--color-text-primary)]">{doctor?.fullName || "Doctor"}</p>
                 <VerifiedBadge isVerified={["Verified", "Approved"].includes(doctor?.profileVerificationStatus)} compact />
               </div>
-              <p className="truncate text-xs text-[#5D7052]">
+              <p className="truncate text-xs text-[var(--color-primary)]">
                 {[doctor?.title, doctor?.specialization || "Specialist"].filter(Boolean).join(" ")}
               </p>
             </div>
@@ -295,55 +296,56 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
         </div>
 
         <nav className="flex-1 px-3 py-4 overflow-y-auto">
-          <p className="mb-3 px-3 font-mono text-[10px] font-semibold uppercase tracking-[0.28em] text-[#78786C]">Main Menu</p>
+          <p className="mb-3 px-3 font-mono text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--color-text-secondary)]">Main Menu</p>
           {visibleNavItems.map((item) => (
             <button key={item.key} onClick={() => { setActiveNav(item.key); setSidebarOpen(false); }}
               className="mb-1 flex w-full cursor-pointer items-center gap-3 rounded-full px-3 py-2.5 text-sm font-medium transition-all duration-200"
               style={{
                 background: activeNav === item.key ? "rgba(93,112,82,0.12)" : "transparent",
-                color: activeNav === item.key ? "#5D7052" : "#78786C",
+                color: activeNav === item.key ? "var(--color-primary)" : "var(--color-text-secondary)",
                 border: activeNav === item.key ? "1px solid rgba(93,112,82,0.25)" : "1px solid transparent",
               }}>
-              <span className="text-base">{item.icon}</span>
+              <item.icon size={16} strokeWidth={2} className="shrink-0" />
               {item.label}
             </button>
           ))}
         </nav>
 
-        <div className="border-t border-[#DED8CF]/80 px-3 py-4">
+        <div className="border-t border-[var(--color-border)]/80 px-3 py-4">
           <button onClick={handleLogout}
-            className="hover-danger-soft flex w-full items-center gap-3 rounded-full px-3 py-2.5 text-sm font-medium text-[#A85448] transition-all duration-200"
+            className="hover-danger-soft flex w-full items-center gap-3 rounded-full px-3 py-2.5 text-sm font-medium text-[var(--color-danger)] transition-all duration-200"
           >
-            <span>🚪</span> Logout
+            <LogOut size={16} strokeWidth={2} className="shrink-0" />
+            Logout
           </button>
         </div>
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="relative shrink-0 border-b border-[#DED8CF]/70 bg-[#FEFEFA]/90 px-4 py-4 backdrop-blur-md sm:px-6">
+        <header className="relative shrink-0 border-b border-[var(--color-border)]/70 bg-[var(--color-card)]/90 px-4 py-4 backdrop-blur-md sm:px-6">
           <div className="flex items-center justify-between">
           <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 hidden md:flex flex-col items-center">
             <span
-              className="font-heading text-base font-semibold tracking-[0.26em] text-[#5D7052] lg:text-lg"
+              className="font-heading text-base font-semibold tracking-[0.26em] text-[var(--color-primary)] lg:text-lg"
               style={{
                 textShadow: "0 10px 24px rgba(93,112,82,0.15)",
               }}
             >
               MEDALERTO
             </span>
-            <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[#78786C]">
+            <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-secondary)]">
               Smart Healthcare Workspace
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <button className="rounded-full border border-[#DED8CF] p-2 transition-colors hover:bg-[#F0EBE5] lg:hidden" onClick={() => setSidebarOpen(true)}>
+            <button className="rounded-full border border-[var(--color-border)] p-2 transition-colors hover:bg-[var(--color-bg-soft)] lg:hidden" onClick={() => setSidebarOpen(true)}>
               <div className="space-y-1.5">
                 {[0,1,2].map((i) => <span key={i} className="block w-5 h-0.5 bg-[var(--color-primary)]" />)}
               </div>
             </button>
             <div>
-              <h1 className="text-base font-bold text-[#2C2C24] sm:text-lg">{pageTitle}</h1>
-              <p className="hidden text-xs text-[#78786C] sm:block">{todayStr}</p>
+              <h1 className="text-base font-bold text-[var(--color-text-primary)] sm:text-lg">{pageTitle}</h1>
+              <p className="hidden text-xs text-[var(--color-text-secondary)] sm:block">{todayStr}</p>
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
@@ -356,20 +358,20 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                     await loadNotifications();
                   }
                 }}
-                className="relative rounded-full border border-[#DED8CF] p-2 text-[#78786C] transition-colors hover:bg-[#F0EBE5]"
+                className="relative rounded-full border border-[var(--color-border)] p-2 text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-bg-soft)]"
               >
                 🔔
                 {unreadCount > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#5D7052] px-1 text-[10px] font-bold text-[#F3F4F1]">
+                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--color-primary)] px-1 text-[10px] font-bold text-[var(--color-on-primary)]">
                     {unreadCount > 99 ? "99+" : unreadCount}
                   </span>
                 )}
               </button>
 
               {notificationsOpen && (
-                <div className="absolute right-0 z-40 mt-2 w-80 max-w-[90vw] rounded-4xl border border-[#DED8CF]/80 bg-[#FEFEFA]/95 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.2)]">
-                  <div className="flex items-center justify-between border-b border-[#DED8CF]/80 px-3 py-2">
-                    <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-[#78786C]">Notifications</p>
+                <div className="absolute right-0 z-40 mt-2 w-80 max-w-[90vw] rounded-4xl border border-[var(--color-border)]/80 bg-[var(--color-card)]/95 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.2)]">
+                  <div className="flex items-center justify-between border-b border-[var(--color-border)]/80 px-3 py-2">
+                    <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-secondary)]">Notifications</p>
                     <button
                       onClick={async () => {
                         try {
@@ -380,16 +382,16 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                           toast.error("Failed to mark notifications as read");
                         }
                       }}
-                      className="text-[11px] font-semibold text-[#5D7052]"
+                      className="text-[11px] font-semibold text-[var(--color-primary)]"
                     >
                       Mark all read
                     </button>
                   </div>
                   <div className="max-h-80 overflow-y-auto p-2 space-y-1.5">
                     {isLoadingNotifications ? (
-                      <p className="p-2 text-xs text-[#78786C]">Loading...</p>
+                      <p className="p-2 text-xs text-[var(--color-text-secondary)]">Loading...</p>
                     ) : notifications.length === 0 ? (
-                      <p className="p-2 text-xs text-[#78786C]">No notifications yet.</p>
+                      <p className="p-2 text-xs text-[var(--color-text-secondary)]">No notifications yet.</p>
                     ) : (
                       notifications.map((note) => (
                         <button
@@ -409,11 +411,11 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                               setNotificationsOpen(false);
                             }
                           }}
-                          className="w-full rounded-3xl border border-[#DED8CF]/80 p-2 text-left transition hover:bg-[#F0EBE5]/50"
+                          className="w-full rounded-3xl border border-[var(--color-border)]/80 p-2 text-left transition hover:bg-[var(--color-bg-soft)]/50"
                         >
-                          <p className="line-clamp-1 text-xs font-semibold text-[#2C2C24]">{note.title}</p>
-                          <p className="mt-0.5 line-clamp-2 text-[11px] text-[#78786C]">{note.message}</p>
-                          {!note.isRead && <span className="mt-1 inline-block text-[10px] font-bold text-[#5D7052]">New</span>}
+                          <p className="line-clamp-1 text-xs font-semibold text-[var(--color-text-primary)]">{note.title}</p>
+                          <p className="mt-0.5 line-clamp-2 text-[11px] text-[var(--color-text-secondary)]">{note.message}</p>
+                          {!note.isRead && <span className="mt-1 inline-block text-[10px] font-bold text-[var(--color-primary)]">New</span>}
                         </button>
                       ))
                     )}
@@ -424,9 +426,9 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
             <button
               type="button"
               onClick={() => setActiveNav(isProfileRestricted ? "support" : "settings")}
-              className="flex cursor-pointer items-center gap-2 rounded-full border border-[#DED8CF] px-2 py-1.5 transition-colors hover:bg-[#F0EBE5]"
+              className="flex cursor-pointer items-center gap-2 rounded-full border border-[var(--color-border)] px-2 py-1.5 transition-colors hover:bg-[var(--color-bg-soft)]"
             >
-              <div className="h-8 w-8 rounded-full text-xs font-bold text-[#F3F4F1]"
+              <div className="h-8 w-8 rounded-full text-xs font-bold text-[var(--color-on-primary)]"
                 style={{ background: "linear-gradient(135deg, var(--color-primary), color-mix(in srgb, var(--color-primary) 80%, black))" }}>
                 {doctor?.profilePicture ? (
                   <img src={doctor.profilePicture} alt="Profile" className="h-full w-full rounded-full object-cover" />
@@ -434,7 +436,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                   doctor?.fullName?.charAt(0) || "D"
                 )}
               </div>
-              <span className="hidden text-sm font-medium text-[#2C2C24] sm:flex sm:items-center sm:gap-1.5">
+              <span className="hidden text-sm font-medium text-[var(--color-text-primary)] sm:flex sm:items-center sm:gap-1.5">
                 {doctor?.fullName?.split(" ")[0] || "Doctor"}
                 <VerifiedBadge isVerified={["Verified", "Approved"].includes(doctor?.profileVerificationStatus)} compact />
               </span>
@@ -445,22 +447,22 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
 
         <main className="flex-1 overflow-y-auto bg-transparent p-4 sm:p-6">
           {isProfileRestricted && (
-            <div className="mb-4 rounded-4xl border border-[#C18C5D]/40 bg-[#C18C5D]/12 p-4 shadow-[0_10px_40px_-10px_rgba(193,140,93,0.25)]">
-              <p className="text-sm font-bold text-[#A85448]">Profile access restricted</p>
-              <p className="mt-1 text-xs text-[#78786C]">
+            <div className="mb-4 rounded-4xl border border-[var(--color-secondary)]/40 bg-[var(--color-secondary)]/12 p-4 shadow-[0_10px_40px_-10px_rgba(193,140,93,0.25)]">
+              <p className="text-sm font-bold text-[var(--color-danger)]">Profile access restricted</p>
+              <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
                 Admin requested updates to your profile. Dashboard modules are locked until your profile is verified again. You can still use Support to contact admin.
               </p>
             </div>
           )}
 
           {isProfileRestricted && (
-            <div className="mb-5 rounded-4xl border border-[#DED8CF]/80 bg-[#FEFEFA]/95 p-4 shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)]">
+            <div className="mb-5 rounded-4xl border border-[var(--color-border)]/80 bg-[var(--color-card)]/95 p-4 shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)]">
               <div className="pointer-events-none opacity-70 blur-sm">
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                  <div className="h-20 rounded-3xl bg-[#F0EBE5]/65" />
-                  <div className="h-20 rounded-3xl bg-[#F0EBE5]/65" />
-                  <div className="h-20 rounded-3xl bg-[#F0EBE5]/65" />
-                  <div className="h-20 rounded-3xl bg-[#F0EBE5]/65" />
+                  <div className="h-20 rounded-3xl bg-[var(--color-bg-soft)]/65" />
+                  <div className="h-20 rounded-3xl bg-[var(--color-bg-soft)]/65" />
+                  <div className="h-20 rounded-3xl bg-[var(--color-bg-soft)]/65" />
+                  <div className="h-20 rounded-3xl bg-[var(--color-bg-soft)]/65" />
                 </div>
               </div>
             </div>
@@ -518,10 +520,10 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                       <div className="grid grid-cols-2 gap-2">
                         <input type="date" value={emergencyStartDate}
                           onChange={(e) => setEmergencyStartDate(e.target.value)}
-                          className="w-full rounded-full border border-[var(--color-danger)]/35 bg-[#FEFEFA]/90 px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-danger)]/25" />
+                          className="w-full rounded-full border border-[var(--color-danger)]/35 bg-[var(--color-card)]/90 px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-danger)]/25" />
                         <input type="time" value={emergencyStartTime}
                           onChange={(e) => setEmergencyStartTime(e.target.value)}
-                          className="w-full rounded-full border border-[var(--color-danger)]/35 bg-[#FEFEFA]/90 px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-danger)]/25" />
+                          className="w-full rounded-full border border-[var(--color-danger)]/35 bg-[var(--color-card)]/90 px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-danger)]/25" />
                       </div>
                     </div>
                     <div>
@@ -529,10 +531,10 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                       <div className="grid grid-cols-2 gap-2">
                         <input type="date" value={emergencyEndDate}
                           onChange={(e) => setEmergencyEndDate(e.target.value)}
-                          className="w-full rounded-full border border-[var(--color-danger)]/35 bg-[#FEFEFA]/90 px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-danger)]/25" />
+                          className="w-full rounded-full border border-[var(--color-danger)]/35 bg-[var(--color-card)]/90 px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-danger)]/25" />
                         <input type="time" value={emergencyEndTime}
                           onChange={(e) => setEmergencyEndTime(e.target.value)}
-                          className="w-full rounded-full border border-[var(--color-danger)]/35 bg-[#FEFEFA]/90 px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-danger)]/25" />
+                          className="w-full rounded-full border border-[var(--color-danger)]/35 bg-[var(--color-card)]/90 px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-danger)]/25" />
                       </div>
                     </div>
                   </div>
@@ -580,8 +582,8 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                       {isCancelling ? "Cancelling..." : "Cancel All Appointments"}
                     </button>
                     <button onClick={() => setShowEmergencySection(false)}
-                      className="rounded-full px-5 py-2.5 text-sm font-semibold text-[#78786C] transition-all hover:opacity-80"
-                      style={{ background: "#FEFEFA", border: "1px solid #DED8CF" }}>
+                      className="rounded-full px-5 py-2.5 text-sm font-semibold text-[var(--color-text-secondary)] transition-all hover:opacity-80"
+                      style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}>
                       Dismiss
                     </button>
                   </div>
@@ -598,13 +600,13 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                   </>
                 ) : (
                   [
-                    { label: "Total Patients", value: String(totalPatients || 0), sub: "Registered patients", icon: "👥", color: "#5D7052", tint: "rgba(93,112,82,0.14)" },
-                    { label: "Today's Appointments", value: todayAppointments.length.toString(), sub: todayAppointments.filter((a) => a.status === "Pending").length + " pending", icon: "📅", color: "#C18C5D", tint: "rgba(193,140,93,0.16)" },
-                    { label: "Today's Earnings", value: `PKR ${todayEarnings.toLocaleString()}`, sub: "From insights", icon: "💰", color: "#6F8A61", tint: "rgba(111,138,97,0.15)" },
-                    { label: "Prescriptions", value: totalPrescriptions === null ? "0" : String(totalPrescriptions), sub: "PDFs generated", icon: "📋", color: "#8B7D66", tint: "rgba(139,125,102,0.16)" },
+                    { label: "Total Patients", value: String(totalPatients || 0), sub: "Registered patients", icon: "👥", color: "var(--color-primary)", tint: "rgba(93,112,82,0.14)" },
+                    { label: "Today's Appointments", value: todayAppointments.length.toString(), sub: todayAppointments.filter((a) => a.status === "Pending").length + " pending", icon: "📅", color: "var(--color-secondary)", tint: "rgba(193,140,93,0.16)" },
+                    { label: "Today's Earnings", value: `PKR ${todayEarnings.toLocaleString()}`, sub: "From insights", icon: "💰", color: "var(--color-success)", tint: "rgba(111,138,97,0.15)" },
+                    { label: "Prescriptions", value: totalPrescriptions === null ? "0" : String(totalPrescriptions), sub: "PDFs generated", icon: "📋", color: "var(--color-text-secondary)", tint: "rgba(139,125,102,0.16)" },
                   ].map((stat) => (
                     <div key={stat.label} className="rounded-4xl p-4 shadow-[0_4px_20px_-2px_rgba(93,112,82,0.14)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_32px_-10px_rgba(93,112,82,0.2)] sm:p-5"
-                      style={{ background: "#FEFEFA", border: "1px solid #DED8CF" }}>
+                      style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}>
                       <div className="mb-3">
                         <div className="flex h-9 w-9 items-center justify-center rounded-2xl text-base sm:h-10 sm:w-10 sm:text-lg"
                           style={{ background: stat.tint }}>
@@ -621,7 +623,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
 
               <div className="mb-6 grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-3">
                 <div className="xl:col-span-2 rounded-4xl p-4 sm:p-6"
-                  style={{ background: "#FEFEFA", border: "1px solid #DED8CF", boxShadow: "0 4px 20px -2px rgba(93,112,82,0.15)" }}>
+                  style={{ background: "var(--color-card)", border: "1px solid var(--color-border)", boxShadow: "0 4px 20px -2px rgba(93,112,82,0.15)" }}>
                   <div className="flex items-center justify-between mb-5">
                     <div>
                       <h3 className="text-sm sm:text-base font-bold text-[var(--color-text-primary)]">Monthly Earnings</h3>
@@ -652,7 +654,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                   )}
                 </div>
 
-                <div className="rounded-4xl p-4 sm:p-5" style={{ background: "#FEFEFA", border: "1px solid #DED8CF", boxShadow: "0 4px 20px -2px rgba(93,112,82,0.15)" }}>
+                <div className="rounded-4xl p-4 sm:p-5" style={{ background: "var(--color-card)", border: "1px solid var(--color-border)", boxShadow: "0 4px 20px -2px rgba(93,112,82,0.15)" }}>
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm sm:text-base font-bold text-[var(--color-text-primary)]">Today's Appointments</h3>
                     <span className="text-xs px-2 py-1 rounded-lg bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
@@ -671,8 +673,8 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                         <p className="text-sm text-[var(--color-text-secondary)]">No appointments today</p>
                       </div>
                     ) : todayAppointments.map((apt) => (
-                      <div key={apt._id} className="flex items-center gap-3 rounded-3xl p-3 transition-all hover:bg-[#F0EBE5]/40"
-                        style={{ background: "rgba(240,235,229,0.45)", border: "1px solid #DED8CF" }}>
+                      <div key={apt._id} className="flex items-center gap-3 rounded-3xl p-3 transition-all hover:bg-[var(--color-bg-soft)]/40"
+                        style={{ background: "color-mix(in srgb, var(--color-bg-soft) 58%, transparent)", border: "1px solid var(--color-border)" }}>
                         <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white shrink-0"
                           style={{ background: "linear-gradient(135deg, var(--color-primary), color-mix(in srgb, var(--color-primary) 80%, black))" }}>
                           {apt.patient?.name?.charAt(0) || "P"}
@@ -684,7 +686,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                         <span className="text-xs px-2 py-0.5 rounded-full font-medium shrink-0"
                           style={{
                             background: apt.status === "Confirmed" ? "rgba(34,197,94,0.1)" : "rgba(245,158,11,0.1)",
-                            color: apt.status === "Confirmed" ? "#22c55e" : "#f59e0b",
+                            color: apt.status === "Confirmed" ? "var(--color-success)" : "var(--color-warning)",
                           }}>
                           {apt.status === "Confirmed" ? "✓" : "⏳"}
                         </span>
@@ -694,7 +696,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                 </div>
               </div>
 
-              <div className="rounded-4xl p-4 sm:p-6" style={{ background: "#FEFEFA", border: "1px solid #DED8CF", boxShadow: "0 4px 20px -2px rgba(93,112,82,0.15)" }}>
+              <div className="rounded-4xl p-4 sm:p-6" style={{ background: "var(--color-card)", border: "1px solid var(--color-border)", boxShadow: "0 4px 20px -2px rgba(93,112,82,0.15)" }}>
                 <div className="flex items-center justify-between mb-5">
                   <div>
                     <h3 className="text-sm sm:text-base font-bold text-[var(--color-text-primary)]">Recent Patients</h3>
@@ -722,8 +724,8 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                 ) : (
                   <div className="space-y-2">
                     {recentPatients.map((patient) => (
-                      <div key={patient._id} className="rounded-3xl p-3 transition-all hover:bg-[#F0EBE5]/40 sm:p-4"
-                        style={{ background: "rgba(240,235,229,0.45)", border: "1px solid #DED8CF" }}>
+                      <div key={patient._id} className="rounded-3xl p-3 transition-all hover:bg-[var(--color-bg-soft)]/40 sm:p-4"
+                        style={{ background: "color-mix(in srgb, var(--color-bg-soft) 58%, transparent)", border: "1px solid var(--color-border)" }}>
                         <div className="sm:hidden flex items-center gap-3">
                           <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white shrink-0"
                             style={{ background: "linear-gradient(135deg, var(--color-primary), color-mix(in srgb, var(--color-primary) 80%, black))" }}>
@@ -771,7 +773,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                   <div className="space-y-2">
                     {cancelledAppointments.map((apt) => (
                       <div key={apt._id} className="flex items-center gap-3 rounded-3xl p-3 sm:p-4"
-                        style={{ background: "rgba(254,254,250,0.9)", border: "1px solid rgba(168,84,72,0.2)" }}>
+                        style={{ background: "color-mix(in srgb, var(--color-card) 92%, transparent)", border: "1px solid rgba(168,84,72,0.2)" }}>
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold text-white shrink-0"
                           style={{ background: "linear-gradient(135deg,var(--color-danger),color-mix(in srgb, var(--color-danger) 85%, black))" }}>
                           {apt.patient?.name?.charAt(0) || "P"}
@@ -810,7 +812,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
 
           {!isProfileRestricted && !["dashboard", "settings", "patients", "appointments", "insights", "revenue-lab", "support"].includes(activeNav) && (
             <div className="flex h-full items-center justify-center">
-              <div className="rounded-4xl border border-[#DED8CF] bg-[#FEFEFA]/95 px-10 py-16 text-center shadow-[0_10px_40px_-10px_rgba(93,112,82,0.18)]">
+              <div className="rounded-4xl border border-[var(--color-border)] bg-[var(--color-card)]/95 px-10 py-16 text-center shadow-[0_10px_40px_-10px_rgba(93,112,82,0.18)]">
                 <div className="mb-4 text-5xl">🚧</div>
                 <h2 className="mb-2 text-xl font-bold text-[var(--color-text-primary)]">{pageTitle} Module</h2>
                 <p className="text-sm text-[var(--color-text-secondary)]">Coming soon. We're building this next!</p>

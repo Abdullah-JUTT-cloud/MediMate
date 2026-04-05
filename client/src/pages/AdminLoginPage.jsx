@@ -32,17 +32,17 @@ export default function AdminLoginPage() {
   return (
     <div className="cyber-shell min-h-screen flex items-center justify-center px-4">
       <div className="relative w-full max-w-md cyber-chamfer border p-6" style={{ ...cyberCardStyle, boxShadow: cyberpunkTheme.shadows.neonSm }}>
-        <div className="pointer-events-none absolute right-3 top-3 text-[#00ff88] opacity-70">
+        <div className="pointer-events-none absolute right-3 top-3 opacity-70" style={{ color: cyberpunkTheme.colors.accent }}>
           <Cpu size={18} />
         </div>
 
-        <p className="cyber-label text-[10px] text-[#6b7280]">Restricted Node</p>
-        <h1 className="cyber-heading cyber-glitch mt-2 text-3xl font-black text-[#e0e0e0]">Admin Login</h1>
-        <p className="cyber-text text-sm mt-1 text-[#6b7280]">Use your environment admin credentials.</p>
+        <p className="cyber-label text-[10px] text-[var(--color-text-secondary)]">Restricted Node</p>
+        <h1 className="cyber-heading cyber-glitch mt-2 text-3xl font-black text-[var(--color-text-primary)]">Admin Login</h1>
+        <p className="cyber-text text-sm mt-1 text-[var(--color-text-secondary)]">Use your environment admin credentials.</p>
 
         <div className="mt-5 space-y-3">
           <label className="relative block">
-            <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#00ff88]" />
+            <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: cyberpunkTheme.colors.accent }} />
             <input
               type="email"
               value={form.email}
@@ -53,7 +53,7 @@ export default function AdminLoginPage() {
             />
           </label>
           <label className="relative block">
-            <Fingerprint size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#ff00ff]" />
+            <Fingerprint size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: cyberpunkTheme.colors.accentSecondary }} />
             <input
               type="password"
               value={form.password}
@@ -66,8 +66,8 @@ export default function AdminLoginPage() {
           <button
             onClick={submit}
             disabled={isLoading}
-            className="cyber-heading w-full cyber-chamfer-sm px-4 py-2.5 text-sm font-bold text-[#0a0a0f] disabled:opacity-60 inline-flex items-center justify-center gap-2 transition-all hover:brightness-110"
-            style={{ background: cyberpunkTheme.colors.accent, boxShadow: cyberpunkTheme.shadows.neon }}
+            className="cyber-heading w-full cyber-chamfer-sm px-4 py-2.5 text-sm font-bold disabled:opacity-60 inline-flex items-center justify-center gap-2 transition-all hover:brightness-110"
+            style={{ background: cyberpunkTheme.colors.accent, color: cyberpunkTheme.colors.background, boxShadow: cyberpunkTheme.shadows.neon }}
           >
             <Shield size={14} />
             {isLoading ? "Signing in..." : "Sign In"}

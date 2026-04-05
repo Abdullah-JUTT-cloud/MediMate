@@ -6,18 +6,18 @@ import { CardSkeleton } from "../components/SkeletonLoaders";
 // Design tokens for Organic/Natural system
 const tokens = {
   colors: {
-    background: "#FDFCF8",
-    foreground: "#2C2C24",
-    primary: "#5D7052",
-    primaryForeground: "#F3F4F1",
-    secondary: "#C18C5D",
-    secondary_foreground: "#FFFFFF",
-    accent: "#E6DCCD",
-    accentForeground: "#4A4A40",
-    muted: "#F0EBE5",
-    mutedForeground: "#78786C",
-    border: "#DED8CF",
-    destructive: "#A85448",
+    background: "var(--color-bg)",
+    foreground: "var(--color-text-primary)",
+    primary: "var(--color-primary)",
+    primaryForeground: "var(--color-on-primary)",
+    secondary: "var(--color-secondary)",
+    secondary_foreground: "var(--color-on-primary)",
+    accent: "var(--color-accent)",
+    accentForeground: "var(--color-text-primary)",
+    muted: "var(--color-bg-soft)",
+    mutedForeground: "var(--color-text-secondary)",
+    border: "var(--color-border)",
+    destructive: "var(--color-danger)",
   },
   shadows: {
     soft: "0 4px 20px -2px rgba(93, 112, 82, 0.15)",
@@ -60,10 +60,10 @@ export default function InsightsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-3xl font-bold text-[#2C2C24]" style={{ fontFamily: "Fraunces" }}>
+          <h2 className="text-3xl font-bold text-[var(--color-text-primary)]" style={{ fontFamily: "Fraunces" }}>
             Insights
           </h2>
-          <p className="text-sm mt-2 text-[#78786C]">
+          <p className="text-sm mt-2 text-[var(--color-text-secondary)]">
             Simple clinical and clinic operations summary
           </p>
         </div>
@@ -112,16 +112,16 @@ export default function InsightsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-4xl md:text-5xl font-bold text-[#2C2C24] mb-2" style={{ fontFamily: "Fraunces", fontWeight: 700 }}>
+        <h1 className="text-4xl md:text-5xl font-bold text-[var(--color-text-primary)] mb-2" style={{ fontFamily: "Fraunces", fontWeight: 700 }}>
           Insights
         </h1>
-        <p className="text-base text-[#78786C]">
+        <p className="text-base text-[var(--color-text-secondary)]">
           Simple clinical and clinic operations summary
         </p>
       </div>
 
       <div>
-        <h3 className="text-xs font-bold uppercase tracking-widest mb-4 text-[#78786C]">
+        <h3 className="text-xs font-bold uppercase tracking-widest mb-4 text-[var(--color-text-secondary)]">
           Today At A Glance
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -164,13 +164,13 @@ export default function InsightsPage() {
                 boxShadow: tokens.shadows.soft,
               }}
             >
-              <p className="text-4xl md:text-5xl font-bold text-[#2C2C24] leading-none mb-3">
+              <p className="text-4xl md:text-5xl font-bold text-[var(--color-text-primary)] leading-none mb-3">
                 {card.value}
               </p>
               <p className="text-sm font-semibold mb-1" style={{ color: card.color }}>
                 {card.label}
               </p>
-              <p className="text-xs text-[#78786C]">{card.hint}</p>
+              <p className="text-xs text-[var(--color-text-secondary)]">{card.hint}</p>
             </div>
           ))}
         </div>
@@ -187,10 +187,10 @@ export default function InsightsPage() {
             boxShadow: tokens.shadows.soft,
           }}
         >
-          <h3 className="text-lg md:text-xl font-bold text-[#2C2C24] mb-2" style={{ fontFamily: "Fraunces" }}>
+          <h3 className="text-lg md:text-xl font-bold text-[var(--color-text-primary)] mb-2" style={{ fontFamily: "Fraunces" }}>
             Patient Flow
           </h3>
-          <p className="text-sm text-[#78786C] mb-4">
+          <p className="text-sm text-[var(--color-text-secondary)] mb-4">
             How patients are moving through your clinic
           </p>
 
@@ -202,8 +202,8 @@ export default function InsightsPage() {
                 border: `1px solid ${tokens.colors.border}`,
               }}
             >
-              <p className="text-xs text-[#78786C] font-medium">New vs Returning (Last 30 Days)</p>
-              <p className="text-base font-semibold text-[#2C2C24] mt-1">
+              <p className="text-xs text-[var(--color-text-secondary)] font-medium">New vs Returning (Last 30 Days)</p>
+              <p className="text-base font-semibold text-[var(--color-text-primary)] mt-1">
                 New: {new30} • Returning: {returning30}
               </p>
             </div>
@@ -214,8 +214,8 @@ export default function InsightsPage() {
                 border: `1px solid ${tokens.colors.border}`,
               }}
             >
-              <p className="text-xs text-[#78786C] font-medium">Average revisit interval</p>
-              <p className="text-base font-semibold text-[#2C2C24] mt-1">{revisitDays} days</p>
+              <p className="text-xs text-[var(--color-text-secondary)] font-medium">Average revisit interval</p>
+              <p className="text-base font-semibold text-[var(--color-text-primary)] mt-1">{revisitDays} days</p>
             </div>
             <div
               className="rounded-2xl p-4"
@@ -224,8 +224,8 @@ export default function InsightsPage() {
                 border: `1px solid ${tokens.colors.border}`,
               }}
             >
-              <p className="text-xs text-[#78786C] font-medium">Dormant patients (90+ days)</p>
-              <p className="text-base font-semibold text-[#2C2C24] mt-1">{dormant90}</p>
+              <p className="text-xs text-[var(--color-text-secondary)] font-medium">Dormant patients (90+ days)</p>
+              <p className="text-base font-semibold text-[var(--color-text-primary)] mt-1">{dormant90}</p>
             </div>
           </div>
         </div>
@@ -239,10 +239,10 @@ export default function InsightsPage() {
             boxShadow: tokens.shadows.soft,
           }}
         >
-          <h3 className="text-lg md:text-xl font-bold text-[#2C2C24] mb-2" style={{ fontFamily: "Fraunces" }}>
+          <h3 className="text-lg md:text-xl font-bold text-[var(--color-text-primary)] mb-2" style={{ fontFamily: "Fraunces" }}>
             Clinic Reliability
           </h3>
-          <p className="text-sm text-[#78786C] mb-4">
+          <p className="text-sm text-[var(--color-text-secondary)] mb-4">
             Appointment operations health
           </p>
 
@@ -254,8 +254,8 @@ export default function InsightsPage() {
                 border: `1px solid ${tokens.colors.border}`,
               }}
             >
-              <p className="text-xs text-[#78786C] font-medium">On-time completion rate</p>
-              <p className="text-base font-semibold text-[#2C2C24] mt-1">
+              <p className="text-xs text-[var(--color-text-secondary)] font-medium">On-time completion rate</p>
+              <p className="text-base font-semibold text-[var(--color-text-primary)] mt-1">
                 {completionRate} (Last 30 days)
               </p>
             </div>
@@ -266,8 +266,8 @@ export default function InsightsPage() {
                 border: `1px solid ${tokens.colors.border}`,
               }}
             >
-              <p className="text-xs text-[#78786C] font-medium">Peak clinic load</p>
-              <p className="text-base font-semibold text-[#2C2C24] mt-1">
+              <p className="text-xs text-[var(--color-text-secondary)] font-medium">Peak clinic load</p>
+              <p className="text-base font-semibold text-[var(--color-text-primary)] mt-1">
                 {peakDay} at {peakHour}
               </p>
             </div>
@@ -278,8 +278,8 @@ export default function InsightsPage() {
                 border: `1px solid ${tokens.colors.border}`,
               }}
             >
-              <p className="text-xs text-[#78786C] font-medium">Most common cancellation reason</p>
-              <p className="text-base font-semibold text-[#2C2C24] mt-1">{topCancelReason}</p>
+              <p className="text-xs text-[var(--color-text-secondary)] font-medium">Most common cancellation reason</p>
+              <p className="text-base font-semibold text-[var(--color-text-primary)] mt-1">{topCancelReason}</p>
             </div>
           </div>
         </div>
@@ -296,16 +296,16 @@ export default function InsightsPage() {
             boxShadow: tokens.shadows.soft,
           }}
         >
-          <h3 className="text-lg md:text-xl font-bold text-[#2C2C24] mb-2" style={{ fontFamily: "Fraunces" }}>
+          <h3 className="text-lg md:text-xl font-bold text-[var(--color-text-primary)] mb-2" style={{ fontFamily: "Fraunces" }}>
             Top Health Concerns
           </h3>
-          <p className="text-sm text-[#78786C] mb-4">
+          <p className="text-sm text-[var(--color-text-secondary)] mb-4">
             Most frequent diagnoses and direction
           </p>
 
           <div className="space-y-2">
             {topDiagnosesMoM.length === 0 ? (
-              <p className="text-sm text-[#78786C]">Not enough history yet</p>
+              <p className="text-sm text-[var(--color-text-secondary)]">Not enough history yet</p>
             ) : (
               topDiagnosesMoM.map((item) => {
                 const t = trendText(item.trend);
@@ -320,8 +320,8 @@ export default function InsightsPage() {
                     }}
                   >
                     <div>
-                      <p className="text-sm font-semibold text-[#2C2C24]">{item.disease}</p>
-                      <p className="text-xs text-[#78786C] mt-1">{item.currentCount} this month</p>
+                      <p className="text-sm font-semibold text-[var(--color-text-primary)]">{item.disease}</p>
+                      <p className="text-xs text-[var(--color-text-secondary)] mt-1">{item.currentCount} this month</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <IconComponent size={18} color={t.color} />
@@ -345,10 +345,10 @@ export default function InsightsPage() {
             boxShadow: tokens.shadows.soft,
           }}
         >
-          <h3 className="text-lg md:text-xl font-bold text-[#2C2C24] mb-2" style={{ fontFamily: "Fraunces" }}>
+          <h3 className="text-lg md:text-xl font-bold text-[var(--color-text-primary)] mb-2" style={{ fontFamily: "Fraunces" }}>
             Quick Totals
           </h3>
-          <p className="text-sm text-[#78786C] mb-4">
+          <p className="text-sm text-[var(--color-text-secondary)] mb-4">
             Current totals in your practice
           </p>
 
@@ -367,8 +367,8 @@ export default function InsightsPage() {
                   border: `1px solid ${tokens.colors.border}`,
                 }}
               >
-                <p className="text-xs text-[#78786C] font-medium">{item.label}</p>
-                <p className="text-2xl font-bold text-[#2C2C24] mt-2">{item.value}</p>
+                <p className="text-xs text-[var(--color-text-secondary)] font-medium">{item.label}</p>
+                <p className="text-2xl font-bold text-[var(--color-text-primary)] mt-2">{item.value}</p>
               </div>
             ))}
           </div>
@@ -380,15 +380,15 @@ export default function InsightsPage() {
               border: `1px solid ${tokens.colors.border}`,
             }}
           >
-            <p className="text-xs text-[#78786C] font-medium mb-2">Top Medicines Given</p>
+            <p className="text-xs text-[var(--color-text-secondary)] font-medium mb-2">Top Medicines Given</p>
             {topMedicines.length === 0 ? (
-              <p className="text-sm text-[#78786C]">Not enough history yet</p>
+              <p className="text-sm text-[var(--color-text-secondary)]">Not enough history yet</p>
             ) : (
               <div className="space-y-2">
                 {topMedicines.slice(0, 3).map((item) => (
                   <div key={`med-${item.medicine}`} className="flex justify-between text-sm">
-                    <span className="text-[#2C2C24]">{item.medicine}</span>
-                    <span className="font-semibold text-[#78786C]">{item.count}</span>
+                    <span className="text-[var(--color-text-primary)]">{item.medicine}</span>
+                    <span className="font-semibold text-[var(--color-text-secondary)]">{item.count}</span>
                   </div>
                 ))}
               </div>
@@ -402,8 +402,8 @@ export default function InsightsPage() {
               border: `1px solid ${tokens.colors.border}`,
             }}
           >
-            <p className="text-xs text-[#78786C] font-medium">Most common diseases (all time)</p>
-            <p className="text-sm text-[#2C2C24] mt-2">
+            <p className="text-xs text-[var(--color-text-secondary)] font-medium">Most common diseases (all time)</p>
+            <p className="text-sm text-[var(--color-text-primary)] mt-2">
               {topDiseases.slice(0, 2).map((d) => d.disease).join(" • ") || "Not enough history yet"}
             </p>
           </div>

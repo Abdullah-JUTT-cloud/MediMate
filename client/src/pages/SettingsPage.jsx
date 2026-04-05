@@ -9,18 +9,18 @@ import VerifiedBadge from "../components/VerifiedBadge";
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 const tokens = {
   colors: {
-    background: "#FDFCF8",
-    foreground: "#2C2C24",
-    primary: "#5D7052",
-    primaryForeground: "#F3F4F1",
-    secondary: "#C18C5D",
-    secondary_foreground: "#FFFFFF",
-    accent: "#E6DCCD",
-    accentForeground: "#4A4A40",
-    muted: "#F0EBE5",
-    mutedForeground: "#78786C",
-    border: "#DED8CF",
-    destructive: "#A85448",
+    background: "var(--color-bg)",
+    foreground: "var(--color-text-primary)",
+    primary: "var(--color-primary)",
+    primaryForeground: "var(--color-on-primary)",
+    secondary: "var(--color-secondary)",
+    secondary_foreground: "var(--color-on-primary)",
+    accent: "var(--color-accent)",
+    accentForeground: "var(--color-text-primary)",
+    muted: "var(--color-bg-soft)",
+    mutedForeground: "var(--color-text-secondary)",
+    border: "var(--color-border)",
+    destructive: "var(--color-danger)",
   },
   shadows: {
     soft: "0 4px 20px -2px rgba(93, 112, 82, 0.15)",
@@ -61,11 +61,11 @@ const SPECIALIZATION_SUGGESTIONS = [
 ];
 
 // ─── Input Styling ────────────────────────────────────────────────────────────
-const inputCls = "w-full px-5 py-3 rounded-full text-sm outline-none transition-all bg-white border border-[#DED8CF] text-[#2C2C24] placeholder:text-[#78786C]/50 focus:border-[#5D7052] focus:ring-2 focus:ring-[#5D7052]/20 focus:shadow-[0_0_0_0.5px_rgba(93,112,82,0.1)]";
+const inputCls = "w-full px-5 py-3 rounded-full text-sm outline-none transition-all bg-[var(--color-card)] border border-[var(--color-border)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)]/50 focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:shadow-[0_0_0_0.5px_rgba(93,112,82,0.1)]";
 
 function SectionLabel({ text }) {
   return (
-    <p className="text-xs font-bold uppercase tracking-widest mb-4 text-[#78786C]">
+    <p className="text-xs font-bold uppercase tracking-widest mb-4 text-[var(--color-text-secondary)]">
       {text}
     </p>
   );
@@ -73,10 +73,10 @@ function SectionLabel({ text }) {
 
 function FieldLabel({ text, optional }) {
   return (
-    <label className="block text-sm font-medium mb-2.5 text-[#2C2C24]">
+    <label className="block text-sm font-medium mb-2.5 text-[var(--color-text-primary)]">
       {text}{" "}
       {optional ? (
-        <span className="opacity-50 text-[#78786C]">(optional)</span>
+        <span className="opacity-50 text-[var(--color-text-secondary)]">(optional)</span>
       ) : (
         <span style={{ color: tokens.colors.primary }}>*</span>
       )}
@@ -137,7 +137,7 @@ function SuggestInput({ value, onChange, suggestions, placeholder }) {
             <button
               key={s}
               type="button"
-              className="w-full text-left px-5 py-3 text-sm transition-all hover:bg-[#5D7052]/10 text-[#2C2C24] border-b border-[#DED8CF]/30 last:border-b-0"
+              className="w-full text-left px-5 py-3 text-sm transition-all hover:bg-[var(--color-primary)]/10 text-[var(--color-text-primary)] border-b border-[var(--color-border)]/30 last:border-b-0"
               onMouseDown={() => {
                 onChange(s);
                 setOpen(false);
@@ -215,7 +215,7 @@ function TagListInput({ items, onAdd, onRemove, placeholder, suggestions = [] })
               <button
                 key={s}
                 type="button"
-                className="w-full text-left px-5 py-3 text-sm transition-all hover:bg-[#5D7052]/10 text-[#2C2C24] border-b border-[#DED8CF]/30 last:border-b-0"
+                className="w-full text-left px-5 py-3 text-sm transition-all hover:bg-[var(--color-primary)]/10 text-[var(--color-text-primary)] border-b border-[var(--color-border)]/30 last:border-b-0"
                 onMouseDown={() => {
                   onAdd(s);
                   setInput("");
@@ -244,7 +244,7 @@ function TagListInput({ items, onAdd, onRemove, placeholder, suggestions = [] })
               <button
                 type="button"
                 onClick={() => onRemove(i)}
-                className="opacity-70 hover:opacity-100 text-[#A85448]"
+                className="opacity-70 hover:opacity-100 text-[var(--color-danger)]"
                 style={{ fontSize: "12px" }}
               >
                 ✕
@@ -321,13 +321,13 @@ function LocationCard({ location, index, type, allClinics, allHospitals, onChang
       }}
     >
       <div className="flex items-center justify-between mb-4">
-        <span className="text-sm font-bold text-[#2C2C24] flex items-center gap-2">
+        <span className="text-sm font-bold text-[var(--color-text-primary)] flex items-center gap-2">
           {type === "clinic" ? "🏥" : "🏨"}{" "}
           {type === "clinic" ? "Clinic" : "Hospital"} #{index + 1}
         </span>
         <button
           onClick={onRemove}
-          className="px-3 py-1.5 rounded-lg transition-all text-[#A85448] border"
+          className="px-3 py-1.5 rounded-lg transition-all text-[var(--color-danger)] border"
           style={{
             borderColor: `${tokens.colors.destructive}30`,
             background: `${tokens.colors.destructive}10`,
@@ -364,7 +364,7 @@ function LocationCard({ location, index, type, allClinics, allHospitals, onChang
 
       <SectionLabel text="Sessions" />
       {location.sessions.length === 0 && (
-        <p className="text-xs mb-3 text-[#78786C]">No sessions added yet</p>
+        <p className="text-xs mb-3 text-[var(--color-text-secondary)]">No sessions added yet</p>
       )}
       <div className="space-y-2 mb-3">
         {location.sessions.map((session, si) => {
@@ -388,7 +388,7 @@ function LocationCard({ location, index, type, allClinics, allHospitals, onChang
               }}
             >
               <div>
-                <label className="block text-xs mb-1.5 text-[#78786C] font-medium">
+                <label className="block text-xs mb-1.5 text-[var(--color-text-secondary)] font-medium">
                   Day
                 </label>
                 <select
@@ -406,7 +406,7 @@ function LocationCard({ location, index, type, allClinics, allHospitals, onChang
                 </select>
               </div>
               <div>
-                <label className="block text-xs mb-1.5 text-[#78786C] font-medium">
+                <label className="block text-xs mb-1.5 text-[var(--color-text-secondary)] font-medium">
                   Start
                 </label>
                 <input
@@ -419,7 +419,7 @@ function LocationCard({ location, index, type, allClinics, allHospitals, onChang
                 />
               </div>
               <div>
-                <label className="block text-xs mb-1.5 text-[#78786C] font-medium">
+                <label className="block text-xs mb-1.5 text-[var(--color-text-secondary)] font-medium">
                   End
                 </label>
                 <input
@@ -433,13 +433,13 @@ function LocationCard({ location, index, type, allClinics, allHospitals, onChang
               </div>
               <div className="flex items-end gap-2">
                 {overlap && (
-                  <span className="text-xs px-3 py-1.5 rounded-lg flex-1 text-center bg-[#A85448]/10 text-[#A85448] font-medium">
+                  <span className="text-xs px-3 py-1.5 rounded-lg flex-1 text-center bg-[var(--color-danger)]/10 text-[var(--color-danger)] font-medium">
                     ⚠ Overlap
                   </span>
                 )}
                 <button
                   onClick={() => removeSession(si)}
-                  className="w-10 h-10 rounded-xl flex items-center justify-center transition-all shrink-0 border text-[#A85448]"
+                  className="w-10 h-10 rounded-xl flex items-center justify-center transition-all shrink-0 border text-[var(--color-danger)]"
                   style={{
                     borderColor: `${tokens.colors.destructive}30`,
                     background: `${tokens.colors.destructive}10`,
@@ -609,10 +609,10 @@ export default function SettingsPage() {
     return (
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="mb-6">
-          <h1 className="text-4xl md:text-5xl font-bold text-[#2C2C24] mb-2" style={{ fontFamily: "Fraunces" }}>
+          <h1 className="text-4xl md:text-5xl font-bold text-[var(--color-text-primary)] mb-2" style={{ fontFamily: "Fraunces" }}>
             Settings
           </h1>
-          <p className="text-base text-[#78786C]">
+          <p className="text-base text-[var(--color-text-secondary)]">
             Manage your profile and practice information
           </p>
         </div>
@@ -637,10 +637,10 @@ export default function SettingsPage() {
   return (
     <div className="max-w-3xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-4xl md:text-5xl font-bold text-[#2C2C24] mb-2" style={{ fontFamily: "Fraunces" }}>
+        <h1 className="text-4xl md:text-5xl font-bold text-[var(--color-text-primary)] mb-2" style={{ fontFamily: "Fraunces" }}>
           Settings
         </h1>
-        <p className="text-base text-[#78786C]">
+        <p className="text-base text-[var(--color-text-secondary)]">
           Manage your profile and practice information
         </p>
       </div>
@@ -671,7 +671,7 @@ export default function SettingsPage() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <p
-              className="text-lg font-bold text-[#2C2C24]"
+              className="text-lg font-bold text-[var(--color-text-primary)]"
               style={{ fontFamily: "Fraunces" }}
             >
               {doctor?.fullName || "Doctor"}
@@ -779,7 +779,7 @@ export default function SettingsPage() {
           }}
         >
           <h2
-            className="text-2xl font-bold text-[#2C2C24]"
+            className="text-2xl font-bold text-[var(--color-text-primary)]"
             style={{ fontFamily: "Fraunces" }}
           >
             Personal Information
@@ -857,7 +857,7 @@ export default function SettingsPage() {
           }}
         >
           <h2
-            className="text-2xl font-bold text-[#2C2C24]"
+            className="text-2xl font-bold text-[var(--color-text-primary)]"
             style={{ fontFamily: "Fraunces" }}
           >
             Professional Information
@@ -1062,7 +1062,7 @@ export default function SettingsPage() {
           }}
         >
           <h2
-            className="text-2xl font-bold text-[#2C2C24]"
+            className="text-2xl font-bold text-[var(--color-text-primary)]"
             style={{ fontFamily: "Fraunces" }}
           >
             Licensing Information
@@ -1236,7 +1236,7 @@ export default function SettingsPage() {
           >
             <div className="flex items-center justify-between mb-6">
               <h3
-                className="text-lg font-bold text-[#2C2C24]"
+                className="text-lg font-bold text-[var(--color-text-primary)]"
                 style={{ fontFamily: "Fraunces" }}
               >
                 🏥 Clinics
@@ -1271,7 +1271,7 @@ export default function SettingsPage() {
                   background: `${tokens.colors.muted}20`,
                 }}
               >
-                <p className="text-sm text-[#78786C]">No clinics added yet</p>
+                <p className="text-sm text-[var(--color-text-secondary)]">No clinics added yet</p>
               </div>
             )}
             <div className="space-y-4">
@@ -1309,7 +1309,7 @@ export default function SettingsPage() {
           >
             <div className="flex items-center justify-between mb-6">
               <h3
-                className="text-lg font-bold text-[#2C2C24]"
+                className="text-lg font-bold text-[var(--color-text-primary)]"
                 style={{ fontFamily: "Fraunces" }}
               >
                 🏨 Hospitals
@@ -1344,7 +1344,7 @@ export default function SettingsPage() {
                   background: `${tokens.colors.muted}20`,
                 }}
               >
-                <p className="text-sm text-[#78786C]">No hospitals added yet</p>
+                <p className="text-sm text-[var(--color-text-secondary)]">No hospitals added yet</p>
               </div>
             )}
             <div className="space-y-4">

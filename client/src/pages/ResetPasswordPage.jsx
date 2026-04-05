@@ -25,10 +25,10 @@ export default function ResetPasswordPage() {
     if (/[^A-Za-z0-9]/.test(pw)) score++;
     const levels = [
       { score: 0, label: "", color: "" },
-      { score: 1, label: "Weak", color: "#ef4444" },
-      { score: 2, label: "Fair", color: "#f59e0b" },
-      { score: 3, label: "Good", color: "#10B8A9" },
-      { score: 4, label: "Strong", color: "#22c55e" },
+      { score: 1, label: "Weak", color: "var(--color-danger)" },
+      { score: 2, label: "Fair", color: "var(--color-warning)" },
+      { score: 3, label: "Good", color: "var(--color-success)" },
+      { score: 4, label: "Strong", color: "var(--color-success)" },
     ];
     return levels[score];
   };

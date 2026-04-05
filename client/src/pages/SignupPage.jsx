@@ -152,8 +152,8 @@ function TagListInput({ label, items, onAdd, onRemove, placeholder, suggestions 
             <span key={i} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
               style={{ background: "rgba(37,99,235,0.1)", border: "1px solid rgba(37,99,235,0.25)", color: "var(--color-primary)" }}>
               {item}
-              <button type="button" onClick={() => onRemove(i)}
-                className="opacity-70 hover:opacity-100" style={{ color: "#ef4444", fontSize: "10px" }}>✕</button>
+                <button type="button" onClick={() => onRemove(i)}
+                  className="opacity-70 hover:opacity-100" style={{ color: "var(--color-danger)", fontSize: "10px" }}>✕</button>
             </span>
           ))}
         </div>
@@ -817,6 +817,18 @@ export default function SignupPage() {
               </button>
             )}
           </div>
+
+          <p className="mt-4 text-center text-xs text-[var(--color-text-secondary)]">
+            By creating an account, you agree to our{" "}
+            <Link to="/terms-of-service" className="font-semibold text-[var(--color-secondary)] transition hover:opacity-80">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link to="/privacy-policy" className="font-semibold text-[var(--color-secondary)] transition hover:opacity-80">
+              Privacy Policy
+            </Link>
+            .
+          </p>
         </div>
       </div>
     </div>

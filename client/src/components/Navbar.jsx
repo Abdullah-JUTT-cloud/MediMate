@@ -16,12 +16,12 @@ export default function Navbar() {
   }, []);
 
   const navBaseClass = scrolled || !isHome
-    ? "border border-[#DED8CF]/70 bg-[#FDFCF8]/85 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.16)] backdrop-blur-md"
-    : "border border-[#DED8CF]/50 bg-[#FDFCF8]/75 backdrop-blur-md";
+    ? "border border-[var(--color-border)]/70 bg-[var(--color-bg)]/85 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.16)] backdrop-blur-md"
+    : "border border-[var(--color-border)]/50 bg-[var(--color-bg)]/75 backdrop-blur-md";
 
   const linkClass = (path) =>
-    `font-mono text-[11px] uppercase tracking-[0.24em] transition duration-300 hover:text-[#5D7052] ${
-      location.pathname === path ? "text-[#5D7052]" : "text-[#78786C]"
+    `font-mono text-[11px] uppercase tracking-[0.24em] transition duration-300 hover:text-[var(--color-primary)] ${
+      location.pathname === path ? "text-[var(--color-primary)]" : "text-[var(--color-text-secondary)]"
     }`;
 
   return (
@@ -33,14 +33,14 @@ export default function Navbar() {
         />
 
         <Link to="/" className="group flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[#DED8CF]/70 bg-[#5D7052] shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)]">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border)]/70 bg-[var(--color-primary)] shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)]">
             <img src={logo} alt="MedAlerto Logo" className="h-7 w-auto rounded-full" />
           </span>
           <span>
-            <span className="block font-heading text-sm font-semibold uppercase tracking-[0.22em] text-[#2C2C24]">
+            <span className="block font-heading text-sm font-semibold uppercase tracking-[0.22em] text-[var(--color-text-primary)]">
               MedAlerto
             </span>
-            <span className="mt-1 block font-mono text-[10px] uppercase tracking-[0.3em] text-[#78786C] transition duration-300 group-hover:text-[#5D7052]">
+            <span className="mt-1 block font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-text-secondary)] transition duration-300 group-hover:text-[var(--color-primary)]">
               rooted clinic tools
             </span>
           </span>
@@ -58,22 +58,22 @@ export default function Navbar() {
           </Link>
           <button
             onClick={() => navigate("/login")}
-            className="inline-flex h-11 items-center justify-center rounded-full border border-[#C18C5D] bg-white/65 px-5 font-body text-sm font-bold text-[#C18C5D] transition-all duration-300 hover:-translate-y-0.5 hover:border-[#B67746] hover:bg-[#F0EBE5] hover:shadow-[0_10px_28px_-14px_rgba(193,140,93,0.28)] active:translate-y-0"
+            className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--color-secondary)] bg-[var(--color-card)]/65 px-5 font-body text-sm font-bold text-[var(--color-secondary)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--color-secondary)] hover:bg-[var(--color-bg-soft)] hover:shadow-[0_10px_28px_-14px_rgba(193,140,93,0.28)] active:translate-y-0"
           >
             Login
           </button>
           <button
             onClick={() => navigate("/signup")}
-            className="group relative inline-flex h-11 items-center justify-center overflow-hidden rounded-full border border-[#5D7052] bg-[#5D7052] px-5 font-body text-sm font-bold text-[#F3F4F1] shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-14px_rgba(93,112,82,0.3)] active:translate-y-0"
+            className="group relative inline-flex h-11 items-center justify-center overflow-hidden rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)] px-5 font-body text-sm font-bold text-[var(--color-on-primary)] shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-14px_rgba(93,112,82,0.3)] active:translate-y-0"
           >
-            <span className="absolute inset-0 bg-[#C18C5D] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+            <span className="absolute inset-0 bg-[var(--color-secondary)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
             <span className="relative z-10">Create Account</span>
           </button>
         </div>
 
         <button
           type="button"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#DED8CF] bg-white/70 text-[#5D7052] transition duration-300 hover:-translate-y-0.5 hover:bg-[#F0EBE5] hover:shadow-[0_10px_28px_-14px_rgba(93,112,82,0.24)] lg:hidden"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-card)]/70 text-[var(--color-primary)] transition duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-bg-soft)] hover:shadow-[0_10px_28px_-14px_rgba(93,112,82,0.24)] lg:hidden"
           onClick={() => setMenuOpen((prev) => !prev)}
           aria-label="Toggle menu"
           aria-expanded={menuOpen}
@@ -88,17 +88,17 @@ export default function Navbar() {
       </div>
 
       {menuOpen && (
-        <div id="mobile-nav" className="absolute left-4 right-4 top-full mt-3 rounded-4xl border border-[#DED8CF]/80 bg-[#FEFEFA]/96 p-5 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.18)] backdrop-blur-md lg:hidden">
+        <div id="mobile-nav" className="absolute left-4 right-4 top-full mt-3 rounded-4xl border border-[var(--color-border)]/80 bg-[var(--color-card)]/96 p-5 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.18)] backdrop-blur-md lg:hidden">
           <div className="flex flex-col gap-4">
-            <Link to="/features" className="font-mono text-[11px] uppercase tracking-[0.24em] text-[#78786C] transition duration-300 hover:text-[#5D7052]" onClick={() => setMenuOpen(false)}>Features</Link>
-            <Link to="/how-it-works" className="font-mono text-[11px] uppercase tracking-[0.24em] text-[#78786C] transition duration-300 hover:text-[#5D7052]" onClick={() => setMenuOpen(false)}>How it Works</Link>
-            <Link to="/pricing" className="font-mono text-[11px] uppercase tracking-[0.24em] text-[#78786C] transition duration-300 hover:text-[#5D7052]" onClick={() => setMenuOpen(false)}>Pricing</Link>
+            <Link to="/features" className="font-mono text-[11px] uppercase tracking-[0.24em] text-[var(--color-text-secondary)] transition duration-300 hover:text-[var(--color-primary)]" onClick={() => setMenuOpen(false)}>Features</Link>
+            <Link to="/how-it-works" className="font-mono text-[11px] uppercase tracking-[0.24em] text-[var(--color-text-secondary)] transition duration-300 hover:text-[var(--color-primary)]" onClick={() => setMenuOpen(false)}>How it Works</Link>
+            <Link to="/pricing" className="font-mono text-[11px] uppercase tracking-[0.24em] text-[var(--color-text-secondary)] transition duration-300 hover:text-[var(--color-primary)]" onClick={() => setMenuOpen(false)}>Pricing</Link>
             <button
               onClick={() => {
                 navigate("/login");
                 setMenuOpen(false);
               }}
-              className="inline-flex h-11 items-center justify-center rounded-full border border-[#C18C5D] bg-white/65 px-5 font-body text-sm font-bold text-[#C18C5D] transition duration-300 hover:-translate-y-0.5 hover:bg-[#F0EBE5] hover:shadow-[0_10px_28px_-14px_rgba(193,140,93,0.28)]"
+              className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--color-secondary)] bg-[var(--color-card)]/65 px-5 font-body text-sm font-bold text-[var(--color-secondary)] transition duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-bg-soft)] hover:shadow-[0_10px_28px_-14px_rgba(193,140,93,0.28)]"
             >
               Login
             </button>
@@ -107,7 +107,7 @@ export default function Navbar() {
                 navigate("/signup");
                 setMenuOpen(false);
               }}
-              className="inline-flex h-11 items-center justify-center rounded-full border border-[#5D7052] bg-[#5D7052] px-5 font-body text-sm font-bold text-[#F3F4F1] shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-14px_rgba(93,112,82,0.3)]"
+              className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)] px-5 font-body text-sm font-bold text-[var(--color-on-primary)] shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-14px_rgba(93,112,82,0.3)]"
             >
               Create Account
             </button>

@@ -20,7 +20,7 @@ import { organicCardStyle, organicTheme } from "../styles/organicTheme";
 const S = {
   card: organicCardStyle,
   strongCard: {
-    background: "linear-gradient(145deg, rgba(93,112,82,0.12), #FEFEFA)",
+    background: "linear-gradient(145deg, rgba(93,112,82,0.12), var(--color-card))",
     border: "1px solid rgba(93,112,82,0.28)",
     boxShadow: organicTheme.shadows.soft,
   },
@@ -30,9 +30,9 @@ const fmtMoney = (n) => `PKR ${Math.round(Number(n || 0)).toLocaleString()}`;
 
 const trendLabel = (n) => {
   const v = Number(n || 0);
-  if (v > 0) return { text: `+${v.toFixed(1)}%`, tone: "#5D7052", icon: ArrowUpRight };
-  if (v < 0) return { text: `${v.toFixed(1)}%`, tone: "#A85448", icon: ArrowDownRight };
-  return { text: "0.0%", tone: "#78786C", icon: ArrowRight };
+  if (v > 0) return { text: `+${v.toFixed(1)}%`, tone: "var(--color-primary)", icon: ArrowUpRight };
+  if (v < 0) return { text: `${v.toFixed(1)}%`, tone: "var(--color-danger)", icon: ArrowDownRight };
+  return { text: "0.0%", tone: "var(--color-text-secondary)", icon: ArrowRight };
 };
 
 const RevenueTooltip = ({ active, payload, label }) => {
@@ -222,8 +222,8 @@ export default function RevenueLabPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-4xl font-bold text-[#2C2C24]" style={{ fontFamily: "Fraunces" }}>Revenue Lab</h2>
-          <p className="text-sm mt-1 text-[#78786C]">Money intelligence for your practice</p>
+          <h2 className="text-4xl font-bold text-[var(--color-text-primary)]" style={{ fontFamily: "Fraunces" }}>Revenue Lab</h2>
+          <p className="text-sm mt-1 text-[var(--color-text-secondary)]">Money intelligence for your practice</p>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[1, 2, 3, 4].map((i) => <CardSkeleton key={i} />)}
@@ -240,29 +240,29 @@ export default function RevenueLabPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap gap-3 items-end justify-between">
         <div>
-          <h2 className="text-4xl font-bold text-[#2C2C24]" style={{ fontFamily: "Fraunces" }}>Revenue Lab</h2>
-          <p className="text-sm mt-1 text-[#78786C]">If you keep going like this, here is what you will make this year.</p>
+          <h2 className="text-4xl font-bold text-[var(--color-text-primary)]" style={{ fontFamily: "Fraunces" }}>Revenue Lab</h2>
+          <p className="text-sm mt-1 text-[var(--color-text-secondary)]">If you keep going like this, here is what you will make this year.</p>
         </div>
         <div className="flex flex-wrap gap-2 items-end">
           <div className="flex items-center gap-2">
             <div>
-              <label className="text-[10px] uppercase tracking-wider text-[#78786C]">From</label>
+              <label className="text-[10px] uppercase tracking-wider text-[var(--color-text-secondary)]">From</label>
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 className="block mt-1 px-3 py-2 rounded-full text-xs outline-none"
-                style={{ background: "rgba(255,255,255,0.65)", border: "1px solid #DED8CF", color: "#2C2C24" }}
+                style={{ background: "color-mix(in srgb, var(--color-card) 78%, transparent)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)" }}
               />
             </div>
             <div>
-              <label className="text-[10px] uppercase tracking-wider text-[#78786C]">To</label>
+              <label className="text-[10px] uppercase tracking-wider text-[var(--color-text-secondary)]">To</label>
               <input
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 className="block mt-1 px-3 py-2 rounded-full text-xs outline-none"
-                style={{ background: "rgba(255,255,255,0.65)", border: "1px solid #DED8CF", color: "#2C2C24" }}
+                style={{ background: "color-mix(in srgb, var(--color-card) 78%, transparent)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)" }}
               />
             </div>
           </div>
@@ -270,7 +270,7 @@ export default function RevenueLabPage() {
             onClick={() => handleExport("xlsx")}
             disabled={isExporting}
             className="px-4 py-2.5 rounded-full text-xs font-semibold inline-flex items-center gap-1"
-            style={{ background: "rgba(93,112,82,0.12)", color: "#5D7052", border: "1px solid rgba(93,112,82,0.28)" }}
+            style={{ background: "rgba(93,112,82,0.12)", color: "var(--color-primary)", border: "1px solid rgba(93,112,82,0.28)" }}
           >
             <FileSpreadsheet size={14} />
             {isExporting ? "Exporting..." : "Export Excel (.xlsx)"}
@@ -279,7 +279,7 @@ export default function RevenueLabPage() {
             onClick={() => handleExport("pdf")}
             disabled={isExporting}
             className="px-4 py-2.5 rounded-full text-xs font-semibold inline-flex items-center gap-1"
-            style={{ background: "rgba(240,235,229,0.45)", color: "#78786C", border: "1px solid #DED8CF" }}
+            style={{ background: "color-mix(in srgb, var(--color-bg-soft) 58%, transparent)", color: "var(--color-text-secondary)", border: "1px solid var(--color-border)" }}
           >
             <FileText size={14} />
             {isExporting ? "Exporting..." : "Export PDF"}
@@ -291,13 +291,13 @@ export default function RevenueLabPage() {
             value={taxYear}
             onChange={(e) => setTaxYear(Number(e.target.value || new Date().getFullYear()))}
             className="px-3 py-2.5 rounded-full text-xs w-[90px] outline-none"
-            style={{ background: "rgba(255,255,255,0.65)", color: "#2C2C24", border: "1px solid #DED8CF" }}
+            style={{ background: "color-mix(in srgb, var(--color-card) 78%, transparent)", color: "var(--color-text-primary)", border: "1px solid var(--color-border)" }}
           />
           <button
             onClick={() => handleExportTax("xlsx")}
             disabled={isExporting}
             className="px-3 py-2.5 rounded-full text-xs font-semibold"
-            style={{ background: "rgba(193,140,93,0.14)", color: "#C18C5D", border: "1px solid rgba(193,140,93,0.3)" }}
+            style={{ background: "rgba(193,140,93,0.14)", color: "var(--color-secondary)", border: "1px solid rgba(193,140,93,0.3)" }}
           >
             Tax XLSX
           </button>
@@ -305,7 +305,7 @@ export default function RevenueLabPage() {
             onClick={() => handleExportTax("pdf")}
             disabled={isExporting}
             className="px-3 py-2.5 rounded-full text-xs font-semibold"
-            style={{ background: "rgba(193,140,93,0.08)", color: "#C18C5D", border: "1px solid rgba(193,140,93,0.24)" }}
+            style={{ background: "rgba(193,140,93,0.08)", color: "var(--color-secondary)", border: "1px solid rgba(193,140,93,0.24)" }}
           >
             Tax PDF
           </button>
@@ -317,17 +317,17 @@ export default function RevenueLabPage() {
           { label: "Daily Income", value: fmtMoney(revenue.daily), trend: trendLabel(trends.dailyPct), Icon: Coins },
           { label: "Weekly Income", value: fmtMoney(revenue.weekly), trend: trendLabel(trends.weeklyPct), Icon: CalendarDays },
           { label: "Monthly Income", value: fmtMoney(revenue.monthly), trend: trendLabel(trends.monthlyPct), Icon: Wallet },
-          { label: "Year Projection", value: fmtMoney(revenue.projectedYearly), trend: { text: "Run-rate model", tone: "#C18C5D", icon: ArrowRight }, Icon: BarChart3 },
+          { label: "Year Projection", value: fmtMoney(revenue.projectedYearly), trend: { text: "Run-rate model", tone: "var(--color-secondary)", icon: ArrowRight }, Icon: BarChart3 },
         ].map((card) => (
           <div key={card.label} className="rounded-[2rem] p-4" style={card.label === "Year Projection" ? S.strongCard : S.card}>
             <div className="flex items-start justify-between mb-2">
-              <span className="h-10 w-10 rounded-2xl flex items-center justify-center" style={{ background: "rgba(93,112,82,0.12)", color: "#5D7052" }}><card.Icon size={18} /></span>
+              <span className="h-10 w-10 rounded-2xl flex items-center justify-center" style={{ background: "rgba(93,112,82,0.12)", color: "var(--color-primary)" }}><card.Icon size={18} /></span>
               <span className="text-xs font-semibold" style={{ color: card.trend.tone }}>
                 <span className="inline-flex items-center gap-1"><card.trend.icon size={14} /> {card.trend.text}</span>
               </span>
             </div>
-            <p className="text-base sm:text-lg font-extrabold text-[#2C2C24]">{card.value}</p>
-            <p className="text-xs text-[#78786C]">{card.label}</p>
+            <p className="text-base sm:text-lg font-extrabold text-[var(--color-text-primary)]">{card.value}</p>
+            <p className="text-xs text-[var(--color-text-secondary)]">{card.label}</p>
           </div>
         ))}
       </div>
@@ -356,7 +356,7 @@ export default function RevenueLabPage() {
               <YAxis tick={{ fill: "var(--color-text-secondary)", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : v)} />
               <Tooltip content={<RevenueTooltip />} />
               <Area type="monotone" dataKey="earnings" stroke="var(--color-primary)" strokeWidth={2} fill="url(#revGrad)" />
-              <Area type="monotone" dataKey="projected" stroke="#f59e0b" strokeWidth={2} fillOpacity={0} strokeDasharray="5 4" />
+              <Area type="monotone" dataKey="projected" stroke="var(--color-warning)" strokeWidth={2} fillOpacity={0} strokeDasharray="5 4" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -374,7 +374,7 @@ export default function RevenueLabPage() {
               <Tooltip content={<PeakTooltip />} />
               <Legend wrapperStyle={{ fontSize: "11px" }} />
               <Bar dataKey="appointments" name="Appointments" fill="var(--color-primary)" radius={[8, 8, 0, 0]} />
-              <Bar dataKey="checkups" name="Checkups" fill="#22c55e" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="checkups" name="Checkups" fill="var(--color-success)" radius={[8, 8, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -475,7 +475,7 @@ export default function RevenueLabPage() {
                           className="text-xs px-2 py-0.5 rounded-full font-semibold"
                           style={{
                             background: row.status === "Paid" ? "rgba(34,197,94,0.15)" : "rgba(245,158,11,0.15)",
-                            color: row.status === "Paid" ? "#22c55e" : "#f59e0b",
+                            color: row.status === "Paid" ? "var(--color-success)" : "var(--color-warning)",
                           }}
                         >
                           {row.status}
@@ -488,7 +488,7 @@ export default function RevenueLabPage() {
                           className="text-xs px-2 py-1 rounded-lg font-semibold"
                           style={{
                             background: row.isPaid ? "rgba(245,158,11,0.14)" : "rgba(34,197,94,0.14)",
-                            color: row.isPaid ? "#f59e0b" : "#22c55e",
+                            color: row.isPaid ? "var(--color-warning)" : "var(--color-success)",
                             border: `1px solid ${row.isPaid ? "rgba(245,158,11,0.35)" : "rgba(34,197,94,0.35)"}`,
                           }}
                         >

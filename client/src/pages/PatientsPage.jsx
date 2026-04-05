@@ -26,18 +26,18 @@ const getTodayDateInput = () => {
 // Organic Design Tokens
 const ORGANIC = {
   // Colors
-  bg: "#FDFCF8",
-  fg: "#2C2C24",
-  primary: "#5D7052",
-  primaryFg: "#F3F4F1",
-  secondary: "#C18C5D",
-  secondaryFg: "#FFFFFF",
-  accent: "#E6DCCD",
-  accentFg: "#4A4A40",
-  muted: "#F0EBE5",
-  mutedFg: "#78786C",
-  border: "#DED8CF",
-  destructive: "#A85448",
+  bg: "var(--color-bg)",
+  fg: "var(--color-text-primary)",
+  primary: "var(--color-primary)",
+  primaryFg: "var(--color-on-primary)",
+  secondary: "var(--color-secondary)",
+  secondaryFg: "var(--color-on-primary)",
+  accent: "var(--color-accent)",
+  accentFg: "var(--color-text-primary)",
+  muted: "var(--color-bg-soft)",
+  mutedFg: "var(--color-text-secondary)",
+  border: "var(--color-border)",
+  destructive: "var(--color-danger)",
   // Shadows - soft, colored
   shadowSoft: "0 4px 20px -2px rgba(93, 112, 82, 0.15)",
   shadowFloat: "0 10px 40px -10px rgba(193, 140, 93, 0.2)",
@@ -52,7 +52,7 @@ const S = {
     borderRadius: "999px"
   },
   card: { 
-    background: "#FEFEFA", 
+    background: "var(--color-card)", 
     border: `1px solid rgba(222, 216, 207, 0.5)`,
     borderRadius: "2rem",
     boxShadow: ORGANIC.shadowSoft
@@ -72,7 +72,7 @@ const blurInput = (e) => {
   e.target.style.border = `1.5px solid ${ORGANIC.border}`;
   e.target.style.boxShadow = "none";
 };
-const inputCls = "w-full px-5 py-3 rounded-full text-sm outline-none transition-all placeholder:text-[#8B8B7F]";
+const inputCls = "w-full px-5 py-3 rounded-full text-sm outline-none transition-all placeholder:text-[var(--color-text-muted)]";
 
 function LocationTag({ location }) {
   const isClinic = location.locationType === "Clinic";

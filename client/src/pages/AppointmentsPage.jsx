@@ -16,15 +16,15 @@ const STATUSES = ["Pending", "Confirmed", "Completed", "Cancelled", "No-show"];
 const CANCELLATION_REASONS = ["Patient", "Doctor", "Emergency", "No-show"];
 
 const STATUS_STYLES = {
-  Pending: { bg: "rgba(193,140,93,0.12)", border: "rgba(193,140,93,0.28)", color: "#C18C5D" },
+  Pending: { bg: "rgba(193,140,93,0.12)", border: "rgba(193,140,93,0.28)", color: "var(--color-secondary)" },
   Confirmed: {
     bg: "rgba(93,112,82,0.12)",
     border: "rgba(93,112,82,0.28)",
-    color: "#5D7052",
+    color: "var(--color-primary)",
   },
-  Completed: { bg: "rgba(93,112,82,0.16)", border: "rgba(93,112,82,0.34)", color: "#4E6245" },
-  Cancelled: { bg: "rgba(168,84,72,0.12)", border: "rgba(168,84,72,0.28)", color: "#A85448" },
-  "No-show": { bg: "rgba(168,84,72,0.15)", border: "rgba(168,84,72,0.34)", color: "#A85448" },
+  Completed: { bg: "rgba(93,112,82,0.16)", border: "rgba(93,112,82,0.34)", color: "var(--color-primary)" },
+  Cancelled: { bg: "rgba(168,84,72,0.12)", border: "rgba(168,84,72,0.28)", color: "var(--color-danger)" },
+  "No-show": { bg: "rgba(168,84,72,0.15)", border: "rgba(168,84,72,0.34)", color: "var(--color-danger)" },
 };
 
 const TYPE_ICONS = {
@@ -72,7 +72,7 @@ const S = {
 
 const focusInput = (e) => (e.target.style.border = `1px solid ${organicTheme.colors.primary}`);
 const blurInput = (e) => (e.target.style.border = `1px solid ${organicTheme.colors.border}`);
-const inputCls = "w-full px-4 py-3 rounded-full text-sm outline-none transition-all focus:ring-2 focus:ring-[#5D7052]/30";
+const inputCls = "w-full px-4 py-3 rounded-full text-sm outline-none transition-all focus:ring-2 focus:ring-[var(--color-primary)]/30";
 
 const TypeIcon = ({ type, size = 18 }) => {
   const Icon = TYPE_ICONS[type] || Stethoscope;
@@ -90,7 +90,7 @@ function BackButton({ onClick, label = "Back" }) {
 }
 
 function SectionLabel({ text }) {
-  return <p className="text-xs font-bold uppercase tracking-widest mb-3 text-[#78786C]">{text}</p>;
+  return <p className="text-xs font-bold uppercase tracking-widest mb-3 text-[var(--color-text-secondary)]">{text}</p>;
 }
 
 function StatusBadge({ status }) {
@@ -602,7 +602,7 @@ function BookAppointmentForm({
                       {slot.time}
                       {bookingCount > 0 && (
                         <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-xs flex items-center justify-center font-bold"
-                          style={{ background: bookingCount >= 3 ? "#ef4444" : "#f59e0b", color: "white", fontSize: "9px" }}>
+                          style={{ background: bookingCount >= 3 ? "var(--color-danger)" : "var(--color-warning)", color: "var(--color-on-primary)", fontSize: "9px" }}>
                           {bookingCount}
                         </span>
                       )}
@@ -784,8 +784,8 @@ export default function AppointmentsPage({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-3xl font-bold text-[#2C2C24]" style={{ fontFamily: "Fraunces" }}>Appointments</h2>
-          <p className="text-sm mt-1 text-[#78786C]">{appointments.length} appointments</p>
+          <h2 className="text-3xl font-bold text-[var(--color-text-primary)]" style={{ fontFamily: "Fraunces" }}>Appointments</h2>
+          <p className="text-sm mt-1 text-[var(--color-text-secondary)]">{appointments.length} appointments</p>
         </div>
         <button onClick={() => setView("book")}
           className="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold text-white transition-all hover:scale-105 active:scale-95 hover:opacity-95 w-fit"
@@ -804,7 +804,7 @@ export default function AppointmentsPage({
             onFocus={focusInput} onBlur={blurInput} />
           {dateFilter && (
             <button onClick={() => setDateFilter("")}
-              className="text-xs px-3 py-2 rounded-full transition-all text-[#78786C]">✕</button>
+              className="text-xs px-3 py-2 rounded-full transition-all text-[var(--color-text-secondary)]">✕</button>
           )}
         </div>
 
@@ -814,8 +814,8 @@ export default function AppointmentsPage({
             <button key={s} onClick={() => setActiveFilter(s)}
               className="px-3 py-2 rounded-full text-xs font-semibold transition-all"
               style={{
-                background: activeFilter === s ? "rgba(93,112,82,0.14)" : "rgba(240,235,229,0.35)",
-                border: activeFilter === s ? "1px solid rgba(93,112,82,0.35)" : "1px solid rgba(222,216,207,0.9)",
+                background: activeFilter === s ? "rgba(93,112,82,0.14)" : "color-mix(in srgb, var(--color-bg-soft) 46%, transparent)",
+                border: activeFilter === s ? "1px solid rgba(93,112,82,0.35)" : "1px solid color-mix(in srgb, var(--color-border) 80%, transparent)",
                 color: activeFilter === s ? organicTheme.colors.primary : organicTheme.colors.mutedForeground,
               }}>
               {s}
@@ -834,21 +834,21 @@ export default function AppointmentsPage({
             onClick={() => runBulkStatusUpdate("Confirmed")}
             disabled={bulkLoading}
             className="px-2.5 py-1.5 rounded-lg text-xs font-semibold"
-            style={{ background: "rgba(16,184,129,0.14)", color: "#10b981", border: "1px solid rgba(16,184,129,0.35)" }}>
+            style={{ background: "rgba(16,184,129,0.14)", color: "var(--color-success)", border: "1px solid rgba(16,184,129,0.35)" }}>
             {bulkLoading ? "Saving..." : "Mark Confirmed"}
           </button>
           <button
             onClick={() => runBulkStatusUpdate("Completed")}
             disabled={bulkLoading}
             className="px-2.5 py-1.5 rounded-lg text-xs font-semibold"
-            style={{ background: "rgba(34,197,94,0.14)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.35)" }}>
+            style={{ background: "rgba(34,197,94,0.14)", color: "var(--color-success)", border: "1px solid rgba(34,197,94,0.35)" }}>
             {bulkLoading ? "Saving..." : "Mark Completed"}
           </button>
           <button
             onClick={() => runBulkStatusUpdate("No-show")}
             disabled={bulkLoading}
             className="px-2.5 py-1.5 rounded-lg text-xs font-semibold"
-            style={{ background: "rgba(239,68,68,0.14)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.35)" }}>
+            style={{ background: "rgba(239,68,68,0.14)", color: "var(--color-danger)", border: "1px solid rgba(239,68,68,0.35)" }}>
             {bulkLoading ? "Saving..." : "Mark No-show"}
           </button>
           <button
@@ -948,7 +948,7 @@ export default function AppointmentsPage({
                     }
                   }}
                   className="text-[10px] px-2 py-1 rounded-lg font-semibold"
-                  style={{ background: "rgba(239,68,68,0.14)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.35)" }}>
+                  style={{ background: "rgba(239,68,68,0.14)", color: "var(--color-danger)", border: "1px solid rgba(239,68,68,0.35)" }}>
                   No-show
                 </button>
               </div>
@@ -996,7 +996,7 @@ export default function AppointmentsPage({
                         }
                       }}
                       className="text-xs px-2.5 py-1.5 rounded-lg font-semibold"
-                      style={{ background: "rgba(239,68,68,0.14)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.35)" }}>
+                      style={{ background: "rgba(239,68,68,0.14)", color: "var(--color-danger)", border: "1px solid rgba(239,68,68,0.35)" }}>
                       No-show
                     </button>
                     <button
