@@ -41,6 +41,33 @@ const patientSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    chatAccessEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    chatUsername: {
+      type: String,
+      default: "",
+      trim: true,
+      index: true,
+    },
+    chatPasswordHash: {
+      type: String,
+      default: "",
+    },
+    chatInviteStatus: {
+      type: String,
+      enum: ["Not Sent", "Pending", "Sent", "Failed"],
+      default: "Not Sent",
+    },
+    chatInviteSentAt: {
+      type: Date,
+      default: null,
+    },
+    chatLastLoginAt: {
+      type: Date,
+      default: null,
+    },
     locations:{
       type:[locationSchema],
       default: []
@@ -53,5 +80,6 @@ const patientSchema = new mongoose.Schema(
 patientSchema.index({ doctor: 1, createdAt: -1 });
 patientSchema.index({ doctor: 1, name: 1 });
 patientSchema.index({ doctor: 1, phone: 1 });
+patientSchema.index({ doctor: 1, chatAccessEnabled: 1, createdAt: -1 });
 
 export default mongoose.model("Patient", patientSchema);

@@ -27,11 +27,16 @@ import insightsRoutes from "./routes/insights.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import issueTicketRoutes from "./routes/issueTicket.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
+import patientAuthRoutes from "./routes/patientAuth.routes.js";
+import patientChatRoutes from "./routes/patientChat.routes.js";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import mongoSanitize from "express-mongo-sanitize";
+import http from "http";
+import { initSocketServer } from "./realtime/socket.js";
 
 const app=express();
+const server = http.createServer(app);
 app.use(helmet());
 
 const PORT=process.env.PORT || 3000;
@@ -67,6 +72,8 @@ const authLimiter = rateLimit({
 });
 app.use("/api/auth", authLimiter);
 app.use("/api/auth",authRoutes);
+app.use("/api/patient-auth", authLimiter);
+app.use("/api/patient-auth", patientAuthRoutes);
 
 // Apply rate limiting to data mutation routes to prevent abuse
 const dataLimiter = rateLimit({
@@ -86,12 +93,14 @@ app.use("/api/billing", dataLimiter, billingRoutes);
 app.use("/api/admin", dataLimiter, adminRoutes);
 app.use("/api/issues", dataLimiter, issueTicketRoutes);
 app.use("/api/notifications", dataLimiter, notificationRoutes);
+app.use("/api/patient-chats", dataLimiter, patientChatRoutes);
 
  app.use("/api/insights", dataLimiter, insightsRoutes)
 
 connectDB()
 .then(()=>{
-    app.listen(PORT,async()=>{
+    initSocketServer(server, ALLOWED_ORIGINS);
+    server.listen(PORT,async()=>{
         console.log(`Server is running on port ${PORT}`);
         const { default: _ } = await import("./utils/whatsapp.js");
         console.log("WhatsApp integration initialized");

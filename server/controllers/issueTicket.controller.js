@@ -1,7 +1,10 @@
 import mongoose from "mongoose";
+import cloudinary from "../config/cloudinary.js";
 import IssueTicket from "../models/issueTicket.model.js";
 import { Doctor } from "../models/doctor.model.js";
 import Notification from "../models/notification.model.js";
+import { allowedImageMimeTypes } from "../middlewares/upload.middleware.js";
+import { emitIssueTicketUpdate } from "../realtime/socket.js";
 
 const validCategories = [
   "General Feedback",
@@ -14,6 +17,50 @@ const validCategories = [
 const validStatuses = ["Open", "In Progress", "Resolved", "Reopened", "Closed"];
 
 const isAdminRequest = (req) => Boolean(req.admin?.role === "admin");
+
+const uploadAttachmentToCloudinary = async (file) => {
+  const mimeType = file.detectedMimeType || file.mimetype;
+  const isImage = allowedImageMimeTypes.has(mimeType);
+  const resourceType = isImage ? "image" : "raw";
+
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: "medimate/issue-chats",
+        resource_type: resourceType,
+        use_filename: true,
+        unique_filename: true,
+      },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
+      },
+    );
+
+    stream.end(file.buffer);
+  });
+};
+
+const buildTicketMessagePayload = async ({ senderRole, senderName, text, files }) => {
+  const attachments = [];
+
+  for (const file of files || []) {
+    const uploadResult = await uploadAttachmentToCloudinary(file);
+    attachments.push({
+      url: uploadResult.secure_url,
+      name: file.originalname,
+      mimeType: file.detectedMimeType || file.mimetype,
+      size: file.size || 0,
+    });
+  }
+
+  return {
+    senderRole,
+    senderName,
+    text: String(text || "").trim(),
+    attachments,
+  };
+};
 
 export const createTicket = async (req, res) => {
   try {
@@ -47,6 +94,7 @@ export const createTicket = async (req, res) => {
       ],
       lastMessageAt: new Date(),
     });
+    await emitIssueTicketUpdate(ticket);
 
     return res.status(201).json({ message: "Issue created successfully", ticket });
   } catch (error) {
@@ -134,8 +182,9 @@ export const addTicketMessage = async (req, res) => {
   try {
     const { text } = req.body;
 
-    if (!text || !String(text).trim()) {
-      return res.status(400).json({ message: "Message text is required" });
+    const messageText = String(text || "").trim();
+    if (!messageText && (!req.files || req.files.length === 0)) {
+      return res.status(400).json({ message: "Message text or attachment is required" });
     }
 
     const ticket = await IssueTicket.findById(req.params.id).populate("doctor", "fullName");
@@ -152,7 +201,14 @@ export const addTicketMessage = async (req, res) => {
     const senderRole = adminRequest ? "admin" : "doctor";
     const senderName = adminRequest ? (req.admin?.name || "Admin") : ticket.doctor.fullName;
 
-    ticket.messages.push({ senderRole, senderName, text: String(text).trim() });
+    const messagePayload = await buildTicketMessagePayload({
+      senderRole,
+      senderName,
+      text: messageText,
+      files: req.files || [],
+    });
+
+    ticket.messages.push(messagePayload);
     ticket.lastMessageAt = new Date();
 
     if (adminRequest && ["Open", "Reopened"].includes(ticket.status)) {
@@ -160,13 +216,14 @@ export const addTicketMessage = async (req, res) => {
     }
 
     await ticket.save();
+    await emitIssueTicketUpdate(ticket);
 
     if (adminRequest) {
       await Notification.create({
         doctor: ticket.doctor._id,
         type: "issue-message",
         title: "New admin reply",
-        message: `Admin replied to your issue: ${ticket.title}`,
+        message: messageText ? `Admin replied: ${messageText.slice(0, 140)}` : "Admin sent an attachment",
         metadata: {
           issueId: ticket._id,
           issueTitle: ticket.title,
@@ -221,6 +278,7 @@ export const updateTicketStatus = async (req, res) => {
     }
 
     await ticket.save();
+    await emitIssueTicketUpdate(ticket);
 
     if (adminRequest) {
       await Notification.create({

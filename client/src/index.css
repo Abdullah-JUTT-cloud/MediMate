@@ -129,3 +129,82 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     opacity: 0.02;
   }
 }
+
+.startup-lifeline-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 22% 24%, color-mix(in srgb, var(--color-primary) 26%, transparent), transparent 34%),
+    radial-gradient(circle at 78% 76%, color-mix(in srgb, var(--color-secondary) 22%, transparent), transparent 34%),
+    color-mix(in srgb, var(--color-bg) 84%, #000 16%);
+  opacity: 1;
+  transition: opacity 420ms ease;
+}
+
+.startup-lifeline-overlay--done {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.startup-lifeline-wrap {
+  width: min(86vw, 760px);
+  padding: 20px 18px 14px;
+  border-radius: 20px;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
+  background: color-mix(in srgb, var(--color-card) 76%, transparent);
+  box-shadow: 0 20px 70px -30px color-mix(in srgb, var(--color-primary) 42%, transparent);
+}
+
+.startup-lifeline-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.startup-lifeline-track {
+  fill: none;
+  stroke: color-mix(in srgb, var(--color-text-secondary) 35%, transparent);
+  stroke-width: 4.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.startup-lifeline-pulse {
+  fill: none;
+  stroke: #8ff6ff;
+  stroke-width: 4.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 7px rgba(143, 246, 255, 0.86)) drop-shadow(0 0 16px rgba(143, 246, 255, 0.55));
+  stroke-dasharray: 140 1200;
+  stroke-dashoffset: 1360;
+  animation: startup-lifeline-run 1.65s linear infinite;
+}
+
+.startup-lifeline-text {
+  margin: 10px 2px 0;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+@keyframes startup-lifeline-run {
+  0% {
+    stroke-dashoffset: 1360;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .startup-lifeline-pulse {
+    animation: none;
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+  }
+}

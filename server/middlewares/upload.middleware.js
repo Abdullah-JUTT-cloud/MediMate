@@ -4,13 +4,17 @@ import { fileTypeFromBuffer } from "file-type";
 
 const storage = multer.memoryStorage();
 
-const allowedExtensions = new Set([".png", ".jpg", ".jpeg", ".gif", ".pdf"]);
+const allowedExtensions = new Set([".png", ".jpg", ".jpeg", ".gif", ".pdf", ".webm", ".ogg", ".mp3", ".wav"]);
 const allowedMimeTypesByExtension = {
   ".png": ["image/png"],
   ".jpg": ["image/jpeg"],
   ".jpeg": ["image/jpeg"],
   ".gif": ["image/gif"],
   ".pdf": ["application/pdf"],
+  ".webm": ["audio/webm", "video/webm"],
+  ".ogg": ["audio/ogg"],
+  ".mp3": ["audio/mpeg"],
+  ".wav": ["audio/wav", "audio/x-wav"],
 };
 
 const getFileExtension = (filename = "") => path.extname(filename).toLowerCase();
@@ -22,7 +26,7 @@ const upload = multer({
     const extension = getFileExtension(file.originalname);
 
     if (!allowedExtensions.has(extension)) {
-      cb(new Error("Invalid file extension; only PNG, JPG, JPEG, GIF, and PDF files are allowed"), false);
+      cb(new Error("Invalid file extension; only PNG, JPG, JPEG, GIF, PDF, WEBM, OGG, MP3, and WAV files are allowed"), false);
       return;
     }
 
@@ -47,7 +51,7 @@ export const verifyUploadedFileSignature = async (req, res, next) => {
 
     if (!allowedMimeTypes) {
       return res.status(400).json({
-        message: "Invalid file extension; only PNG, JPG, JPEG, GIF, and PDF files are allowed",
+        message: "Invalid file extension; only PNG, JPG, JPEG, GIF, PDF, WEBM, OGG, MP3, and WAV files are allowed",
       });
     }
 
@@ -59,6 +63,38 @@ export const verifyUploadedFileSignature = async (req, res, next) => {
     }
 
     req.file.detectedMimeType = detectedFileType.mime;
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const verifyUploadedFilesSignature = async (req, res, next) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return next();
+    }
+
+    for (const file of req.files) {
+      const extension = getFileExtension(file.originalname);
+      const allowedMimeTypes = allowedMimeTypesByExtension[extension];
+
+      if (!allowedMimeTypes) {
+        return res.status(400).json({
+          message: "Invalid file extension; only PNG, JPG, JPEG, GIF, PDF, WEBM, OGG, MP3, and WAV files are allowed",
+        });
+      }
+
+      const detectedFileType = await fileTypeFromBuffer(file.buffer);
+      if (!detectedFileType || !allowedMimeTypes.includes(detectedFileType.mime)) {
+        return res.status(400).json({
+          message: "Invalid file content; uploaded file signature does not match the allowed file type",
+        });
+      }
+
+      file.detectedMimeType = detectedFileType.mime;
+    }
+
     next();
   } catch (error) {
     next(error);

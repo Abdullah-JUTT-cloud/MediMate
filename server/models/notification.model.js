@@ -10,7 +10,7 @@ const notificationSchema = new Schema(
     },
     type: {
       type: String,
-      enum: ["profile-status", "issue-message", "issue-status", "admin-update"],
+      enum: ["profile-status", "issue-message", "issue-status", "admin-update", "patient-message"],
       required: true,
     },
     title: {

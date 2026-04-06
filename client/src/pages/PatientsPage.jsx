@@ -535,6 +535,7 @@ function PatientDetailPage({ patient: initialPatient, onBack, onNewCheckup, onEd
     name: initialPatient.name, age: initialPatient.age, gender: initialPatient.gender,
     phone: initialPatient.phone, bloodGroup: initialPatient.bloodGroup,
     medicalHistory: initialPatient.medicalHistory || [],
+    chatAccessEnabled: Boolean(initialPatient.chatAccessEnabled),
   });
   const [isSavingPatient, setIsSavingPatient] = useState(false);
 
@@ -640,6 +641,24 @@ function PatientDetailPage({ patient: initialPatient, onBack, onNewCheckup, onEd
               </select>
             </div>
           </div>
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl px-4 py-3" style={S.section}>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: ORGANIC.fg }}>Chat access</p>
+              <p className="text-xs mt-0.5" style={{ color: ORGANIC.mutedFg }}>Generate WhatsApp invite credentials for this patient.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setEditForm((p) => ({ ...p, chatAccessEnabled: !p.chatAccessEnabled }))}
+              className="px-4 py-2 rounded-full text-xs font-bold transition-all hover:scale-105 active:scale-95"
+              style={{
+                background: editForm.chatAccessEnabled ? `rgba(93, 112, 82, 0.12)` : `rgba(93, 112, 82, 0.06)`,
+                border: `1.5px solid ${editForm.chatAccessEnabled ? ORGANIC.primary : ORGANIC.border}`,
+                color: editForm.chatAccessEnabled ? ORGANIC.primary : ORGANIC.mutedFg,
+              }}
+            >
+              {editForm.chatAccessEnabled ? "Enabled" : "Disabled"}
+            </button>
+          </div>
           <button onClick={handleSavePatient} disabled={isSavingPatient}
             className="w-full py-3 rounded-full text-sm font-bold text-white transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
             style={{ background: `linear-gradient(135deg, ${ORGANIC.primary}, ${ORGANIC.secondary})`, boxShadow: ORGANIC.shadowSoft }}>
@@ -688,7 +707,28 @@ function PatientDetailPage({ patient: initialPatient, onBack, onNewCheckup, onEd
                 <p className="text-sm font-semibold" style={{ color: ORGANIC.fg }}>{value}</p>
               </div>
             ))}
+            <div className="p-3 rounded-2xl" style={S.section}>
+              <p className="text-xs mb-1" style={{ color: ORGANIC.mutedFg }}>Chat Access</p>
+              <p className="text-sm font-semibold" style={{ color: patient.chatAccessEnabled ? ORGANIC.primary : ORGANIC.mutedFg }}>
+                {patient.chatAccessEnabled ? "Enabled" : "Disabled"}
+              </p>
+            </div>
           </div>
+          {patient.chatAccessEnabled && (
+            <div className="mt-4 p-4 rounded-2xl" style={S.section}>
+              <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: ORGANIC.mutedFg }}>Chat Credentials</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-xs mb-1" style={{ color: ORGANIC.mutedFg }}>Username</p>
+                  <p className="font-semibold" style={{ color: ORGANIC.fg }}>{patient.chatUsername || "Pending"}</p>
+                </div>
+                <div>
+                  <p className="text-xs mb-1" style={{ color: ORGANIC.mutedFg }}>Invite Status</p>
+                  <p className="font-semibold" style={{ color: ORGANIC.fg }}>{patient.chatInviteStatus || "Not Sent"}</p>
+                </div>
+              </div>
+            </div>
+          )}
           {patient.medicalHistory?.length > 0 && (
             <div className="mt-4 p-4 rounded-2xl" style={S.section}>
               <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: ORGANIC.mutedFg }}>Medical History</p>
@@ -902,7 +942,7 @@ function PatientDetailPage({ patient: initialPatient, onBack, onNewCheckup, onEd
 // ══════════════════════════════════════════════════════════════════════════════
 function AddPatientForm({ onBack, onAdded }) {
   const { doctor } = useAuthStore();
-  const [form, setForm] = useState({ name: "", age: "", gender: "", phone: "", bloodGroup: "Unknown", medicalHistory: [] });
+  const [form, setForm] = useState({ name: "", age: "", gender: "", phone: "", bloodGroup: "Unknown", medicalHistory: [], chatAccessEnabled: false });
   const [historyInput, setHistoryInput] = useState("");
   const [selectedLocations, setSelectedLocations] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -977,6 +1017,26 @@ function AddPatientForm({ onBack, onAdded }) {
             onAdd={() => { if (!historyInput.trim()) return; setForm((p) => ({ ...p, medicalHistory: [...p.medicalHistory, historyInput.trim()] })); setHistoryInput(""); }}
             onRemove={(i) => setForm((p) => ({ ...p, medicalHistory: p.medicalHistory.filter((_, idx) => idx !== i) }))}
             items={form.medicalHistory} placeholder="e.g. Appendix surgery 2019" />
+        </div>
+        <div className="rounded-2xl p-4" style={S.section}>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold" style={{ color: ORGANIC.fg }}>Enable chat access</p>
+              <p className="text-xs mt-0.5" style={{ color: ORGANIC.mutedFg }}>Send WhatsApp login credentials to the patient.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setForm((p) => ({ ...p, chatAccessEnabled: !p.chatAccessEnabled }))}
+              className="px-4 py-2 rounded-full text-xs font-bold transition-all hover:scale-105 active:scale-95"
+              style={{
+                background: form.chatAccessEnabled ? `rgba(93, 112, 82, 0.12)` : `rgba(93, 112, 82, 0.06)`,
+                border: `1.5px solid ${form.chatAccessEnabled ? ORGANIC.primary : ORGANIC.border}`,
+                color: form.chatAccessEnabled ? ORGANIC.primary : ORGANIC.mutedFg,
+              }}
+            >
+              {form.chatAccessEnabled ? "Enabled" : "Disabled"}
+            </button>
+          </div>
         </div>
         <div>
           <SectionLabel text="Patient Location *" />

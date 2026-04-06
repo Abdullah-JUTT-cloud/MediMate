@@ -14,9 +14,20 @@ const ticketMessageSchema = new Schema(
     },
     text: {
       type: String,
-      required: true,
+      default: "",
       trim: true,
       maxlength: 2000,
+    },
+    attachments: {
+      type: [
+        {
+          url: { type: String, required: true, trim: true },
+          name: { type: String, required: true, trim: true },
+          mimeType: { type: String, default: "", trim: true },
+          size: { type: Number, default: 0 },
+        },
+      ],
+      default: [],
     },
   },
   { timestamps: true }

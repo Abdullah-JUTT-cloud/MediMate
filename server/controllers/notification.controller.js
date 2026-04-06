@@ -4,10 +4,11 @@ export const listNotifications = async (req, res) => {
   try {
     const page = Math.max(1, Number(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+    const filter = { doctor: req.doctorId };
 
     const [total, notifications] = await Promise.all([
-      Notification.countDocuments({ doctor: req.doctorId }),
-      Notification.find({ doctor: req.doctorId })
+      Notification.countDocuments(filter),
+      Notification.find(filter)
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit),
@@ -57,8 +58,8 @@ export const markNotificationRead = async (req, res) => {
 
 export const markAllNotificationsRead = async (req, res) => {
   try {
-    await Notification.updateMany({ doctor: req.doctorId, isRead: false }, { $set: { isRead: true } });
-    return res.status(200).json({ message: "All notifications marked as read" });
+    await Notification.deleteMany({ doctor: req.doctorId });
+    return res.status(200).json({ message: "All notifications cleared" });
   } catch (error) {
     console.error("[markAllNotificationsRead]", error);
     return res.status(500).json({ message: "Internal server error" });

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { BarChart3, CalendarCheck2, CircleUserRound, LayoutDashboard, LifeBuoy, LogOut, Users } from "lucide-react";
+import { BarChart3, CalendarCheck2, CircleUserRound, LayoutDashboard, LifeBuoy, LogOut, MessagesSquare, Users } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import useAuthStore from "../store/authStore";
@@ -11,16 +12,19 @@ import AppointmentsPage from "./AppointmentsPage";
 import InsightsPage from "./InsightsPage";
 import RevenueLabPage from "./RevenueLabPage";
 import SupportCenterPage from "./SupportCenterPage";
+import DoctorChatsPage from "./DoctorChatsPage";
 import VerifiedBadge from "../components/VerifiedBadge";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { CardSkeleton, RowSkeleton, AppointmentRowSkeleton, ChartSkeleton } from "../components/SkeletonLoaders";
 import { Skeleton } from "@mui/material";
 import ConfirmDialog from "../components/ConfirmDialog";
 import useConfirmDialog from "../hooks/useConfirmDialog";
+import { getRealtimeSocketForRole } from "../realtime/socket";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", key: "dashboard" },
   { icon: Users, label: "Patients", key: "patients" },
+  { icon: MessagesSquare, label: "Chats", key: "chats" },
   { icon: CalendarCheck2, label: "Appointments", key: "appointments" },
   { icon: BarChart3, label: "Insights", key: "insights" },
   { icon: BarChart3, label: "Revenue Lab", key: "revenue-lab" },
@@ -29,6 +33,8 @@ const navItems = [
 ];
 
 const LOCKED_PROFILE_STATUSES = ["Needs Changes", "Rejected"];
+const CHAT_SEEN_STORAGE_KEY = "doctor-chat-seen-map-v1";
+const SUPPORT_SEEN_STORAGE_KEY = "support-ticket-seen-map-v2";
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
@@ -72,7 +78,12 @@ export default function DashboardPage() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+  const [pendingChatThreads, setPendingChatThreads] = useState(0);
+  const [pendingSupportThreads, setPendingSupportThreads] = useState(0);
   const notificationsMenuRef = useRef(null);
+  const notificationsPanelRef = useRef(null);
+  const notificationsButtonRef = useRef(null);
+  const [notificationsPanelStyle, setNotificationsPanelStyle] = useState({ top: 0, left: 0, width: 320 });
 
   const isProfileRestricted = LOCKED_PROFILE_STATUSES.includes(doctor?.profileVerificationStatus);
   const visibleNavItems = isProfileRestricted ? navItems.filter((item) => item.key === "support") : navItems;
@@ -95,6 +106,66 @@ export default function DashboardPage() {
       setNotifications([]);
     } finally {
       setIsLoadingNotifications(false);
+    }
+  };
+
+  const parseSeenMap = (key) => {
+    if (typeof window === "undefined") return {};
+    try {
+      const raw = window.localStorage.getItem(key);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
+  };
+
+  const getItemLastMessageTime = (item, lastMessage) => {
+    const source = lastMessage?.createdAt || item?.lastMessageAt || item?.updatedAt || item?.createdAt;
+    const ts = new Date(source).getTime();
+    return Number.isFinite(ts) ? ts : 0;
+  };
+
+  const refreshSidebarUpdateBadges = async () => {
+    try {
+      const [chatRes, supportRes] = await Promise.all([
+        axiosInstance.get("/patient-chats/doctor?limit=100"),
+        axiosInstance.get("/issues/doctor?history=false&limit=50"),
+      ]);
+
+      const chatSeen = parseSeenMap(CHAT_SEEN_STORAGE_KEY);
+      const supportSeen = parseSeenMap(SUPPORT_SEEN_STORAGE_KEY);
+
+      const patients = Array.isArray(chatRes.data?.patients) ? chatRes.data.patients : [];
+      const pendingChats = patients.filter((entry) => {
+        const unreadIncomingCount = Number(entry?.unreadIncomingCount || 0);
+        if (unreadIncomingCount <= 0) return false;
+        const patientId = String(entry?._id || "");
+        const seenAt = Number(chatSeen?.[patientId] || 0);
+        const lastSender = String(entry?.lastMessage?.senderRole || "").toLowerCase();
+        const lastIncomingTailTime = lastSender === "patient" ? getItemLastMessageTime(entry, entry?.lastMessage) : 0;
+        return !(lastIncomingTailTime > 0 && seenAt >= lastIncomingTailTime);
+      }).length;
+
+      const tickets = Array.isArray(supportRes.data?.tickets) ? supportRes.data.tickets : [];
+      const pendingSupport = tickets.filter((ticket) => {
+        const ticketId = String(ticket?._id || "");
+        const list = Array.isArray(ticket?.messages) ? ticket.messages : [];
+        const fallbackLast = list.length > 0 ? list[list.length - 1] : null;
+        const lastMessage = ticket?.lastMessage || fallbackLast;
+        const lastSender = String(lastMessage?.senderRole || "").toLowerCase();
+        if (lastSender !== "admin") return false;
+        const incomingTailTime = getItemLastMessageTime(ticket, lastMessage);
+        if (!incomingTailTime) return false;
+        const seenAt = Number(supportSeen?.[ticketId] || 0);
+        return seenAt < incomingTailTime;
+      }).length;
+
+      setPendingChatThreads(pendingChats);
+      setPendingSupportThreads(pendingSupport);
+    } catch {
+      // Keep existing values on transient network failures.
     }
   };
 
@@ -166,16 +237,48 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
   useEffect(() => {
     const bootstrap = async () => {
       await Promise.all([syncVerificationStatus(), loadUnreadCount()]);
+      await refreshSidebarUpdateBadges();
     };
 
     bootstrap();
-    const timer = setInterval(() => {
-      bootstrap();
-    }, 10000);
 
-    return () => clearInterval(timer);
+    const socket = getRealtimeSocketForRole("doctor");
+    const handleRealtimeUpdate = () => {
+      loadUnreadCount();
+      syncVerificationStatus();
+      refreshSidebarUpdateBadges();
+    };
+
+    socket.connect();
+    socket.on("patient-chat:list-updated", handleRealtimeUpdate);
+    socket.on("issue-ticket:list-updated", handleRealtimeUpdate);
+
+    return () => {
+      socket.off("patient-chat:list-updated", handleRealtimeUpdate);
+      socket.off("issue-ticket:list-updated", handleRealtimeUpdate);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    refreshSidebarUpdateBadges();
+    const timerId = window.setInterval(refreshSidebarUpdateBadges, 20000);
+    const handleFocus = () => refreshSidebarUpdateBadges();
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      window.clearInterval(timerId);
+      window.removeEventListener("focus", handleFocus);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!["chats", "support"].includes(activeNav)) return;
+    const syncId = window.setTimeout(refreshSidebarUpdateBadges, 350);
+    return () => window.clearTimeout(syncId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeNav]);
 
   useEffect(() => {
     if (isProfileRestricted && activeNav !== "support") {
@@ -186,7 +289,9 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
   useEffect(() => {
     const handleOutsideClick = (event) => {
       if (!notificationsOpen) return;
-      if (notificationsMenuRef.current && !notificationsMenuRef.current.contains(event.target)) {
+      const clickedInsideButton = notificationsMenuRef.current?.contains(event.target);
+      const clickedInsidePanel = notificationsPanelRef.current?.contains(event.target);
+      if (!clickedInsideButton && !clickedInsidePanel) {
         setNotificationsOpen(false);
       }
     };
@@ -194,6 +299,41 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
     document.addEventListener("mousedown", handleOutsideClick);
     return () => {
       document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, [notificationsOpen]);
+
+  const recalcNotificationsPanelPosition = () => {
+    const buttonEl = notificationsButtonRef.current;
+    if (!buttonEl || typeof window === "undefined") return;
+
+    const rect = buttonEl.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const minMargin = 8;
+    const preferredWidth = 352;
+    const width = Math.min(preferredWidth, Math.max(260, viewportWidth - minMargin * 2));
+    const left = Math.min(
+      Math.max(minMargin, rect.right - width),
+      Math.max(minMargin, viewportWidth - width - minMargin),
+    );
+
+    setNotificationsPanelStyle({
+      top: rect.bottom + 10,
+      left,
+      width,
+    });
+  };
+
+  useEffect(() => {
+    if (!notificationsOpen) return undefined;
+    recalcNotificationsPanelPosition();
+
+    const handleViewportChange = () => recalcNotificationsPanelPosition();
+    window.addEventListener("resize", handleViewportChange);
+    window.addEventListener("scroll", handleViewportChange, true);
+
+    return () => {
+      window.removeEventListener("resize", handleViewportChange);
+      window.removeEventListener("scroll", handleViewportChange, true);
     };
   }, [notificationsOpen]);
 
@@ -306,7 +446,17 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                 border: activeNav === item.key ? "1px solid rgba(93,112,82,0.25)" : "1px solid transparent",
               }}>
               <item.icon size={16} strokeWidth={2} className="shrink-0" />
-              {item.label}
+              <span>{item.label}</span>
+              {item.key === "chats" && pendingChatThreads > 0 ? (
+                <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--color-primary)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-on-primary)]">
+                  {pendingChatThreads > 99 ? "99+" : pendingChatThreads}
+                </span>
+              ) : null}
+              {item.key === "support" && pendingSupportThreads > 0 ? (
+                <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--color-secondary)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-on-primary)]">
+                  {pendingSupportThreads > 99 ? "99+" : pendingSupportThreads}
+                </span>
+              ) : null}
             </button>
           ))}
         </nav>
@@ -323,127 +473,143 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="relative shrink-0 border-b border-[var(--color-border)]/70 bg-[var(--color-card)]/90 px-4 py-4 backdrop-blur-md sm:px-6">
-          <div className="flex items-center justify-between">
-          <div className="pointer-events-none absolute left-1/2 -translate-x-1/2 hidden md:flex flex-col items-center">
-            <span
-              className="font-heading text-base font-semibold tracking-[0.26em] text-[var(--color-primary)] lg:text-lg"
-              style={{
-                textShadow: "0 10px 24px rgba(93,112,82,0.15)",
-              }}
-            >
-              MEDALERTO
-            </span>
-            <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--color-text-secondary)]">
+          <div className="pointer-events-none absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 md:flex flex-col items-center">
+            <p className="font-heading text-base font-semibold tracking-[0.26em] text-[var(--color-primary)] lg:text-lg" style={{ textShadow: "0 10px 24px rgba(93,112,82,0.15)" }}>
               Smart Healthcare Workspace
-            </span>
+            </p>
           </div>
-          <div className="flex items-center gap-3">
-            <button className="rounded-full border border-[var(--color-border)] p-2 transition-colors hover:bg-[var(--color-bg-soft)] lg:hidden" onClick={() => setSidebarOpen(true)}>
-              <div className="space-y-1.5">
-                {[0,1,2].map((i) => <span key={i} className="block w-5 h-0.5 bg-[var(--color-primary)]" />)}
-              </div>
-            </button>
-            <div>
-              <h1 className="text-base font-bold text-[var(--color-text-primary)] sm:text-lg">{pageTitle}</h1>
-              <p className="hidden text-xs text-[var(--color-text-secondary)] sm:block">{todayStr}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <div className="relative" ref={notificationsMenuRef}>
-              <button
-                onClick={async () => {
-                  const nextState = !notificationsOpen;
-                  setNotificationsOpen(nextState);
-                  if (nextState) {
-                    await loadNotifications();
-                  }
-                }}
-                className="relative rounded-full border border-[var(--color-border)] p-2 text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-bg-soft)]"
-              >
-                🔔
-                {unreadCount > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--color-primary)] px-1 text-[10px] font-bold text-[var(--color-on-primary)]">
-                    {unreadCount > 99 ? "99+" : unreadCount}
-                  </span>
-                )}
-              </button>
 
-              {notificationsOpen && (
-                <div className="absolute right-0 z-40 mt-2 w-80 max-w-[90vw] rounded-4xl border border-[var(--color-border)]/80 bg-[var(--color-card)]/95 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.2)]">
-                  <div className="flex items-center justify-between border-b border-[var(--color-border)]/80 px-3 py-2">
-                    <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-secondary)]">Notifications</p>
-                    <button
-                      onClick={async () => {
-                        try {
-                          await axiosInstance.patch("/notifications/read-all");
-                          setUnreadCount(0);
-                          await loadNotifications();
-                        } catch {
-                          toast.error("Failed to mark notifications as read");
-                        }
-                      }}
-                      className="text-[11px] font-semibold text-[var(--color-primary)]"
-                    >
-                      Mark all read
-                    </button>
-                  </div>
-                  <div className="max-h-80 overflow-y-auto p-2 space-y-1.5">
-                    {isLoadingNotifications ? (
-                      <p className="p-2 text-xs text-[var(--color-text-secondary)]">Loading...</p>
-                    ) : notifications.length === 0 ? (
-                      <p className="p-2 text-xs text-[var(--color-text-secondary)]">No notifications yet.</p>
-                    ) : (
-                      notifications.map((note) => (
-                        <button
-                          key={note._id}
-                          onClick={async () => {
-                            if (!note.isRead) {
-                              try {
-                                await axiosInstance.patch(`/notifications/${note._id}/read`);
-                                setUnreadCount((count) => Math.max(0, count - 1));
-                                setNotifications((prev) => prev.map((n) => n._id === note._id ? { ...n, isRead: true } : n));
-                              } catch {
-                                // Ignore mark-read failures on click.
-                              }
-                            }
-                            if (note.type === "issue-message" || note.type === "issue-status") {
-                              setActiveNav("support");
-                              setNotificationsOpen(false);
-                            }
-                          }}
-                          className="w-full rounded-3xl border border-[var(--color-border)]/80 p-2 text-left transition hover:bg-[var(--color-bg-soft)]/50"
-                        >
-                          <p className="line-clamp-1 text-xs font-semibold text-[var(--color-text-primary)]">{note.title}</p>
-                          <p className="mt-0.5 line-clamp-2 text-[11px] text-[var(--color-text-secondary)]">{note.message}</p>
-                          {!note.isRead && <span className="mt-1 inline-block text-[10px] font-bold text-[var(--color-primary)]">New</span>}
-                        </button>
-                      ))
-                    )}
-                  </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                className="rounded-2xl border border-[var(--color-border)] p-2.5 hover:bg-[var(--color-bg-soft)] lg:hidden"
+                onClick={() => setSidebarOpen(true)}
+                aria-label="Open sidebar"
+              >
+                <div className="space-y-1.5">
+                  {[0, 1, 2].map((i) => (
+                    <span key={i} className="block h-0.5 w-5 bg-[var(--color-primary)]" />
+                  ))}
                 </div>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => setActiveNav(isProfileRestricted ? "support" : "settings")}
-              className="flex cursor-pointer items-center gap-2 rounded-full border border-[var(--color-border)] px-2 py-1.5 transition-colors hover:bg-[var(--color-bg-soft)]"
-            >
-              <div className="h-8 w-8 rounded-full text-xs font-bold text-[var(--color-on-primary)]"
-                style={{ background: "linear-gradient(135deg, var(--color-primary), color-mix(in srgb, var(--color-primary) 80%, black))" }}>
-                {doctor?.profilePicture ? (
-                  <img src={doctor.profilePicture} alt="Profile" className="h-full w-full rounded-full object-cover" />
-                ) : (
-                  doctor?.fullName?.charAt(0) || "D"
-                )}
+              </button>
+              <div>
+                <h1 className="text-base font-bold text-[var(--color-text-primary)] sm:text-lg">{pageTitle}</h1>
+                <p className="hidden text-xs text-[var(--color-text-secondary)] sm:block">{todayStr}</p>
               </div>
-              <span className="hidden text-sm font-medium text-[var(--color-text-primary)] sm:flex sm:items-center sm:gap-1.5">
-                {doctor?.fullName?.split(" ")[0] || "Doctor"}
-                <VerifiedBadge isVerified={["Verified", "Approved"].includes(doctor?.profileVerificationStatus)} compact />
-              </span>
-            </button>
-          </div>
+            </div>
+
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="relative" ref={notificationsMenuRef}>
+                <button
+                  ref={notificationsButtonRef}
+                  onClick={async () => {
+                    const nextState = !notificationsOpen;
+                    setNotificationsOpen(nextState);
+                    if (nextState) {
+                      recalcNotificationsPanelPosition();
+                      await loadNotifications();
+                    }
+                  }}
+                  className="relative rounded-full border border-[var(--color-border)] p-2 text-[var(--color-text-secondary)] transition-colors hover:bg-[var(--color-bg-soft)]"
+                >
+                  🔔
+                  {unreadCount > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--color-primary)] px-1 text-[10px] font-bold text-[var(--color-on-primary)]">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
+                </button>
+
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveNav(isProfileRestricted ? "support" : "settings")}
+                className="flex cursor-pointer items-center gap-2 rounded-full border border-[var(--color-border)] px-2 py-1.5 transition-colors hover:bg-[var(--color-bg-soft)]"
+              >
+                <div className="h-8 w-8 rounded-full text-xs font-bold text-[var(--color-on-primary)]" style={{ background: "linear-gradient(135deg, var(--color-primary), color-mix(in srgb, var(--color-primary) 80%, black))" }}>
+                  {doctor?.profilePicture ? (
+                    <img src={doctor.profilePicture} alt="Profile" className="h-full w-full rounded-full object-cover" />
+                  ) : (
+                    doctor?.fullName?.charAt(0) || "D"
+                  )}
+                </div>
+                <span className="hidden text-sm font-medium text-[var(--color-text-primary)] sm:flex sm:items-center sm:gap-1.5">
+                  {doctor?.fullName?.split(" ")[0] || "Doctor"}
+                  <VerifiedBadge isVerified={["Verified", "Approved"].includes(doctor?.profileVerificationStatus)} compact />
+                </span>
+              </button>
+            </div>
           </div>
         </header>
+
+        {notificationsOpen && typeof document !== "undefined" ? createPortal(
+          <div
+            ref={notificationsPanelRef}
+            className="fixed z-[120] overflow-hidden rounded-4xl border border-[var(--color-border)]/80 bg-[var(--color-card)]/95 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.2)]"
+            style={{ top: notificationsPanelStyle.top, left: notificationsPanelStyle.left, width: notificationsPanelStyle.width }}
+          >
+            <div className="flex items-center justify-between border-b border-[var(--color-border)]/80 px-3 py-2">
+              <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-secondary)]">Notifications</p>
+              <button
+                onClick={async () => {
+                  try {
+                    await axiosInstance.patch("/notifications/read-all");
+                    setNotifications([]);
+                    setUnreadCount(0);
+                    toast.success("Notification history cleared");
+                  } catch {
+                    toast.error("Failed to clear notifications");
+                  }
+                }}
+                className="text-[11px] font-semibold text-[var(--color-primary)]"
+              >
+                Clear all
+              </button>
+            </div>
+            <div className="overflow-y-auto p-2 space-y-1.5" style={{ maxHeight: "min(20rem, calc(100vh - 7rem))" }}>
+              {isLoadingNotifications ? (
+                <p className="p-2 text-xs text-[var(--color-text-secondary)]">Loading...</p>
+              ) : notifications.length === 0 ? (
+                <p className="p-2 text-xs text-[var(--color-text-secondary)]">No notifications yet.</p>
+              ) : (
+                notifications.map((note) => (
+                  <button
+                    key={note._id}
+                    onClick={async () => {
+                              if (!note.isRead) {
+                                try {
+                                  await axiosInstance.patch(`/notifications/${note._id}/read`);
+                                  setUnreadCount((count) => Math.max(0, count - 1));
+                                  setNotifications((prev) => prev.map((n) => (n._id === note._id ? { ...n, isRead: true } : n)));
+                                } catch {
+                                  // Ignore mark-read failures on click.
+                                }
+                              }
+                              if (note.type === "patient-message") {
+                                setActiveNav("chats");
+                                setNotificationsOpen(false);
+                              } else if (["issue-message", "issue-status", "admin-update"].includes(note.type)) {
+                                setActiveNav("support");
+                                setNotificationsOpen(false);
+                              } else if (note.type === "profile-status") {
+                                setActiveNav(isProfileRestricted ? "support" : "settings");
+                                setNotificationsOpen(false);
+                              }
+                            }}
+                    className="w-full rounded-3xl border border-[var(--color-border)]/80 p-2 text-left transition hover:bg-[var(--color-bg-soft)]/50"
+                  >
+                    <p className="line-clamp-1 text-xs font-semibold text-[var(--color-text-primary)]">{note.title}</p>
+                    <p className="mt-0.5 line-clamp-2 text-[11px] text-[var(--color-text-secondary)]">{note.message}</p>
+                    {!note.isRead && <span className="mt-1 inline-block text-[10px] font-bold text-[var(--color-primary)]">New</span>}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>,
+          document.body,
+        ) : null}
 
         <main className="flex-1 overflow-y-auto bg-transparent p-4 sm:p-6">
           {isProfileRestricted && (
@@ -474,6 +640,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
             <>
           {activeNav === "settings" && <SettingsPage />}
           {activeNav === "patients" && <PatientsPage />}
+          {activeNav === "chats" && <DoctorChatsPage />}
           {activeNav === "insights" && <InsightsPage />}
           {activeNav === "revenue-lab" && <RevenueLabPage />}
           {activeNav === "support" && <SupportCenterPage />}
@@ -806,11 +973,11 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
               )}
             </>
           )}
-
+          
           </>
           )}
 
-          {!isProfileRestricted && !["dashboard", "settings", "patients", "appointments", "insights", "revenue-lab", "support"].includes(activeNav) && (
+          {!isProfileRestricted && !["dashboard", "settings", "patients", "chats", "appointments", "insights", "revenue-lab", "support"].includes(activeNav) && (
             <div className="flex h-full items-center justify-center">
               <div className="rounded-4xl border border-[var(--color-border)] bg-[var(--color-card)]/95 px-10 py-16 text-center shadow-[0_10px_40px_-10px_rgba(93,112,82,0.18)]">
                 <div className="mb-4 text-5xl">🚧</div>

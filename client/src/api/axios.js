@@ -1,7 +1,7 @@
 import axios from "axios";
 import useAuthStore from "../store/authStore";
 
-function getApiBaseUrl() {
+export function getApiBaseUrl() {
     const envBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
     if (envBaseUrl) {
         return envBaseUrl.replace(/\/$/, "");
@@ -11,11 +11,13 @@ function getApiBaseUrl() {
     return import.meta.env.DEV ? "http://localhost:3000/api" : "/api";
 }
 
+export function getRealtimeBaseUrl() {
+    const apiBaseUrl = getApiBaseUrl();
+    return apiBaseUrl.replace(/\/api$/, "");
+}
+
 const axiosInstance = axios.create({
     baseURL: getApiBaseUrl(),
-    headers: {
-        "Content-Type": "application/json",
-    },
     withCredentials: true,
 });
 

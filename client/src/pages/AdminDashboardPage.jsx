@@ -1,14 +1,17 @@
-import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Building2, LifeBuoy, LogOut, Search, Send, ShieldCheck, UserCog } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AlertTriangle, ArrowDown, Building2, LifeBuoy, LogOut, Mic, Plus, Search, Send, ShieldCheck, UserCog, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import VerifiedBadge from "../components/VerifiedBadge";
+import VoiceMessagePlayer from "../components/VoiceMessagePlayer";
+import { getRealtimeSocketForRole } from "../realtime/socket";
 import { cyberCardStyle, cyberInputStyle, cyberpunkTheme } from "../styles/cyberpunkTheme";
 import "../styles/cyberpunk.css";
 
 const VERIFY_STATUS_OPTIONS = ["Pending", "In Review", "Needs Changes", "Verified"];
 const ISSUE_STATUS_OPTIONS = ["In Progress", "Resolved", "Closed"];
+const ADMIN_ISSUE_SEEN_STORAGE_KEY = "admin-issue-seen-map-v1";
 
 const isDoctorVerified = (status) => ["Verified", "Approved"].includes(status);
 const normalizeStatusLabel = (status) => (status === "Approved" ? "Verified" : status || "Pending");
@@ -44,6 +47,24 @@ function ProfileStat({ label, value }) {
   );
 }
 
+const cyberSentVoiceTheme = {
+  surface: "rgba(0,255,136,0.12)",
+  border: "rgba(0,255,136,0.32)",
+  accent: cyberpunkTheme.colors.accent,
+  accentSoft: "rgba(0,255,136,0.12)",
+  text: "var(--color-text-primary)",
+  muted: "var(--color-text-secondary)",
+};
+
+const cyberReceivedVoiceTheme = {
+  surface: "rgba(10,18,20,0.92)",
+  border: "rgba(0,212,255,0.22)",
+  accent: cyberpunkTheme.colors.accentTertiary,
+  accentSoft: "rgba(0,212,255,0.1)",
+  text: "var(--color-text-primary)",
+  muted: "var(--color-text-secondary)",
+};
+
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
 
@@ -66,6 +87,48 @@ export default function AdminDashboardPage() {
   const [selectedTicketId, setSelectedTicketId] = useState("");
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [adminReply, setAdminReply] = useState("");
+  const [seenIncomingAtByIssue, setSeenIncomingAtByIssue] = useState(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const raw = window.localStorage.getItem(ADMIN_ISSUE_SEEN_STORAGE_KEY);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
+  });
+  const [attachments, setAttachments] = useState([]);
+  const [isSendingReply, setIsSendingReply] = useState(false);
+  const [optimisticMessages, setOptimisticMessages] = useState([]);
+  const [previewImage, setPreviewImage] = useState(null);
+  const [showJumpToLatest, setShowJumpToLatest] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [voiceDraft, setVoiceDraft] = useState(null);
+  const fileInputRef = useRef(null);
+  const messagesContainerRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const recordingTimerRef = useRef(null);
+  const recordingTimeRef = useRef(0);
+  const discardRecordingRef = useRef(false);
+
+  const scrollMessagesToBottom = () => {
+    if (!messagesContainerRef.current) return;
+    messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    setShowJumpToLatest(false);
+  };
+
+  const updateJumpToLatestVisibility = () => {
+    const container = messagesContainerRef.current;
+    if (!container) {
+      setShowJumpToLatest(false);
+      return;
+    }
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    setShowJumpToLatest(distanceFromBottom > 96);
+  };
 
   const checkAdmin = async () => {
     setIsCheckingAuth(true);
@@ -154,36 +217,370 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const loadTicketDetail = async () => {
-    if (!selectedTicketId) {
+  const loadTicketDetail = async (ticketId = selectedTicketId) => {
+    if (!ticketId) {
       setSelectedTicket(null);
       return;
     }
     try {
-      const res = await axiosInstance.get(`/issues/admin/${selectedTicketId}`);
+      const res = await axiosInstance.get(`/issues/admin/${ticketId}`);
       setSelectedTicket(res.data?.ticket || null);
     } catch {
       setSelectedTicket(null);
     }
   };
 
+  const ticketMatchesFilter = (ticket, filter) => {
+    const status = String(ticket?.status || "");
+    return filter === "history" ? ["Resolved", "Closed"].includes(status) : !["Resolved", "Closed"].includes(status);
+  };
+
+  const upsertVisibleAdminTicket = (ticket, filter) => {
+    if (!ticket?._id) return;
+
+    setTickets((prev) => {
+      const shouldInclude = ticketMatchesFilter(ticket, filter);
+      const next = prev.filter((item) => String(item._id) !== String(ticket._id));
+      return shouldInclude ? [ticket, ...next] : next;
+    });
+  };
+
+  const syncSelectedDoctorIssues = (ticket) => {
+    const ticketDoctorId = String(ticket?.doctor?._id || ticket?.doctor || "");
+    if (!ticketDoctorId || ticketDoctorId !== String(selectedDoctorId || "")) return;
+
+    const isHistoryTicket = ["Resolved", "Closed"].includes(String(ticket?.status || ""));
+
+    setDoctorActiveIssues((prev) => {
+      const next = prev.filter((item) => String(item._id) !== String(ticket._id));
+      return isHistoryTicket ? next : [ticket, ...next];
+    });
+
+    setDoctorIssueHistory((prev) => {
+      const next = prev.filter((item) => String(item._id) !== String(ticket._id));
+      return isHistoryTicket ? [ticket, ...next] : next;
+    });
+  };
+
   const sendAdminReply = async () => {
-    if (!selectedTicket?._id || !adminReply.trim()) return;
+    if (!selectedTicket?._id) return;
+
+    const textToSend = String(adminReply || "").trim();
+    const outgoingFiles = voiceDraft?.file ? [...attachments, voiceDraft.file] : attachments;
+    if (!textToSend && outgoingFiles.length === 0) return;
+
+    setIsSendingReply(true);
+
+    const optimisticId = `temp-${Date.now()}`;
+    const optimisticAttachments = outgoingFiles.map((file) => ({
+      url: URL.createObjectURL(file),
+      name: file.name,
+      mimeType: file.type,
+      size: file.size,
+      isLocalPreview: true,
+    }));
+
+    const optimisticMessage = {
+      _id: optimisticId,
+      senderRole: "admin",
+      senderName: admin?.name || "Admin",
+      text: textToSend,
+      attachments: optimisticAttachments,
+      createdAt: new Date().toISOString(),
+      isOptimistic: true,
+    };
+
+    setOptimisticMessages((prev) => [...prev, optimisticMessage]);
+    setAdminReply("");
+    setAttachments([]);
+    if (voiceDraft?.previewUrl) {
+      URL.revokeObjectURL(voiceDraft.previewUrl);
+    }
+    setVoiceDraft(null);
+
     try {
-      await axiosInstance.post(`/issues/admin/${selectedTicket._id}/messages`, { text: adminReply.trim() });
-      setAdminReply("");
-      await Promise.all([loadTickets(), loadTicketDetail()]);
+      const formData = new FormData();
+      if (textToSend) {
+        formData.append("text", textToSend);
+      }
+      outgoingFiles.forEach((file) => formData.append("attachments", file));
+
+      await axiosInstance.post(`/issues/admin/${selectedTicket._id}/messages`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
     } catch {
+      optimisticAttachments.forEach((item) => URL.revokeObjectURL(item.url));
+      setOptimisticMessages((prev) => prev.filter((item) => item._id !== optimisticId));
       toast.error("Failed to send reply");
+    } finally {
+      setIsSendingReply(false);
     }
   };
+
+  const handleReplyKeyDown = (event) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      sendAdminReply();
+    }
+  };
+
+  const isImageFile = (file) => {
+    const mimeType = String(file?.type || "").toLowerCase();
+    const name = String(file?.name || "").toLowerCase();
+    return mimeType.startsWith("image/") || /\.(png|jpe?g|gif|webp)$/i.test(name);
+  };
+
+  const isAudioAttachment = (attachment) => {
+    const mimeType = String(attachment?.mimeType || "").toLowerCase();
+    const name = String(attachment?.name || "").toLowerCase();
+    return mimeType.startsWith("audio/") || /\.(webm|ogg|mp3|wav|m4a|aac)$/i.test(name);
+  };
+
+  const isImageAttachment = (attachment) => {
+    const mimeType = String(attachment?.mimeType || "").toLowerCase();
+    const name = String(attachment?.name || "").toLowerCase();
+    const url = String(attachment?.url || "").toLowerCase();
+    return mimeType.startsWith("image/") || /\.(png|jpe?g|gif|webp|bmp)$/i.test(name) || /\.(png|jpe?g|gif|webp|bmp)(\?|$)/i.test(url);
+  };
+
+  const getAttachmentKey = (file) => `${file.name}-${file.size}-${file.lastModified}`;
+
+  const imagePreviewUrls = useMemo(() => {
+    const map = new Map();
+    attachments.forEach((file) => {
+      if (isImageFile(file)) {
+        map.set(getAttachmentKey(file), URL.createObjectURL(file));
+      }
+    });
+    return map;
+  }, [attachments]);
+
+  useEffect(
+    () => () => {
+      imagePreviewUrls.forEach((url) => URL.revokeObjectURL(url));
+    },
+    [imagePreviewUrls],
+  );
+
+  useEffect(
+    () => () => {
+      if (voiceDraft?.previewUrl) {
+        URL.revokeObjectURL(voiceDraft.previewUrl);
+      }
+    },
+    [voiceDraft],
+  );
+
+  useEffect(() => {
+    scrollMessagesToBottom();
+    const timeoutId = window.setTimeout(scrollMessagesToBottom, 120);
+    return () => window.clearTimeout(timeoutId);
+  }, [selectedTicket?.messages, optimisticMessages]);
+
+  useEffect(() => {
+    requestAnimationFrame(scrollMessagesToBottom);
+  }, [selectedTicketId]);
+
+  useEffect(() => {
+    updateJumpToLatestVisibility();
+  }, [selectedTicket?.messages, optimisticMessages, selectedTicketId]);
+
+  useEffect(() => {
+    setOptimisticMessages([]);
+    setAdminReply("");
+    setAttachments([]);
+    if (voiceDraft?.previewUrl) {
+      URL.revokeObjectURL(voiceDraft.previewUrl);
+    }
+    setVoiceDraft(null);
+    setIsRecording(false);
+    setRecordingTime(0);
+  }, [selectedTicketId]);
+
+  useEffect(() => {
+    const onEscape = (event) => {
+      if (event.key === "Escape") {
+        setPreviewImage(null);
+      }
+    };
+
+    if (previewImage) {
+      window.addEventListener("keydown", onEscape);
+    }
+
+    return () => window.removeEventListener("keydown", onEscape);
+  }, [previewImage]);
+
+  const removeAttachment = (index) => {
+    setAttachments((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  const formatRecordingTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const startVoiceRecording = async () => {
+    try {
+      discardRecordingRef.current = false;
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+        const mimeType = recorder.mimeType || "audio/webm";
+
+        if (discardRecordingRef.current) {
+          audioChunksRef.current = [];
+          stream.getTracks().forEach((track) => track.stop());
+          setRecordingTime(0);
+          return;
+        }
+
+        const blob = new Blob(audioChunksRef.current, { type: mimeType });
+        if (blob.size === 0) {
+          stream.getTracks().forEach((track) => track.stop());
+          setRecordingTime(0);
+          toast.error("Recorded audio is empty");
+          return;
+        }
+
+        const ext = mimeType.includes("ogg") ? "ogg" : mimeType.includes("mpeg") ? "mp3" : mimeType.includes("wav") ? "wav" : "webm";
+        const voiceFile = new File([blob], `voice-note-${Date.now()}.${ext}`, { type: mimeType });
+        const previewUrl = URL.createObjectURL(blob);
+
+        setVoiceDraft((prev) => {
+          if (prev?.previewUrl) {
+            URL.revokeObjectURL(prev.previewUrl);
+          }
+          return { file: voiceFile, previewUrl, duration: recordingTimeRef.current };
+        });
+
+        stream.getTracks().forEach((track) => track.stop());
+        setRecordingTime(0);
+        recordingTimeRef.current = 0;
+        toast.success("Voice note ready");
+      };
+
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+      recordingTimeRef.current = 0;
+
+      recordingTimerRef.current = setInterval(() => {
+        recordingTimeRef.current += 1;
+        setRecordingTime(recordingTimeRef.current);
+      }, 1000);
+    } catch {
+      toast.error("Microphone access is required");
+    }
+  };
+
+  const stopVoiceRecording = () => {
+    if (!mediaRecorderRef.current || mediaRecorderRef.current.state === "inactive") return;
+    discardRecordingRef.current = false;
+    mediaRecorderRef.current.stop();
+    setIsRecording(false);
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+  };
+
+  const cancelRecording = () => {
+    discardRecordingRef.current = true;
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
+    } else if (mediaRecorderRef.current?.stream) {
+      mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
+    }
+    setIsRecording(false);
+    setRecordingTime(0);
+    recordingTimeRef.current = 0;
+    audioChunksRef.current = [];
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    toast.info("Recording cancelled");
+  };
+
+  const issueMessages = [...(selectedTicket?.messages || []), ...optimisticMessages];
+
+  const getIssueById = (issueId) => tickets.find((ticket) => String(ticket?._id) === String(issueId));
+
+  const getIssueLastMessage = (issue) => {
+    const list = Array.isArray(issue?.messages) ? issue.messages : [];
+    return list[list.length - 1] || null;
+  };
+
+  const getIssueLastMessageTime = (issue) => {
+    const lastMessage = getIssueLastMessage(issue);
+    const source = lastMessage?.createdAt || issue?.lastMessageAt || issue?.updatedAt || issue?.createdAt;
+    const ts = new Date(source).getTime();
+    return Number.isFinite(ts) ? ts : 0;
+  };
+
+  const getIssueIncomingTailTime = (issue) => {
+    const lastMessage = getIssueLastMessage(issue);
+    const senderRole = String(lastMessage?.senderRole || "").toLowerCase();
+    if (senderRole !== "doctor") return 0;
+    return getIssueLastMessageTime(issue);
+  };
+
+  const markIssueAsSeenLocally = (issueId, issueOverride) => {
+    if (!issueId) return;
+    const issue = issueOverride || getIssueById(issueId);
+    const incomingTailTime = getIssueIncomingTailTime(issue);
+    if (!incomingTailTime) return;
+
+    setSeenIncomingAtByIssue((prev) => {
+      const current = Number(prev?.[issueId] || 0);
+      if (current >= incomingTailTime) return prev;
+      return { ...prev, [issueId]: incomingTailTime };
+    });
+  };
+
+  const hasIssueNewUpdate = (issue) => {
+    const incomingTailTime = getIssueIncomingTailTime(issue);
+    if (!incomingTailTime) return false;
+    const seenAt = Number(seenIncomingAtByIssue?.[issue?._id] || 0);
+    return seenAt < incomingTailTime;
+  };
+
+  const handleSelectIssueTicket = (issueId, issueOverride) => {
+    if (selectedTicketId && String(selectedTicketId) !== String(issueId)) {
+      markIssueAsSeenLocally(selectedTicketId, selectedTicket || getIssueById(selectedTicketId));
+    }
+
+    setSelectedTicketId(issueId);
+    markIssueAsSeenLocally(issueId, issueOverride);
+  };
+
+  useEffect(() => {
+    if (!selectedTicketId || !selectedTicket) return;
+    if (String(selectedTicket?._id) !== String(selectedTicketId)) return;
+    markIssueAsSeenLocally(selectedTicketId, selectedTicket);
+  }, [selectedTicketId, selectedTicket]);
+
+  const sortedIssueTickets = [...tickets].sort((a, b) => {
+    const aTime = getIssueLastMessageTime(a);
+    const bTime = getIssueLastMessageTime(b);
+    if (aTime !== bTime) return bTime - aTime;
+    return String(a?.title || "").localeCompare(String(b?.title || ""));
+  });
+
+  const issueNewChats = sortedIssueTickets.filter((item) => hasIssueNewUpdate(item));
+  const issueOtherChats = sortedIssueTickets.filter((item) => !hasIssueNewUpdate(item));
 
   const setTicketStatus = async (status) => {
     if (!selectedTicket?._id) return;
     try {
       await axiosInstance.patch(`/issues/admin/${selectedTicket._id}/status`, { status });
       toast.success(`Issue marked ${status}`);
-      await Promise.all([loadTickets(), loadTicketDetail()]);
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to update issue");
     }
@@ -194,7 +591,7 @@ export default function AdminDashboardPage() {
     setTicketFilter("active");
     const firstTicket = tickets.find((item) => item.doctor?._id === doctorId);
     if (firstTicket) {
-      setSelectedTicketId(firstTicket._id);
+      handleSelectIssueTicket(firstTicket._id, firstTicket);
     }
   };
 
@@ -231,11 +628,81 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     if (!admin) return;
-    loadTicketDetail();
-    const id = setInterval(loadTicketDetail, 5000);
-    return () => clearInterval(id);
+    loadTicketDetail(selectedTicketId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTicketId, admin]);
+
+  useEffect(() => {
+    if (!admin) return undefined;
+
+    const socket = getRealtimeSocketForRole("admin");
+
+    const handleTicketUpdate = ({ ticket } = {}) => {
+      if (!ticket) return;
+      upsertVisibleAdminTicket(ticket, ticketFilter);
+      syncSelectedDoctorIssues(ticket);
+    };
+
+    const handleTicketDetailUpdate = ({ ticketId, ticket } = {}) => {
+      if (!ticket) return;
+      upsertVisibleAdminTicket(ticket, ticketFilter);
+      syncSelectedDoctorIssues(ticket);
+      if (String(ticketId || "") === String(selectedTicketId || "")) {
+        setSelectedTicket(ticket);
+        setOptimisticMessages([]);
+      }
+    };
+
+    const handleReconnectSync = () => {
+      loadTickets();
+      if (selectedTicketId) {
+        loadTicketDetail(selectedTicketId);
+      }
+      if (selectedDoctorId) {
+        loadDoctorDetail();
+      }
+    };
+
+    const handleSocketError = (error) => {
+      if (error?.message === "Unauthorized") {
+        toast.error("Session expired. Please log in again.");
+      }
+    };
+
+    socket.connect();
+    socket.on("connect", handleReconnectSync);
+    socket.on("issue-ticket:list-updated", handleTicketUpdate);
+    socket.on("issue-ticket:detail-updated", handleTicketDetailUpdate);
+    socket.on("connect_error", handleSocketError);
+
+    return () => {
+      socket.off("connect", handleReconnectSync);
+      socket.off("issue-ticket:list-updated", handleTicketUpdate);
+      socket.off("issue-ticket:detail-updated", handleTicketDetailUpdate);
+      socket.off("connect_error", handleSocketError);
+    };
+  }, [admin, ticketFilter, selectedTicketId, selectedDoctorId]);
+
+  useEffect(() => {
+    if (!admin || !selectedTicketId) return undefined;
+    const socket = getRealtimeSocketForRole("admin");
+    const joinIssueRoom = () => {
+      socket.emit("issue-ticket:join", { ticketId: selectedTicketId });
+    };
+    socket.connect();
+    joinIssueRoom();
+    socket.on("connect", joinIssueRoom);
+
+    return () => {
+      socket.emit("issue-ticket:leave", { ticketId: selectedTicketId });
+      socket.off("connect", joinIssueRoom);
+    };
+  }, [admin, selectedTicketId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(ADMIN_ISSUE_SEEN_STORAGE_KEY, JSON.stringify(seenIncomingAtByIssue));
+  }, [seenIncomingAtByIssue]);
 
   const doctorName = useMemo(() => selectedDoctor?.fullName || "Doctor", [selectedDoctor?.fullName]);
 
@@ -433,7 +900,7 @@ export default function AdminDashboardPage() {
                               key={item._id}
                               onClick={() => {
                                 setActiveSection("issues");
-                                setSelectedTicketId(item._id);
+                                handleSelectIssueTicket(item._id, item);
                               }}
                               className="cyber-chamfer-sm border px-2.5 py-1.5 text-left"
                               style={{ borderColor: "var(--color-border)", background: "var(--color-card)" }}
@@ -452,7 +919,7 @@ export default function AdminDashboardPage() {
           )}
 
           {activeSection === "issues" && (
-            <section className="cyber-chamfer border p-4" style={cyberCardStyle}>
+            <section className="cyber-chamfer border p-4 h-[calc(100vh-8rem)] overflow-hidden flex flex-col" style={cyberCardStyle}>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h2 className="cyber-heading text-lg font-bold text-[var(--color-text-primary)]">Issue Inbox</h2>
@@ -476,31 +943,67 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-1 xl:grid-cols-12 gap-4">
-                <div className="xl:col-span-4 space-y-2 max-h-[430px] overflow-y-auto pr-1">
+              <div className="mt-4 min-h-0 flex-1 grid grid-cols-1 xl:grid-cols-12 gap-4">
+                <div className="xl:col-span-4 min-h-0 overflow-y-auto pr-1 space-y-3">
                   {tickets.length === 0 ? (
                     <p className="cyber-text text-sm text-[var(--color-text-secondary)]">No issues available.</p>
                   ) : (
-                    tickets.map((t) => (
-                      <button
-                        key={t._id}
-                        onClick={() => setSelectedTicketId(t._id)}
-                        className="w-full cyber-chamfer-sm p-3 border text-left"
-                        style={selectedTicketId === t._id
-                          ? { borderColor: "rgba(255,0,255,0.42)", background: "rgba(255,0,255,0.1)" }
-                          : { borderColor: "var(--color-border)", background: "var(--color-card)" }}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="cyber-text text-sm font-semibold text-[var(--color-text-primary)] line-clamp-1">{t.title}</p>
-                          <StatusPill value={t.status} />
+                    <>
+                      {issueNewChats.length > 0 ? (
+                        <div>
+                          <p className="cyber-label mb-2 text-[10px] uppercase tracking-[0.24em]" style={{ color: cyberpunkTheme.colors.accentSecondary }}>New chats</p>
+                          <div className="space-y-2">
+                            {issueNewChats.map((t) => (
+                              <button
+                                key={t._id}
+                                onClick={() => handleSelectIssueTicket(t._id, t)}
+                                className="w-full cyber-chamfer-sm p-3 border text-left"
+                                style={selectedTicketId === t._id
+                                  ? { borderColor: "rgba(255,0,255,0.45)", background: "rgba(255,0,255,0.14)" }
+                                  : { borderColor: "rgba(255,0,255,0.32)", background: "rgba(255,0,255,0.08)" }}
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="cyber-text text-sm font-semibold text-[var(--color-text-primary)] line-clamp-1">{t.title}</p>
+                                  <div className="flex items-center gap-2">
+                                    <span className="cyber-label rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ background: "rgba(255,0,255,0.16)", color: cyberpunkTheme.colors.accentSecondary }}>New update</span>
+                                    <StatusPill value={t.status} />
+                                  </div>
+                                </div>
+                                <p className="cyber-text text-xs mt-1 text-[var(--color-text-secondary)] line-clamp-1">{t.doctor?.fullName || "Doctor"}</p>
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                        <p className="cyber-text text-xs mt-1 text-[var(--color-text-secondary)] line-clamp-1">{t.doctor?.fullName || "Doctor"}</p>
-                      </button>
-                    ))
+                      ) : null}
+
+                      {issueOtherChats.length > 0 ? (
+                        <div>
+                          <p className="cyber-label mb-2 text-[10px] uppercase tracking-[0.24em] text-[var(--color-text-secondary)]">All chats</p>
+                          <div className="space-y-2">
+                            {issueOtherChats.map((t) => (
+                              <button
+                                key={t._id}
+                                onClick={() => handleSelectIssueTicket(t._id, t)}
+                                className="w-full cyber-chamfer-sm p-3 border text-left"
+                                style={selectedTicketId === t._id
+                                  ? { borderColor: "rgba(255,0,255,0.42)", background: "rgba(255,0,255,0.1)" }
+                                  : { borderColor: "var(--color-border)", background: "var(--color-card)" }}
+                              >
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="cyber-text text-sm font-semibold text-[var(--color-text-primary)] line-clamp-1">{t.title}</p>
+                                  <StatusPill value={t.status} />
+                                </div>
+                                <p className="cyber-text text-xs mt-1 text-[var(--color-text-secondary)] line-clamp-1">{t.doctor?.fullName || "Doctor"}</p>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </>
                   )}
                 </div>
 
-                <div className="xl:col-span-8 cyber-chamfer-sm border p-3 flex flex-col min-h-[430px]" style={{ borderColor: "var(--color-border)", background: cyberpunkTheme.colors.background }}>
+                <div className="xl:col-span-8 cyber-chamfer-sm border p-3 flex h-full min-h-0 flex-col overflow-hidden" style={{ borderColor: "var(--color-border)", background: cyberpunkTheme.colors.background }}>
                   {!selectedTicket ? (
                     <p className="cyber-text m-auto text-sm text-[var(--color-text-secondary)]">Select a ticket to open chat.</p>
                   ) : (
@@ -528,29 +1031,163 @@ export default function AdminDashboardPage() {
                         </div>
                       </div>
 
-                      <div className="flex-1 overflow-y-auto py-3 space-y-2">
-                        {(selectedTicket.messages || []).map((m) => (
-                          <div key={m._id || `${m.senderRole}-${m.createdAt}`} className={`flex ${m.senderRole === "admin" ? "justify-end" : "justify-start"}`}>
-                            <div className="max-w-[80%] cyber-chamfer-sm px-3 py-2 border" style={m.senderRole === "admin" ? { background: "rgba(0,255,136,0.12)", borderColor: "rgba(0,255,136,0.35)" } : { background: "var(--color-card)", borderColor: "var(--color-border)" }}>
-                              <p className="cyber-text text-[11px] font-semibold mb-0.5 text-[var(--color-text-secondary)]">{m.senderName}</p>
-                              <p className="cyber-text text-sm text-[var(--color-text-primary)] whitespace-pre-wrap">{m.text}</p>
+                      <div className="relative min-h-0 flex-1">
+                        <div ref={messagesContainerRef} onScroll={updateJumpToLatestVisibility} className="h-full overflow-y-auto py-3 space-y-2">
+                          {issueMessages.map((m) => (
+                            <div key={m._id || `${m.senderRole}-${m.createdAt}`} className={`flex ${m.senderRole === "admin" ? "justify-end" : "justify-start"}`}>
+                              <div className="max-w-[80%] cyber-chamfer-sm px-3 py-2 border" style={m.senderRole === "admin" ? { background: "rgba(0,255,136,0.12)", borderColor: "rgba(0,255,136,0.35)" } : { background: "var(--color-card)", borderColor: "var(--color-border)" }}>
+                                <p className="cyber-text text-[11px] font-semibold mb-0.5 text-[var(--color-text-secondary)]">{m.senderName}</p>
+                                {m.text ? <p className="cyber-text text-sm text-[var(--color-text-primary)] whitespace-pre-wrap">{m.text}</p> : null}
+                                {(m.attachments || []).length > 0 ? (
+                                  <div className="mt-2 space-y-2">
+                                    {m.attachments.map((attachment) => (
+                                      isImageAttachment(attachment) ? (
+                                        <button
+                                          key={attachment.url}
+                                          type="button"
+                                          onClick={() => setPreviewImage({ url: attachment.url, name: attachment.name })}
+                                          className="block overflow-hidden rounded-xl border border-[var(--color-border)]/80"
+                                        >
+                                          <img
+                                            src={attachment.url}
+                                            alt={attachment.name}
+                                            onLoad={scrollMessagesToBottom}
+                                            className="max-h-64 w-full object-cover"
+                                          />
+                                        </button>
+                                      ) : isAudioAttachment(attachment) ? (
+                                        <VoiceMessagePlayer
+                                          key={attachment.url}
+                                          src={attachment.url}
+                                          title={attachment.name}
+                                          badge={m.senderRole === "admin" ? "Admin voice" : "Doctor voice"}
+                                          theme={m.senderRole === "admin" ? cyberSentVoiceTheme : cyberReceivedVoiceTheme}
+                                        />
+                                      ) : (
+                                        <a key={attachment.url} href={attachment.url} target="_blank" rel="noreferrer" className="block rounded-xl border border-[var(--color-border)]/80 px-3 py-2 text-xs text-[var(--color-primary)] hover:underline">
+                                          {attachment.name}
+                                        </a>
+                                      )
+                                    ))}
+                                  </div>
+                                ) : null}
+                                <p className="cyber-text mt-1 text-[10px] text-right text-[var(--color-text-secondary)]">{m.createdAt ? new Date(m.createdAt).toLocaleTimeString("en-PK", { hour: "2-digit", minute: "2-digit" }) : ""}</p>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
+                        {showJumpToLatest ? (
+                          <button
+                            type="button"
+                            onClick={scrollMessagesToBottom}
+                            className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold shadow-lg backdrop-blur"
+                            style={{ borderColor: "rgba(0,255,136,0.45)", background: "rgba(10,18,20,0.88)", color: cyberpunkTheme.colors.accent }}
+                          >
+                            <ArrowDown className="h-3.5 w-3.5" />
+                            New messages
+                          </button>
+                        ) : null}
                       </div>
 
-                      <div className="pt-2 border-t flex gap-2" style={{ borderColor: "var(--color-border)" }}>
-                        <input
-                          value={adminReply}
-                          onChange={(e) => setAdminReply(e.target.value)}
-                          placeholder="Reply to doctor..."
-                          className="cyber-text flex-1 cyber-chamfer-sm px-3 py-2.5 border text-sm"
-                          style={cyberInputStyle}
-                        />
-                        <button onClick={sendAdminReply} className="cyber-chamfer-sm px-4 py-2.5 text-sm font-semibold inline-flex items-center gap-1.5" style={{ color: cyberpunkTheme.colors.background, background: cyberpunkTheme.colors.accent, boxShadow: cyberpunkTheme.shadows.neon }}>
-                          <Send size={14} />
-                          Send
-                        </button>
+                      <div className="pt-2 border-t" style={{ borderColor: "var(--color-border)" }}>
+                        {isRecording ? (
+                          <div className="mb-3 flex flex-col gap-3 rounded-2xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:rounded-full" style={{ background: "color-mix(in srgb, var(--color-danger) 14%, transparent)", borderColor: "color-mix(in srgb, var(--color-danger) 34%, transparent)" }}>
+                            <div className="flex items-center gap-3">
+                              <div className="h-3 w-3 rounded-full bg-red-500 animate-pulse"></div>
+                              <span className="text-sm font-semibold text-[var(--color-danger)]">Recording... {formatRecordingTime(recordingTime)}</span>
+                            </div>
+                            <div className="flex gap-2 self-end sm:self-auto">
+                              <button type="button" onClick={cancelRecording} className="rounded-full p-2.5 transition" style={{ background: "color-mix(in srgb, var(--color-danger) 26%, transparent)", color: "var(--color-danger)" }} aria-label="Discard recording">
+                                <X className="h-4 w-4" />
+                              </button>
+                              <button type="button" onClick={stopVoiceRecording} className="rounded-full bg-green-500 px-4 py-2 text-xs font-semibold text-white hover:bg-green-600">
+                                Stop
+                              </button>
+                            </div>
+                          </div>
+                        ) : null}
+
+                        {voiceDraft ? (
+                          <div className="mb-3 rounded-2xl border border-[var(--color-border)]/80 bg-[var(--color-card)]/85 px-3 py-2.5">
+                            <VoiceMessagePlayer
+                              src={voiceDraft.previewUrl}
+                              title={voiceDraft.file?.name || "Voice note"}
+                              badge="Draft"
+                              duration={voiceDraft.duration || 0}
+                              theme={cyberReceivedVoiceTheme}
+                              action={(
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (voiceDraft?.previewUrl) {
+                                      URL.revokeObjectURL(voiceDraft.previewUrl);
+                                    }
+                                    setVoiceDraft(null);
+                                  }}
+                                  className="rounded-full p-1 text-[var(--color-text-secondary)] hover:bg-[var(--color-primary)]/10"
+                                  aria-label="Discard voice note"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              )}
+                            />
+                          </div>
+                        ) : null}
+
+                        {attachments.length > 0 ? (
+                          <div className="mb-3 space-y-2">
+                            {attachments.map((file, idx) => (
+                              isImageFile(file) ? (
+                                <div key={idx} className="relative overflow-hidden rounded-2xl border border-[var(--color-border)]/80 p-2" style={{ background: "color-mix(in srgb, var(--color-card-elevated) 82%, var(--color-bg) 18%)" }}>
+                                  <img src={imagePreviewUrls.get(getAttachmentKey(file))} alt={file.name} className="h-28 w-28 rounded-xl object-cover" />
+                                  <p className="mt-1 w-28 truncate text-[11px] font-medium text-[var(--color-text-secondary)]">{file.name}</p>
+                                  <button type="button" onClick={() => removeAttachment(idx)} className="absolute right-2 top-2 rounded-full bg-black/65 p-1 text-white" aria-label="Remove image">
+                                    <X className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <div key={idx} className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs" style={{ borderColor: "color-mix(in srgb, var(--color-primary) 38%, transparent)", background: "color-mix(in srgb, var(--color-primary) 18%, transparent)" }}>
+                                  <span className="max-w-[220px] truncate font-medium text-[var(--color-primary)]">{file.name}</span>
+                                  <button type="button" onClick={() => removeAttachment(idx)} className="font-bold text-[var(--color-primary)]">✕</button>
+                                </div>
+                              )
+                            ))}
+                          </div>
+                        ) : null}
+
+                        <div className="flex gap-2">
+                          <button type="button" onClick={() => fileInputRef.current?.click()} className="rounded-full bg-[var(--color-primary)]/10 p-2.5 text-[var(--color-primary)] transition hover:bg-[var(--color-primary)]/20 sm:p-3">
+                            <Plus className="h-5 w-5" />
+                          </button>
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            multiple
+                            accept=".png,.jpg,.jpeg,.gif,.pdf,.webm,.ogg,.mp3,.wav"
+                            onChange={(e) => setAttachments((prev) => [...prev, ...Array.from(e.target.files || [])])}
+                            className="hidden"
+                          />
+
+                          <input
+                            value={adminReply}
+                            onChange={(e) => setAdminReply(e.target.value)}
+                            onKeyDown={handleReplyKeyDown}
+                            placeholder="Reply to doctor..."
+                            className="cyber-text flex-1 cyber-chamfer-sm px-3 py-2.5 border text-sm"
+                            style={cyberInputStyle}
+                          />
+
+                          {adminReply.trim() || attachments.length > 0 || voiceDraft?.file ? (
+                            <button onClick={sendAdminReply} disabled={isSendingReply} className="cyber-chamfer-sm px-4 py-2.5 text-sm font-semibold inline-flex items-center gap-1.5 disabled:opacity-60" style={{ color: cyberpunkTheme.colors.background, background: cyberpunkTheme.colors.accent, boxShadow: cyberpunkTheme.shadows.neon }}>
+                              <Send size={14} />
+                              Send
+                            </button>
+                          ) : (
+                            <button type="button" onClick={isRecording ? stopVoiceRecording : startVoiceRecording} className="rounded-full p-2.5 transition sm:p-3" style={{ background: isRecording ? "rgba(239,68,68,0.1)" : "transparent", color: isRecording ? "rgb(239,68,68)" : "var(--color-primary)" }}>
+                              <Mic className="h-5 w-5" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </>
                   )}
@@ -560,6 +1197,15 @@ export default function AdminDashboardPage() {
           )}
         </main>
       </div>
+
+      {previewImage ? (
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/85 p-4">
+          <button type="button" onClick={() => setPreviewImage(null)} className="absolute right-4 top-4 rounded-full bg-white/15 p-2 text-white" aria-label="Close image preview">
+            <X className="h-6 w-6" />
+          </button>
+          <img src={previewImage.url} alt={previewImage.name} className="max-h-[90vh] max-w-[92vw] rounded-xl object-contain" />
+        </div>
+      ) : null}
     </div>
   );
 }
