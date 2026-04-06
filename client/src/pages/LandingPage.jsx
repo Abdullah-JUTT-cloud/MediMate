@@ -124,21 +124,20 @@ export default function LandingPage() {
                 <div className="absolute -left-6 top-10 hidden h-24 w-24 rounded-[60%_40%_30%_70%/60%_30%_70%_40%] bg-[var(--color-accent)] blur-2xl xl:block" aria-hidden="true" />
                 <div className="absolute -bottom-8 right-8 h-28 w-28 rounded-[48%_52%_39%_61%/48%_34%_66%_52%] bg-[var(--color-primary)]/15 blur-2xl" aria-hidden="true" />
 
-                <div className="relative overflow-hidden rounded-[60%_40%_30%_70%/60%_30%_70%_40%] border-4 border-white/85 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.18)] transition-[border-radius,transform,box-shadow] duration-1200 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:rounded-[2.75rem] group-hover:-rotate-[0.5deg] group-hover:shadow-[0_16px_50px_-12px_rgba(93,112,82,0.22)] motion-reduce:transition-none">
+                <div className="relative overflow-hidden rounded-[60%_40%_30%_70%/60%_30%_70%_40%] border-4 border-white/85 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.18)]">
                   <img
                     src={doc}
                     alt="Doctor portrait used to represent MedAlerto"
-                    className="aspect-4/5 w-full object-cover object-center transition duration-1200 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.005] motion-reduce:transition-none"
+                    className="aspect-4/5 w-full object-cover object-center transition-transform duration-500 ease-out group-hover:scale-105 motion-reduce:transition-none"
                   />
                   <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(253,252,248,0.35),transparent_48%)]" />
+                </div>
+                <div className="absolute left-4 top-10 -translate-y-1/2 rounded-full border border-[var(--color-border)]/80 bg-[var(--color-card)]/92 px-3 py-2 shadow-[0_4px_20px_-2px_rgba(93,112,82,0.12)] backdrop-blur-md sm:left-4">
+                  <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[var(--color-primary)] sm:text-[10px] sm:tracking-[0.25em]">Trusted by 5,000+ doctors</p>
+                </div>
 
-                  <div className="absolute left-3 top-3 rounded-full border border-[var(--color-border)]/80 bg-[var(--color-card)]/92 px-3 py-2 shadow-[0_4px_20px_-2px_rgba(93,112,82,0.12)] backdrop-blur-md sm:left-4 sm:top-4">
-                    <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[var(--color-primary)] sm:text-[10px] sm:tracking-[0.25em]">Trusted by 5,000+ doctors</p>
-                  </div>
-
-                    <div className="absolute bottom-3 right-3 rounded-full border border-[var(--color-border)]/80 bg-[var(--color-bg-soft)]/95 px-3 py-2 shadow-[0_4px_20px_-2px_rgba(193,140,93,0.14)] backdrop-blur-md sm:bottom-4 sm:right-4">
-                      <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[var(--color-text-primary)] sm:text-[10px] sm:tracking-[0.25em]">Prescription sent via WhatsApp</p>
-                  </div>
+                <div className="absolute bottom-8 right-8 translate-y-1/2 rounded-full border border-[var(--color-border)]/80 bg-[var(--color-bg-soft)]/95 px-3 py-2 shadow-[0_4px_20px_-2px_rgba(193,140,93,0.14)] backdrop-blur-md sm:right-4">
+                  <p className="font-mono text-[9px] uppercase tracking-[0.22em] text-[var(--color-text-primary)] sm:text-[10px] sm:tracking-[0.25em]">Prescription sent via WhatsApp</p>
                 </div>
               </div>
             </div>
