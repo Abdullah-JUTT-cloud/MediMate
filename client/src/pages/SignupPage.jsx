@@ -476,24 +476,19 @@ export default function SignupPage() {
       <div className="relative mx-auto w-full max-w-4xl">
 
         {/* Logo */}
-        <div className="mb-8 flex flex-col items-center gap-3">
+        <Link to="/" className="mb-8 flex flex-col items-center gap-3 rounded-2xl p-1 transition hover:opacity-90">
           <div className="flex h-16 w-16 items-center justify-center rounded-full border border-[var(--color-border)]/80 bg-[var(--color-primary)] shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)]">
             <img src={logo} alt="MedAlerto" className="h-10 w-auto rounded-full" />
           </div>
           <span className="bg-gradient-to-r from-[var(--color-primary)] via-[var(--color-secondary)] to-[var(--color-primary)] bg-clip-text text-lg font-black tracking-[0.3em] text-transparent sm:text-xl">
             MEDALERTO
           </span>
-        </div>
+        </Link>
 
         {/* Header */}
         <div className="mb-8 text-center">
           <h1 className="mb-1 text-2xl font-heading font-semibold text-[var(--color-text-primary)] sm:text-3xl">Create your account</h1>
-          <p className="text-sm text-[var(--color-text-secondary)]">
-            Already have an account?{" "}
-            <Link to="/login" className="font-semibold text-[var(--color-secondary)] transition hover:opacity-80">
-              Sign in
-            </Link>
-          </p>
+          <p className="text-sm text-[var(--color-text-secondary)]">Set up your doctor profile in a few steps.</p>
         </div>
 
         {/* Step Indicator */}
@@ -829,6 +824,18 @@ export default function SignupPage() {
             </Link>
             .
           </p>
+
+          <div className="mt-5 rounded-2xl border border-[var(--color-secondary)]/35 bg-[var(--color-secondary)]/10 px-4 py-4 text-center sm:flex sm:items-center sm:justify-between sm:text-left">
+            <p className="text-sm font-semibold text-[var(--color-text-primary)]">
+              Already have an account?
+            </p>
+            <Link
+              to="/login"
+              className="mt-3 inline-flex h-10 items-center justify-center rounded-full border border-[var(--color-secondary)] bg-[var(--color-secondary)] px-5 text-sm font-bold text-white transition-all duration-300 hover:-translate-y-0.5 hover:opacity-95 sm:mt-0"
+            >
+              Sign in
+            </Link>
+          </div>
         </div>
       </div>
     </div>

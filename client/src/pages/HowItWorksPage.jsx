@@ -3,49 +3,49 @@ import Footer from "../components/Footer";
 
 const steps = [
   {
-    title: "Set up your clinic profile",
+    title: "Create your clinic account",
     description:
-      "Configure your doctor profile, prescription format, and clinic communication preferences so every document is standardized from day one.",
+      "Sign up, add your clinic profile, and set your consultation preferences. Most doctors complete this in under 10 minutes.",
+    detail: "No technical setup required.",
   },
   {
-    title: "Register or retrieve patient records",
+    title: "Add patients and existing records",
     description:
-      "Search existing patients by contact details or add a new patient in seconds with a consistent record structure for future visits.",
+      "Start with today's appointments or import records gradually. You can switch without pausing clinic operations.",
+    detail: "Adopt in phases, not all at once.",
   },
   {
-    title: "Document consultation and treatment",
+    title: "Run consultations digitally",
     description:
-      "Create digital prescriptions, record key findings, and attach follow-up notes within the consultation workflow.",
+      "Document notes, generate prescriptions, and save each visit in one workflow while you consult.",
+    detail: "Less post-consultation paperwork.",
   },
   {
-    title: "Deliver instantly to the patient",
+    title: "Send prescriptions and reminders",
     description:
-      "Generate PDF prescriptions and send them on WhatsApp directly from the platform to improve handoff reliability.",
+      "Share prescriptions instantly and automate follow-up reminders so communication does not depend on manual calls.",
+    detail: "Fewer missed follow-ups.",
   },
   {
-    title: "Schedule follow-up and automate reminders",
+    title: "Track clinic performance",
     description:
-      "Book the next visit before the patient leaves and let MedAlerto handle confirmations and reminder messages automatically.",
-  },
-  {
-    title: "Review performance and improve operations",
-    description:
-      "Use appointment and earning insights to identify bottlenecks, optimize clinic schedules, and improve overall service quality.",
+      "Use simple reports to monitor appointments, patient activity, and operational load across the week.",
+    detail: "Improve scheduling with real numbers.",
   },
 ];
 
-const implementation = [
+const onboardingBlocks = [
   {
-    title: "Day 1: onboarding",
-    text: "Initial account setup, branding preferences, and core clinic workflow configuration.",
+    title: "Day 1",
+    text: "Account setup, profile completion, and first live prescription flow.",
   },
   {
-    title: "Week 1: adoption",
-    text: "Daily usage for prescriptions, appointments, and patient history with support for process alignment.",
+    title: "Week 1",
+    text: "Daily use for appointments, records, and follow-ups with staff alignment.",
   },
   {
-    title: "Week 2 onward: optimization",
-    text: "Use insights and reminders to reduce no-shows, increase operational predictability, and standardize communication.",
+    title: "Week 2 onward",
+    text: "Optimization through reminders, reporting, and tighter front-desk workflow.",
   },
 ];
 
@@ -57,47 +57,55 @@ export default function HowItWorksPage() {
       <Navbar />
 
       <main className="relative z-10 px-4 pb-20 pt-28 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-5xl">
-          <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--color-primary)]">Workflow overview</p>
-          <h1 className="mt-4 font-heading text-4xl font-semibold leading-tight sm:text-5xl">A complete clinic workflow in one system</h1>
-          <p className="mt-5 max-w-3xl text-lg leading-relaxed text-[var(--color-text-secondary)]">
-            From first consultation to follow-up reminders, MedAlerto keeps every step connected so doctors can spend less time on admin and more time on care.
-          </p>
+        <div className="mx-auto max-w-6xl">
+          <section className="rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-7 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] sm:p-10">
+            <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--color-primary)]">How it works</p>
+            <h1 className="mt-4 max-w-4xl font-heading text-4xl font-semibold leading-tight sm:text-5xl">From signup to daily clinic use in a few practical steps.</h1>
+            <p className="mt-5 max-w-3xl text-lg leading-relaxed text-[var(--color-text-secondary)]">
+              MedAlerto is designed for busy doctors. You can set it up quickly, start with live patient visits, and improve operations week by week.
+            </p>
+            <button className="mt-8 inline-flex h-12 items-center justify-center rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)] px-7 text-sm font-bold text-[var(--color-on-primary)] shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-14px_rgba(93,112,82,0.3)]">
+              Start Free Trial
+            </button>
+          </section>
 
-          <div className="mt-12 space-y-6">
+          <section className="mt-12 space-y-5">
             {steps.map((step, index) => (
-              <section key={step.title} className="flex flex-col gap-5 rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] sm:flex-row sm:items-start sm:gap-7 sm:p-8">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)] text-lg font-bold text-[var(--color-on-primary)]">
+              <article key={step.title} className="rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] sm:flex sm:items-start sm:gap-6 sm:p-7">
+                <div className="mb-4 inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)] text-lg font-bold text-[var(--color-on-primary)] sm:mb-0">
                   {index + 1}
                 </div>
                 <div>
                   <h2 className="font-heading text-2xl font-semibold">{step.title}</h2>
-                  <p className="mt-3 leading-relaxed text-[var(--color-text-secondary)]">
-                    {step.description}
+                  <p className="mt-3 leading-relaxed text-[var(--color-text-secondary)]">{step.description}</p>
+                  <p className="mt-4 inline-flex rounded-full border border-[var(--color-secondary)]/40 bg-[var(--color-secondary)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--color-secondary)]">
+                    {step.detail}
                   </p>
                 </div>
-              </section>
+              </article>
             ))}
-          </div>
+          </section>
 
           <section className="mt-12 rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(193,140,93,0.16)] sm:p-8">
-            <h2 className="font-heading text-2xl font-semibold">Implementation timeline</h2>
+            <h2 className="font-heading text-2xl font-semibold">What onboarding looks like</h2>
             <div className="mt-5 grid gap-4 md:grid-cols-3">
-              {implementation.map((item) => (
-                <article key={item.title} className="rounded-3xl border border-[var(--color-border)]/80 bg-[var(--color-bg-soft)]/45 p-4">
-                  <h3 className="text-base font-bold text-[var(--color-text-primary)]">{item.title}</h3>
+              {onboardingBlocks.map((item) => (
+                <article key={item.title} className="rounded-3xl border border-[var(--color-border)]/80 bg-[var(--color-bg-soft)]/50 p-4">
+                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--color-primary)]">{item.title}</p>
                   <p className="mt-2 text-sm leading-relaxed text-[var(--color-text-secondary)]">{item.text}</p>
                 </article>
               ))}
             </div>
           </section>
 
-          <section className="mt-12 rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] sm:p-8">
-            <h2 className="font-heading text-2xl font-semibold">Built for real clinic conditions</h2>
-            <p className="mt-4 leading-relaxed text-[var(--color-text-secondary)]">
-              MedAlerto is designed for fast-paced outpatient settings where consistency, speed, and communication quality directly
-              affect patient satisfaction and daily clinic outcomes.
-            </p>
+          <section className="mt-12 rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-primary)] p-8 text-[var(--color-on-primary)] shadow-[0_12px_34px_-16px_rgba(93,112,82,0.5)] sm:flex sm:items-center sm:justify-between sm:gap-6">
+            <div>
+              <h2 className="font-heading text-3xl font-semibold leading-tight">Ready to move from manual workflow to a cleaner system?</h2>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--color-on-primary)]/85">Start now and run your next clinic day with structured records, reminders, and faster handoff.</p>
+            </div>
+            <button className="mt-6 inline-flex h-11 items-center justify-center rounded-full bg-[var(--color-on-primary)] px-6 text-sm font-bold text-[var(--color-primary)] sm:mt-0">
+              Create Your Account
+            </button>
           </section>
         </div>
       </main>

@@ -1,23 +1,37 @@
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
+const painPoints = [
+  "Patient details scattered across paper files and chat threads",
+  "Manual reminder calling that consumes staff time daily",
+  "Unreadable or missing prescription history during follow-ups",
+  "No simple way to track clinic workload and operational bottlenecks",
+];
+
 const principles = [
   {
-    title: "Clinical-first design",
-    description: "Every feature is designed around real consultation flow, not generic enterprise dashboards.",
+    title: "Practical over complex",
+    description: "If a workflow slows down consultation speed, we redesign it.",
   },
   {
-    title: "Reliable communication",
-    description: "Patient instructions must arrive clearly and on time, especially after the consultation ends.",
+    title: "Doctor-first clarity",
+    description: "Every screen should help the doctor decide and act quickly.",
   },
   {
-    title: "Operational simplicity",
-    description: "Doctors and clinic staff should be able to adopt the system quickly without heavy training.",
+    title: "Team-ready operations",
+    description: "Clinic staff can execute tasks without breaking data quality.",
   },
   {
-    title: "Data responsibility",
-    description: "Clinical and patient records are handled with strict confidentiality and practical safeguards.",
+    title: "Responsible data handling",
+    description: "Patient information is treated as critical clinical responsibility.",
   },
+];
+
+const serviceHighlights = [
+  "Structured patient management",
+  "Reliable appointment and follow-up workflow",
+  "Clear digital prescription handoff",
+  "Operational insight for better clinic decisions",
 ];
 
 export default function AboutUsPage() {
@@ -28,57 +42,67 @@ export default function AboutUsPage() {
       <Navbar />
 
       <main className="relative z-10 px-4 pb-20 pt-28 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-5xl">
-          <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--color-primary)]">Company</p>
-          <h1 className="mt-4 font-heading text-4xl font-semibold leading-tight sm:text-5xl">Building dependable software for modern clinics</h1>
-          <p className="mt-5 max-w-3xl text-lg leading-relaxed text-[var(--color-text-secondary)]">
-            MedAlerto was created to help doctors and clinic teams replace fragmented manual processes with a reliable digital workflow
-            for prescriptions, appointments, and patient communication.
-          </p>
+        <div className="mx-auto max-w-6xl">
+          <section className="rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-7 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] sm:p-10">
+            <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--color-primary)]">Our mission</p>
+            <h1 className="mt-4 max-w-4xl font-heading text-4xl font-semibold leading-tight sm:text-5xl">
+              Make daily clinic operations more reliable, more transparent, and easier to manage.
+            </h1>
+            <p className="mt-5 max-w-3xl text-lg leading-relaxed text-[var(--color-text-secondary)]">
+              MedAlerto is built for independent doctors, specialists, and small clinics that need strong operational systems without enterprise complexity.
+            </p>
+          </section>
 
-          <div className="mt-12 space-y-6">
-            <section className="rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] sm:p-8">
-              <h2 className="font-heading text-2xl font-semibold">Why MedAlerto exists</h2>
+          <section className="mt-12 grid gap-5 lg:grid-cols-12">
+            <article className="rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(193,140,93,0.16)] sm:p-7 lg:col-span-7">
+              <h2 className="font-heading text-3xl font-semibold">What is broken in small-clinic operations</h2>
               <p className="mt-4 leading-relaxed text-[var(--color-text-secondary)]">
-                Many clinical tools are built for large institutions and do not match the pace or needs of independent practices.
-                We focus on the core workflows that matter most in outpatient care: fast documentation, clear patient handoff, and predictable scheduling.
+                Most small clinics are still forced to run core workflow across disconnected tools. That creates delays, avoidable mistakes, and operational stress for both doctors and staff.
               </p>
-            </section>
+              <ul className="mt-5 space-y-3">
+                {painPoints.map((item) => (
+                  <li key={item} className="flex items-start gap-3 text-sm leading-relaxed text-[var(--color-text-secondary)]">
+                    <span className="mt-1.5 h-2 w-2 rounded-full bg-[var(--color-secondary)]" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </article>
 
-            <section className="rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(193,140,93,0.16)] sm:p-8">
-              <h2 className="font-heading text-2xl font-semibold">Who we serve</h2>
+            <article className="rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] sm:p-7 lg:col-span-5">
+              <h2 className="font-heading text-3xl font-semibold">Why MedAlerto exists</h2>
               <p className="mt-4 leading-relaxed text-[var(--color-text-secondary)]">
-                MedAlerto is built for independent doctors, specialists, and clinic operators who need a practical platform that improves
-                service quality without introducing heavy administrative overhead.
+                We created MedAlerto so doctors can spend more time on care and less time on repetitive admin. The product is focused on the workflows that directly affect consultation quality and clinic consistency.
               </p>
-            </section>
-
-            <section className="rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] sm:p-8">
-              <h2 className="font-heading text-2xl font-semibold">Our mission</h2>
-              <p className="mt-4 leading-relaxed text-[var(--color-text-secondary)]">
-                To help clinics deliver better patient experiences through clearer records, faster operations, and more reliable communication.
-              </p>
-            </section>
-
-            <section className="rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(193,140,93,0.16)] sm:p-8">
-              <h2 className="font-heading text-2xl font-semibold">Our operating principles</h2>
-              <div className="mt-5 grid gap-4 md:grid-cols-2">
-                {principles.map((item) => (
-                  <article key={item.title} className="rounded-3xl border border-[var(--color-border)]/80 bg-[var(--color-bg-soft)]/45 p-4">
-                    <h3 className="text-base font-bold">{item.title}</h3>
-                    <p className="mt-2 text-sm leading-relaxed text-[var(--color-text-secondary)]">{item.description}</p>
-                  </article>
+              <div className="mt-5 space-y-2">
+                {serviceHighlights.map((item) => (
+                  <p key={item} className="rounded-2xl border border-[var(--color-border)]/80 bg-[var(--color-bg-soft)]/50 px-4 py-2 text-sm font-semibold text-[var(--color-text-primary)]">
+                    {item}
+                  </p>
                 ))}
               </div>
-            </section>
+            </article>
+          </section>
 
-            <section className="rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] sm:p-8">
-              <h2 className="font-heading text-2xl font-semibold">Looking ahead</h2>
-              <p className="mt-4 leading-relaxed text-[var(--color-text-secondary)]">
-                We continue to improve MedAlerto with direct input from doctors and clinic staff, ensuring every release solves a real operational problem and preserves a fast, easy-to-use experience.
-              </p>
-            </section>
-          </div>
+          <section className="mt-12 rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] sm:p-8">
+            <h2 className="font-heading text-3xl font-semibold">How we build</h2>
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              {principles.map((item) => (
+                <article key={item.title} className="rounded-3xl border border-[var(--color-border)]/80 bg-[var(--color-bg-soft)]/45 p-4">
+                  <h3 className="text-lg font-bold text-[var(--color-text-primary)]">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-[var(--color-text-secondary)]">{item.description}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="mt-12 rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-primary)] p-8 text-[var(--color-on-primary)] shadow-[0_12px_34px_-16px_rgba(93,112,82,0.5)] sm:p-10">
+            <p className="font-mono text-[11px] uppercase tracking-[0.24em] text-[var(--color-on-primary)]/80">Vision</p>
+            <h2 className="mt-3 max-w-4xl font-heading text-3xl font-semibold leading-tight sm:text-4xl">A future where every independent clinic runs with structured systems, dependable communication, and better patient continuity.</h2>
+            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-[var(--color-on-primary)]/85">
+              We are not building for giant hospital bureaucracy. We are building practical software for real outpatient clinics that need speed, control, and trust in daily operations.
+            </p>
+          </section>
         </div>
       </main>
 

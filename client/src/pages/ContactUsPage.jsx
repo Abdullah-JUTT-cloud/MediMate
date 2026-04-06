@@ -3,26 +3,39 @@ import Footer from "../components/Footer";
 
 const channels = [
   {
-    title: "General and technical support",
-    description: "Questions about account access, prescriptions, appointments, or daily product usage.",
+    title: "General inquiries",
+    description: "Product questions, demos, and onboarding requests.",
+    contactLabel: "hello@medalerto.com",
+    contactHref: "mailto:hello@medalerto.com",
+    meta: "Response target: within 1 business day",
+  },
+  {
+    title: "Support and technical help",
+    description: "Account, usage, billing, and operational issues.",
     contactLabel: "support@medalerto.com",
     contactHref: "mailto:support@medalerto.com",
-    meta: "Typical response: within 4 business hours",
+    meta: "Response target: same business day",
   },
   {
-    title: "WhatsApp assistance",
-    description: "Fast help for onboarding, setup walkthroughs, and urgent workflow questions during clinic hours.",
-    contactLabel: "Start WhatsApp chat",
-    contactHref: "https://wa.me/923195490028?text=Hello%20MedAlerto%20Support%2C%20I%20need%20assistance%20with%20...",
-    meta: "Typical response: same business day",
+    title: "Phone",
+    description: "For urgent clinic-side operational concerns during business hours.",
+    contactLabel: "+92 319 5490028",
+    contactHref: "tel:+923195490028",
+    meta: "Mon-Fri, 9:00 AM - 6:00 PM (PKT)",
   },
   {
-    title: "Privacy and data requests",
-    description: "Questions related to personal data handling, retention requests, and account-level privacy concerns.",
-    contactLabel: "privacy@medalerto.com",
-    contactHref: "mailto:privacy@medalerto.com",
-    meta: "Typical response: within 2 business days",
+    title: "WhatsApp",
+    description: "Quick setup and usage guidance from the support team.",
+    contactLabel: "Open WhatsApp",
+    contactHref: "https://wa.me/923195490028?text=Hello%20MedAlerto%20team%2C%20I%20need%20help%20with%20...",
+    meta: "Fast responses in business hours",
   },
+];
+
+const notes = [
+  "Include clinic name and registered email in your message",
+  "Share screenshots for faster troubleshooting",
+  "Mention urgency if your consultation workflow is blocked",
 ];
 
 export default function ContactUsPage() {
@@ -33,42 +46,53 @@ export default function ContactUsPage() {
       <Navbar />
 
       <main className="relative z-10 px-4 pb-20 pt-28 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-5xl">
-          <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--color-primary)]">Support</p>
-          <h1 className="mt-4 font-heading text-4xl font-semibold leading-tight sm:text-5xl">Get in touch with the MedAlerto team</h1>
-          <p className="mt-5 max-w-3xl text-lg leading-relaxed text-[var(--color-text-secondary)]">
-            Whether you need onboarding guidance, product support, or policy clarification, our team is available to help your clinic operate without interruption.
-          </p>
+        <div className="mx-auto max-w-6xl">
+          <section className="rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-7 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] sm:p-10">
+            <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--color-primary)]">Contact</p>
+            <h1 className="mt-4 max-w-4xl font-heading text-4xl font-semibold leading-tight sm:text-5xl">Talk to the MedAlerto team.</h1>
+            <p className="mt-5 max-w-3xl text-lg leading-relaxed text-[var(--color-text-secondary)]">
+              If you need product guidance, support, or policy clarification, we respond with direct and practical help.
+            </p>
+          </section>
 
-          <div className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-3">
+          <section className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-2">
             {channels.map((channel) => (
-              <section key={channel.title} className="rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)]">
-                <h2 className="font-heading text-xl font-semibold">{channel.title}</h2>
+              <article key={channel.title} className="rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] sm:p-7">
+                <h2 className="font-heading text-2xl font-semibold">{channel.title}</h2>
                 <p className="mt-3 text-sm leading-relaxed text-[var(--color-text-secondary)]">{channel.description}</p>
                 <a
                   href={channel.contactHref}
                   target={channel.contactHref.startsWith("https") ? "_blank" : undefined}
                   rel={channel.contactHref.startsWith("https") ? "noopener noreferrer" : undefined}
-                  className="mt-5 inline-block text-base font-bold text-[var(--color-primary)] hover:underline"
+                  className="mt-5 inline-flex rounded-full border border-[var(--color-primary)]/40 bg-[var(--color-primary)]/10 px-4 py-2 text-sm font-bold text-[var(--color-primary)] hover:bg-[var(--color-primary)]/15"
                 >
                   {channel.contactLabel}
                 </a>
                 <p className="mt-3 text-xs text-[var(--color-text-secondary)]">{channel.meta}</p>
-              </section>
+              </article>
             ))}
-          </div>
-
-          <section className="mt-12 rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(193,140,93,0.16)] sm:p-8">
-            <h2 className="font-heading text-2xl font-semibold">Before you contact us</h2>
-            <p className="mt-4 leading-relaxed text-[var(--color-text-secondary)]">
-              To help us resolve your request quickly, include your clinic name, registered phone number, and a short description of the issue.
-              If possible, attach screenshots and the exact time the issue occurred.
-            </p>
           </section>
 
-          <p className="mt-8 text-sm text-[var(--color-text-secondary)]">
-            Support hours: Monday to Saturday, 9:00 AM to 7:00 PM (PKT).
-          </p>
+          <section className="mt-12 grid gap-5 lg:grid-cols-12">
+            <article className="rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(193,140,93,0.16)] sm:p-8 lg:col-span-7">
+              <h2 className="font-heading text-2xl font-semibold">Before you reach out</h2>
+              <ul className="mt-4 space-y-3">
+                {notes.map((item) => (
+                  <li key={item} className="flex items-start gap-3 text-sm leading-relaxed text-[var(--color-text-secondary)]">
+                    <span className="mt-1.5 h-2 w-2 rounded-full bg-[var(--color-secondary)]" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </article>
+
+            <article className="rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-primary)] p-6 text-[var(--color-on-primary)] shadow-[0_12px_34px_-16px_rgba(93,112,82,0.5)] sm:p-8 lg:col-span-5">
+              <h2 className="font-heading text-2xl font-semibold">Business hours</h2>
+              <p className="mt-3 text-sm leading-relaxed text-[var(--color-on-primary)]/85">Monday to Friday: 9:00 AM - 6:00 PM (PKT)</p>
+              <p className="mt-3 text-sm leading-relaxed text-[var(--color-on-primary)]/85">Saturday: 10:00 AM - 3:00 PM (PKT)</p>
+              <p className="mt-5 text-sm leading-relaxed text-[var(--color-on-primary)]/85">We prioritize clinic-impacting issues first and keep communication transparent until resolved.</p>
+            </article>
+          </section>
         </div>
       </main>
 

@@ -16,6 +16,19 @@ const CATEGORIES = [
   "Other",
 ];
 
+const SUPPORT_CHANNELS = [
+  { title: "Email", value: "support@medalerto.com" },
+  { title: "Chat", value: "In-platform issue chat" },
+  { title: "Hours", value: "Mon-Sat, 9:00 AM - 7:00 PM" },
+];
+
+const HELP_TOPICS = [
+  "Account access and login issues",
+  "Prescription and attachment delivery",
+  "Appointment and reminder behavior",
+  "Billing and subscription changes",
+];
+
 const statusTone = {
   Open: { color: "var(--color-secondary)", border: "rgba(193,140,93,0.35)", bg: "rgba(193,140,93,0.12)" },
   "In Progress": { color: "var(--color-primary)", border: "rgba(93,112,82,0.35)", bg: "rgba(93,112,82,0.12)" },
@@ -650,6 +663,26 @@ export default function SupportCenterPage() {
               Support Center
             </h2>
             <p className="text-xs mt-1 text-[var(--color-text-secondary)]">Create a ticket to chat with admin support.</p>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-2xl border p-3" style={{ borderColor: "color-mix(in srgb, var(--color-border) 85%, transparent)", background: "color-mix(in srgb, var(--color-bg-soft) 52%, transparent)" }}>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--color-text-secondary)]">Need help fast</p>
+          <div className="mt-2 grid grid-cols-1 gap-2">
+            {SUPPORT_CHANNELS.map((item) => (
+              <div key={item.title} className="rounded-xl border px-3 py-2" style={{ borderColor: "color-mix(in srgb, var(--color-border) 80%, transparent)", background: "color-mix(in srgb, var(--color-card) 88%, transparent)" }}>
+                <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--color-text-secondary)]">{item.title}</p>
+                <p className="mt-0.5 text-xs font-semibold text-[var(--color-text-primary)]">{item.value}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 space-y-1.5">
+            {HELP_TOPICS.map((topic) => (
+              <p key={topic} className="flex items-start gap-2 text-[11px] leading-relaxed text-[var(--color-text-secondary)]">
+                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-[var(--color-primary)]" />
+                <span>{topic}</span>
+              </p>
+            ))}
           </div>
         </div>
 
