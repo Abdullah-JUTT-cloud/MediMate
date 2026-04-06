@@ -34,9 +34,32 @@ const formatAppointmentMessage = (
     year: "numeric",
   });
   const facility = facilityName
-    ? `${facilityType === "Clinic" ? "Clinic" : "Hospital"}: ${facilityName}`
+    ? `${facilityType === "Clinic" || facilityType === "Hospital" ? facilityType : "Location"}: ${facilityName}`
     : "";
   return `Dear ${patientName},\n\nYour appointment is confirmed with Dr. ${doctorName}\nDate: ${formattedDate}\nTime: ${slot}\nType: ${type}\n${facility}\n\nSee you soon! - MedAlerto`;
+};
+
+const resolveFacilityForPatient = (patient, doctor) => {
+  const locations = Array.isArray(patient?.locations) ? patient.locations : [];
+  if (locations.length === 0) {
+    return { facilityName: "", facilityType: "" };
+  }
+
+  // Keep fallback deterministic when patient has multiple saved locations.
+  const location = locations[0];
+  if (location.locationType === "Clinic") {
+    return {
+      facilityName: location.locationName || doctor?.clinics?.[0]?.name || "",
+      facilityType: "Clinic",
+    };
+  }
+  if (location.locationType === "Hospital") {
+    return {
+      facilityName: location.locationName || doctor?.hospitals?.[0]?.name || "",
+      facilityType: "Hospital",
+    };
+  }
+  return { facilityName: location.locationName || "", facilityType: "" };
 };
 
 export const getAppointments = async (req, res) => {
@@ -157,11 +180,10 @@ export const createAppointment = async (req, res) => {
     await appointment.save();
 
     const doctor = await Doctor.findById(req.doctorId);
-    const facilityName =
-      type === "Clinic"
-        ? doctor?.clinics?.[0]?.name
-        : doctor?.hospitals?.[0]?.name;
-    const facilityType = type === "Clinic" ? "Clinic" : "Hospital";
+    const { facilityName, facilityType } = resolveFacilityForPatient(
+      patient,
+      doctor,
+    );
 
     const populated = await appointment.populate("patient", "name phone age");
     const msg = formatAppointmentMessage(
@@ -277,14 +299,22 @@ export const updateAppointment = async (req, res) => {
 
     const populated = await Appointment.findById(id).populate(
       "patient",
-      "name phone age",
+      "name phone age locations",
     );
     if (date || slot) {
+      const doctor = await Doctor.findById(req.doctorId);
+      const { facilityName, facilityType } = resolveFacilityForPatient(
+        populated?.patient,
+        doctor,
+      );
       const msg = formatAppointmentMessage(
         populated.patient.name,
         populated.date,
         populated.slot,
         populated.type,
+        doctor?.fullName || "Doctor",
+        facilityName,
+        facilityType,
       );
       await sendAppointmentWhatsApp(populated.patient, populated, msg);
     }
@@ -442,7 +472,7 @@ export const sendRescheduleWhatsApp = async (req, res) => {
     const appointment = await Appointment.findOne({
       doctor: req.doctorId,
       _id: id,
-    }).populate("patient", "name phone");
+    }).populate("patient", "name phone locations");
 
     if (!appointment) {
       return res.status(404).json({ message: "Appointment not found" });
@@ -454,13 +484,15 @@ export const sendRescheduleWhatsApp = async (req, res) => {
     }
 
     const doctor = await Doctor.findById(req.doctorId);
-    const facilityName =
-      appointment.type === "Clinic"
-        ? doctor?.clinics?.[0]?.name
-        : doctor?.hospitals?.[0]?.name;
-    const facilityType = appointment.type === "Clinic" ? "Clinic" : "Hospital";
+    const { facilityName, facilityType } = resolveFacilityForPatient(
+      appointment?.patient,
+      doctor,
+    );
 
-    const msg = `Dear ${appointment.patient.name},\n\nYour appointment with Dr. ${doctor?.fullName || "Doctor"} was cancelled due to an emergency.\n${facilityType}: ${facilityName}\n\nPlease wait while we reschedule your appointment.\n\nWe apologize for the inconvenience. - MedAlerto`;
+    const locationLine = facilityName
+      ? `${facilityType || "Location"}: ${facilityName}\n`
+      : "";
+    const msg = `Dear ${appointment.patient.name},\n\nYour appointment with Dr. ${doctor?.fullName || "Doctor"} was cancelled due to an emergency.\n${locationLine}\nPlease wait while we reschedule your appointment.\n\nWe apologize for the inconvenience. - MedAlerto`;
     await sendAppointmentWhatsApp(appointment.patient, appointment, msg);
 
     res.status(200).json({ message: "Reschedule WhatsApp sent successfully" });

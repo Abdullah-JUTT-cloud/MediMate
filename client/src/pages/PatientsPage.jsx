@@ -46,33 +46,33 @@ const ORGANIC = {
 const S = {
   // Organic card styling with soft borders and rounded containers
   input: { 
-    background: "rgba(255, 255, 255, 0.5)", 
-    border: `1.5px solid ${ORGANIC.border}`, 
+    background: "color-mix(in srgb, var(--color-card-elevated) 82%, var(--color-bg) 18%)",
+    border: "1.5px solid color-mix(in srgb, var(--color-border) 82%, transparent)",
     color: ORGANIC.fg,
-    borderRadius: "999px"
+    borderRadius: "999px",
   },
   card: { 
-    background: "var(--color-card)", 
-    border: `1px solid rgba(222, 216, 207, 0.5)`,
+    background: "color-mix(in srgb, var(--color-card) 92%, var(--color-bg) 8%)",
+    border: "1px solid color-mix(in srgb, var(--color-border) 78%, transparent)",
     borderRadius: "2rem",
     boxShadow: ORGANIC.shadowSoft
   },
   section: { 
-    background: `rgba(240, 235, 229, 0.3)`, 
-    border: `1px solid ${ORGANIC.border}`,
+    background: "color-mix(in srgb, var(--color-bg-soft) 48%, var(--color-card) 52%)",
+    border: "1px solid color-mix(in srgb, var(--color-border) 76%, transparent)",
     borderRadius: "1.5rem"
   },
 };
 
 const focusInput = (e) => {
   e.target.style.border = `1.5px solid ${ORGANIC.primary}`;
-  e.target.style.boxShadow = `0 0 0 3px rgba(93, 112, 82, 0.1)`;
+  e.target.style.boxShadow = `0 0 0 3px color-mix(in srgb, var(--color-primary) 22%, transparent)`;
 };
 const blurInput = (e) => {
-  e.target.style.border = `1.5px solid ${ORGANIC.border}`;
+  e.target.style.border = "1.5px solid color-mix(in srgb, var(--color-border) 82%, transparent)";
   e.target.style.boxShadow = "none";
 };
-const inputCls = "w-full px-5 py-3 rounded-full text-sm outline-none transition-all placeholder:text-[var(--color-text-muted)]";
+const inputCls = "w-full px-5 py-3 rounded-full text-sm outline-none transition-all placeholder:text-[var(--color-text-secondary)]";
 
 function LocationTag({ location }) {
   const isClinic = location.locationType === "Clinic";
@@ -340,7 +340,7 @@ function CheckupForm({ patient, existingCheckup, onBack, onSaved }) {
                     setVisitedFacility(null);
                   }
                 }}
-                className={inputCls} style={{ ...S.input, colorScheme: "auto" }} onFocus={focusInput} onBlur={blurInput}>
+                className={inputCls} style={S.input} onFocus={focusInput} onBlur={blurInput}>
                 <option value="" style={{ background: ORGANIC.bg, color: ORGANIC.fg }}>Select clinic or hospital</option>
                 {[
                   ...(doctor?.clinics || []).map((c) => ({ 
@@ -369,7 +369,7 @@ function CheckupForm({ patient, existingCheckup, onBack, onSaved }) {
               <label className="block text-xs font-medium mb-1.5" style={{ color: ORGANIC.mutedFg }}>Next Appointment (optional)</label>
               <input type="date" value={nextAppointment} onChange={(e) => setNextAppointment(e.target.value)}
                 min={minAppointmentDate}
-                className={inputCls} style={{ ...S.input, colorScheme: "auto" }} onFocus={focusInput} onBlur={blurInput} />
+                className={inputCls} style={{ ...S.input, colorScheme: "light" }} onFocus={focusInput} onBlur={blurInput} />
             </div>
             <div>
               <label className="block text-xs font-medium mb-3" style={{ color: ORGANIC.mutedFg }}>Medicines *</label>
