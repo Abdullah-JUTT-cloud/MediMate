@@ -105,26 +105,37 @@ export default function FAQPage() {
             ))}
           </section>
 
-          <section className="mt-6 rounded-4xl border border-[var(--color-border)]/70 bg-[#111c14] p-4 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.35)] sm:p-6">
+          <section
+            className="mt-6 rounded-4xl border border-[var(--color-border)]/70 p-4 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.2)] sm:p-6"
+            style={{ background: "color-mix(in srgb, var(--color-card) 92%, var(--color-primary) 8%)" }}
+          >
             <div className="space-y-3">
               {filteredItems.map((item, index) => (
-                <article key={`${item.category}-${item.question}`} className="overflow-hidden rounded-3xl border border-[#2e4737] bg-[#132118]">
+                <article
+                  key={`${item.category}-${item.question}`}
+                  className="overflow-hidden rounded-3xl border"
+                  style={{
+                    borderColor: "color-mix(in srgb, var(--color-border) 78%, var(--color-primary) 22%)",
+                    background: "color-mix(in srgb, var(--color-card-elevated) 88%, var(--color-primary) 12%)",
+                  }}
+                >
                   <button
                     type="button"
                     onClick={() => setOpenFaqIndex((prev) => (prev === index ? null : index))}
                     aria-expanded={openFaqIndex === index}
                     aria-controls={`faq-answer-${index}`}
-                    className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left sm:px-5"
+                    className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left transition sm:px-5"
+                    style={{ background: openFaqIndex === index ? "color-mix(in srgb, var(--color-primary) 14%, transparent)" : "transparent" }}
                   >
                     <div>
-                      <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-[#8eb49a]">{item.category}</p>
-                      <h3 className="text-base font-bold text-[#f2f5ef]">{item.question}</h3>
+                      <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--color-primary)]">{item.category}</p>
+                      <h3 className="text-base font-bold text-[var(--color-text-primary)]">{item.question}</h3>
                     </div>
-                    <span className="text-2xl font-semibold leading-none text-[#d8e6db]">{openFaqIndex === index ? "-" : "+"}</span>
+                    <span className="text-2xl font-semibold leading-none text-[var(--color-text-primary)]">{openFaqIndex === index ? "-" : "+"}</span>
                   </button>
                   {openFaqIndex === index ? (
                     <div id={`faq-answer-${index}`}>
-                      <p className="px-4 pb-4 text-sm leading-relaxed text-[#b8c9bc] sm:px-5">{item.answer}</p>
+                      <p className="px-4 pb-4 text-sm leading-relaxed text-[var(--color-text-secondary)] sm:px-5">{item.answer}</p>
                     </div>
                   ) : null}
                 </article>

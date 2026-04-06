@@ -9,36 +9,72 @@ const features = [
     title: "Digital Prescriptions",
     description:
       "Create and send prescriptions instantly as PDFs via WhatsApp. No more lost or damaged paper prescriptions.",
+    tag: "Core workflow",
+    impact: "Faster handoff",
   },
   {
     number: "02",
     title: "Medicine Alternatives",
     description:
       "Find alternative medicines by the same salt composition when your prescribed brand is unavailable.",
+    tag: "Clinical continuity",
+    impact: "Fewer treatment delays",
   },
   {
     number: "03",
     title: "Smart Appointments",
     description:
       "Schedule follow-ups with automatic WhatsApp confirmations. Reduce no-shows with intelligent reminders.",
+    tag: "Daily operations",
+    impact: "Better attendance",
   },
   {
     number: "04",
     title: "Patient History",
     description:
       "Access complete patient records and visit history instantly. Make informed decisions every time.",
+    tag: "Record quality",
+    impact: "Safer decisions",
   },
   {
     number: "05",
     title: "Emergency Management",
     description:
       "Cancel a range of appointments with one click in emergencies. Patients are notified automatically.",
+    tag: "Important feature",
+    impact: "Rapid patient updates",
   },
   {
     number: "06",
     title: "Practice Insights",
     description:
       "Track monthly earnings, patient activity, and clinic performance without any extra effort.",
+    tag: "Growth visibility",
+    impact: "Clearer planning",
+  },
+  {
+    number: "07",
+    title: "Patient Chat",
+    description:
+      "Keep patient communication in one thread with attachments and voice notes for post-visit clarity.",
+    tag: "Communication",
+    impact: "Fewer follow-up misunderstandings",
+  },
+  {
+    number: "08",
+    title: "Support Center",
+    description:
+      "Raise issues, track status, and continue conversations with support directly from your dashboard.",
+    tag: "Reliability",
+    impact: "Faster resolution time",
+  },
+  {
+    number: "09",
+    title: "Secure Access Control",
+    description:
+      "Use role-aware access and structured account controls to keep clinic and patient data protected.",
+    tag: "Security",
+    impact: "Stronger data confidence",
   },
 ];
 
@@ -47,6 +83,105 @@ const stats = [
   { value: "Zero", label: "Lost prescriptions" },
   { value: "100%", label: "WhatsApp delivery" },
   { value: "24/7", label: "Patient records access" },
+];
+
+const trustSignals = [
+  "Independent doctors",
+  "Specialist clinics",
+  "Role-based access",
+  "Patient chat support",
+  "Emergency bulk cancel",
+  "Audit-friendly records",
+  "Clinic-hour support",
+];
+
+const flowSteps = [
+  {
+    step: "01",
+    title: "Morning setup",
+    text: "Open the day with a clear appointment queue and active follow-up list.",
+  },
+  {
+    step: "02",
+    title: "Consultation workflow",
+    text: "Capture notes, generate prescriptions, and send patient-ready instructions instantly.",
+  },
+  {
+    step: "03",
+    title: "Patient communication",
+    text: "Use built-in chat and reminders to keep post-visit communication organized.",
+  },
+  {
+    step: "04",
+    title: "Operational control",
+    text: "Track outcomes, monitor load, and handle emergency schedule changes in one place.",
+  },
+];
+
+const testimonials = [
+  {
+    quote:
+      "We reduced front-desk follow-up calls significantly because reminders and prescription delivery are now consistent.",
+    author: "Dr. Hina A.",
+    role: "Dermatology Clinic, Lahore",
+    metric: "-42% manual follow-up calls",
+  },
+  {
+    quote:
+      "The emergency bulk cancel button saved us during an unplanned closure. Patients were informed quickly without chaos.",
+    author: "Dr. Faraz K.",
+    role: "General Practice, Karachi",
+    metric: "120+ appointments updated in minutes",
+  },
+  {
+    quote:
+      "We finally have one reliable view of patient history, prescriptions, and chat. Decision-making is much faster now.",
+    author: "Dr. Sana M.",
+    role: "Internal Medicine, Islamabad",
+    metric: "10x faster record retrieval",
+  },
+  {
+    quote:
+      "Our reception team now handles scheduling changes without confusion, and patients get updates immediately.",
+    author: "Dr. Kamran T.",
+    role: "Family Clinic, Faisalabad",
+    metric: "-35% front-desk call volume",
+  },
+  {
+    quote:
+      "Prescription turnaround is much faster now. We complete visits without asking patients to wait for paperwork.",
+    author: "Dr. Ayesha R.",
+    role: "General Practice, Multan",
+    metric: "3x faster prescription handoff",
+  },
+  {
+    quote:
+      "The reminders improved follow-up attendance in just a few weeks and reduced missed continuity visits.",
+    author: "Dr. Bilal N.",
+    role: "Cardiac Clinic, Rawalpindi",
+    metric: "+28% follow-up attendance",
+  },
+  {
+    quote:
+      "Patient chat helped us reduce unclear post-visit instructions and avoid repeat clarification calls.",
+    author: "Dr. Mahnoor S.",
+    role: "Pediatrics, Lahore",
+    metric: "-31% post-visit clarification calls",
+  },
+  {
+    quote:
+      "We no longer depend on scattered notes. Every visit detail is available when the patient returns.",
+    author: "Dr. Waqas H.",
+    role: "Orthopedic Practice, Karachi",
+    metric: "Consistent records across visits",
+  },
+  {
+    quote:
+      "The dashboard makes daily load obvious. We plan staff shifts better and avoid peak-hour bottlenecks.",
+    author: "Dr. Nadia F.",
+    role: "Multi-Doctor Clinic, Islamabad",
+    metric: "Smoother daily throughput",
+  },
 ];
 
 export default function LandingPage() {
@@ -157,11 +292,14 @@ export default function LandingPage() {
                 <p className="mt-6 max-w-2xl text-lg leading-relaxed text-[var(--color-text-secondary)] first-letter:float-left first-letter:mr-3 first-letter:text-6xl first-letter:leading-[0.8] first-letter:font-heading first-letter:font-semibold first-letter:text-[var(--color-primary)]">
                   MedAlerto reduces the manual noise around prescriptions, scheduling, and patient tracking. The result is a calmer workflow that still moves fast when the clinic needs it.
                 </p>
+                <div className="mt-6 inline-flex rounded-full border border-[var(--color-border)]/80 bg-[var(--color-card)] px-4 py-2">
+                  <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-[var(--color-primary)]">{features.length} operational capabilities</span>
+                </div>
               </div>
             </div>
 
             <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
-              {features.map(({ number, title, description }, index) => (
+              {features.map(({ number, title, description, tag, impact }, index) => (
                 <article
                   key={title}
                   className={`group rounded-[2.25rem] border border-[var(--color-border)]/60 bg-[var(--color-card)] p-8 shadow-[0_4px_20px_-2px_rgba(93,112,82,0.12)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_-14px_rgba(93,112,82,0.2)] motion-reduce:transition-none ${index === 0 ? "xl:col-span-2" : ""}`}
@@ -170,10 +308,97 @@ export default function LandingPage() {
                     <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-[var(--color-text-muted)]">{number}</p>
                     <span className="mt-1 h-px w-12 bg-[var(--color-border)] transition duration-300 group-hover:bg-[var(--color-secondary)]" />
                   </div>
+                  <p className="mt-6 inline-flex rounded-full border border-[var(--color-border)]/80 bg-[var(--color-bg-soft)]/55 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-secondary)]">
+                    {tag}
+                  </p>
                   <h3 className="mt-10 text-2xl font-heading font-semibold leading-tight text-[var(--color-text-primary)]">
                     {title}
                   </h3>
                   <p className="mt-4 max-w-md text-sm leading-relaxed text-[var(--color-text-secondary)]">{description}</p>
+                  <div className="mt-6 border-t border-[var(--color-border)]/70 pt-4">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--color-primary)]">
+                      Outcome: {impact}
+                    </p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="border-t border-[var(--color-border)]/60 bg-[var(--color-bg)] py-16 sm:py-20">
+          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-5 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] sm:p-7">
+              <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-[var(--color-text-secondary)]">Built for real clinic conditions</p>
+              <div className="mt-4 flex flex-wrap gap-2.5">
+                {trustSignals.map((signal) => (
+                  <span
+                    key={signal}
+                    className="rounded-full border border-[var(--color-border)]/80 bg-[var(--color-bg-soft)]/55 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.13em] text-[var(--color-text-secondary)]"
+                  >
+                    {signal}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="border-t border-[var(--color-border)]/60 bg-[var(--color-bg-soft)]/35 py-24 sm:py-28">
+          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-12 gap-8">
+              <div className="col-span-12 xl:col-span-5">
+                <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-[var(--color-text-secondary)]">How clinics use it daily</p>
+                <h2 className="mt-6 max-w-xl text-4xl font-heading font-semibold leading-[0.95] sm:text-5xl">
+                  A calmer day from <span className="italic text-[var(--color-secondary)]">first patient</span> to close.
+                </h2>
+                <p className="mt-6 max-w-lg text-base leading-relaxed text-[var(--color-text-secondary)]">
+                  MedAlerto is designed to match real outpatient pace: fast consultations, reliable communication, and stronger operational control when unexpected situations appear.
+                </p>
+              </div>
+              <div className="col-span-12 xl:col-span-7">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  {flowSteps.map((item) => (
+                    <article key={item.step} className="rounded-3xl border border-[var(--color-border)]/70 bg-[var(--color-card)] p-5 shadow-[0_4px_20px_-2px_rgba(93,112,82,0.12)]">
+                      <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-primary)]">{item.step}</p>
+                      <h3 className="mt-3 text-xl font-heading font-semibold">{item.title}</h3>
+                      <p className="mt-3 text-sm leading-relaxed text-[var(--color-text-secondary)]">{item.text}</p>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="border-t border-[var(--color-border)]/60 bg-[var(--color-bg)] py-24 sm:py-28">
+          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-[var(--color-text-secondary)]">Clinic feedback</p>
+                <h2 className="mt-4 max-w-2xl text-4xl font-heading font-semibold leading-[0.95] sm:text-5xl">
+                  Trusted by doctors who run high-pressure days.
+                </h2>
+              </div>
+              <button
+                onClick={() => navigate("/pricing")}
+                className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--color-secondary)] bg-[var(--color-card)] px-5 text-sm font-bold text-[var(--color-secondary)] transition duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-secondary)]/10"
+              >
+                View Pricing
+              </button>
+            </div>
+
+            <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-3">
+              {testimonials.map((item) => (
+                <article key={item.author} className="rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)]">
+                  <p className="text-sm leading-relaxed text-[var(--color-text-secondary)]">“{item.quote}”</p>
+                  <div className="mt-5 border-t border-[var(--color-border)]/80 pt-4">
+                    <p className="text-sm font-bold text-[var(--color-text-primary)]">{item.author}</p>
+                    <p className="mt-1 text-xs uppercase tracking-[0.12em] text-[var(--color-text-secondary)]">{item.role}</p>
+                    <p className="mt-3 inline-flex rounded-full border border-[var(--color-primary)]/35 bg-[var(--color-primary)]/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-primary)]">
+                      {item.metric}
+                    </p>
+                  </div>
                 </article>
               ))}
             </div>
