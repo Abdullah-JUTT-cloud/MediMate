@@ -112,7 +112,7 @@ connectDB()
     process.exit(1);
 })
 
-// Global error handler for Express (catches async errors from middleware/handlers)
+// Global error handler for Express (catches async errors from middleware/handlers) - ERR-3
 app.use((err, req, res, next) => {
   console.error("[Error]", err.message, err.stack);
   
