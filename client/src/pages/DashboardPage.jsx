@@ -9,6 +9,7 @@ import logo from "../assets/logo-compact.webp";
 import SettingsPage from "./SettingsPage";
 import PatientsPage from "./PatientsPage";
 import AppointmentsPage from "./AppointmentsPage";
+import EmergencyCancelledPage from "./EmergencyCancelledPage";
 import InsightsPage from "./InsightsPage";
 import RevenueLabPage from "./RevenueLabPage";
 import SupportCenterPage from "./SupportCenterPage";
@@ -17,8 +18,6 @@ import VerifiedBadge from "../components/VerifiedBadge";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { CardSkeleton, RowSkeleton, AppointmentRowSkeleton, ChartSkeleton } from "../components/SkeletonLoaders";
 import { Skeleton } from "@mui/material";
-import ConfirmDialog from "../components/ConfirmDialog";
-import useConfirmDialog from "../hooks/useConfirmDialog";
 import { getRealtimeSocketForRole } from "../realtime/socket";
 
 const navItems = [
@@ -26,6 +25,7 @@ const navItems = [
   { icon: Users, label: "Patients", key: "patients" },
   { icon: MessagesSquare, label: "Chats", key: "chats" },
   { icon: CalendarCheck2, label: "Appointments", key: "appointments" },
+  { icon: CalendarCheck2, label: "Emergency Cancelled", key: "emergency-cancelled" },
   { icon: BarChart3, label: "Insights", key: "insights" },
   { icon: BarChart3, label: "Revenue Lab", key: "revenue-lab" },
   { icon: LifeBuoy, label: "Support", key: "support" },
@@ -51,7 +51,6 @@ const CustomTooltip = ({ active, payload, label }) => {
 const getInitials = (name) => name?.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "P";
 
 export default function DashboardPage() {
-  const { confirm, dialogProps } = useConfirmDialog();
   const navigate = useNavigate();
   const { doctor, logout, setDoctor } = useAuthStore();
   const [activeNav, setActiveNav] = useState("dashboard");
@@ -60,14 +59,6 @@ export default function DashboardPage() {
   const [recentPatients, setRecentPatients] = useState([]);
   const [totalPatients, setTotalPatients] = useState(0);
   const [isLoadingData, setIsLoadingData] = useState(true);
-  const [showEmergencySection, setShowEmergencySection] = useState(false);
-  const [emergencyStartDate, setEmergencyStartDate] = useState("");
-  const [emergencyStartTime, setEmergencyStartTime] = useState("");
-  const [emergencyEndDate, setEmergencyEndDate] = useState("");
-  const [emergencyEndTime, setEmergencyEndTime] = useState("");
-  const [isCancelling, setIsCancelling] = useState(false);
-  const [cancelledAppointments, setCancelledAppointments] = useState([]);
-  const [isLoadingCancelled, setIsLoadingCancelled] = useState(false);
   const [rescheduleContext, setRescheduleContext] = useState(null);
   const [todayEarnings, setTodayEarnings] = useState(0);
   const [isLoadingTodayEarnings, setIsLoadingTodayEarnings] = useState(false);
@@ -178,22 +169,8 @@ export default function DashboardPage() {
     }
   };
 
-  const fetchCancelledAppointments = async () => {
-    setIsLoadingCancelled(true);
-    try {
-      const res = await axiosInstance.get("/appointments?status=Cancelled&limit=500");
-      const emergency = res.data.appointments.filter((a) => a.emergencyCancelled === true);
-      setCancelledAppointments(emergency);
-    } catch {
-      console.error("Failed to load cancelled appointments");
-    } finally {
-      setIsLoadingCancelled(false);
-    }
-  };
-
   useEffect(() => {
     if (activeNav !== "dashboard") return;
-    fetchCancelledAppointments();
     const fetchDashboardData = async ({ withLoader = false } = {}) => {
       if (withLoader) setIsLoadingData(true);
       try {
@@ -375,7 +352,6 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
     if (!cancelledAppointmentId) return;
     try {
       await axiosInstance.put(`/appointments/${cancelledAppointmentId}`, { emergencyCancelled: false });
-      setCancelledAppointments((p) => p.filter((a) => a._id !== cancelledAppointmentId));
       setRescheduleContext(null);
       toast.success("Rescheduling completed");
     } catch {
@@ -644,6 +620,21 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
           {activeNav === "insights" && <InsightsPage />}
           {activeNav === "revenue-lab" && <RevenueLabPage />}
           {activeNav === "support" && <SupportCenterPage />}
+          {activeNav === "emergency-cancelled" && (
+            <EmergencyCancelledPage
+              onReschedule={async (apt) => {
+                try {
+                  await axiosInstance.post(`/appointments/${apt._id}/reschedule-whatsapp`);
+                  toast.success("Patient notified. Complete rescheduling to resolve this item.");
+                } catch {
+                  toast.error("Failed to send WhatsApp message");
+                  return;
+                }
+                setRescheduleContext({ patient: apt.patient, cancelledAppointmentId: apt._id });
+                setActiveNav("appointments");
+              }}
+            />
+          )}
           {activeNav === "appointments" && (
             <AppointmentsPage
               initialPatient={rescheduleContext?.patient || null}
@@ -659,7 +650,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                   { icon: "👤", label: "New Patient", color: "var(--color-primary)", onClick: () => setActiveNav("patients") },
                   { icon: "📅", label: "Book Appointment", color: "var(--color-primary)", onClick: () => setActiveNav("appointments") },
                   { icon: "🛟", label: "Feedback/Problem", color: "var(--color-primary)", onClick: () => setActiveNav("support") },
-                  { icon: "🚨", label: "Emergency Cancel", color: "var(--color-danger)", onClick: () => setShowEmergencySection((p) => !p) },
+                  { icon: "🚨", label: "Emergency Cancel", color: "var(--color-danger)", onClick: () => setActiveNav("emergency-cancelled") },
                 ].map((action) => (
                   <button key={action.label} onClick={action.onClick}
                     className="flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-14px_rgba(93,112,82,0.22)] sm:px-4 sm:py-2.5 sm:text-sm"
@@ -674,88 +665,6 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                   </button>
                 ))}
               </div>
-
-              {showEmergencySection && (
-                <div
-                  className="mb-5 rounded-4xl p-5"
-                  style={{ background: "rgba(168,84,72,0.08)", border: "1px solid rgba(168,84,72,0.24)", boxShadow: "0 10px 40px -10px rgba(168,84,72,0.22)" }}
-                >
-                  <p className="mb-4 text-sm font-bold text-[var(--color-danger)]">🚨 Emergency Cancel Appointments</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <label className="block text-xs font-medium mb-1.5 text-[var(--color-text-secondary)]">Start Date & Time</label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <input type="date" value={emergencyStartDate}
-                          onChange={(e) => setEmergencyStartDate(e.target.value)}
-                          className="w-full rounded-full border border-[var(--color-danger)]/35 bg-[var(--color-card)]/90 px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-danger)]/25" />
-                        <input type="time" value={emergencyStartTime}
-                          onChange={(e) => setEmergencyStartTime(e.target.value)}
-                          className="w-full rounded-full border border-[var(--color-danger)]/35 bg-[var(--color-card)]/90 px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-danger)]/25" />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium mb-1.5 text-[var(--color-text-secondary)]">End Date & Time</label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <input type="date" value={emergencyEndDate}
-                          onChange={(e) => setEmergencyEndDate(e.target.value)}
-                          className="w-full rounded-full border border-[var(--color-danger)]/35 bg-[var(--color-card)]/90 px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-danger)]/25" />
-                        <input type="time" value={emergencyEndTime}
-                          onChange={(e) => setEmergencyEndTime(e.target.value)}
-                          className="w-full rounded-full border border-[var(--color-danger)]/35 bg-[var(--color-card)]/90 px-4 py-3 text-sm text-[var(--color-text-primary)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-danger)]/25" />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <button onClick={async () => {
-                      if (!emergencyStartDate || !emergencyStartTime || !emergencyEndDate || !emergencyEndTime) {
-                        toast.error("Select start/end date and time");
-                        return;
-                      }
-                      const startDateTime = new Date(`${emergencyStartDate}T${emergencyStartTime}:00`);
-                      const endDateTime = new Date(`${emergencyEndDate}T${emergencyEndTime}:00`);
-                      if (startDateTime > endDateTime) { toast.error("Start date/time must be before end date/time"); return; }
-                      const confirmed = await confirm({
-                        title: "Emergency Cancel",
-                        message: `Cancel all appointments from ${emergencyStartDate} ${emergencyStartTime} to ${emergencyEndDate} ${emergencyEndTime}?`,
-                        confirmText: "Yes, Cancel All",
-                        cancelText: "Keep Appointments",
-                        tone: "danger",
-                      });
-                      if (!confirmed) return;
-                      setIsCancelling(true);
-                      try {
-                        const res = await axiosInstance.post("/appointments/emergency-cancel", {
-                          startDate: emergencyStartDate,
-                          startTime: emergencyStartTime,
-                          endDate: emergencyEndDate,
-                          endTime: emergencyEndTime,
-                        });
-                        toast.success(`${res.data.cancelledAppointments.length} appointments cancelled`);
-                        setCancelledAppointments((p) => [...res.data.cancelledAppointments, ...p]);
-                        setShowEmergencySection(false);
-                        setEmergencyStartDate("");
-                        setEmergencyStartTime("");
-                        setEmergencyEndDate("");
-                        setEmergencyEndTime("");
-                      } catch {
-                        toast.error("Failed to cancel appointments");
-                      } finally {
-                        setIsCancelling(false);
-                      }
-                    }}
-                      disabled={isCancelling}
-                      className="rounded-full px-5 py-2.5 text-sm font-bold transition-all hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-14px_rgba(93,112,82,0.22)] hover:opacity-95 disabled:opacity-50"
-                      style={{ background: "color-mix(in srgb, var(--color-danger) 15%, transparent)", border: "1px solid color-mix(in srgb, var(--color-danger) 30%, transparent)", color: "var(--color-danger)" }}>
-                      {isCancelling ? "Cancelling..." : "Cancel All Appointments"}
-                    </button>
-                    <button onClick={() => setShowEmergencySection(false)}
-                      className="rounded-full px-5 py-2.5 text-sm font-semibold text-[var(--color-text-secondary)] transition-all hover:opacity-80"
-                      style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}>
-                      Dismiss
-                    </button>
-                  </div>
-                </div>
-              )}
 
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
                 {isLoadingData || isLoadingTodayEarnings ? (
@@ -922,62 +831,28 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                 )}
               </div>
 
-              {isLoadingCancelled && (
-                <div className="space-y-2 mt-6">
-                  <RowSkeleton hasAvatar={true} />
-                </div>
-              )}
-
-              {!isLoadingCancelled && cancelledAppointments.length > 0 && (
-                <div className="mt-6 rounded-4xl p-4 sm:p-6"
-                  style={{ background: "rgba(168,84,72,0.06)", border: "1px solid rgba(168,84,72,0.2)", boxShadow: "0 10px 40px -10px rgba(168,84,72,0.2)" }}>
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h3 className="text-sm sm:text-base font-bold text-[var(--color-text-primary)]">🚨 Emergency Cancelled Appointments</h3>
-                      <p className="text-xs mt-0.5 text-[var(--color-text-secondary)]">{cancelledAppointments.length} appointments need rescheduling</p>
-                    </div>
+              <div className="mt-4 rounded-3xl border border-[rgba(168,84,72,0.18)] bg-[rgba(168,84,72,0.05)] p-4 sm:p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-bold text-[var(--color-text-primary)]">Reschedule queue</h3>
+                    <p className="text-xs text-[var(--color-text-secondary)]">Open the emergency-cancel page to manage cancellations and reschedules.</p>
                   </div>
-                  <div className="space-y-2">
-                    {cancelledAppointments.map((apt) => (
-                      <div key={apt._id} className="flex items-center gap-3 rounded-3xl p-3 sm:p-4"
-                        style={{ background: "color-mix(in srgb, var(--color-card) 92%, transparent)", border: "1px solid rgba(168,84,72,0.2)" }}>
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold text-white shrink-0"
-                          style={{ background: "linear-gradient(135deg,var(--color-danger),color-mix(in srgb, var(--color-danger) 85%, black))" }}>
-                          {apt.patient?.name?.charAt(0) || "P"}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-[var(--color-text-primary)] truncate">{apt.patient?.name || "Unknown"}</p>
-                          <p className="text-xs text-[var(--color-text-secondary)]">
-                            {new Date(apt.date).toLocaleDateString("en-PK", { day: "numeric", month: "short", year: "numeric" })} at {apt.slot} · {apt.type}
-                          </p>
-                        </div>
-                        <button onClick={async () => {
-                          try {
-                            await axiosInstance.post(`/appointments/${apt._id}/reschedule-whatsapp`);
-                            toast.success("Patient notified. Complete rescheduling to resolve this item.");
-                          } catch {
-                            toast.error("Failed to send WhatsApp message");
-                            return;
-                          }
-                          setRescheduleContext({ patient: apt.patient, cancelledAppointmentId: apt._id });
-                          setActiveNav("appointments");
-                        }}
-                          className="shrink-0 rounded-full px-3 py-2 text-xs font-bold transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-14px_rgba(93,112,82,0.22)] hover:opacity-95"
-                          style={{ background: "rgba(93,112,82,0.12)", border: "1px solid rgba(93,112,82,0.24)", color: "var(--color-primary)" }}>
-                          Reschedule
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+                  <button
+                    onClick={() => setActiveNav("emergency-cancelled")}
+                    className="rounded-full px-4 py-2 text-xs font-bold transition-all hover:-translate-y-0.5 hover:opacity-95"
+                    style={{ background: "rgba(93,112,82,0.12)", border: "1px solid rgba(93,112,82,0.24)", color: "var(--color-primary)" }}
+                  >
+                    Open Queue
+                  </button>
                 </div>
-              )}
+              </div>
             </>
           )}
           
           </>
           )}
 
-          {!isProfileRestricted && !["dashboard", "settings", "patients", "chats", "appointments", "insights", "revenue-lab", "support"].includes(activeNav) && (
+          {!isProfileRestricted && !["dashboard", "settings", "patients", "chats", "appointments", "emergency-cancelled", "insights", "revenue-lab", "support"].includes(activeNav) && (
             <div className="flex h-full items-center justify-center">
               <div className="rounded-4xl border border-[var(--color-border)] bg-[var(--color-card)]/95 px-10 py-16 text-center shadow-[0_10px_40px_-10px_rgba(93,112,82,0.18)]">
                 <div className="mb-4 text-5xl">🚧</div>
@@ -988,7 +863,6 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
           )}
         </main>
       </div>
-      <ConfirmDialog {...dialogProps} />
     </div>
   );
 }

@@ -408,6 +408,8 @@ export const emergencyCancel = async (req, res) => {
         });
     }
 
+    const cancelledAt = new Date();
+
     // Single atomic write — replaces the sequential per-document save loop
     const cancelIds = toCancel.map((a) => a._id);
     await Appointment.updateMany(
@@ -418,6 +420,7 @@ export const emergencyCancel = async (req, res) => {
           cancellationReason: "Emergency",
           emergencyCancelled: true,
           reminderSent: true,
+          cancelledAt,
         },
       },
     );
@@ -429,6 +432,7 @@ export const emergencyCancel = async (req, res) => {
       cancellationReason: "Emergency",
       emergencyCancelled: true,
       reminderSent: true,
+      cancelledAt,
     }));
 
     for (const appointment of toCancel) {
