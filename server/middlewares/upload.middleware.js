@@ -4,17 +4,22 @@ import { fileTypeFromBuffer } from "file-type";
 
 const storage = multer.memoryStorage();
 
-const allowedExtensions = new Set([".png", ".jpg", ".jpeg", ".gif", ".pdf", ".webm", ".ogg", ".mp3", ".wav"]);
+const normalizeMimeType = (mimeType = "") => String(mimeType).split(";")[0].trim().toLowerCase();
+
+const allowedExtensions = new Set([".png", ".jpg", ".jpeg", ".gif", ".webp", ".pdf", ".webm", ".ogg", ".mp3", ".wav", ".m4a", ".aac"]);
 const allowedMimeTypesByExtension = {
   ".png": ["image/png"],
-  ".jpg": ["image/jpeg"],
-  ".jpeg": ["image/jpeg"],
+  ".jpg": ["image/jpeg", "image/pjpeg"],
+  ".jpeg": ["image/jpeg", "image/pjpeg"],
   ".gif": ["image/gif"],
+  ".webp": ["image/webp"],
   ".pdf": ["application/pdf"],
   ".webm": ["audio/webm", "video/webm"],
-  ".ogg": ["audio/ogg"],
-  ".mp3": ["audio/mpeg"],
-  ".wav": ["audio/wav", "audio/x-wav"],
+  ".ogg": ["audio/ogg", "application/ogg", "audio/opus"],
+  ".mp3": ["audio/mpeg", "audio/mp3"],
+  ".wav": ["audio/wav", "audio/x-wav", "audio/vnd.wave"],
+  ".m4a": ["audio/mp4", "audio/x-m4a", "video/mp4"],
+  ".aac": ["audio/aac", "audio/x-aac"],
 };
 
 const getFileExtension = (filename = "") => path.extname(filename).toLowerCase();
@@ -26,12 +31,13 @@ const upload = multer({
     const extension = getFileExtension(file.originalname);
 
     if (!allowedExtensions.has(extension)) {
-      cb(new Error("Invalid file extension; only PNG, JPG, JPEG, GIF, PDF, WEBM, OGG, MP3, and WAV files are allowed"), false);
+      cb(new Error("Invalid file extension; only PNG, JPG, JPEG, GIF, WEBP, PDF, WEBM, OGG, MP3, WAV, M4A, and AAC files are allowed"), false);
       return;
     }
 
     const allowedMimeTypes = allowedMimeTypesByExtension[extension] || [];
-    if (!file.mimetype || !allowedMimeTypes.includes(file.mimetype)) {
+    const normalizedMimeType = normalizeMimeType(file.mimetype);
+    if (!normalizedMimeType || !allowedMimeTypes.includes(normalizedMimeType)) {
       cb(new Error("Invalid file type; the file extension and MIME type do not match an allowed upload type"), false);
       return;
     }
@@ -51,18 +57,19 @@ export const verifyUploadedFileSignature = async (req, res, next) => {
 
     if (!allowedMimeTypes) {
       return res.status(400).json({
-        message: "Invalid file extension; only PNG, JPG, JPEG, GIF, PDF, WEBM, OGG, MP3, and WAV files are allowed",
+        message: "Invalid file extension; only PNG, JPG, JPEG, GIF, WEBP, PDF, WEBM, OGG, MP3, WAV, M4A, and AAC files are allowed",
       });
     }
 
     const detectedFileType = await fileTypeFromBuffer(req.file.buffer);
-    if (!detectedFileType || !allowedMimeTypes.includes(detectedFileType.mime)) {
+    const detectedMimeType = normalizeMimeType(detectedFileType?.mime);
+    if (!detectedMimeType || !allowedMimeTypes.includes(detectedMimeType)) {
       return res.status(400).json({
         message: "Invalid file content; uploaded file signature does not match the allowed file type",
       });
     }
 
-    req.file.detectedMimeType = detectedFileType.mime;
+    req.file.detectedMimeType = detectedMimeType;
     next();
   } catch (error) {
     next(error);
@@ -81,18 +88,19 @@ export const verifyUploadedFilesSignature = async (req, res, next) => {
 
       if (!allowedMimeTypes) {
         return res.status(400).json({
-          message: "Invalid file extension; only PNG, JPG, JPEG, GIF, PDF, WEBM, OGG, MP3, and WAV files are allowed",
+          message: "Invalid file extension; only PNG, JPG, JPEG, GIF, WEBP, PDF, WEBM, OGG, MP3, WAV, M4A, and AAC files are allowed",
         });
       }
 
       const detectedFileType = await fileTypeFromBuffer(file.buffer);
-      if (!detectedFileType || !allowedMimeTypes.includes(detectedFileType.mime)) {
+      const detectedMimeType = normalizeMimeType(detectedFileType?.mime);
+      if (!detectedMimeType || !allowedMimeTypes.includes(detectedMimeType)) {
         return res.status(400).json({
           message: "Invalid file content; uploaded file signature does not match the allowed file type",
         });
       }
 
-      file.detectedMimeType = detectedFileType.mime;
+      file.detectedMimeType = detectedMimeType;
     }
 
     next();
@@ -101,6 +109,6 @@ export const verifyUploadedFilesSignature = async (req, res, next) => {
   }
 };
 
-export const allowedImageMimeTypes = new Set(["image/jpeg", "image/png", "image/gif"]);
+export const allowedImageMimeTypes = new Set(["image/jpeg", "image/pjpeg", "image/png", "image/gif", "image/webp"]);
 
 export default upload;

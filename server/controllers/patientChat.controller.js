@@ -10,7 +10,8 @@ import { emitPatientChatUpdate } from "../realtime/socket.js";
 const uploadAttachmentToCloudinary = async (file) => {
   const mimeType = file.detectedMimeType || file.mimetype;
   const isImage = allowedImageMimeTypes.has(mimeType);
-  const resourceType = isImage ? "image" : "raw";
+  const isAudio = String(mimeType || "").toLowerCase().startsWith("audio/");
+  const resourceType = isImage ? "image" : isAudio ? "video" : "raw";
 
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(

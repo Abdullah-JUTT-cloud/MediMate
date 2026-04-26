@@ -154,6 +154,61 @@ const applyIncomingSeenState = async ({ doctorId, patientId, chat, viewerRole, m
   return { chat, seenMessageIds };
 };
 
+const applyIssueOutgoingDeliveryState = async ({ ticket, senderRole }) => {
+  if (!ticket || !senderRole) return { ticket, deliveredMessageIds: [] };
+
+  const doctorId = String(ticket.doctor?._id || ticket.doctor || "");
+  if (!doctorId) return { ticket, deliveredMessageIds: [] };
+
+  const recipientRoom = senderRole === "doctor" ? getAdminRoom() : getDoctorRoom(doctorId);
+  if (!isRoomActive(recipientRoom)) {
+    return { ticket, deliveredMessageIds: [] };
+  }
+
+  const deliveredAt = new Date();
+  const deliveredMessageIds = [];
+
+  for (const message of ticket.messages || []) {
+    if (message?.senderRole !== senderRole) continue;
+    if (message?.status && message.status !== "sent") continue;
+    message.status = "delivered";
+    message.deliveredAt = message.deliveredAt || deliveredAt;
+    deliveredMessageIds.push(String(message._id));
+  }
+
+  if (deliveredMessageIds.length > 0) {
+    ticket.markModified("messages");
+    await ticket.save();
+  }
+
+  return { ticket, deliveredMessageIds };
+};
+
+const applyIssueIncomingSeenState = async ({ ticket, viewerRole, messageIds = [] }) => {
+  if (!ticket || !viewerRole) return { ticket, seenMessageIds: [] };
+
+  const normalizedMessageIds = new Set((messageIds || []).map(String));
+  const seenAt = new Date();
+  const seenMessageIds = [];
+
+  for (const message of ticket.messages || []) {
+    if (message?.senderRole === viewerRole) continue;
+    if (normalizedMessageIds.size > 0 && !normalizedMessageIds.has(String(message._id))) continue;
+    if (message?.status === "seen") continue;
+    message.status = "seen";
+    message.seenAt = seenAt;
+    message.deliveredAt = message.deliveredAt || seenAt;
+    seenMessageIds.push(String(message._id));
+  }
+
+  if (seenMessageIds.length > 0) {
+    ticket.markModified("messages");
+    await ticket.save();
+  }
+
+  return { ticket, seenMessageIds };
+};
+
 const getUnreadIncomingCount = (messages = []) => {
   let unreadCount = 0;
   for (let index = messages.length - 1; index >= 0; index -= 1) {
@@ -325,14 +380,32 @@ const emitIssueTicketUpdated = async (ticketInput) => {
   );
   if (!ticket) return;
 
-  const doctorId = String(ticket.doctor?._id || ticket.doctor);
-  const serializedTicket = ticket.toObject ? ticket.toObject() : ticket;
+  const senderRole = ticket?.messages?.[ticket.messages.length - 1]?.senderRole || null;
+  const deliveryResult = senderRole
+    ? await applyIssueOutgoingDeliveryState({ ticket, senderRole })
+    : { ticket, deliveredMessageIds: [] };
+  const hydratedTicket = deliveryResult.ticket || ticket;
+
+  const doctorId = String(hydratedTicket.doctor?._id || hydratedTicket.doctor);
+  const serializedTicket = hydratedTicket.toObject ? hydratedTicket.toObject() : hydratedTicket;
 
   ioInstance.to(getAdminRoom()).emit("issue-ticket:list-updated", { ticket: serializedTicket });
   ioInstance.to(getIssueTicketRoom(ticketId)).emit("issue-ticket:detail-updated", { ticketId, ticket: serializedTicket });
 
   if (doctorId) {
     ioInstance.to(getDoctorRoom(doctorId)).emit("issue-ticket:list-updated", { ticket: serializedTicket });
+  }
+
+  if (deliveryResult.deliveredMessageIds.length > 0) {
+    const payload = {
+      ticketId,
+      doctorId,
+      messageIds: deliveryResult.deliveredMessageIds,
+      status: "delivered",
+    };
+    ioInstance.to(getAdminRoom()).emit("issue-message_delivered", payload);
+    ioInstance.to(getDoctorRoom(doctorId)).emit("issue-message_delivered", payload);
+    ioInstance.to(getIssueTicketRoom(ticketId)).emit("issue-message_delivered", payload);
   }
 };
 
@@ -445,11 +518,16 @@ export const initSocketServer = (httpServer, allowedOrigins = []) => {
     socket.on("issue-ticket:join", async ({ ticketId } = {}) => {
       try {
         if (!ticketId) return;
-        const ticket = await IssueTicket.findById(ticketId).select("doctor").lean();
+        const ticket = await IssueTicket.findById(ticketId);
         if (!ticket) return;
 
         if (auth.role === "admin" || (auth.role === "doctor" && String(ticket.doctor) === auth.id)) {
           socket.join(getIssueTicketRoom(ticketId));
+          const senderRole = auth.role === "admin" ? "doctor" : "admin";
+          const deliveryResult = await applyIssueOutgoingDeliveryState({ ticket, senderRole });
+          if (deliveryResult.deliveredMessageIds.length > 0) {
+            await emitIssueTicketUpdated(deliveryResult.ticket);
+          }
         }
       } catch (error) {
         console.error("[socket][issue-ticket:join]", error);
@@ -478,6 +556,45 @@ export const initSocketServer = (httpServer, allowedOrigins = []) => {
         }
       } catch (error) {
         console.error("[socket][message_seen]", error);
+      }
+    });
+
+    socket.on("issue-message_seen", async ({ ticketId, messageIds = [] } = {}) => {
+      try {
+        if (!ticketId) return;
+        const ticket = await IssueTicket.findById(ticketId).populate(
+          "doctor",
+          "fullName email specialization profilePicture",
+        );
+        if (!ticket) return;
+
+        const doctorId = String(ticket.doctor?._id || ticket.doctor || "");
+        if (!doctorId) return;
+
+        if (auth.role !== "admin" && (auth.role !== "doctor" || doctorId !== auth.id)) {
+          return;
+        }
+
+        const result = await applyIssueIncomingSeenState({
+          ticket,
+          viewerRole: auth.role,
+          messageIds,
+        });
+        if (result.seenMessageIds.length === 0) return;
+
+        const payload = {
+          ticketId: String(ticket._id),
+          doctorId,
+          messageIds: result.seenMessageIds,
+          status: "seen",
+        };
+        ioInstance.to(getAdminRoom()).emit("issue-message_seen", payload);
+        ioInstance.to(getDoctorRoom(doctorId)).emit("issue-message_seen", payload);
+        ioInstance.to(getIssueTicketRoom(String(ticket._id))).emit("issue-message_seen", payload);
+
+        await emitIssueTicketUpdated(result.ticket);
+      } catch (error) {
+        console.error("[socket][issue-message_seen]", error);
       }
     });
   });

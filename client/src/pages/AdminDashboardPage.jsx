@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, ArrowDown, Building2, LifeBuoy, LogOut, Mic, Plus, Search, Send, ShieldCheck, UserCog, X } from "lucide-react";
+import { AlertTriangle, ArrowDown, Building2, LifeBuoy, LogOut, Mic, Pause, Play, Plus, Search, Send, ShieldCheck, UserCog, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
+import MessageStatusTicks from "../components/MessageStatusTicks";
 import VerifiedBadge from "../components/VerifiedBadge";
 import VoiceMessagePlayer from "../components/VoiceMessagePlayer";
 import { getRealtimeSocketForRole } from "../realtime/socket";
@@ -12,6 +13,27 @@ import "../styles/cyberpunk.css";
 const VERIFY_STATUS_OPTIONS = ["Pending", "In Review", "Needs Changes", "Verified"];
 const ISSUE_STATUS_OPTIONS = ["In Progress", "Resolved", "Closed"];
 const ADMIN_ISSUE_SEEN_STORAGE_KEY = "admin-issue-seen-map-v1";
+const RECORDER_MIME_CANDIDATES = [
+  "audio/webm;codecs=opus",
+  "audio/webm",
+  "audio/ogg;codecs=opus",
+  "audio/ogg",
+  "audio/mp4",
+];
+const normalizeAudioMimeType = (mimeType = "") => String(mimeType).split(";")[0].trim().toLowerCase();
+const getSupportedRecorderMimeType = () => {
+  if (typeof window === "undefined" || typeof window.MediaRecorder === "undefined") return "audio/webm";
+  return RECORDER_MIME_CANDIDATES.find((type) => window.MediaRecorder.isTypeSupported?.(type)) || "audio/webm";
+};
+const getAudioExtension = (mimeType = "") => {
+  const normalized = normalizeAudioMimeType(mimeType);
+  if (normalized.includes("ogg")) return "ogg";
+  if (normalized.includes("mpeg")) return "mp3";
+  if (normalized.includes("wav")) return "wav";
+  if (normalized.includes("mp4") || normalized.includes("m4a")) return "m4a";
+  if (normalized.includes("aac")) return "aac";
+  return "webm";
+};
 
 const isDoctorVerified = (status) => ["Verified", "Approved"].includes(status);
 const normalizeStatusLabel = (status) => (status === "Approved" ? "Verified" : status || "Pending");
@@ -104,6 +126,7 @@ export default function AdminDashboardPage() {
   const [previewImage, setPreviewImage] = useState(null);
   const [showJumpToLatest, setShowJumpToLatest] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [isRecordingPaused, setIsRecordingPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [voiceDraft, setVoiceDraft] = useState(null);
   const fileInputRef = useRef(null);
@@ -113,6 +136,81 @@ export default function AdminDashboardPage() {
   const recordingTimerRef = useRef(null);
   const recordingTimeRef = useRef(0);
   const discardRecordingRef = useRef(false);
+  const sendAfterRecordingRef = useRef(false);
+  const seenMessageIdsByIssueRef = useRef(new Map());
+
+  const patchIssueMessageStatuses = ({ ticketId, messageIds = [], status, deliveredAt, seenAt }) => {
+    const normalizedTicketId = String(ticketId || "");
+    if (!normalizedTicketId) return;
+
+    const idSet = new Set((messageIds || []).map(String));
+    if (idSet.size === 0) return;
+
+    const applyPatch = (list = []) => {
+      let changed = false;
+      const next = list.map((message) => {
+        const messageId = String(message?._id || "");
+        if (!messageId || !idSet.has(messageId)) {
+          return message;
+        }
+
+        changed = true;
+        return {
+          ...message,
+          status: status || message.status,
+          deliveredAt: deliveredAt || message.deliveredAt,
+          seenAt: seenAt || message.seenAt,
+        };
+      });
+
+      return changed ? next : list;
+    };
+
+    setSelectedTicket((prev) => {
+      if (!prev || String(prev._id) !== normalizedTicketId) return prev;
+      const nextMessages = applyPatch(prev.messages || []);
+      if (nextMessages === (prev.messages || [])) return prev;
+      return { ...prev, messages: nextMessages };
+    });
+
+    setTickets((prev) => prev.map((ticket) => {
+      if (String(ticket?._id) !== normalizedTicketId) return ticket;
+      const nextMessages = applyPatch(ticket.messages || []);
+      if (nextMessages === (ticket.messages || [])) return ticket;
+      return { ...ticket, messages: nextMessages };
+    }));
+  };
+
+  const emitVisibleSeenMessages = () => {
+    const ticketId = String(selectedTicketId || "");
+    const container = messagesContainerRef.current;
+    if (!ticketId || !container || !selectedTicket) return;
+
+    const ticketSeenSet = seenMessageIdsByIssueRef.current.get(ticketId) || new Set();
+    const rect = container.getBoundingClientRect();
+    const visibleMessageIds = [];
+
+    for (const element of container.querySelectorAll("[data-message-id][data-sender-role='doctor']")) {
+      const messageId = String(element.getAttribute("data-message-id") || "");
+      if (!messageId || ticketSeenSet.has(messageId)) continue;
+      const top = element.getBoundingClientRect().top;
+      const bottom = element.getBoundingClientRect().bottom;
+      const isVisible = bottom > rect.top + 12 && top < rect.bottom - 12;
+      if (!isVisible) continue;
+
+      const message = (selectedTicket.messages || []).find((item) => String(item?._id || "") === messageId);
+      if (!message || message.status === "seen") continue;
+
+      visibleMessageIds.push(messageId);
+      ticketSeenSet.add(messageId);
+    }
+
+    if (visibleMessageIds.length === 0) return;
+
+    seenMessageIdsByIssueRef.current.set(ticketId, ticketSeenSet);
+    const socket = getRealtimeSocketForRole("admin");
+    socket.emit("issue-message_seen", { ticketId, messageIds: visibleMessageIds });
+  };
 
   const scrollMessagesToBottom = () => {
     if (!messagesContainerRef.current) return;
@@ -308,10 +406,10 @@ export default function AdminDashboardPage() {
       await axiosInstance.post(`/issues/admin/${selectedTicket._id}/messages`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-    } catch {
+    } catch (error) {
       optimisticAttachments.forEach((item) => URL.revokeObjectURL(item.url));
       setOptimisticMessages((prev) => prev.filter((item) => item._id !== optimisticId));
-      toast.error("Failed to send reply");
+      toast.error(error.response?.data?.message || "Failed to send reply");
     } finally {
       setIsSendingReply(false);
     }
@@ -320,9 +418,19 @@ export default function AdminDashboardPage() {
   const handleReplyKeyDown = (event) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
+      if (isRecording) {
+        stopVoiceRecording({ sendAfter: true });
+        return;
+      }
       sendAdminReply();
     }
   };
+
+  useEffect(() => {
+    if (!voiceDraft?.file || !sendAfterRecordingRef.current) return;
+    sendAfterRecordingRef.current = false;
+    sendAdminReply();
+  }, [voiceDraft]);
 
   const isImageFile = (file) => {
     const mimeType = String(file?.type || "").toLowerCase();
@@ -394,7 +502,14 @@ export default function AdminDashboardPage() {
     }
     setVoiceDraft(null);
     setIsRecording(false);
+    setIsRecordingPaused(false);
     setRecordingTime(0);
+    recordingTimeRef.current = 0;
+    stopRecordingTimer();
+    sendAfterRecordingRef.current = false;
+    if (selectedTicketId) {
+      seenMessageIdsByIssueRef.current.set(String(selectedTicketId), new Set());
+    }
   }, [selectedTicketId]);
 
   useEffect(() => {
@@ -421,11 +536,32 @@ export default function AdminDashboardPage() {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const startRecordingTimer = () => {
+    if (recordingTimerRef.current) return;
+    recordingTimerRef.current = setInterval(() => {
+      recordingTimeRef.current += 1;
+      setRecordingTime(recordingTimeRef.current);
+    }, 1000);
+  };
+
+  const stopRecordingTimer = () => {
+    if (!recordingTimerRef.current) return;
+    clearInterval(recordingTimerRef.current);
+    recordingTimerRef.current = null;
+  };
+
   const startVoiceRecording = async () => {
     try {
       discardRecordingRef.current = false;
+      sendAfterRecordingRef.current = false;
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+      const preferredMimeType = getSupportedRecorderMimeType();
+      let recorder;
+      try {
+        recorder = new MediaRecorder(stream, { mimeType: preferredMimeType });
+      } catch {
+        recorder = new MediaRecorder(stream);
+      }
       audioChunksRef.current = [];
 
       recorder.ondataavailable = (event) => {
@@ -435,13 +571,15 @@ export default function AdminDashboardPage() {
       };
 
       recorder.onstop = () => {
-        if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
-        const mimeType = recorder.mimeType || "audio/webm";
+        stopRecordingTimer();
+        const mimeType = normalizeAudioMimeType(recorder.mimeType || preferredMimeType || "audio/webm") || "audio/webm";
 
         if (discardRecordingRef.current) {
           audioChunksRef.current = [];
           stream.getTracks().forEach((track) => track.stop());
           setRecordingTime(0);
+          setIsRecording(false);
+          setIsRecordingPaused(false);
           return;
         }
 
@@ -449,11 +587,13 @@ export default function AdminDashboardPage() {
         if (blob.size === 0) {
           stream.getTracks().forEach((track) => track.stop());
           setRecordingTime(0);
+          setIsRecording(false);
+          setIsRecordingPaused(false);
           toast.error("Recorded audio is empty");
           return;
         }
 
-        const ext = mimeType.includes("ogg") ? "ogg" : mimeType.includes("mpeg") ? "mp3" : mimeType.includes("wav") ? "wav" : "webm";
+        const ext = getAudioExtension(mimeType);
         const voiceFile = new File([blob], `voice-note-${Date.now()}.${ext}`, { type: mimeType });
         const previewUrl = URL.createObjectURL(blob);
 
@@ -467,45 +607,64 @@ export default function AdminDashboardPage() {
         stream.getTracks().forEach((track) => track.stop());
         setRecordingTime(0);
         recordingTimeRef.current = 0;
+        setIsRecording(false);
+        setIsRecordingPaused(false);
         toast.success("Voice note ready");
       };
 
       mediaRecorderRef.current = recorder;
-      recorder.start();
+      recorder.start(250);
       setIsRecording(true);
+      setIsRecordingPaused(false);
       setRecordingTime(0);
       recordingTimeRef.current = 0;
-
-      recordingTimerRef.current = setInterval(() => {
-        recordingTimeRef.current += 1;
-        setRecordingTime(recordingTimeRef.current);
-      }, 1000);
+      startRecordingTimer();
     } catch {
       toast.error("Microphone access is required");
     }
   };
 
-  const stopVoiceRecording = () => {
+  const stopVoiceRecording = ({ sendAfter = false } = {}) => {
     if (!mediaRecorderRef.current || mediaRecorderRef.current.state === "inactive") return;
     discardRecordingRef.current = false;
+    sendAfterRecordingRef.current = Boolean(sendAfter);
     mediaRecorderRef.current.stop();
-    setIsRecording(false);
-    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    stopRecordingTimer();
   };
 
   const cancelRecording = () => {
     discardRecordingRef.current = true;
+    sendAfterRecordingRef.current = false;
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stop();
     } else if (mediaRecorderRef.current?.stream) {
       mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
     }
     setIsRecording(false);
+    setIsRecordingPaused(false);
     setRecordingTime(0);
     recordingTimeRef.current = 0;
     audioChunksRef.current = [];
-    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    stopRecordingTimer();
     toast.info("Recording cancelled");
+  };
+
+  const togglePauseRecording = () => {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state === "inactive") return;
+
+    if (recorder.state === "paused") {
+      recorder.resume();
+      setIsRecordingPaused(false);
+      startRecordingTimer();
+      return;
+    }
+
+    if (recorder.state === "recording") {
+      recorder.pause();
+      setIsRecordingPaused(true);
+      stopRecordingTimer();
+    }
   };
 
   const issueMessages = [...(selectedTicket?.messages || []), ...optimisticMessages];
@@ -564,7 +723,12 @@ export default function AdminDashboardPage() {
     if (!selectedTicketId || !selectedTicket) return;
     if (String(selectedTicket?._id) !== String(selectedTicketId)) return;
     markIssueAsSeenLocally(selectedTicketId, selectedTicket);
+    emitVisibleSeenMessages();
   }, [selectedTicketId, selectedTicket]);
+
+  useEffect(() => {
+    emitVisibleSeenMessages();
+  }, [selectedTicket?.messages, optimisticMessages]);
 
   const sortedIssueTickets = [...tickets].sort((a, b) => {
     const aTime = getIssueLastMessageTime(a);
@@ -653,6 +817,14 @@ export default function AdminDashboardPage() {
       }
     };
 
+    const handleIssueMessageDelivered = ({ ticketId, messageIds = [], status, deliveredAt } = {}) => {
+      patchIssueMessageStatuses({ ticketId, messageIds, status: status || "delivered", deliveredAt });
+    };
+
+    const handleIssueMessageSeen = ({ ticketId, messageIds = [], status, seenAt, deliveredAt } = {}) => {
+      patchIssueMessageStatuses({ ticketId, messageIds, status: status || "seen", seenAt, deliveredAt });
+    };
+
     const handleReconnectSync = () => {
       loadTickets();
       if (selectedTicketId) {
@@ -673,12 +845,16 @@ export default function AdminDashboardPage() {
     socket.on("connect", handleReconnectSync);
     socket.on("issue-ticket:list-updated", handleTicketUpdate);
     socket.on("issue-ticket:detail-updated", handleTicketDetailUpdate);
+    socket.on("issue-message_delivered", handleIssueMessageDelivered);
+    socket.on("issue-message_seen", handleIssueMessageSeen);
     socket.on("connect_error", handleSocketError);
 
     return () => {
       socket.off("connect", handleReconnectSync);
       socket.off("issue-ticket:list-updated", handleTicketUpdate);
       socket.off("issue-ticket:detail-updated", handleTicketDetailUpdate);
+      socket.off("issue-message_delivered", handleIssueMessageDelivered);
+      socket.off("issue-message_seen", handleIssueMessageSeen);
       socket.off("connect_error", handleSocketError);
     };
   }, [admin, ticketFilter, selectedTicketId, selectedDoctorId]);
@@ -1032,9 +1208,21 @@ export default function AdminDashboardPage() {
                       </div>
 
                       <div className="relative min-h-0 flex-1">
-                        <div ref={messagesContainerRef} onScroll={updateJumpToLatestVisibility} className="h-full overflow-y-auto py-3 space-y-2">
+                        <div
+                          ref={messagesContainerRef}
+                          onScroll={() => {
+                            updateJumpToLatestVisibility();
+                            emitVisibleSeenMessages();
+                          }}
+                          className="h-full overflow-y-auto py-3 space-y-2"
+                        >
                           {issueMessages.map((m) => (
-                            <div key={m._id || `${m.senderRole}-${m.createdAt}`} className={`flex ${m.senderRole === "admin" ? "justify-end" : "justify-start"}`}>
+                            <div
+                              key={m._id || `${m.senderRole}-${m.createdAt}`}
+                              data-message-id={m._id || ""}
+                              data-sender-role={m.senderRole || ""}
+                              className={`flex ${m.senderRole === "admin" ? "justify-end" : "justify-start"}`}
+                            >
                               <div className="max-w-[80%] cyber-chamfer-sm px-3 py-2 border" style={m.senderRole === "admin" ? { background: "rgba(0,255,136,0.12)", borderColor: "rgba(0,255,136,0.35)" } : { background: "var(--color-card)", borderColor: "var(--color-border)" }}>
                                 <p className="cyber-text text-[11px] font-semibold mb-0.5 text-[var(--color-text-secondary)]">{m.senderName}</p>
                                 {m.text ? <p className="cyber-text text-sm text-[var(--color-text-primary)] whitespace-pre-wrap">{m.text}</p> : null}
@@ -1051,6 +1239,7 @@ export default function AdminDashboardPage() {
                                           <img
                                             src={attachment.url}
                                             alt={attachment.name}
+                                            loading="lazy"
                                             onLoad={scrollMessagesToBottom}
                                             className="max-h-64 w-full object-cover"
                                           />
@@ -1071,7 +1260,10 @@ export default function AdminDashboardPage() {
                                     ))}
                                   </div>
                                 ) : null}
-                                <p className="cyber-text mt-1 text-[10px] text-right text-[var(--color-text-secondary)]">{m.createdAt ? new Date(m.createdAt).toLocaleTimeString("en-PK", { hour: "2-digit", minute: "2-digit" }) : ""}</p>
+                                <div className="cyber-text mt-1 flex items-center justify-end gap-1.5 text-[10px] text-[var(--color-text-secondary)]">
+                                  <span>{m.createdAt ? new Date(m.createdAt).toLocaleTimeString("en-PK", { hour: "2-digit", minute: "2-digit" }) : ""}</span>
+                                  {m.senderRole === "admin" ? <MessageStatusTicks status={m.status || "sent"} /> : null}
+                                </div>
                               </div>
                             </div>
                           ))}
@@ -1094,14 +1286,23 @@ export default function AdminDashboardPage() {
                           <div className="mb-3 flex flex-col gap-3 rounded-2xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:rounded-full" style={{ background: "color-mix(in srgb, var(--color-danger) 14%, transparent)", borderColor: "color-mix(in srgb, var(--color-danger) 34%, transparent)" }}>
                             <div className="flex items-center gap-3">
                               <div className="h-3 w-3 rounded-full bg-red-500 animate-pulse"></div>
-                              <span className="text-sm font-semibold text-[var(--color-danger)]">Recording... {formatRecordingTime(recordingTime)}</span>
+                              <span className="text-sm font-semibold text-[var(--color-danger)]">
+                                {isRecordingPaused ? "Paused" : "Recording..."} {formatRecordingTime(recordingTime)}
+                              </span>
                             </div>
                             <div className="flex gap-2 self-end sm:self-auto">
                               <button type="button" onClick={cancelRecording} className="rounded-full p-2.5 transition" style={{ background: "color-mix(in srgb, var(--color-danger) 26%, transparent)", color: "var(--color-danger)" }} aria-label="Discard recording">
                                 <X className="h-4 w-4" />
                               </button>
-                              <button type="button" onClick={stopVoiceRecording} className="rounded-full bg-green-500 px-4 py-2 text-xs font-semibold text-white hover:bg-green-600">
-                                Stop
+                              <button type="button" onClick={togglePauseRecording} className="rounded-full bg-amber-500 px-4 py-2 text-xs font-semibold text-white hover:bg-amber-600">
+                                {isRecordingPaused ? (
+                                  <span className="inline-flex items-center gap-1"><Play className="h-3.5 w-3.5" />Resume</span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1"><Pause className="h-3.5 w-3.5" />Pause</span>
+                                )}
+                              </button>
+                              <button type="button" onClick={() => stopVoiceRecording({ sendAfter: true })} className="rounded-full bg-green-500 px-4 py-2 text-xs font-semibold text-white hover:bg-green-600">
+                                Send
                               </button>
                             </div>
                           </div>
@@ -1163,22 +1364,34 @@ export default function AdminDashboardPage() {
                             ref={fileInputRef}
                             type="file"
                             multiple
-                            accept=".png,.jpg,.jpeg,.gif,.pdf,.webm,.ogg,.mp3,.wav"
+                            accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.webm,.ogg,.mp3,.wav,.m4a,.aac"
                             onChange={(e) => setAttachments((prev) => [...prev, ...Array.from(e.target.files || [])])}
                             className="hidden"
                           />
 
-                          <input
+                          <textarea
                             value={adminReply}
                             onChange={(e) => setAdminReply(e.target.value)}
                             onKeyDown={handleReplyKeyDown}
                             placeholder="Reply to doctor..."
-                            className="cyber-text flex-1 cyber-chamfer-sm px-3 py-2.5 border text-sm"
+                            rows={1}
+                            className="cyber-text max-h-32 min-h-[44px] flex-1 resize-none cyber-chamfer-sm px-3 py-2.5 border text-sm"
                             style={cyberInputStyle}
                           />
 
-                          {adminReply.trim() || attachments.length > 0 || voiceDraft?.file ? (
-                            <button onClick={sendAdminReply} disabled={isSendingReply} className="cyber-chamfer-sm px-4 py-2.5 text-sm font-semibold inline-flex items-center gap-1.5 disabled:opacity-60" style={{ color: cyberpunkTheme.colors.background, background: cyberpunkTheme.colors.accent, boxShadow: cyberpunkTheme.shadows.neon }}>
+                          {isRecording || adminReply.trim() || attachments.length > 0 || voiceDraft?.file ? (
+                            <button
+                              onClick={() => {
+                                if (isRecording) {
+                                  stopVoiceRecording({ sendAfter: true });
+                                  return;
+                                }
+                                sendAdminReply();
+                              }}
+                              disabled={isSendingReply}
+                              className="cyber-chamfer-sm px-4 py-2.5 text-sm font-semibold inline-flex items-center gap-1.5 disabled:opacity-60"
+                              style={{ color: cyberpunkTheme.colors.background, background: cyberpunkTheme.colors.accent, boxShadow: cyberpunkTheme.shadows.neon }}
+                            >
                               <Send size={14} />
                               Send
                             </button>

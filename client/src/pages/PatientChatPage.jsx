@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { ArrowDown, LogOut, Mic, Plus, Send, X } from "lucide-react";
+import { ArrowDown, LogOut, Mic, Pause, Play, Plus, Send, X } from "lucide-react";
 import axiosInstance from "../api/axios";
 import MessageStatusTicks from "../components/MessageStatusTicks";
 import VoiceMessagePlayer from "../components/VoiceMessagePlayer";
@@ -10,6 +10,48 @@ import usePatientAuthStore from "../store/patientAuthStore";
 
 const formatMessageDate = (date) =>
   new Date(date).toLocaleString("en-PK", { dateStyle: "medium", timeStyle: "short" });
+
+const shouldShowTimestamp = (messages, index) => {
+  const current = messages[index];
+  if (!current?.createdAt) return true;
+  if (index === messages.length - 1) return true;
+
+  const next = messages[index + 1];
+  if (!next?.createdAt) return true;
+  if (String(next.senderRole || "") !== String(current.senderRole || "")) return true;
+
+  const currentTime = new Date(current.createdAt).getTime();
+  const nextTime = new Date(next.createdAt).getTime();
+  if (!Number.isFinite(currentTime) || !Number.isFinite(nextTime)) return true;
+
+  const gap = nextTime - currentTime;
+  return gap > 5 * 60 * 1000;
+};
+
+const RECORDER_MIME_CANDIDATES = [
+  "audio/webm;codecs=opus",
+  "audio/webm",
+  "audio/ogg;codecs=opus",
+  "audio/ogg",
+  "audio/mp4",
+];
+
+const normalizeAudioMimeType = (mimeType = "") => String(mimeType).split(";")[0].trim().toLowerCase();
+
+const getSupportedRecorderMimeType = () => {
+  if (typeof window === "undefined" || typeof window.MediaRecorder === "undefined") return "audio/webm";
+  return RECORDER_MIME_CANDIDATES.find((type) => window.MediaRecorder.isTypeSupported?.(type)) || "audio/webm";
+};
+
+const getAudioExtension = (mimeType = "") => {
+  const normalized = normalizeAudioMimeType(mimeType);
+  if (normalized.includes("ogg")) return "ogg";
+  if (normalized.includes("mpeg")) return "mp3";
+  if (normalized.includes("wav")) return "wav";
+  if (normalized.includes("mp4") || normalized.includes("m4a")) return "m4a";
+  if (normalized.includes("aac")) return "aac";
+  return "webm";
+};
 
 export default function PatientChatPage() {
   const currentRole = "patient";
@@ -21,6 +63,7 @@ export default function PatientChatPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [isRecordingPaused, setIsRecordingPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [voiceDraft, setVoiceDraft] = useState(null);
   const [optimisticMessages, setOptimisticMessages] = useState([]);
@@ -34,6 +77,7 @@ export default function PatientChatPage() {
   const recordingTimerRef = useRef(null);
   const recordingTimeRef = useRef(0);
   const discardRecordingRef = useRef(false);
+  const sendAfterRecordingRef = useRef(false);
   const seenMessageIdsRef = useRef(new Set());
 
   const scrollMessagesToBottom = () => {
@@ -65,7 +109,6 @@ export default function PatientChatPage() {
     const idSet = new Set(normalizedIds);
     patchMessages((messages) => messages.map((message) => {
       if (!idSet.has(String(message._id || ""))) return message;
-      if (message.senderRole === currentRole) return message;
       return {
         ...message,
         status: "seen",
@@ -83,7 +126,6 @@ export default function PatientChatPage() {
     const idSet = new Set(normalizedIds);
     patchMessages((messages) => messages.map((message) => {
       if (!idSet.has(String(message._id || ""))) return message;
-      if (message.senderRole === currentRole) return message;
       if (message.status === "seen") return message;
       return {
         ...message,
@@ -195,6 +237,8 @@ export default function PatientChatPage() {
       socket.emit("patient-chat:leave");
       socket.off("connect", handleReconnectSync);
       socket.off("patient-chat:self-updated", handleChatUpdate);
+      socket.off("message_delivered", handleMessageDelivered);
+      socket.off("message_seen", handleMessageSeen);
       socket.off("connect_error", handleSocketError);
     };
   }, []);
@@ -292,24 +336,55 @@ export default function PatientChatPage() {
     } catch (error) {
       optimisticAttachments.forEach((attachment) => URL.revokeObjectURL(attachment.url));
       setOptimisticMessages((prev) => prev.filter((message) => message._id !== optimisticId));
-      toast.error("Bad network, message not sent. Try again.");
+      toast.error(error.response?.data?.message || "Message not sent. Try again.");
     } finally {
       setIsSending(false);
     }
   };
 
+  useEffect(() => {
+    if (!voiceDraft?.file || !sendAfterRecordingRef.current) return;
+    sendAfterRecordingRef.current = false;
+    handleSend();
+  }, [voiceDraft]);
+
   const handleInputKeyDown = (event) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
+      if (isRecording) {
+        stopVoiceRecording({ sendAfter: true });
+        return;
+      }
       handleSend();
     }
+  };
+
+  const startRecordingTimer = () => {
+    if (recordingTimerRef.current) return;
+    recordingTimerRef.current = setInterval(() => {
+      recordingTimeRef.current += 1;
+      setRecordingTime(recordingTimeRef.current);
+    }, 1000);
+  };
+
+  const stopRecordingTimer = () => {
+    if (!recordingTimerRef.current) return;
+    clearInterval(recordingTimerRef.current);
+    recordingTimerRef.current = null;
   };
 
   const startVoiceRecording = async () => {
     try {
       discardRecordingRef.current = false;
+      sendAfterRecordingRef.current = false;
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+      const preferredMimeType = getSupportedRecorderMimeType();
+      let recorder;
+      try {
+        recorder = new MediaRecorder(stream, { mimeType: preferredMimeType });
+      } catch {
+        recorder = new MediaRecorder(stream);
+      }
       audioChunksRef.current = [];
 
       recorder.ondataavailable = (event) => {
@@ -319,12 +394,14 @@ export default function PatientChatPage() {
       };
 
       recorder.onstop = () => {
-        if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
-        const mimeType = recorder.mimeType || "audio/webm";
+        stopRecordingTimer();
+        const mimeType = normalizeAudioMimeType(recorder.mimeType || preferredMimeType || "audio/webm") || "audio/webm";
         if (discardRecordingRef.current) {
           audioChunksRef.current = [];
           stream.getTracks().forEach((track) => track.stop());
           setRecordingTime(0);
+          setIsRecording(false);
+          setIsRecordingPaused(false);
           return;
         }
 
@@ -332,11 +409,13 @@ export default function PatientChatPage() {
         if (blob.size === 0) {
           stream.getTracks().forEach((track) => track.stop());
           setRecordingTime(0);
+          setIsRecording(false);
+          setIsRecordingPaused(false);
           toast.error("Recorded audio is empty");
           return;
         }
 
-        const ext = mimeType.includes("ogg") ? "ogg" : mimeType.includes("mpeg") ? "mp3" : mimeType.includes("wav") ? "wav" : "webm";
+        const ext = getAudioExtension(mimeType);
         const voiceFile = new File([blob], `voice-note-${Date.now()}.${ext}`, { type: mimeType });
         const previewUrl = URL.createObjectURL(blob);
         setVoiceDraft((prev) => {
@@ -352,45 +431,64 @@ export default function PatientChatPage() {
         stream.getTracks().forEach((track) => track.stop());
         setRecordingTime(0);
         recordingTimeRef.current = 0;
+        setIsRecording(false);
+        setIsRecordingPaused(false);
         toast.success("Voice note ready");
       };
 
       mediaRecorderRef.current = recorder;
-      recorder.start();
+      recorder.start(250);
       setIsRecording(true);
+      setIsRecordingPaused(false);
       setRecordingTime(0);
       recordingTimeRef.current = 0;
-      
-      recordingTimerRef.current = setInterval(() => {
-        recordingTimeRef.current += 1;
-        setRecordingTime(recordingTimeRef.current);
-      }, 1000);
+      startRecordingTimer();
     } catch {
       toast.error("Microphone access is required");
     }
   };
 
-  const stopVoiceRecording = () => {
+  const stopVoiceRecording = ({ sendAfter = false } = {}) => {
     if (!mediaRecorderRef.current || mediaRecorderRef.current.state === "inactive") return;
     discardRecordingRef.current = false;
+    sendAfterRecordingRef.current = Boolean(sendAfter);
     mediaRecorderRef.current.stop();
-    setIsRecording(false);
-    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    stopRecordingTimer();
   };
 
   const cancelRecording = () => {
     discardRecordingRef.current = true;
+    sendAfterRecordingRef.current = false;
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stop();
     } else if (mediaRecorderRef.current?.stream) {
       mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
     }
     setIsRecording(false);
+    setIsRecordingPaused(false);
     setRecordingTime(0);
     recordingTimeRef.current = 0;
     audioChunksRef.current = [];
-    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    stopRecordingTimer();
     toast.info("Recording cancelled");
+  };
+
+  const togglePauseRecording = () => {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state === "inactive") return;
+
+    if (recorder.state === "paused") {
+      recorder.resume();
+      setIsRecordingPaused(false);
+      startRecordingTimer();
+      return;
+    }
+
+    if (recorder.state === "recording") {
+      recorder.pause();
+      setIsRecordingPaused(true);
+      stopRecordingTimer();
+    }
   };
 
   const formatTime = (seconds) => {
@@ -524,7 +622,7 @@ export default function PatientChatPage() {
           ) : messages.length === 0 ? (
             <p className="text-sm text-[var(--color-text-secondary)]">No messages yet.</p>
           ) : (
-            messages.map((message) => (
+            messages.map((message, index) => (
               <div
                 key={message._id || `${message.senderRole}-${message.createdAt}`}
                 ref={(node) => {
@@ -571,10 +669,16 @@ export default function PatientChatPage() {
                       ))}
                     </div>
                   )}
-                  <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-[var(--color-text-secondary)]">
-                    <span>{formatMessageDate(message.createdAt)}</span>
-                    {renderMessageStatus(message)}
-                  </div>
+                  {shouldShowTimestamp(messages, index) ? (
+                    <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-[var(--color-text-secondary)]">
+                      <span>{formatMessageDate(message.createdAt)}</span>
+                      {renderMessageStatus(message)}
+                    </div>
+                  ) : (
+                    <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-[var(--color-text-secondary)]">
+                      {renderMessageStatus(message)}
+                    </div>
+                  )}
                 </div>
               </div>
             ))
@@ -607,7 +711,9 @@ export default function PatientChatPage() {
                   />
                 ))}
               </div>
-              <span className="text-sm font-semibold text-red-600">Recording... {formatTime(recordingTime)}</span>
+              <span className="text-sm font-semibold text-red-600">
+                {isRecordingPaused ? "Paused" : "Recording..."} {formatTime(recordingTime)}
+              </span>
             </div>
             <div className="flex gap-2 self-end sm:self-auto">
               <button
@@ -621,10 +727,21 @@ export default function PatientChatPage() {
               </button>
               <button
                 type="button"
-                onClick={stopVoiceRecording}
+                onClick={togglePauseRecording}
+                className="rounded-full bg-amber-500 px-4 py-2 text-xs font-semibold text-white hover:bg-amber-600"
+              >
+                {isRecordingPaused ? (
+                  <span className="inline-flex items-center gap-1"><Play className="h-3.5 w-3.5" />Resume</span>
+                ) : (
+                  <span className="inline-flex items-center gap-1"><Pause className="h-3.5 w-3.5" />Pause</span>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => stopVoiceRecording({ sendAfter: true })}
                 className="rounded-full bg-green-500 px-4 py-2 text-xs font-semibold text-white hover:bg-green-600"
               >
-                Stop
+                Send
               </button>
             </div>
           </div>
@@ -700,23 +817,29 @@ export default function PatientChatPage() {
             ref={fileInputRef}
             type="file"
             multiple
-            accept=".png,.jpg,.jpeg,.gif,.pdf,.webm,.ogg,.mp3,.wav"
+            accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.webm,.ogg,.mp3,.wav,.m4a,.aac"
             onChange={(e) => setFiles((prev) => [...prev, ...Array.from(e.target.files || [])])}
             className="hidden"
           />
 
-          <input
-            type="text"
+          <textarea
             value={messageText}
             onChange={(e) => setMessageText(e.target.value)}
             onKeyDown={handleInputKeyDown}
             placeholder="Write a message..."
-            className="flex-1 rounded-full border border-[var(--color-border)] bg-[var(--color-card)]/70 px-4 py-2.5 text-sm outline-none focus:border-[var(--color-primary)] sm:py-3"
+            rows={1}
+            className="max-h-32 min-h-[44px] flex-1 resize-none rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)]/70 px-4 py-2.5 text-sm outline-none focus:border-[var(--color-primary)] sm:py-3"
           />
 
-          {messageText.trim() || files.length > 0 || voiceDraft?.file ? (
+          {isRecording || messageText.trim() || files.length > 0 || voiceDraft?.file ? (
             <button
-              onClick={handleSend}
+              onClick={() => {
+                if (isRecording) {
+                  stopVoiceRecording({ sendAfter: true });
+                  return;
+                }
+                handleSend();
+              }}
               disabled={isSending}
               className="rounded-full bg-[var(--color-primary)] p-2.5 text-white transition hover:scale-110 disabled:cursor-not-allowed disabled:opacity-60 sm:p-3"
             >

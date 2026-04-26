@@ -21,7 +21,8 @@ const isAdminRequest = (req) => Boolean(req.admin?.role === "admin");
 const uploadAttachmentToCloudinary = async (file) => {
   const mimeType = file.detectedMimeType || file.mimetype;
   const isImage = allowedImageMimeTypes.has(mimeType);
-  const resourceType = isImage ? "image" : "raw";
+  const isAudio = String(mimeType || "").toLowerCase().startsWith("audio/");
+  const resourceType = isImage ? "image" : isAudio ? "video" : "raw";
 
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
@@ -41,6 +42,28 @@ const uploadAttachmentToCloudinary = async (file) => {
   });
 };
 
+const getMessageType = ({ text = "", attachments = [] }) => {
+  const normalizedAttachments = Array.isArray(attachments) ? attachments : [];
+  if (normalizedAttachments.length === 0) {
+    return text ? "text" : "text";
+  }
+
+  const allImages = normalizedAttachments.every((attachment) =>
+    allowedImageMimeTypes.has(attachment.detectedMimeType || attachment.mimetype || attachment.mimeType)
+  );
+  const allAudio = normalizedAttachments.every((attachment) =>
+    String(attachment.detectedMimeType || attachment.mimetype || attachment.mimeType || "")
+      .toLowerCase()
+      .startsWith("audio/")
+  );
+
+  if (allImages && !text) return "image";
+  if (allAudio && !text) return "audio";
+  if (allImages) return "image";
+  if (allAudio) return "audio";
+  return "mixed";
+};
+
 const buildTicketMessagePayload = async ({ senderRole, senderName, text, files }) => {
   const attachments = [];
 
@@ -58,6 +81,10 @@ const buildTicketMessagePayload = async ({ senderRole, senderName, text, files }
     senderRole,
     senderName,
     text: String(text || "").trim(),
+    type: getMessageType({ text, attachments }),
+    status: "sent",
+    deliveredAt: null,
+    seenAt: null,
     attachments,
   };
 };
@@ -90,6 +117,10 @@ export const createTicket = async (req, res) => {
           senderRole: "doctor",
           senderName: doctor.fullName,
           text: description,
+          type: "text",
+          status: "sent",
+          deliveredAt: null,
+          seenAt: null,
         },
       ],
       lastMessageAt: new Date(),

@@ -41,12 +41,15 @@ export default function VoiceMessagePlayer({
 
   const resolvedTheme = { ...DEFAULT_THEME, ...theme };
   const displayTitle = normalizeVoiceLabel(title);
-  const progress = totalDuration > 0 ? Math.min(currentTime / totalDuration, 1) : 0;
+  const effectiveDuration = Math.max(totalDuration || 0, currentTime || 0, duration || 0, 0);
+  const progress = effectiveDuration > 0 ? Math.min(currentTime / effectiveDuration, 1) : 0;
   const barHeights = [14, 22, 17, 26, 20, 30, 18, 28, 16, 24, 19, 27];
 
   useEffect(() => {
+    setIsPlaying(false);
+    setCurrentTime(0);
     setTotalDuration(duration || 0);
-  }, [duration]);
+  }, [src, duration]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -181,9 +184,9 @@ export default function VoiceMessagePlayer({
           <input
             type="range"
             min="0"
-            max={Math.max(totalDuration, 0)}
+            max={Math.max(effectiveDuration, 0.1)}
             step="0.1"
-            value={Math.min(currentTime, totalDuration || currentTime || 0)}
+            value={Math.min(currentTime, effectiveDuration || currentTime || 0)}
             onChange={handleSeek}
             className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-transparent"
             style={{
@@ -196,7 +199,7 @@ export default function VoiceMessagePlayer({
             <span>{formatAudioTime(currentTime)}</span>
             <span className="inline-flex items-center gap-1">
               <Volume2 className="h-3.5 w-3.5" />
-              {formatAudioTime(totalDuration || duration || 0)}
+              {formatAudioTime(effectiveDuration || 0)}
             </span>
           </div>
         </div>

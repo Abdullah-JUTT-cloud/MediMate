@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, ChevronLeft, CircleHelp, History, LifeBuoy, MessageCircle, Mic, Plus, RefreshCw, Send, Sparkles, Ticket, X } from "lucide-react";
+import { ArrowDown, ChevronLeft, CircleHelp, History, LifeBuoy, MessageCircle, Mic, Pause, Play, Plus, RefreshCw, Send, Sparkles, Ticket, X } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
+import MessageStatusTicks from "../components/MessageStatusTicks";
 import VoiceMessagePlayer from "../components/VoiceMessagePlayer";
 import { getRealtimeSocketForRole } from "../realtime/socket";
 import { organicCardStyle, organicInputStyle, organicSectionStyle, organicTheme } from "../styles/organicTheme";
@@ -15,6 +16,29 @@ const CATEGORIES = [
   "Verification/Profile",
   "Other",
 ];
+
+const RECORDER_MIME_CANDIDATES = [
+  "audio/webm;codecs=opus",
+  "audio/webm",
+  "audio/ogg;codecs=opus",
+  "audio/ogg",
+  "audio/mp4",
+];
+
+const normalizeAudioMimeType = (mimeType = "") => String(mimeType).split(";")[0].trim().toLowerCase();
+const getSupportedRecorderMimeType = () => {
+  if (typeof window === "undefined" || typeof window.MediaRecorder === "undefined") return "audio/webm";
+  return RECORDER_MIME_CANDIDATES.find((type) => window.MediaRecorder.isTypeSupported?.(type)) || "audio/webm";
+};
+const getAudioExtension = (mimeType = "") => {
+  const normalized = normalizeAudioMimeType(mimeType);
+  if (normalized.includes("ogg")) return "ogg";
+  if (normalized.includes("mpeg")) return "mp3";
+  if (normalized.includes("wav")) return "wav";
+  if (normalized.includes("mp4") || normalized.includes("m4a")) return "m4a";
+  if (normalized.includes("aac")) return "aac";
+  return "webm";
+};
 
 
 const statusTone = {
@@ -70,6 +94,7 @@ function StatusChip({ status }) {
 }
 
 export default function SupportCenterPage() {
+  const currentRole = "doctor";
   const [activeTab, setActiveTab] = useState("active");
   const [tickets, setTickets] = useState([]);
   const [selectedId, setSelectedId] = useState("");
@@ -83,6 +108,7 @@ export default function SupportCenterPage() {
   const [previewImage, setPreviewImage] = useState(null);
   const [showJumpToLatest, setShowJumpToLatest] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [isRecordingPaused, setIsRecordingPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [voiceDraft, setVoiceDraft] = useState(null);
   const [isMobileView, setIsMobileView] = useState(() => (typeof window !== "undefined" ? window.innerWidth < 1280 : false));
@@ -105,11 +131,14 @@ export default function SupportCenterPage() {
   });
   const fileInputRef = useRef(null);
   const messagesContainerRef = useRef(null);
+  const messageNodesRef = useRef(new Map());
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const recordingTimerRef = useRef(null);
   const recordingTimeRef = useRef(0);
   const discardRecordingRef = useRef(false);
+  const sendAfterRecordingRef = useRef(false);
+  const seenMessageIdsByTicketRef = useRef(new Map());
 
   const scrollMessagesToBottom = () => {
     if (!messagesContainerRef.current) return;
@@ -125,6 +154,107 @@ export default function SupportCenterPage() {
     }
     const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
     setShowJumpToLatest(distanceFromBottom > 96);
+  };
+
+  const shouldShowTimestamp = (messages, index) => {
+    const current = messages[index];
+    if (!current?.createdAt) return true;
+    if (index === messages.length - 1) return true;
+
+    const next = messages[index + 1];
+    if (!next?.createdAt) return true;
+    if (String(next.senderRole || "") !== String(current.senderRole || "")) return true;
+
+    const currentTime = new Date(current.createdAt).getTime();
+    const nextTime = new Date(next.createdAt).getTime();
+    if (!Number.isFinite(currentTime) || !Number.isFinite(nextTime)) return true;
+
+    return nextTime - currentTime > 5 * 60 * 1000;
+  };
+
+  const patchTicketMessages = (ticketId, updater) => {
+    const normalizedTicketId = String(ticketId || "");
+    if (!normalizedTicketId) return;
+
+    setSelectedTicket((prev) => {
+      if (!prev || String(prev._id) !== normalizedTicketId) return prev;
+      const currentMessages = Array.isArray(prev.messages) ? prev.messages : [];
+      const nextMessages = updater(currentMessages);
+      if (nextMessages === currentMessages) return prev;
+      return { ...prev, messages: nextMessages };
+    });
+
+    setTickets((prev) => prev.map((ticket) => {
+      if (String(ticket?._id) !== normalizedTicketId) return ticket;
+      const currentMessages = Array.isArray(ticket?.messages) ? ticket.messages : [];
+      const nextMessages = updater(currentMessages);
+      if (nextMessages === currentMessages) return ticket;
+      return { ...ticket, messages: nextMessages };
+    }));
+  };
+
+  const patchIssueMessageStatuses = ({ ticketId, messageIds = [], status, deliveredAt, seenAt }) => {
+    const normalizedIds = (messageIds || []).map(String).filter(Boolean);
+    if (!ticketId || normalizedIds.length === 0) return;
+
+    const idSet = new Set(normalizedIds);
+    patchTicketMessages(ticketId, (messages) => {
+      let changed = false;
+      const next = messages.map((message) => {
+        const messageId = String(message?._id || "");
+        if (!messageId || !idSet.has(messageId)) return message;
+        changed = true;
+        return {
+          ...message,
+          status: status || message.status,
+          deliveredAt: deliveredAt || message.deliveredAt,
+          seenAt: seenAt || message.seenAt,
+        };
+      });
+      return changed ? next : messages;
+    });
+  };
+
+  const emitVisibleSeenMessages = () => {
+    const ticketId = String(selectedId || "");
+    const container = messagesContainerRef.current;
+    if (!ticketId || !container || !selectedTicket?.messages?.length) return;
+
+    const ticketSeenSet = seenMessageIdsByTicketRef.current.get(ticketId) || new Set();
+    const containerRect = container.getBoundingClientRect();
+    const visibleMessageIds = [];
+
+    for (const message of selectedTicket.messages) {
+      if (String(message.senderRole || "") === currentRole) continue;
+      const messageId = String(message._id || "");
+      if (!messageId || ticketSeenSet.has(messageId)) continue;
+      const node = messageNodesRef.current.get(messageId);
+      if (!node) continue;
+
+      const rect = node.getBoundingClientRect();
+      const visibleHeight = Math.min(rect.bottom, containerRect.bottom) - Math.max(rect.top, containerRect.top);
+      if (visibleHeight <= 0) continue;
+
+      const threshold = Math.min(rect.height, containerRect.height) * 0.45;
+      if (visibleHeight >= threshold) {
+        visibleMessageIds.push(messageId);
+        ticketSeenSet.add(messageId);
+      }
+    }
+
+    if (visibleMessageIds.length === 0) return;
+
+    seenMessageIdsByTicketRef.current.set(ticketId, ticketSeenSet);
+    patchIssueMessageStatuses({
+      ticketId,
+      messageIds: visibleMessageIds,
+      status: "seen",
+      seenAt: new Date().toISOString(),
+      deliveredAt: new Date().toISOString(),
+    });
+
+    const socket = getRealtimeSocketForRole(currentRole);
+    socket.emit("issue-message_seen", { ticketId, messageIds: visibleMessageIds });
   };
 
   const loadTickets = async (history) => {
@@ -198,6 +328,25 @@ export default function SupportCenterPage() {
       }
     };
 
+    const handleIssueMessageDelivered = ({ ticketId, messageIds = [], status, deliveredAt } = {}) => {
+      patchIssueMessageStatuses({
+        ticketId,
+        messageIds,
+        status: status || "delivered",
+        deliveredAt: deliveredAt || new Date().toISOString(),
+      });
+    };
+
+    const handleIssueMessageSeen = ({ ticketId, messageIds = [], status, seenAt, deliveredAt } = {}) => {
+      patchIssueMessageStatuses({
+        ticketId,
+        messageIds,
+        status: status || "seen",
+        seenAt: seenAt || new Date().toISOString(),
+        deliveredAt: deliveredAt || new Date().toISOString(),
+      });
+    };
+
     const handleReconnectSync = () => {
       loadTickets(activeTab === "history");
       if (selectedId) {
@@ -215,12 +364,16 @@ export default function SupportCenterPage() {
     socket.on("connect", handleReconnectSync);
     socket.on("issue-ticket:list-updated", handleTicketUpdate);
     socket.on("issue-ticket:detail-updated", handleTicketDetailUpdate);
+    socket.on("issue-message_delivered", handleIssueMessageDelivered);
+    socket.on("issue-message_seen", handleIssueMessageSeen);
     socket.on("connect_error", handleSocketError);
 
     return () => {
       socket.off("connect", handleReconnectSync);
       socket.off("issue-ticket:list-updated", handleTicketUpdate);
       socket.off("issue-ticket:detail-updated", handleTicketDetailUpdate);
+      socket.off("issue-message_delivered", handleIssueMessageDelivered);
+      socket.off("issue-message_seen", handleIssueMessageSeen);
       socket.off("connect_error", handleSocketError);
     };
   }, [activeTab, selectedId]);
@@ -274,10 +427,26 @@ export default function SupportCenterPage() {
   }, [selectedTicket?.messages, optimisticMessages, selectedId]);
 
   useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      emitVisibleSeenMessages();
+    }, 160);
+    return () => window.clearTimeout(timeoutId);
+  }, [selectedTicket?.messages, optimisticMessages, selectedId]);
+
+  useEffect(() => {
     setOptimisticMessages([]);
     setAttachments([]);
     setMessageText("");
     setVoiceDraft(null);
+    setIsRecording(false);
+    setIsRecordingPaused(false);
+    setRecordingTime(0);
+    recordingTimeRef.current = 0;
+    stopRecordingTimer();
+    sendAfterRecordingRef.current = false;
+    if (selectedId) {
+      seenMessageIdsByTicketRef.current.set(String(selectedId), new Set());
+    }
   }, [selectedId]);
 
   useEffect(() => {
@@ -439,10 +608,10 @@ export default function SupportCenterPage() {
       await axiosInstance.post(`/issues/doctor/${selectedTicket._id}/messages`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-    } catch {
+    } catch (error) {
       optimisticAttachments.forEach((item) => URL.revokeObjectURL(item.url));
       setOptimisticMessages((prev) => prev.filter((item) => item._id !== optimisticId));
-      toast.error("Failed to send message");
+      toast.error(error.response?.data?.message || "Failed to send message");
     } finally {
       setIsSending(false);
     }
@@ -451,8 +620,32 @@ export default function SupportCenterPage() {
   const handleMessageKeyDown = (event) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
+      if (isRecording) {
+        stopVoiceRecording({ sendAfter: true });
+        return;
+      }
       sendMessage();
     }
+  };
+
+  useEffect(() => {
+    if (!voiceDraft?.file || !sendAfterRecordingRef.current) return;
+    sendAfterRecordingRef.current = false;
+    sendMessage();
+  }, [voiceDraft]);
+
+  const startRecordingTimer = () => {
+    if (recordingTimerRef.current) return;
+    recordingTimerRef.current = setInterval(() => {
+      recordingTimeRef.current += 1;
+      setRecordingTime(recordingTimeRef.current);
+    }, 1000);
+  };
+
+  const stopRecordingTimer = () => {
+    if (!recordingTimerRef.current) return;
+    clearInterval(recordingTimerRef.current);
+    recordingTimerRef.current = null;
   };
 
   const isImageFile = (file) => {
@@ -506,8 +699,15 @@ export default function SupportCenterPage() {
   const startVoiceRecording = async () => {
     try {
       discardRecordingRef.current = false;
+      sendAfterRecordingRef.current = false;
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+      const preferredMimeType = getSupportedRecorderMimeType();
+      let recorder;
+      try {
+        recorder = new MediaRecorder(stream, { mimeType: preferredMimeType });
+      } catch {
+        recorder = new MediaRecorder(stream);
+      }
       audioChunksRef.current = [];
 
       recorder.ondataavailable = (event) => {
@@ -517,12 +717,14 @@ export default function SupportCenterPage() {
       };
 
       recorder.onstop = () => {
-        if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
-        const mimeType = recorder.mimeType || "audio/webm";
+        stopRecordingTimer();
+        const mimeType = normalizeAudioMimeType(recorder.mimeType || preferredMimeType || "audio/webm") || "audio/webm";
         if (discardRecordingRef.current) {
           audioChunksRef.current = [];
           stream.getTracks().forEach((track) => track.stop());
           setRecordingTime(0);
+          setIsRecording(false);
+          setIsRecordingPaused(false);
           return;
         }
 
@@ -530,11 +732,13 @@ export default function SupportCenterPage() {
         if (blob.size === 0) {
           stream.getTracks().forEach((track) => track.stop());
           setRecordingTime(0);
+          setIsRecording(false);
+          setIsRecordingPaused(false);
           toast.error("Recorded audio is empty");
           return;
         }
 
-        const ext = mimeType.includes("ogg") ? "ogg" : mimeType.includes("mpeg") ? "mp3" : mimeType.includes("wav") ? "wav" : "webm";
+        const ext = getAudioExtension(mimeType);
         const voiceFile = new File([blob], `voice-note-${Date.now()}.${ext}`, { type: mimeType });
         const previewUrl = URL.createObjectURL(blob);
         setVoiceDraft((prev) => {
@@ -550,45 +754,65 @@ export default function SupportCenterPage() {
         stream.getTracks().forEach((track) => track.stop());
         setRecordingTime(0);
         recordingTimeRef.current = 0;
+        setIsRecording(false);
+        setIsRecordingPaused(false);
         toast.success("Voice note ready");
       };
 
       mediaRecorderRef.current = recorder;
-      recorder.start();
+      recorder.start(250);
       setIsRecording(true);
+      setIsRecordingPaused(false);
       setRecordingTime(0);
       recordingTimeRef.current = 0;
 
-      recordingTimerRef.current = setInterval(() => {
-        recordingTimeRef.current += 1;
-        setRecordingTime(recordingTimeRef.current);
-      }, 1000);
+      startRecordingTimer();
     } catch {
       toast.error("Microphone access is required");
     }
   };
 
-  const stopVoiceRecording = () => {
+  const stopVoiceRecording = ({ sendAfter = false } = {}) => {
     if (!mediaRecorderRef.current || mediaRecorderRef.current.state === "inactive") return;
     discardRecordingRef.current = false;
+    sendAfterRecordingRef.current = Boolean(sendAfter);
     mediaRecorderRef.current.stop();
-    setIsRecording(false);
-    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    stopRecordingTimer();
   };
 
   const cancelRecording = () => {
     discardRecordingRef.current = true;
+    sendAfterRecordingRef.current = false;
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stop();
     } else if (mediaRecorderRef.current?.stream) {
       mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
     }
     setIsRecording(false);
+    setIsRecordingPaused(false);
     setRecordingTime(0);
     recordingTimeRef.current = 0;
     audioChunksRef.current = [];
-    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    stopRecordingTimer();
     toast.info("Recording cancelled");
+  };
+
+  const togglePauseRecording = () => {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state === "inactive") return;
+
+    if (recorder.state === "paused") {
+      recorder.resume();
+      setIsRecordingPaused(false);
+      startRecordingTimer();
+      return;
+    }
+
+    if (recorder.state === "recording") {
+      recorder.pause();
+      setIsRecordingPaused(true);
+      stopRecordingTimer();
+    }
   };
 
   const messages = [...(selectedTicket?.messages || []), ...optimisticMessages];
@@ -833,9 +1057,31 @@ export default function SupportCenterPage() {
             </div>
 
             <div className="relative min-h-0 flex-1">
-              <div ref={messagesContainerRef} onScroll={updateJumpToLatestVisibility} className="h-full overflow-y-auto py-3 space-y-2 rounded-2xl px-2" style={chatCanvasStyle}>
-                {messages.map((m) => (
-                  <div key={m._id || `${m.senderRole}-${m.createdAt}`} className={`flex ${m.senderRole === "doctor" ? "justify-end" : "justify-start"}`}>
+              <div
+                ref={messagesContainerRef}
+                onScroll={() => {
+                  updateJumpToLatestVisibility();
+                  emitVisibleSeenMessages();
+                }}
+                className="h-full overflow-y-auto py-3 space-y-2 rounded-2xl px-2"
+                style={chatCanvasStyle}
+              >
+                {messages.map((m, index) => (
+                  <div
+                    key={m._id || `${m.senderRole}-${m.createdAt}`}
+                    ref={(node) => {
+                      const messageId = String(m._id || "");
+                      if (!messageId) return;
+                      if (node) {
+                        messageNodesRef.current.set(messageId, node);
+                      } else {
+                        messageNodesRef.current.delete(messageId);
+                      }
+                    }}
+                    data-message-id={m._id || ""}
+                    data-sender-role={m.senderRole || ""}
+                    className={`flex ${m.senderRole === "doctor" ? "justify-end" : "justify-start"}`}
+                  >
                     <div
                       className="max-w-[82%] rounded-[1.1rem] px-3 py-2 border"
                       style={m.senderRole === "doctor" ? sentBubbleStyle : receivedBubbleStyle}
@@ -855,6 +1101,7 @@ export default function SupportCenterPage() {
                                 <img
                                   src={attachment.url}
                                   alt={attachment.name}
+                                  loading="lazy"
                                   onLoad={scrollMessagesToBottom}
                                   className="max-h-64 w-full object-cover"
                                 />
@@ -875,9 +1122,16 @@ export default function SupportCenterPage() {
                           ))}
                         </div>
                       ) : null}
-                      <p className="mt-1 text-[10px] text-[var(--color-text-secondary)] text-right">
-                        {m.createdAt ? new Date(m.createdAt).toLocaleTimeString("en-PK", { hour: "2-digit", minute: "2-digit" }) : ""}
-                      </p>
+                      {shouldShowTimestamp(messages, index) ? (
+                        <p className="mt-1 flex items-center justify-end gap-1 text-[10px] text-[var(--color-text-secondary)]">
+                          <span>{m.createdAt ? new Date(m.createdAt).toLocaleTimeString("en-PK", { hour: "2-digit", minute: "2-digit" }) : ""}</span>
+                          {m.senderRole === currentRole ? <MessageStatusTicks status={m.status || "sent"} /> : null}
+                        </p>
+                      ) : (
+                        <p className="mt-1 flex items-center justify-end gap-1 text-[10px] text-[var(--color-text-secondary)]">
+                          {m.senderRole === currentRole ? <MessageStatusTicks status={m.status || "sent"} /> : null}
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -900,14 +1154,23 @@ export default function SupportCenterPage() {
                 <div className="mb-4 flex flex-col gap-3 rounded-2xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:rounded-full" style={{ background: "color-mix(in srgb, var(--color-danger) 14%, transparent)", borderColor: "color-mix(in srgb, var(--color-danger) 34%, transparent)" }}>
                   <div className="flex items-center gap-3">
                     <div className="h-3 w-3 rounded-full bg-red-500 animate-pulse"></div>
-                    <span className="text-sm font-semibold text-[var(--color-danger)]">Recording... {formatTime(recordingTime)}</span>
+                    <span className="text-sm font-semibold text-[var(--color-danger)]">
+                      {isRecordingPaused ? "Paused" : "Recording..."} {formatTime(recordingTime)}
+                    </span>
                   </div>
                   <div className="flex gap-2 self-end sm:self-auto">
                     <button type="button" onClick={cancelRecording} className="rounded-full p-2.5 transition" style={{ background: "color-mix(in srgb, var(--color-danger) 26%, transparent)", color: "var(--color-danger)" }} aria-label="Discard recording">
                       <X className="h-4 w-4" />
                     </button>
-                    <button type="button" onClick={stopVoiceRecording} className="rounded-full bg-green-500 px-4 py-2 text-xs font-semibold text-white hover:bg-green-600">
-                      Stop
+                    <button type="button" onClick={togglePauseRecording} className="rounded-full bg-amber-500 px-4 py-2 text-xs font-semibold text-white hover:bg-amber-600">
+                      {isRecordingPaused ? (
+                        <span className="inline-flex items-center gap-1"><Play className="h-3.5 w-3.5" />Resume</span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1"><Pause className="h-3.5 w-3.5" />Pause</span>
+                      )}
+                    </button>
+                    <button type="button" onClick={() => stopVoiceRecording({ sendAfter: true })} className="rounded-full bg-green-500 px-4 py-2 text-xs font-semibold text-white hover:bg-green-600">
+                      Send
                     </button>
                   </div>
                 </div>
@@ -959,21 +1222,33 @@ export default function SupportCenterPage() {
                   ref={fileInputRef}
                   type="file"
                   multiple
-                  accept=".png,.jpg,.jpeg,.gif,.pdf,.webm,.ogg,.mp3,.wav"
+                  accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.webm,.ogg,.mp3,.wav,.m4a,.aac"
                   onChange={(e) => setAttachments((prev) => [...prev, ...Array.from(e.target.files || [])])}
                   className="hidden"
                 />
 
-                <input
+                <textarea
                   value={messageText}
                   onChange={(e) => setMessageText(e.target.value)}
                   onKeyDown={handleMessageKeyDown}
                   placeholder="Write message..."
-                  className="flex-1 rounded-full px-4 py-2.5 border text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
+                  rows={1}
+                  className="max-h-32 min-h-[44px] flex-1 resize-none rounded-2xl px-4 py-2.5 border text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
                   style={organicInputStyle}
                 />
-                {messageText.trim() || attachments.length > 0 || voiceDraft?.file ? (
-                  <button onClick={sendMessage} disabled={isSending} className="rounded-full px-4 py-2.5 text-sm font-semibold text-white inline-flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 disabled:opacity-60" style={{ background: organicTheme.colors.primary, boxShadow: organicTheme.shadows.button }}>
+                {isRecording || messageText.trim() || attachments.length > 0 || voiceDraft?.file ? (
+                  <button
+                    onClick={() => {
+                      if (isRecording) {
+                        stopVoiceRecording({ sendAfter: true });
+                        return;
+                      }
+                      sendMessage();
+                    }}
+                    disabled={isSending}
+                    className="rounded-full px-4 py-2.5 text-sm font-semibold text-white inline-flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 disabled:opacity-60"
+                    style={{ background: organicTheme.colors.primary, boxShadow: organicTheme.shadows.button }}
+                  >
                     <Send size={14} />
                     Send
                   </button>

@@ -18,6 +18,24 @@ const ticketMessageSchema = new Schema(
       trim: true,
       maxlength: 2000,
     },
+    type: {
+      type: String,
+      enum: ["text", "image", "audio", "mixed"],
+      default: "text",
+    },
+    status: {
+      type: String,
+      enum: ["sent", "delivered", "seen"],
+      default: "sent",
+    },
+    deliveredAt: {
+      type: Date,
+      default: null,
+    },
+    seenAt: {
+      type: Date,
+      default: null,
+    },
     attachments: {
       type: [
         {
