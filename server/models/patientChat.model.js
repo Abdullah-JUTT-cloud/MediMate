@@ -53,6 +53,24 @@ const messageSchema = new mongoose.Schema(
       trim: true,
       maxlength: 4000,
     },
+    type: {
+      type: String,
+      enum: ["text", "image", "audio", "mixed"],
+      default: "text",
+    },
+    status: {
+      type: String,
+      enum: ["sent", "delivered", "seen"],
+      default: "sent",
+    },
+    deliveredAt: {
+      type: Date,
+      default: null,
+    },
+    seenAt: {
+      type: Date,
+      default: null,
+    },
     attachments: {
       type: [attachmentSchema],
       default: [],

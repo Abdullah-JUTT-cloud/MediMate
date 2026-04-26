@@ -30,6 +30,22 @@ const uploadAttachmentToCloudinary = async (file) => {
   });
 };
 
+const getMessageType = ({ text = "", attachments = [] }) => {
+  const normalizedAttachments = Array.isArray(attachments) ? attachments : [];
+  if (normalizedAttachments.length === 0) {
+    return text ? "text" : "text";
+  }
+
+  const allImages = normalizedAttachments.every((attachment) => allowedImageMimeTypes.has(attachment.detectedMimeType || attachment.mimetype || attachment.mimeType));
+  const allAudio = normalizedAttachments.every((attachment) => String(attachment.detectedMimeType || attachment.mimetype || attachment.mimeType || "").toLowerCase().startsWith("audio/"));
+
+  if (allImages && !text) return "image";
+  if (allAudio && !text) return "audio";
+  if (allImages) return "image";
+  if (allAudio) return "audio";
+  return "mixed";
+};
+
 const buildMessagePayload = async ({ senderRole, senderId, senderName, text, files }) => {
   const attachments = [];
 
@@ -49,6 +65,10 @@ const buildMessagePayload = async ({ senderRole, senderId, senderName, text, fil
     senderRoleRef: senderRole === "doctor" ? "Doctor" : "Patient",
     senderName,
     text: String(text || "").trim(),
+    type: getMessageType({ text, attachments }),
+    status: "sent",
+    deliveredAt: null,
+    seenAt: null,
     attachments,
   };
 };

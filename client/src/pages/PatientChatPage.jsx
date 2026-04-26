@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { ArrowDown, LogOut, Mic, Plus, Send, X } from "lucide-react";
 import axiosInstance from "../api/axios";
+import MessageStatusTicks from "../components/MessageStatusTicks";
 import VoiceMessagePlayer from "../components/VoiceMessagePlayer";
 import { getRealtimeSocketForRole } from "../realtime/socket";
 import usePatientAuthStore from "../store/patientAuthStore";
@@ -11,6 +12,7 @@ const formatMessageDate = (date) =>
   new Date(date).toLocaleString("en-PK", { dateStyle: "medium", timeStyle: "short" });
 
 export default function PatientChatPage() {
+  const currentRole = "patient";
   const navigate = useNavigate();
   const { patient, logout } = usePatientAuthStore();
   const [chatData, setChatData] = useState(null);
@@ -26,17 +28,102 @@ export default function PatientChatPage() {
   const [showJumpToLatest, setShowJumpToLatest] = useState(false);
   const fileInputRef = useRef(null);
   const messagesContainerRef = useRef(null);
+  const messageNodesRef = useRef(new Map());
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const recordingTimerRef = useRef(null);
   const recordingTimeRef = useRef(0);
   const discardRecordingRef = useRef(false);
+  const seenMessageIdsRef = useRef(new Set());
 
   const scrollMessagesToBottom = () => {
     const container = messagesContainerRef.current;
     if (!container) return;
     container.scrollTop = container.scrollHeight;
     setShowJumpToLatest(false);
+  };
+
+  const patchMessages = (updater) => {
+    setChatData((prev) => {
+      if (!prev?.chat) return prev;
+      const nextMessages = updater(Array.isArray(prev.chat.messages) ? prev.chat.messages : []);
+      return {
+        ...prev,
+        chat: {
+          ...prev.chat,
+          messages: nextMessages,
+        },
+      };
+    });
+  };
+
+  const markMessagesSeenLocally = (messageIds = []) => {
+    const normalizedIds = messageIds.map(String).filter(Boolean);
+    if (normalizedIds.length === 0) return;
+
+    const now = new Date().toISOString();
+    const idSet = new Set(normalizedIds);
+    patchMessages((messages) => messages.map((message) => {
+      if (!idSet.has(String(message._id || ""))) return message;
+      if (message.senderRole === currentRole) return message;
+      return {
+        ...message,
+        status: "seen",
+        deliveredAt: message.deliveredAt || now,
+        seenAt: now,
+      };
+    }));
+  };
+
+  const markMessagesDeliveredLocally = (messageIds = []) => {
+    const normalizedIds = messageIds.map(String).filter(Boolean);
+    if (normalizedIds.length === 0) return;
+
+    const now = new Date().toISOString();
+    const idSet = new Set(normalizedIds);
+    patchMessages((messages) => messages.map((message) => {
+      if (!idSet.has(String(message._id || ""))) return message;
+      if (message.senderRole === currentRole) return message;
+      if (message.status === "seen") return message;
+      return {
+        ...message,
+        status: "delivered",
+        deliveredAt: message.deliveredAt || now,
+      };
+    }));
+  };
+
+  const emitVisibleSeenMessages = () => {
+    const container = messagesContainerRef.current;
+    if (!container || !chatData?.chat?.messages?.length) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const visibleIds = [];
+
+    for (const message of chatData.chat.messages) {
+      if (message.senderRole === currentRole) continue;
+      const messageId = String(message._id || "");
+      if (!messageId || seenMessageIdsRef.current.has(messageId)) continue;
+      const node = messageNodesRef.current.get(messageId);
+      if (!node) continue;
+
+      const rect = node.getBoundingClientRect();
+      const visibleHeight = Math.min(rect.bottom, containerRect.bottom) - Math.max(rect.top, containerRect.top);
+      if (visibleHeight <= 0) continue;
+
+      const threshold = Math.min(rect.height, containerRect.height) * 0.45;
+      if (visibleHeight >= threshold) {
+        visibleIds.push(messageId);
+      }
+    }
+
+    if (visibleIds.length === 0) return;
+
+    visibleIds.forEach((messageId) => seenMessageIdsRef.current.add(messageId));
+    markMessagesSeenLocally(visibleIds);
+
+    const socket = getRealtimeSocketForRole(currentRole);
+    socket.emit("message_seen", { messageIds: visibleIds });
   };
 
   const updateJumpToLatestVisibility = () => {
@@ -75,6 +162,14 @@ export default function PatientChatPage() {
       setIsLoading(false);
     };
 
+    const handleMessageDelivered = ({ messageIds = [] } = {}) => {
+      markMessagesDeliveredLocally(messageIds);
+    };
+
+    const handleMessageSeen = ({ messageIds = [] } = {}) => {
+      markMessagesSeenLocally(messageIds);
+    };
+
     const handleSocketError = (error) => {
       if (error?.message !== "Unauthorized") return;
       logout();
@@ -92,6 +187,8 @@ export default function PatientChatPage() {
     joinPatientRoom();
     socket.on("connect", handleReconnectSync);
     socket.on("patient-chat:self-updated", handleChatUpdate);
+    socket.on("message_delivered", handleMessageDelivered);
+    socket.on("message_seen", handleMessageSeen);
     socket.on("connect_error", handleSocketError);
 
     return () => {
@@ -107,6 +204,13 @@ export default function PatientChatPage() {
     const timeoutId = window.setTimeout(scrollMessagesToBottom, 120);
     return () => window.clearTimeout(timeoutId);
   }, [chatData?.chat?.messages, optimisticMessages]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      emitVisibleSeenMessages();
+    }, 160);
+    return () => window.clearTimeout(timeoutId);
+  }, [chatData?.chat?.messages, optimisticMessages, chatData?.patient?._id]);
 
   useEffect(() => {
     updateJumpToLatestVisibility();
@@ -299,6 +403,11 @@ export default function PatientChatPage() {
     setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const renderMessageStatus = (message) => {
+    if (message.senderRole !== currentRole) return null;
+    return <MessageStatusTicks status={message.status || "sent"} className="ml-1" />;
+  };
+
   const isImageFile = (file) => {
     const mimeType = String(file?.type || "").toLowerCase();
     const name = String(file?.name || "").toLowerCase();
@@ -401,9 +510,12 @@ export default function PatientChatPage() {
       </div>
 
       <div className="relative min-h-0 flex-1">
-        <div
+          <div
           ref={messagesContainerRef}
-          onScroll={updateJumpToLatestVisibility}
+            onScroll={() => {
+              updateJumpToLatestVisibility();
+              emitVisibleSeenMessages();
+            }}
           className="h-full overflow-y-auto px-3 py-4 space-y-3 sm:px-4"
           style={chatCanvasStyle}
         >
@@ -413,8 +525,22 @@ export default function PatientChatPage() {
             <p className="text-sm text-[var(--color-text-secondary)]">No messages yet.</p>
           ) : (
             messages.map((message) => (
-              <div key={message._id || `${message.senderRole}-${message.createdAt}`} className={`flex ${message.senderRole === "patient" ? "justify-end" : "justify-start"}`}>
-                <div className="max-w-[88%] rounded-[1.1rem] border px-3 py-2.5 sm:max-w-[80%] sm:px-4" style={message.senderRole === "patient" ? sentBubbleStyle : receivedBubbleStyle}>
+              <div
+                key={message._id || `${message.senderRole}-${message.createdAt}`}
+                ref={(node) => {
+                  const messageId = String(message._id || "");
+                  if (!messageId) return;
+                  if (node) {
+                    messageNodesRef.current.set(messageId, node);
+                  } else {
+                    messageNodesRef.current.delete(messageId);
+                  }
+                }}
+                data-message-id={message._id || ""}
+                data-sender-role={message.senderRole || ""}
+                className={`flex ${message.senderRole === currentRole ? "justify-end" : "justify-start"}`}
+              >
+                <div className="max-w-[88%] rounded-[1.1rem] border px-3 py-2.5 sm:max-w-[80%] sm:px-4" style={message.senderRole === currentRole ? sentBubbleStyle : receivedBubbleStyle}>
                   <p className="text-[11px] font-semibold text-[var(--color-text-secondary)]">{message.senderName}</p>
                   {message.text && <p className="mt-1 whitespace-pre-wrap text-sm text-[var(--color-text-primary)]">{message.text}</p>}
                   {(message.attachments || []).length > 0 && (
@@ -427,7 +553,7 @@ export default function PatientChatPage() {
                             onClick={() => setPreviewImage({ url: attachment.url, name: attachment.name })}
                             className="block overflow-hidden rounded-xl border border-[var(--color-border)]/80"
                           >
-                            <img src={attachment.url} alt={attachment.name} onLoad={scrollMessagesToBottom} className="max-h-64 w-full object-cover" />
+                            <img src={attachment.url} alt={attachment.name} loading="lazy" onLoad={scrollMessagesToBottom} className="max-h-64 w-full object-cover" />
                           </button>
                         ) : isAudioAttachment(attachment) ? (
                           <VoiceMessagePlayer
@@ -445,7 +571,10 @@ export default function PatientChatPage() {
                       ))}
                     </div>
                   )}
-                  <p className="mt-2 text-[10px] text-[var(--color-text-secondary)]">{formatMessageDate(message.createdAt)}</p>
+                  <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-[var(--color-text-secondary)]">
+                    <span>{formatMessageDate(message.createdAt)}</span>
+                    {renderMessageStatus(message)}
+                  </div>
                 </div>
               </div>
             ))

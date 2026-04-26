@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { ArrowDown, ChevronLeft, Mic, Plus, Send, X } from "lucide-react";
 import axiosInstance from "../api/axios";
+import MessageStatusTicks from "../components/MessageStatusTicks";
 import VoiceMessagePlayer from "../components/VoiceMessagePlayer";
 import { getRealtimeSocketForRole } from "../realtime/socket";
 
@@ -13,6 +14,7 @@ const formatMessageTime = (date) =>
   date ? new Date(date).toLocaleTimeString("en-PK", { hour: "2-digit", minute: "2-digit" }) : "";
 
 export default function DoctorChatsPage() {
+  const currentRole = "doctor";
   const [patients, setPatients] = useState([]);
   const [selectedPatientId, setSelectedPatientId] = useState("");
   const [selectedChat, setSelectedChat] = useState(null);
@@ -43,6 +45,7 @@ export default function DoctorChatsPage() {
   const [mobileScreen, setMobileScreen] = useState("list");
   const fileInputRef = useRef(null);
   const messagesContainerRef = useRef(null);
+  const messageNodesRef = useRef(new Map());
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const recordingTimerRef = useRef(null);
@@ -50,12 +53,97 @@ export default function DoctorChatsPage() {
   const discardRecordingRef = useRef(false);
   const selectedPatientIdRef = useRef("");
   const chatRequestSeqRef = useRef(0);
+  const seenMessageIdsRef = useRef(new Set());
 
   const scrollMessagesToBottom = () => {
     const container = messagesContainerRef.current;
     if (!container) return;
     container.scrollTop = container.scrollHeight;
     setShowJumpToLatest(false);
+  };
+
+  const patchSelectedChatMessages = (updater) => {
+    setSelectedChat((prev) => {
+      if (!prev?.chat) return prev;
+      const nextMessages = updater(Array.isArray(prev.chat.messages) ? prev.chat.messages : []);
+      return {
+        ...prev,
+        chat: {
+          ...prev.chat,
+          messages: nextMessages,
+        },
+      };
+    });
+  };
+
+  const markSelectedChatMessagesDeliveredLocally = (messageIds = []) => {
+    const normalizedIds = messageIds.map(String).filter(Boolean);
+    if (normalizedIds.length === 0) return;
+
+    const now = new Date().toISOString();
+    const idSet = new Set(normalizedIds);
+    patchSelectedChatMessages((messages) => messages.map((message) => {
+      if (!idSet.has(String(message._id || ""))) return message;
+      if (message.senderRole === currentRole) return message;
+      if (message.status === "seen") return message;
+      return {
+        ...message,
+        status: "delivered",
+        deliveredAt: message.deliveredAt || now,
+      };
+    }));
+  };
+
+  const markSelectedChatMessagesSeenLocally = (messageIds = []) => {
+    const normalizedIds = messageIds.map(String).filter(Boolean);
+    if (normalizedIds.length === 0) return;
+
+    const now = new Date().toISOString();
+    const idSet = new Set(normalizedIds);
+    patchSelectedChatMessages((messages) => messages.map((message) => {
+      if (!idSet.has(String(message._id || ""))) return message;
+      if (message.senderRole === currentRole) return message;
+      return {
+        ...message,
+        status: "seen",
+        deliveredAt: message.deliveredAt || now,
+        seenAt: now,
+      };
+    }));
+    markPatientAsSeenLocally(selectedPatientIdRef.current);
+  };
+
+  const emitVisibleSeenMessages = () => {
+    const container = messagesContainerRef.current;
+    if (!container || !selectedChat?.chat?.messages?.length || !selectedPatientIdRef.current) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const visibleIds = [];
+
+    for (const message of selectedChat.chat.messages) {
+      if (message.senderRole === currentRole) continue;
+      const messageId = String(message._id || "");
+      if (!messageId || seenMessageIdsRef.current.has(messageId)) continue;
+      const node = messageNodesRef.current.get(messageId);
+      if (!node) continue;
+
+      const rect = node.getBoundingClientRect();
+      const visibleHeight = Math.min(rect.bottom, containerRect.bottom) - Math.max(rect.top, containerRect.top);
+      if (visibleHeight <= 0) continue;
+
+      const threshold = Math.min(rect.height, containerRect.height) * 0.45;
+      if (visibleHeight >= threshold) {
+        visibleIds.push(messageId);
+      }
+    }
+
+    if (visibleIds.length === 0) return;
+
+    visibleIds.forEach((messageId) => seenMessageIdsRef.current.add(messageId));
+    markSelectedChatMessagesSeenLocally(visibleIds);
+
+    const socket = getRealtimeSocketForRole(currentRole);
+    socket.emit("message_seen", { patientId: selectedPatientIdRef.current, messageIds: visibleIds });
   };
 
   const updateJumpToLatestVisibility = () => {
@@ -145,6 +233,16 @@ export default function DoctorChatsPage() {
       setOptimisticMessages([]);
     };
 
+    const handleMessageDelivered = ({ patientId, messageIds = [] } = {}) => {
+      if (String(patientId || "") !== String(selectedPatientIdRef.current || "")) return;
+      markSelectedChatMessagesDeliveredLocally(messageIds);
+    };
+
+    const handleMessageSeen = ({ patientId, messageIds = [] } = {}) => {
+      if (String(patientId || "") !== String(selectedPatientIdRef.current || "")) return;
+      markSelectedChatMessagesSeenLocally(messageIds);
+    };
+
     const handleConnectError = (error) => {
       if (error?.message === "Unauthorized") {
         toast.error("Session expired. Please log in again.");
@@ -162,12 +260,16 @@ export default function DoctorChatsPage() {
     socket.on("connect", handleReconnectSync);
     socket.on("patient-chat:list-updated", handleListUpdated);
     socket.on("patient-chat:detail-updated", handleDetailUpdated);
+    socket.on("message_delivered", handleMessageDelivered);
+    socket.on("message_seen", handleMessageSeen);
     socket.on("connect_error", handleConnectError);
 
     return () => {
       socket.off("connect", handleReconnectSync);
       socket.off("patient-chat:list-updated", handleListUpdated);
       socket.off("patient-chat:detail-updated", handleDetailUpdated);
+      socket.off("message_delivered", handleMessageDelivered);
+      socket.off("message_seen", handleMessageSeen);
       socket.off("connect_error", handleConnectError);
     };
   }, []);
@@ -208,6 +310,13 @@ export default function DoctorChatsPage() {
     const timeoutId = window.setTimeout(scrollMessagesToBottom, 120);
     return () => window.clearTimeout(timeoutId);
   }, [selectedChat?.chat?.messages, optimisticMessages]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      emitVisibleSeenMessages();
+    }, 160);
+    return () => window.clearTimeout(timeoutId);
+  }, [selectedChat?.chat?.messages, optimisticMessages, selectedPatientId]);
 
   useEffect(() => {
     const rafId = window.requestAnimationFrame(scrollMessagesToBottom);
@@ -609,6 +718,11 @@ export default function DoctorChatsPage() {
     accent: "var(--color-primary)",
   };
 
+  const renderMessageStatus = (message) => {
+    if (message.senderRole !== currentRole) return null;
+    return <MessageStatusTicks status={message.status || "sent"} className="ml-1" />;
+  };
+
   return (
     <div className="grid gap-3 xl:grid-cols-[340px_1fr] xl:gap-4">
       {showPatientList ? (
@@ -750,7 +864,10 @@ export default function DoctorChatsPage() {
             <div className="relative min-h-0 flex-1">
               <div
                 ref={messagesContainerRef}
-                onScroll={updateJumpToLatestVisibility}
+                onScroll={() => {
+                  updateJumpToLatestVisibility();
+                  emitVisibleSeenMessages();
+                }}
                 className="h-full overflow-y-auto px-3 py-4 space-y-3 sm:px-4"
                 style={chatCanvasStyle}
               >
@@ -758,8 +875,22 @@ export default function DoctorChatsPage() {
                   <p className="text-sm text-[var(--color-text-secondary)]">No messages yet.</p>
                 ) : (
                   messages.map((message) => (
-                    <div key={message._id || `${message.senderRole}-${message.createdAt}`} className={`flex ${message.senderRole === "doctor" ? "justify-end" : "justify-start"}`}>
-                      <div className="max-w-[88%] rounded-[1.1rem] border px-3 py-2.5 sm:max-w-[80%] sm:px-4" style={message.senderRole === "doctor" ? sentBubbleStyle : receivedBubbleStyle}>
+                    <div
+                      key={message._id || `${message.senderRole}-${message.createdAt}`}
+                      ref={(node) => {
+                        const messageId = String(message._id || "");
+                        if (!messageId) return;
+                        if (node) {
+                          messageNodesRef.current.set(messageId, node);
+                        } else {
+                          messageNodesRef.current.delete(messageId);
+                        }
+                      }}
+                      data-message-id={message._id || ""}
+                      data-sender-role={message.senderRole || ""}
+                      className={`flex ${message.senderRole === currentRole ? "justify-end" : "justify-start"}`}
+                    >
+                      <div className="max-w-[88%] rounded-[1.1rem] border px-3 py-2.5 sm:max-w-[80%] sm:px-4" style={message.senderRole === currentRole ? sentBubbleStyle : receivedBubbleStyle}>
                         <p className="text-[11px] font-semibold text-[var(--color-text-secondary)]">{message.senderName}</p>
                         {message.text && <p className="mt-1 whitespace-pre-wrap text-sm text-[var(--color-text-primary)]">{message.text}</p>}
                         {(message.attachments || []).length > 0 && (
@@ -776,6 +907,7 @@ export default function DoctorChatsPage() {
                                     src={attachment.url}
                                     alt={attachment.name}
                                     onLoad={scrollMessagesToBottom}
+                                    loading="lazy"
                                     className="max-h-64 w-full object-cover"
                                   />
                                 </button>
@@ -795,7 +927,10 @@ export default function DoctorChatsPage() {
                             ))}
                           </div>
                         )}
-                        <p className="mt-1 text-[10px] text-[var(--color-text-secondary)] text-right">{formatMessageTime(message.createdAt)}</p>
+                        <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-[var(--color-text-secondary)]">
+                          <span>{formatMessageTime(message.createdAt)}</span>
+                          {renderMessageStatus(message)}
+                        </div>
                       </div>
                     </div>
                   ))
