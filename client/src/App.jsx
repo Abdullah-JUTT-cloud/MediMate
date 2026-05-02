@@ -21,6 +21,7 @@ const DashboardPage = lazy(() => import("./pages/DashboardPage"))
 const PatientChatPage = lazy(() => import("./pages/PatientChatPage"))
 const AdminLoginPage = lazy(() => import("./pages/AdminLoginPage"))
 const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage"))
+const PaymentPage = lazy(() => import("./pages/PaymentPage"))
 
 // Informational Pages
 const FeaturesPage = lazy(() => import("./pages/FeaturesPage"))
@@ -85,6 +86,14 @@ function App() {
             />
             <Route path="/admin/login" element={<AdminLoginPage />} />
             <Route path="/admin" element={<AdminDashboardPage />} />
+            <Route
+              path="/payment"
+              element={
+                <ProtectedRoute>
+                  <PaymentPage />
+                </ProtectedRoute>
+              }
+            />
           </Routes>
         </Suspense>
       </BrowserRouter>

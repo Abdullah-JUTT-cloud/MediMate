@@ -58,7 +58,7 @@ const buildFinancialData = async (doctorId, startDate, endDate) => {
     Checkup.find({ doctor: doctorObjectId, createdAt: { $gte: startDate, $lte: endDate } })
       .populate("patient", "name")
       .sort({ createdAt: -1 })
-      .select("patient payment createdAt"),
+      .select("patient payment createdAt prescription diseases notes visitedFacility"),
   ]);
 
   const stats = summary[0] || {
@@ -88,6 +88,11 @@ const buildFinancialData = async (doctorId, startDate, endDate) => {
       status: row.payment?.isPaid ? "Paid" : "Unpaid",
       method: row.payment?.method || "Cash",
       date: row.createdAt,
+      diagnosis: row.prescription?.diagnosis || "",
+      diseases: Array.isArray(row.diseases) ? row.diseases : [],
+      notes: row.notes || "",
+      visitLocation: row.visitedFacility?.locationName || "",
+      visitLocationType: row.visitedFacility?.locationType || "",
     })),
   };
 };
@@ -205,6 +210,132 @@ const generateXlsxBuffer = (report) => {
   return XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
 };
 
+const generateRevenueDetailsPdfBuffer = (report) =>
+  new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ size: "A4", margin: 36 });
+      const chunks = [];
+      doc.on("data", (chunk) => chunks.push(chunk));
+      doc.on("end", () => resolve(Buffer.concat(chunks)));
+      doc.on("error", reject);
+
+      const pageWidth = doc.page.width;
+      const usableWidth = pageWidth - 72;
+      const titleColor = "#0f766e";
+      const headingColor = "#111827";
+      const textColor = "#1f2937";
+      const mutedColor = "#64748b";
+
+      const fmtDate = (d) =>
+        new Date(d).toLocaleDateString("en-PK", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        });
+      const fmtDateTime = (d) =>
+        new Date(d).toLocaleString("en-PK", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      const fmtMoney = (n) => `PKR ${Math.round(Number(n || 0)).toLocaleString()}`;
+      const cleanText = (value, fallback = "N/A") => {
+        const text = String(value || "").trim();
+        return text || fallback;
+      };
+
+      const drawSectionCard = (x, y, w, h) => {
+        doc
+          .roundedRect(x, y, w, h, 10)
+          .fillAndStroke("#f8fafc", "#dbe4ec");
+      };
+
+      doc.font("Helvetica-Bold").fontSize(20).fillColor(titleColor).text("Revenue Details Report");
+      doc.moveDown(0.2);
+      doc.font("Helvetica").fontSize(10).fillColor(mutedColor).text(
+        `Range: ${fmtDate(report.range.startDate)} - ${fmtDate(report.range.endDate)}`
+      );
+
+      const summaryTop = doc.y + 10;
+      const summaryHeight = 92;
+      drawSectionCard(36, summaryTop, usableWidth, summaryHeight);
+
+      doc.font("Helvetica-Bold").fontSize(11).fillColor(headingColor).text("Summary", 48, summaryTop + 10);
+      doc.font("Helvetica").fontSize(10).fillColor(textColor);
+      const summaryLines = [
+        `Total Revenue: ${fmtMoney(report.summary.totalRevenue)}`,
+        `Paid Revenue: ${fmtMoney(report.summary.paidRevenue)}`,
+        `Unpaid Revenue: ${fmtMoney(report.summary.unpaidRevenue)}`,
+        `Total Patients: ${report.summary.patientCount}`,
+        `Checkups: ${report.summary.checkupCount}`,
+        `Average Earning / Patient: ${fmtMoney(report.summary.avgEarningPerPatient)}`,
+      ];
+      summaryLines.forEach((line, i) => {
+        const colX = i < 3 ? 48 : 300;
+        const rowY = summaryTop + 30 + (i % 3) * 16;
+        doc.text(line, colX, rowY, { width: 240 });
+      });
+
+      let y = summaryTop + summaryHeight + 16;
+      doc.font("Helvetica-Bold").fontSize(12).fillColor(headingColor).text("Payment Details");
+      y = doc.y + 8;
+
+      report.billingLog.forEach((row, index) => {
+        const diseasesText = row.diseases?.length ? row.diseases.join(", ") : "N/A";
+        const locationText = row.visitLocation
+          ? `${row.visitLocationType || "Location"} - ${row.visitLocation}`
+          : "N/A";
+
+        const cardHeight = 128;
+        if (y + cardHeight > doc.page.height - 40) {
+          doc.addPage();
+          y = 40;
+          doc.font("Helvetica-Bold").fontSize(12).fillColor(headingColor).text("Payment Details (continued)", 36, y);
+          y = doc.y + 8;
+        }
+
+        drawSectionCard(36, y, usableWidth, cardHeight);
+
+        doc.font("Helvetica-Bold").fontSize(10).fillColor(headingColor).text(
+          `#${index + 1} ${cleanText(row.patientName)}`,
+          48,
+          y + 10,
+          { width: 300 }
+        );
+        doc
+          .font("Helvetica-Bold")
+          .fontSize(10)
+          .fillColor(row.status === "Paid" ? "#166534" : "#b45309")
+          .text(`${cleanText(row.status)}`, 460, y + 10, { width: 100, align: "right" });
+
+        doc.font("Helvetica").fontSize(9).fillColor(textColor);
+        doc.text(`Date & Time: ${fmtDateTime(row.date)}`, 48, y + 30, { width: 250 });
+        doc.text(`Fee: ${fmtMoney(row.fee)}`, 300, y + 30, { width: 180 });
+        doc.text(`Method: ${cleanText(row.method)}`, 48, y + 46, { width: 250 });
+        doc.text(`Visit: ${cleanText(locationText)}`, 300, y + 46, { width: 250 });
+        doc.text(`Diagnosis: ${cleanText(row.diagnosis)}`, 48, y + 62, { width: 500 });
+        doc.text(`Diseases: ${cleanText(diseasesText)}`, 48, y + 78, { width: 500 });
+        doc.text(`Notes: ${cleanText(row.notes)}`, 48, y + 94, { width: 500 });
+
+        y += cardHeight + 10;
+      });
+
+      if (report.billingLog.length === 0) {
+        doc
+          .font("Helvetica")
+          .fontSize(10)
+          .fillColor(mutedColor)
+          .text("No payment records found for selected date range.", 36, y + 6);
+      }
+
+      doc.end();
+    } catch (err) {
+      reject(err);
+    }
+  });
+
 export const getFinancialReport = async (req, res) => {
   try {
     const { startDate, endDate, error } = parseDateRange(req.query);
@@ -237,6 +368,26 @@ export const getFinancialReport = async (req, res) => {
     return res.status(200).json(report);
   } catch (error) {
     console.error("financial report error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getRevenueDetailsReport = async (req, res) => {
+  try {
+    const { startDate, endDate, error } = parseDateRange(req.query);
+    if (error) {
+      return res.status(400).json({ message: error });
+    }
+
+    const report = await buildFinancialData(req.doctorId, startDate, endDate);
+    const pdfBuffer = await generateRevenueDetailsPdfBuffer(report);
+    const filename = `revenue-details-${new Date().toISOString().slice(0, 10)}.pdf`;
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename=\"${filename}\"`);
+    return res.status(200).send(pdfBuffer);
+  } catch (error) {
+    console.error("revenue details report error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

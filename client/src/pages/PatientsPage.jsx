@@ -12,7 +12,6 @@ const BLOOD_GROUPS = ["A+","A-","B+","B-","AB+","AB-","O+","O-","Unknown"];
 const GENDERS = ["Male","Female","Other"];
 const FREQUENCIES = ["Once a day","Twice a day","Three times a day","Four times a day","Every 8 hours","Every 12 hours","As needed"];
 const DURATIONS = ["3 days","5 days","7 days","10 days","14 days","1 month","3 months","Ongoing"];
-const PAYMENT_METHODS = ["Cash","Card","Online Transfer"];
 
 const getInitials = (name) => name?.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "P";
 const formatDate = (date) => new Date(date).toLocaleDateString("en-PK", { day: "numeric", month: "short", year: "numeric" });
@@ -21,6 +20,20 @@ const getTodayDateInput = () => {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
   return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split("T")[0];
+};
+const DAY_NAME_TO_INDEX = {
+  Sunday: 0,
+  Monday: 1,
+  Tuesday: 2,
+  Wednesday: 3,
+  Thursday: 4,
+  Friday: 5,
+  Saturday: 6,
+};
+const DAY_ORDER = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const parseDateInputLocal = (value) => {
+  const [year, month, day] = String(value || "").split("-").map(Number);
+  return new Date(year, (month || 1) - 1, day || 1);
 };
 
 // Organic Design Tokens
@@ -158,17 +171,58 @@ function CheckupForm({ patient, existingCheckup, onBack, onSaved }) {
   const [labInput, setLabInput] = useState("");
   const [patientAdvice, setPatientAdvice] = useState(existingCheckup?.prescription?.patientAdvice || "");
   const [visitedFacility, setVisitedFacility] = useState(existingCheckup?.visitedFacility || null);
-  const [payment, setPayment] = useState(
-    existingCheckup?.payment || { amount: "", method: "Cash", isPaid: false }
-  );
   const [savedCheckupId, setSavedCheckupId] = useState(existingCheckup?._id || null);
   const [currentPdfUrl, setCurrentPdfUrl] = useState(existingCheckup?.prescription?.pdfUrl || "");
   const [prescriptionCheckup, setPrescriptionCheckup] = useState(null);
   const [autoGeneratePrescription, setAutoGeneratePrescription] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
+  const doctorLocations = [
+    ...(doctor?.clinics || []).map((c, i) => ({
+      locationType: "Clinic",
+      locationId: c._id || `clinic_${i}`,
+      locationName: c.name,
+      locationAddress: c.address,
+      sessions: Array.isArray(c.sessions) ? c.sessions : [],
+    })),
+    ...(doctor?.hospitals || []).map((h, i) => ({
+      locationType: "Hospital",
+      locationId: h._id || `hospital_${i}`,
+      locationName: h.name,
+      locationAddress: h.address,
+      sessions: Array.isArray(h.sessions) ? h.sessions : [],
+    })),
+  ];
+  const normalizeVisitedFacility = (facility) => {
+    if (!facility) return null;
+    const matched = doctorLocations.find((loc) => {
+      if (facility.locationId && loc.locationId) {
+        return loc.locationType === facility.locationType && String(loc.locationId) === String(facility.locationId);
+      }
+      return loc.locationType === facility.locationType && loc.locationName === facility.locationName;
+    });
+    if (matched) return matched;
+    return {
+      ...facility,
+      sessions: Array.isArray(facility.sessions) ? facility.sessions : [],
+    };
+  };
+  const selectedFacility = normalizeVisitedFacility(visitedFacility);
+  const availableSessionDays = DAY_ORDER.filter((day) =>
+    (selectedFacility?.sessions || []).some((session) => session?.day === day)
+  );
+  const availableSessionDayIndexes = new Set(
+    availableSessionDays.map((day) => DAY_NAME_TO_INDEX[day])
+  );
+  const availableSessionDaysLabel = availableSessionDays.join(", ");
 
   const canGenerate = diagnosis.trim().length > 0 && medicines.some((m) => m.name.trim().length > 0);
+  const isDateAllowedForSelectedFacility = (dateValue) => {
+    if (!dateValue || !selectedFacility) return true;
+    if (availableSessionDayIndexes.size === 0) return false;
+    const dayIdx = parseDateInputLocal(dateValue).getDay();
+    return availableSessionDayIndexes.has(dayIdx);
+  };
 
   const validateNextAppointment = () => {
     if (!nextAppointment) return true;
@@ -176,8 +230,44 @@ function CheckupForm({ patient, existingCheckup, onBack, onSaved }) {
       toast.error("Next appointment cannot be in the past");
       return false;
     }
+    if (selectedFacility && availableSessionDayIndexes.size === 0) {
+      toast.error(`No session days configured for ${selectedFacility.locationName}. Update location sessions in Settings first.`);
+      return false;
+    }
+    if (!isDateAllowedForSelectedFacility(nextAppointment)) {
+      toast.error(
+        `Doctor is not available at ${selectedFacility.locationName} on this day. Available days: ${availableSessionDaysLabel || "none"}`
+      );
+      return false;
+    }
     return true;
   };
+  const handleNextAppointmentChange = (value) => {
+    if (!value) {
+      setNextAppointment("");
+      return;
+    }
+    if (!selectedFacility) {
+      toast.error("Select visit location first");
+      return;
+    }
+    if (!isDateAllowedForSelectedFacility(value)) {
+      toast.error(
+        `Only session days are allowed for ${selectedFacility.locationName}: ${availableSessionDaysLabel || "none"}`
+      );
+      return;
+    }
+    setNextAppointment(value);
+  };
+
+  useEffect(() => {
+    if (!nextAppointment || !selectedFacility) return;
+    if (isDateAllowedForSelectedFacility(nextAppointment)) return;
+    setNextAppointment("");
+    toast.error(
+      `Next appointment date cleared because it is not available for ${selectedFacility.locationName}.`
+    );
+  }, [visitedFacility, nextAppointment, selectedFacility, availableSessionDaysLabel]);
 
   const updateMedicine = (i, field, val) =>
     setMedicines((p) => p.map((m, idx) => idx === i ? { ...m, [field]: val } : m));
@@ -190,7 +280,13 @@ function CheckupForm({ patient, existingCheckup, onBack, onSaved }) {
   const buildPayload = () => ({
     diseases,
     notes,
-    visitedFacility,
+    visitedFacility: selectedFacility
+      ? {
+          locationType: selectedFacility.locationType,
+          locationName: selectedFacility.locationName,
+          locationAddress: selectedFacility.locationAddress,
+        }
+      : null,
     prescription: {
       diagnosis,
       nextAppointment: nextAppointment || undefined,
@@ -199,7 +295,6 @@ function CheckupForm({ patient, existingCheckup, onBack, onSaved }) {
       patientAdvice,
       pdfUrl: currentPdfUrl,
     },
-    payment: { amount: Number(payment.amount) || 0, method: payment.method, isPaid: payment.isPaid },
   });
 
   const handleGeneratePrescription = async () => {
@@ -231,7 +326,13 @@ function CheckupForm({ patient, existingCheckup, onBack, onSaved }) {
           pdfUrl: currentPdfUrl,
         },
         notes,
-        visitedFacility,
+        visitedFacility: selectedFacility
+          ? {
+              locationType: selectedFacility.locationType,
+              locationName: selectedFacility.locationName,
+              locationAddress: selectedFacility.locationAddress,
+            }
+          : null,
       };
       setAutoGeneratePrescription(true);
       setPrescriptionCheckup(tempCheckup);
@@ -248,7 +349,6 @@ function CheckupForm({ patient, existingCheckup, onBack, onSaved }) {
     if (medicines.some((m) => !m.name.trim() || !m.dosage.trim() || !m.frequency || !m.duration)) {
       toast.error("Fill all required medicine fields"); return;
     }
-    if (!payment.amount) { toast.error("Payment amount is required"); return; }
     setIsSaving(true);
     try {
       let res;
@@ -332,7 +432,7 @@ function CheckupForm({ patient, existingCheckup, onBack, onSaved }) {
             </div>
             <div>
               <label className="block text-xs font-medium mb-1.5" style={{ color: ORGANIC.mutedFg }}>Visit Location (will show on prescription) *</label>
-              <select value={visitedFacility ? JSON.stringify(visitedFacility) : ""} 
+              <select value={selectedFacility ? JSON.stringify(selectedFacility) : ""} 
                 onChange={(e) => {
                   if (e.target.value) {
                     setVisitedFacility(JSON.parse(e.target.value));
@@ -342,34 +442,31 @@ function CheckupForm({ patient, existingCheckup, onBack, onSaved }) {
                 }}
                 className={inputCls} style={S.input} onFocus={focusInput} onBlur={blurInput}>
                 <option value="" style={{ background: ORGANIC.bg, color: ORGANIC.fg }}>Select clinic or hospital</option>
-                {[
-                  ...(doctor?.clinics || []).map((c) => ({ 
-                    locationType: "Clinic", 
-                    locationName: c.name,
-                    locationAddress: c.address
-                  })),
-                  ...(doctor?.hospitals || []).map((h) => ({ 
-                    locationType: "Hospital", 
-                    locationName: h.name,
-                    locationAddress: h.address
-                  })),
-                ].map((loc, idx) => (
+                {doctorLocations.map((loc, idx) => (
                   <option key={idx} value={JSON.stringify(loc)} style={{ background: ORGANIC.bg, color: ORGANIC.fg }}>
                     {loc.locationType === "Clinic" ? "🏥" : "🏨"} {loc.locationName}
                   </option>
                 ))}
               </select>
-              {visitedFacility && (
+              {selectedFacility && (
                 <p className="text-xs mt-2 px-3 py-2 rounded-full" style={{ background: `rgba(93, 112, 82, 0.1)`, color: ORGANIC.mutedFg }}>
-                  <span className="font-semibold">Patient visited at:</span> {visitedFacility.locationType === "Clinic" ? "🏥" : "🏨"} {visitedFacility.locationName}
+                  <span className="font-semibold">Patient visited at:</span> {selectedFacility.locationType === "Clinic" ? "🏥" : "🏨"} {selectedFacility.locationName}
                 </p>
               )}
             </div>
             <div>
               <label className="block text-xs font-medium mb-1.5" style={{ color: ORGANIC.mutedFg }}>Next Appointment (optional)</label>
-              <input type="date" value={nextAppointment} onChange={(e) => setNextAppointment(e.target.value)}
+              <input type="date" value={nextAppointment} onChange={(e) => handleNextAppointmentChange(e.target.value)}
                 min={minAppointmentDate}
+                disabled={!selectedFacility}
                 className={inputCls} style={{ ...S.input, colorScheme: "light" }} onFocus={focusInput} onBlur={blurInput} />
+              <p className="text-xs mt-2" style={{ color: ORGANIC.mutedFg }}>
+                {!selectedFacility
+                  ? "Select visit location first to enable date selection."
+                  : availableSessionDays.length
+                    ? `Available days at ${selectedFacility.locationName}: ${availableSessionDaysLabel}`
+                    : `No session days configured for ${selectedFacility.locationName}.`}
+              </p>
             </div>
             <div>
               <label className="block text-xs font-medium mb-3" style={{ color: ORGANIC.mutedFg }}>Medicines *</label>
@@ -468,46 +565,6 @@ function CheckupForm({ patient, existingCheckup, onBack, onSaved }) {
                 </span>
               ) : currentPdfUrl ? "📋 Regenerate Prescription" : "📋 Generate Prescription"}
             </button>
-          </div>
-        </div>
-
-        <div className="rounded-2xl p-5" style={S.card}>
-          <SectionLabel text="Payment" />
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-medium mb-1.5" style={{ color: ORGANIC.mutedFg }}>Amount (PKR) *</label>
-              <input type="number" value={payment.amount}
-                onChange={(e) => setPayment((p) => ({ ...p, amount: e.target.value }))}
-                placeholder="e.g. 1500" className={inputCls} style={S.input}
-                onFocus={focusInput} onBlur={blurInput} />
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1.5" style={{ color: ORGANIC.mutedFg }}>Method</label>
-              <div className="flex gap-2">
-                {PAYMENT_METHODS.map((m) => (
-                  <button key={m} onClick={() => setPayment((p) => ({ ...p, method: m }))}
-                    className="flex-1 py-3 rounded-full text-xs font-semibold transition-all hover:scale-105 active:scale-95"
-                    style={{
-                      background: payment.method === m ? ORGANIC.primary : `rgba(93, 112, 82, 0.08)`,
-                      border: `1.5px solid ${payment.method === m ? ORGANIC.primary : ORGANIC.border}`,
-                      color: payment.method === m ? ORGANIC.primaryFg : ORGANIC.fg,
-                    }}>
-                    {m}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="flex items-end">
-              <button onClick={() => setPayment((p) => ({ ...p, isPaid: !p.isPaid }))}
-                className="w-full py-3 rounded-full text-xs font-semibold transition-all hover:scale-105 active:scale-95"
-                style={{
-                  background: payment.isPaid ? `rgba(93, 112, 82, 0.12)` : `rgba(93, 112, 82, 0.08)`,
-                  border: `1.5px solid ${payment.isPaid ? ORGANIC.primary : ORGANIC.border}`,
-                  color: payment.isPaid ? ORGANIC.primary : ORGANIC.mutedFg,
-                }}>
-                {payment.isPaid ? "✓ Paid" : "Unpaid"}
-              </button>
-            </div>
           </div>
         </div>
 

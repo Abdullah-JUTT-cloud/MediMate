@@ -115,13 +115,19 @@ export const addCheckup = async (req, res) => {
     if (!nextAppointmentValidation.valid) {
       return res.status(400).json({ message: nextAppointmentValidation.message });
     }
-    if (payment?.amount === undefined || payment?.amount === null) {
-      return res.status(400).json({ message: "Payment amount is required" });
-    }
-    if (!payment?.method) {
-      return res.status(400).json({ message: "Payment method is required" });
-    }
-   
+    const paymentPayload =
+      payment && typeof payment === "object"
+        ? {
+            amount: Number(payment.amount ?? 0),
+            method: payment.method || "Cash",
+            isPaid: typeof payment.isPaid === "boolean" ? payment.isPaid : false,
+          }
+        : {
+            amount: 0,
+            method: "Cash",
+            isPaid: false,
+          };
+
     const normalizedDiseases = normalizeDiseasesWithDiagnosis(
       diseases,
       prescription?.diagnosis,
@@ -133,7 +139,7 @@ export const addCheckup = async (req, res) => {
       diseases: normalizedDiseases,
       notes,
       prescription,
-      payment,
+      payment: paymentPayload,
       visitedFacility,
     });
     await checkup.save();

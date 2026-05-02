@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { BarChart3, CalendarCheck2, CircleUserRound, LayoutDashboard, LifeBuoy, LogOut, MessagesSquare, Users } from "lucide-react";
+import { BarChart3, CalendarCheck2, CircleUserRound, CreditCard, LayoutDashboard, LifeBuoy, LogOut, MessagesSquare, Users } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import useAuthStore from "../store/authStore";
 import logo from "../assets/logo-compact.webp";
 import SettingsPage from "./SettingsPage";
 import PatientsPage from "./PatientsPage";
+import PaymentPage from "./PaymentPage";
 import AppointmentsPage from "./AppointmentsPage";
 import EmergencyCancelledPage from "./EmergencyCancelledPage";
 import InsightsPage from "./InsightsPage";
@@ -28,6 +29,7 @@ const navItems = [
   { icon: CalendarCheck2, label: "Emergency Cancelled", key: "emergency-cancelled" },
   { icon: BarChart3, label: "Insights", key: "insights" },
   { icon: BarChart3, label: "Revenue Lab", key: "revenue-lab" },
+  { icon: CreditCard, label: "Payments", key: "payments" },
   { icon: LifeBuoy, label: "Support", key: "support" },
   { icon: CircleUserRound, label: "Profile Page", key: "settings" },
 ];
@@ -616,6 +618,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
             <>
           {activeNav === "settings" && <SettingsPage />}
           {activeNav === "patients" && <PatientsPage />}
+          {activeNav === "payments" && <PaymentPage onBack={() => setActiveNav("dashboard")} />}
           {activeNav === "chats" && <DoctorChatsPage />}
           {activeNav === "insights" && <InsightsPage />}
           {activeNav === "revenue-lab" && <RevenueLabPage />}
@@ -852,7 +855,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
           </>
           )}
 
-          {!isProfileRestricted && !["dashboard", "settings", "patients", "chats", "appointments", "emergency-cancelled", "insights", "revenue-lab", "support"].includes(activeNav) && (
+          {!isProfileRestricted && !["dashboard", "settings", "patients", "chats", "appointments", "emergency-cancelled", "insights", "revenue-lab", "payments", "support"].includes(activeNav) && (
             <div className="flex h-full items-center justify-center">
               <div className="rounded-4xl border border-[var(--color-border)] bg-[var(--color-card)]/95 px-10 py-16 text-center shadow-[0_10px_40px_-10px_rgba(93,112,82,0.18)]">
                 <div className="mb-4 text-5xl">🚧</div>

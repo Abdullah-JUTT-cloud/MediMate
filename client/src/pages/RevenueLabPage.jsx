@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowDownRight, ArrowRight, ArrowUpRight, BarChart3, CalendarDays, Coins, FileSpreadsheet, FileText, Wallet } from "lucide-react";
+import { ArrowDownRight, ArrowRight, ArrowUpRight, BarChart3, CalendarDays, Coins, Wallet } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import {
@@ -70,12 +70,11 @@ export default function RevenueLabPage() {
   const [data, setData] = useState(null);
   const [billingLog, setBillingLog] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isExporting, setIsExporting] = useState(false);
+  const [isDownloadingRevenueDetails, setIsDownloadingRevenueDetails] = useState(false);
   const [billingLoading, setBillingLoading] = useState(false);
   const [billingUpdatingId, setBillingUpdatingId] = useState("");
   const [billingStatusFilter, setBillingStatusFilter] = useState("all");
   const [billingSearch, setBillingSearch] = useState("");
-  const [taxYear, setTaxYear] = useState(new Date().getFullYear());
   const [startDate, setStartDate] = useState(() => {
     const now = new Date();
     return toInputDate(new Date(now.getFullYear(), now.getMonth(), 1));
@@ -114,7 +113,7 @@ export default function RevenueLabPage() {
     }));
   }, [revenue?.monthlySeries, revenue?.projectedYearly]);
 
-  const handleExport = async (format) => {
+  const handleDownloadRevenueDetails = async () => {
     if (!startDate || !endDate) {
       toast.error("Select report start and end date");
       return;
@@ -124,29 +123,26 @@ export default function RevenueLabPage() {
       return;
     }
 
-    setIsExporting(true);
+    setIsDownloadingRevenueDetails(true);
     try {
-      const res = await axiosInstance.get("/reports/financial", {
-        params: { format, startDate, endDate },
+      const res = await axiosInstance.get("/reports/revenue-details", {
+        params: { startDate, endDate },
         responseType: "blob",
       });
-      const mime = format === "pdf"
-        ? "application/pdf"
-        : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-      const blob = new Blob([res.data], { type: mime });
+      const blob = new Blob([res.data], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `financial-report-${startDate}-to-${endDate}.${format === "pdf" ? "pdf" : "xlsx"}`;
+      a.download = `revenue-details-${startDate}-to-${endDate}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      toast.success(`${format.toUpperCase()} report downloaded`);
+      toast.success("Revenue details downloaded");
     } catch {
-      toast.error(`Failed to download ${format.toUpperCase()} report`);
+      toast.error("Failed to download revenue details");
     } finally {
-      setIsExporting(false);
+      setIsDownloadingRevenueDetails(false);
     }
   };
 
@@ -188,33 +184,6 @@ export default function RevenueLabPage() {
       toast.error("Failed to update billing status");
     } finally {
       setBillingUpdatingId("");
-    }
-  };
-
-  const handleExportTax = async (format) => {
-    setIsExporting(true);
-    try {
-      const res = await axiosInstance.get("/reports/tax-summary", {
-        params: { format, year: taxYear },
-        responseType: "blob",
-      });
-      const mime = format === "pdf"
-        ? "application/pdf"
-        : "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-      const blob = new Blob([res.data], { type: mime });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `tax-summary-${taxYear}.${format === "pdf" ? "pdf" : "xlsx"}`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      toast.success(`Tax ${format.toUpperCase()} downloaded`);
-    } catch {
-      toast.error(`Failed to download tax ${format.toUpperCase()}`);
-    } finally {
-      setIsExporting(false);
     }
   };
 
@@ -267,47 +236,12 @@ export default function RevenueLabPage() {
             </div>
           </div>
           <button
-            onClick={() => handleExport("xlsx")}
-            disabled={isExporting}
+            onClick={handleDownloadRevenueDetails}
+            disabled={isDownloadingRevenueDetails}
             className="px-4 py-2.5 rounded-full text-xs font-semibold inline-flex items-center gap-1"
             style={{ background: "rgba(93,112,82,0.12)", color: "var(--color-primary)", border: "1px solid rgba(93,112,82,0.28)" }}
           >
-            <FileSpreadsheet size={14} />
-            {isExporting ? "Exporting..." : "Export Excel (.xlsx)"}
-          </button>
-          <button
-            onClick={() => handleExport("pdf")}
-            disabled={isExporting}
-            className="px-4 py-2.5 rounded-full text-xs font-semibold inline-flex items-center gap-1"
-            style={{ background: "color-mix(in srgb, var(--color-bg-soft) 58%, transparent)", color: "var(--color-text-secondary)", border: "1px solid var(--color-border)" }}
-          >
-            <FileText size={14} />
-            {isExporting ? "Exporting..." : "Export PDF"}
-          </button>
-          <input
-            type="number"
-            min="2000"
-            max="3000"
-            value={taxYear}
-            onChange={(e) => setTaxYear(Number(e.target.value || new Date().getFullYear()))}
-            className="px-3 py-2.5 rounded-full text-xs w-[90px] outline-none"
-            style={{ background: "color-mix(in srgb, var(--color-card) 78%, transparent)", color: "var(--color-text-primary)", border: "1px solid var(--color-border)" }}
-          />
-          <button
-            onClick={() => handleExportTax("xlsx")}
-            disabled={isExporting}
-            className="px-3 py-2.5 rounded-full text-xs font-semibold"
-            style={{ background: "rgba(193,140,93,0.14)", color: "var(--color-secondary)", border: "1px solid rgba(193,140,93,0.3)" }}
-          >
-            Tax XLSX
-          </button>
-          <button
-            onClick={() => handleExportTax("pdf")}
-            disabled={isExporting}
-            className="px-3 py-2.5 rounded-full text-xs font-semibold"
-            style={{ background: "rgba(193,140,93,0.08)", color: "var(--color-secondary)", border: "1px solid rgba(193,140,93,0.24)" }}
-          >
-            Tax PDF
+            {isDownloadingRevenueDetails ? "Downloading..." : "Download Revenue Details"}
           </button>
         </div>
       </div>
