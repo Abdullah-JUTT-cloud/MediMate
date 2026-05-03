@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { AudioLines, Pause, Play, Volume2 } from "lucide-react";
 
 const DEFAULT_THEME = {
-  surface: "color-mix(in srgb, var(--color-bg-soft) 72%, var(--color-card) 28%)",
+  surface:
+    "color-mix(in srgb, var(--color-bg-soft) 72%, var(--color-card) 28%)",
   border: "color-mix(in srgb, var(--color-border) 82%, transparent)",
   accent: "var(--color-primary)",
   accentSoft: "color-mix(in srgb, var(--color-primary) 16%, transparent)",
@@ -13,7 +14,8 @@ const DEFAULT_THEME = {
 const VOICE_FILE_PATTERN = /^voice-note-\d+\.(webm|ogg|mp3|wav|m4a|aac)$/i;
 
 const formatAudioTime = (seconds) => {
-  const safeSeconds = Number.isFinite(seconds) && seconds >= 0 ? Math.floor(seconds) : 0;
+  const safeSeconds =
+    Number.isFinite(seconds) && seconds >= 0 ? Math.floor(seconds) : 0;
   const mins = Math.floor(safeSeconds / 60);
   const secs = safeSeconds % 60;
   return `${mins}:${secs.toString().padStart(2, "0")}`;
@@ -41,14 +43,24 @@ export default function VoiceMessagePlayer({
 
   const resolvedTheme = { ...DEFAULT_THEME, ...theme };
   const displayTitle = normalizeVoiceLabel(title);
-  const effectiveDuration = Math.max(totalDuration || 0, currentTime || 0, duration || 0, 0);
-  const progress = effectiveDuration > 0 ? Math.min(currentTime / effectiveDuration, 1) : 0;
+  const effectiveDuration = Math.max(
+    totalDuration || 0,
+    currentTime || 0,
+    duration || 0,
+    0,
+  );
+  const progress =
+    effectiveDuration > 0 ? Math.min(currentTime / effectiveDuration, 1) : 0;
   const barHeights = [14, 22, 17, 26, 20, 30, 18, 28, 16, 24, 19, 27];
 
   useEffect(() => {
-    setIsPlaying(false);
-    setCurrentTime(0);
-    setTotalDuration(duration || 0);
+    const resetTimer = window.setTimeout(() => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+      setTotalDuration(duration || 0);
+    }, 0);
+
+    return () => window.clearTimeout(resetTimer);
   }, [src, duration]);
 
   useEffect(() => {
@@ -134,10 +146,16 @@ export default function VoiceMessagePlayer({
             <AudioLines className="h-4.5 w-4.5" />
           </span>
           <div className="min-w-0">
-            <p className="truncate text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: resolvedTheme.muted }}>
+            <p
+              className="truncate text-[11px] font-semibold uppercase tracking-[0.16em]"
+              style={{ color: resolvedTheme.muted }}
+            >
               {badge}
             </p>
-            <p className="truncate text-sm font-medium" style={{ color: resolvedTheme.text }}>
+            <p
+              className="truncate text-sm font-medium"
+              style={{ color: resolvedTheme.text }}
+            >
               {displayTitle}
             </p>
           </div>
@@ -157,13 +175,18 @@ export default function VoiceMessagePlayer({
           }}
           aria-label={isPlaying ? "Pause voice message" : "Play voice message"}
         >
-          {isPlaying ? <Pause className="h-4.5 w-4.5" /> : <Play className="ml-0.5 h-4.5 w-4.5" />}
+          {isPlaying ? (
+            <Pause className="h-4.5 w-4.5" />
+          ) : (
+            <Play className="ml-0.5 h-4.5 w-4.5" />
+          )}
         </button>
 
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex items-end gap-1">
             {barHeights.map((height, index) => {
-              const threshold = barHeights.length === 1 ? 1 : index / (barHeights.length - 1);
+              const threshold =
+                barHeights.length === 1 ? 1 : index / (barHeights.length - 1);
               const isActive = progress >= threshold;
               return (
                 <span
@@ -195,7 +218,10 @@ export default function VoiceMessagePlayer({
             aria-label="Seek voice message"
           />
 
-          <div className="mt-2 flex items-center justify-between gap-3 text-[11px]" style={{ color: resolvedTheme.muted }}>
+          <div
+            className="mt-2 flex items-center justify-between gap-3 text-[11px]"
+            style={{ color: resolvedTheme.muted }}
+          >
             <span>{formatAudioTime(currentTime)}</span>
             <span className="inline-flex items-center gap-1">
               <Volume2 className="h-3.5 w-3.5" />

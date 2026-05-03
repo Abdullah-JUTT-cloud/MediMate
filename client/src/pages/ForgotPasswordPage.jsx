@@ -10,8 +10,14 @@ export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (!email.trim()) { toast.error("Email is required"); return; }
-    if (!/\S+@\S+\.\S+/.test(email)) { toast.error("Enter a valid email"); return; }
+    if (!email.trim()) {
+      toast.error("Email is required");
+      return;
+    }
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      toast.error("Enter a valid email");
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -27,16 +33,31 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[var(--color-bg)] text-[var(--color-text-primary)]">
-      <div aria-hidden="true" className="pointer-events-none absolute -left-20 top-10 h-80 w-80 rounded-[60%_40%_35%_65%/55%_35%_65%_45%] bg-[var(--color-accent)]/80 blur-3xl" />
-      <div aria-hidden="true" className="pointer-events-none absolute -right-20 top-24 h-96 w-96 rounded-[48%_52%_39%_61%/48%_34%_66%_52%] bg-[var(--color-primary)]/10 blur-3xl" />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-20 top-10 h-80 w-80 rounded-[60%_40%_35%_65%/55%_35%_65%_45%] bg-[var(--color-accent)]/80 blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-20 top-24 h-96 w-96 rounded-[48%_52%_39%_61%/48%_34%_66%_52%] bg-[var(--color-primary)]/10 blur-3xl"
+      />
 
       <nav className="sticky top-4 z-10 px-4 sm:px-6 lg:px-8">
         <div className="relative mx-auto flex w-full max-w-7xl items-center justify-between rounded-full border border-[var(--color-border)]/70 bg-[var(--color-card)]/90 px-4 py-4 shadow-[0_4px_20px_-2px_rgba(93,112,82,0.12)] backdrop-blur-md sm:px-5">
-          <button className="flex items-center gap-3" onClick={() => navigate("/")}>
-            <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border)]/80 bg-[var(--color-primary)] shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)]">
-              <img src={logo} alt="MedAlerto" className="h-7 w-auto rounded-full" />
+          <button
+            className="flex items-center gap-3"
+            onClick={() => navigate("/")}
+          >
+            <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-[var(--color-border)]/80 bg-[var(--color-card)] shadow-[var(--shadow-soft)]">
+              <img
+                src={logo}
+                alt="MedAlerto"
+                className="h-full w-full object-contain p-1"
+              />
             </span>
-            <span className="font-heading text-sm font-semibold uppercase tracking-[0.22em] text-[var(--color-text-primary)]">MedAlerto</span>
+            <span className="font-heading text-sm font-semibold uppercase tracking-[0.22em] text-[var(--color-text-primary)]">
+              MedAlerto
+            </span>
           </button>
           <button
             onClick={() => navigate("/login")}
@@ -56,14 +77,18 @@ export default function ForgotPasswordPage() {
           </div>
 
           <header className="mb-8 text-center">
-            <h1 className="mb-2 text-2xl font-heading font-semibold sm:text-3xl">Forgot Password?</h1>
+            <h1 className="mb-2 text-2xl font-heading font-semibold sm:text-3xl">
+              Forgot Password?
+            </h1>
             <p className="text-sm text-[var(--color-text-secondary)] sm:text-base">
               No worries. Enter your email and we&apos;ll send you a reset OTP.
             </p>
           </header>
 
           <div className="rounded-3xl border border-[var(--color-border)]/70 bg-[var(--color-bg-soft)]/45 p-4 sm:p-6">
-            <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)] sm:text-sm">Email Address</label>
+            <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)] sm:text-sm">
+              Email Address
+            </label>
             <input
               type="email"
               value={email}

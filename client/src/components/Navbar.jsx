@@ -15,26 +15,35 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const navBaseClass = scrolled || !isHome
-    ? "border border-[var(--color-border)]/70 bg-[var(--color-bg)]/85 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.16)] backdrop-blur-md"
-    : "border border-[var(--color-border)]/50 bg-[var(--color-bg)]/75 backdrop-blur-md";
+  const navBaseClass =
+    scrolled || !isHome
+      ? "border border-[var(--color-border)]/70 bg-[var(--color-bg)]/85 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.16)] backdrop-blur-md"
+      : "border border-[var(--color-border)]/50 bg-[var(--color-bg)]/75 backdrop-blur-md";
 
   const linkClass = (path) =>
     `font-mono text-[11px] uppercase tracking-[0.24em] transition duration-300 hover:text-[var(--color-primary)] ${
-      location.pathname === path ? "text-[var(--color-primary)]" : "text-[var(--color-text-secondary)]"
+      location.pathname === path
+        ? "text-[var(--color-primary)]"
+        : "text-[var(--color-text-secondary)]"
     }`;
 
   return (
     <nav className="sticky top-4 z-50 px-4 sm:px-6 lg:px-8">
-      <div className={`relative mx-auto flex w-full max-w-7xl items-center justify-between rounded-full px-4 py-4 sm:px-5 ${navBaseClass}`}>
+      <div
+        className={`relative mx-auto flex w-full max-w-7xl items-center justify-between rounded-full px-4 py-4 sm:px-5 ${navBaseClass}`}
+      >
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-x-8 top-0 h-px bg-[linear-gradient(to_right,transparent,rgba(93,112,82,0.55),rgba(193,140,93,0.8),transparent)]"
         />
 
         <Link to="/" className="group flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border)]/70 bg-[var(--color-primary)] shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)]">
-            <img src={logo} alt="MedAlerto Logo" className="h-7 w-auto rounded-full" />
+          <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-[var(--color-border)]/80 bg-[var(--color-card)] shadow-[var(--shadow-soft)]">
+            <img
+              src={logo}
+              alt="MedAlerto Logo"
+              className="h-full w-full object-contain p-1"
+            />
           </span>
           <span>
             <span className="block font-heading text-sm font-semibold uppercase tracking-[0.22em] text-[var(--color-text-primary)]">
@@ -83,20 +92,53 @@ export default function Navbar() {
           aria-controls="mobile-nav"
         >
           <div className="space-y-1.5">
-            <span className={`block h-px w-5 bg-current transition duration-300 ${menuOpen ? "translate-y-2 rotate-45" : ""}`} />
-            <span className={`block h-px w-5 bg-current transition duration-300 ${menuOpen ? "opacity-0" : ""}`} />
-            <span className={`block h-px w-5 bg-current transition duration-300 ${menuOpen ? "-translate-y-2 -rotate-45" : ""}`} />
+            <span
+              className={`block h-px w-5 bg-current transition duration-300 ${menuOpen ? "translate-y-2 rotate-45" : ""}`}
+            />
+            <span
+              className={`block h-px w-5 bg-current transition duration-300 ${menuOpen ? "opacity-0" : ""}`}
+            />
+            <span
+              className={`block h-px w-5 bg-current transition duration-300 ${menuOpen ? "-translate-y-2 -rotate-45" : ""}`}
+            />
           </div>
         </button>
       </div>
 
       {menuOpen && (
-        <div id="mobile-nav" className="absolute left-4 right-4 top-full mt-3 rounded-4xl border border-[var(--color-border)]/80 bg-[var(--color-card)]/96 p-5 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.18)] backdrop-blur-md lg:hidden">
+        <div
+          id="mobile-nav"
+          className="absolute left-4 right-4 top-full mt-3 rounded-4xl border border-[var(--color-border)]/80 bg-[var(--color-card)]/96 p-5 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.18)] backdrop-blur-md lg:hidden"
+        >
           <div className="flex flex-col gap-4">
-            <Link to="/features" className="font-mono text-[11px] uppercase tracking-[0.24em] text-[var(--color-text-secondary)] transition duration-300 hover:text-[var(--color-primary)]" onClick={() => setMenuOpen(false)}>Features</Link>
-            <Link to="/how-it-works" className="font-mono text-[11px] uppercase tracking-[0.24em] text-[var(--color-text-secondary)] transition duration-300 hover:text-[var(--color-primary)]" onClick={() => setMenuOpen(false)}>How it Works</Link>
-            <Link to="/pricing" className="font-mono text-[11px] uppercase tracking-[0.24em] text-[var(--color-text-secondary)] transition duration-300 hover:text-[var(--color-primary)]" onClick={() => setMenuOpen(false)}>Pricing</Link>
-            <Link to="/faq" className="font-mono text-[11px] uppercase tracking-[0.24em] text-[var(--color-text-secondary)] transition duration-300 hover:text-[var(--color-primary)]" onClick={() => setMenuOpen(false)}>FAQ</Link>
+            <Link
+              to="/features"
+              className="font-mono text-[11px] uppercase tracking-[0.24em] text-[var(--color-text-secondary)] transition duration-300 hover:text-[var(--color-primary)]"
+              onClick={() => setMenuOpen(false)}
+            >
+              Features
+            </Link>
+            <Link
+              to="/how-it-works"
+              className="font-mono text-[11px] uppercase tracking-[0.24em] text-[var(--color-text-secondary)] transition duration-300 hover:text-[var(--color-primary)]"
+              onClick={() => setMenuOpen(false)}
+            >
+              How it Works
+            </Link>
+            <Link
+              to="/pricing"
+              className="font-mono text-[11px] uppercase tracking-[0.24em] text-[var(--color-text-secondary)] transition duration-300 hover:text-[var(--color-primary)]"
+              onClick={() => setMenuOpen(false)}
+            >
+              Pricing
+            </Link>
+            <Link
+              to="/faq"
+              className="font-mono text-[11px] uppercase tracking-[0.24em] text-[var(--color-text-secondary)] transition duration-300 hover:text-[var(--color-primary)]"
+              onClick={() => setMenuOpen(false)}
+            >
+              FAQ
+            </Link>
             <button
               onClick={() => {
                 navigate("/login");

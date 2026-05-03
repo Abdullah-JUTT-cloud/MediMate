@@ -3,18 +3,25 @@ import { useEffect, useMemo, useState } from "react";
 const THEME_STORAGE_KEY = "medimate-theme";
 
 function getSystemTheme() {
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
 }
 
 export default function useTheme() {
-  const initialSavedTheme = useMemo(() => localStorage.getItem(THEME_STORAGE_KEY), []);
+  const initialSavedTheme = useMemo(
+    () => localStorage.getItem(THEME_STORAGE_KEY),
+    [],
+  );
 
   const [theme, setTheme] = useState(initialSavedTheme || getSystemTheme());
-  const [isSystemControlled, setIsSystemControlled] = useState(!initialSavedTheme);
+  const [isSystemControlled, setIsSystemControlled] =
+    useState(!initialSavedTheme);
 
   useEffect(() => {
     const root = document.documentElement;
     root.classList.toggle("dark", theme === "dark");
+    root.style.colorScheme = theme;
   }, [theme]);
 
   useEffect(() => {

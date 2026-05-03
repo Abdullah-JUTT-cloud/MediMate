@@ -42,7 +42,10 @@ export default function VerifyEmailPage() {
 
   const handlePaste = (e) => {
     e.preventDefault();
-    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    const pasted = e.clipboardData
+      .getData("text")
+      .replace(/\D/g, "")
+      .slice(0, 6);
     if (pasted.length === 6) {
       setOtp(pasted.split(""));
       inputRefs.current[5]?.focus();
@@ -66,7 +69,9 @@ export default function VerifyEmailPage() {
       toast.success("Email verified successfully!");
       navigate("/login");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Invalid OTP. Please try again.");
+      toast.error(
+        error.response?.data?.message || "Invalid OTP. Please try again.",
+      );
       setOtp(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();
     } finally {
@@ -92,16 +97,31 @@ export default function VerifyEmailPage() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[var(--color-bg)] text-[var(--color-text-primary)]">
-      <div aria-hidden="true" className="pointer-events-none absolute -left-20 top-10 h-80 w-80 rounded-[60%_40%_35%_65%/55%_35%_65%_45%] bg-[var(--color-accent)]/80 blur-3xl" />
-      <div aria-hidden="true" className="pointer-events-none absolute -right-20 top-24 h-96 w-96 rounded-[48%_52%_39%_61%/48%_34%_66%_52%] bg-[var(--color-primary)]/10 blur-3xl" />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-20 top-10 h-80 w-80 rounded-[60%_40%_35%_65%/55%_35%_65%_45%] bg-[var(--color-accent)]/80 blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-20 top-24 h-96 w-96 rounded-[48%_52%_39%_61%/48%_34%_66%_52%] bg-[var(--color-primary)]/10 blur-3xl"
+      />
 
       <nav className="sticky top-4 z-10 px-4 sm:px-6 lg:px-8">
         <div className="relative mx-auto flex w-full max-w-7xl items-center justify-between rounded-full border border-[var(--color-border)]/70 bg-[var(--color-card)]/90 px-4 py-4 shadow-[0_4px_20px_-2px_rgba(93,112,82,0.12)] backdrop-blur-md sm:px-5">
-          <button className="flex items-center gap-3" onClick={() => navigate("/")}>
-            <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border)]/80 bg-[var(--color-primary)] shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)]">
-              <img src={logo} alt="MedAlerto" className="h-7 w-auto rounded-full" />
+          <button
+            className="flex items-center gap-3"
+            onClick={() => navigate("/")}
+          >
+            <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-[var(--color-border)]/80 bg-[var(--color-card)] shadow-[var(--shadow-soft)]">
+              <img
+                src={logo}
+                alt="MedAlerto"
+                className="h-full w-full object-contain p-1"
+              />
             </span>
-            <span className="font-heading text-sm font-semibold uppercase tracking-[0.22em] text-[var(--color-text-primary)]">MedAlerto</span>
+            <span className="font-heading text-sm font-semibold uppercase tracking-[0.22em] text-[var(--color-text-primary)]">
+              MedAlerto
+            </span>
           </button>
           <button
             onClick={() => navigate("/login")}
@@ -121,9 +141,15 @@ export default function VerifyEmailPage() {
           </div>
 
           <header className="mb-8 text-center">
-            <h1 className="mb-2 text-2xl font-heading font-semibold sm:text-3xl">Check your email</h1>
-            <p className="mb-1 text-sm text-[var(--color-text-secondary)] sm:text-base">We sent a 6-digit OTP to</p>
-            <p className="break-all text-sm font-semibold text-[var(--color-primary)] sm:text-base">{email}</p>
+            <h1 className="mb-2 text-2xl font-heading font-semibold sm:text-3xl">
+              Check your email
+            </h1>
+            <p className="mb-1 text-sm text-[var(--color-text-secondary)] sm:text-base">
+              We sent a 6-digit OTP to
+            </p>
+            <p className="break-all text-sm font-semibold text-[var(--color-primary)] sm:text-base">
+              {email}
+            </p>
           </header>
 
           <div className="rounded-3xl border border-[var(--color-border)]/70 bg-[var(--color-bg-soft)]/45 p-4 sm:p-6">
@@ -131,7 +157,10 @@ export default function VerifyEmailPage() {
               Enter the 6-digit code below. The code expires in 30 minutes.
             </p>
 
-            <div className="mb-8 flex items-center justify-center gap-2 sm:gap-3" onPaste={handlePaste}>
+            <div
+              className="mb-8 flex items-center justify-center gap-2 sm:gap-3"
+              onPaste={handlePaste}
+            >
               {otp.map((digit, index) => (
                 <input
                   key={index}
@@ -144,10 +173,16 @@ export default function VerifyEmailPage() {
                   onKeyDown={(e) => handleKeyDown(index, e)}
                   className="h-12 w-10 rounded-full border text-center text-lg font-bold outline-none transition duration-300 focus:border-[var(--color-primary)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/20 sm:h-14 sm:w-12 sm:text-xl"
                   style={{
-                    background: digit ? "rgba(93,112,82,0.12)" : "var(--color-card)",
-                    borderColor: digit ? "var(--color-primary)" : "var(--color-border)",
+                    background: digit
+                      ? "rgba(93,112,82,0.12)"
+                      : "var(--color-card)",
+                    borderColor: digit
+                      ? "var(--color-primary)"
+                      : "var(--color-border)",
                     color: "var(--color-text-primary)",
-                    boxShadow: digit ? "0 4px 16px -2px rgba(93,112,82,0.2)" : "none",
+                    boxShadow: digit
+                      ? "0 4px 16px -2px rgba(93,112,82,0.2)"
+                      : "none",
                   }}
                 />
               ))}
