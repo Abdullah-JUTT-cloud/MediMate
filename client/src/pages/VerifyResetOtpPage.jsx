@@ -88,18 +88,13 @@ export default function VerifyResetOtpPage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[var(--color-bg)] text-[var(--color-text-primary)]">
+    <div className="relative min-h-screen overflow-hidden bg-[var(--color-bg-gradient)] text-[var(--color-text-primary)]">
       <div aria-hidden="true" className="pointer-events-none absolute -left-20 top-10 h-80 w-80 rounded-[60%_40%_35%_65%/55%_35%_65%_45%] bg-[var(--color-accent)]/80 blur-3xl" />
       <div aria-hidden="true" className="pointer-events-none absolute -right-20 top-24 h-96 w-96 rounded-[48%_52%_39%_61%/48%_34%_66%_52%] bg-[var(--color-primary)]/10 blur-3xl" />
 
       <nav className="sticky top-4 z-10 px-4 sm:px-6 lg:px-8">
         <div className="relative mx-auto flex w-full max-w-7xl items-center justify-between rounded-full border border-[var(--color-border)]/70 bg-[var(--color-card)]/90 px-4 py-4 shadow-[0_4px_20px_-2px_rgba(93,112,82,0.12)] backdrop-blur-md sm:px-5">
-          <button className="flex items-center gap-3" onClick={() => navigate("/")}>
-            <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border)]/80 bg-[var(--color-primary)] shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)]">
-              <img src={logo} alt="MedAlerto" className="h-7 w-auto rounded-full" />
-            </span>
-            <span className="font-heading text-sm font-semibold uppercase tracking-[0.22em] text-[var(--color-text-primary)]">MedAlerto</span>
-          </button>
+            <span className="font-heading text-lg font-bold tracking-tight text-[var(--color-text-primary)]">MedAlerto</span>
           <button
             onClick={() => navigate("/forgot-password")}
             className="rounded-full border border-[var(--color-secondary)] px-4 py-2 text-xs font-bold text-[var(--color-secondary)] transition duration-300 hover:scale-105 hover:bg-[var(--color-secondary)]/10 sm:text-sm"
@@ -111,10 +106,14 @@ export default function VerifyResetOtpPage() {
 
       <main className="relative z-10 mx-auto flex min-h-[calc(100vh-96px)] w-full max-w-6xl items-center justify-center px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
         <section className="w-full max-w-xl rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(193,140,93,0.18)] backdrop-blur-md sm:p-8">
-          <div className="mb-6 flex justify-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full border border-[var(--color-border)]/80 bg-[var(--color-primary)]/10 text-3xl shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)] sm:h-20 sm:w-20 sm:text-4xl">
-              🔐
+          <div className="text-center mb-8">
+            <div className="mx-auto w-[50px] sm:w-[60px] lg:w-[85px] aspect-square glass-card rounded-2xl flex items-center justify-center border-[var(--color-border)] mb-2 bg-[var(--color-bg-soft)] shadow-sm">
+              <img src={logo} alt="MedAlerto" className="h-2/3 w-auto object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.08)]" />
             </div>
+            <span className="block font-heading text-base font-bold tracking-[0.2em] text-[var(--color-text-primary)] uppercase mb-1">
+              MEDALERTO
+            </span>
+            <div className="h-px w-16 mx-auto bg-[var(--color-border)] mb-2 opacity-60" />
           </div>
 
           <header className="mb-8 text-center">
@@ -141,10 +140,10 @@ export default function VerifyResetOtpPage() {
                   onKeyDown={(e) => handleKeyDown(idx, e)}
                   className="h-12 w-10 rounded-full border text-center text-lg font-bold outline-none transition duration-300 focus:border-[var(--color-primary)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/20 sm:h-14 sm:w-12 sm:text-xl"
                   style={{
-                    background: digit ? "rgba(93,112,82,0.12)" : "var(--color-card)",
+                    background: digit ? "rgba(var(--color-primary-rgb), 0.1)" : "var(--color-card)",
                     borderColor: digit ? "var(--color-primary)" : "var(--color-border)",
                     color: "var(--color-text-primary)",
-                    boxShadow: digit ? "0 4px 16px -2px rgba(93,112,82,0.2)" : "none",
+                    boxShadow: digit ? "0 4px 16px -2px rgba(var(--color-primary-rgb), 0.2)" : "none",
                   }}
                 />
               ))}

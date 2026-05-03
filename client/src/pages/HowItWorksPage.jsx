@@ -69,21 +69,43 @@ export default function HowItWorksPage() {
             </button>
           </section>
 
-          <section className="mt-12 space-y-5">
-            {steps.map((step, index) => (
-              <article key={step.title} className="rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] sm:flex sm:items-start sm:gap-6 sm:p-7">
-                <div className="mb-4 inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)] text-lg font-bold text-[var(--color-on-primary)] sm:mb-0">
-                  {index + 1}
+          <section className="mt-16 relative">
+            <div className="relative z-10 flex flex-col">
+              {steps.map((step, index) => (
+                <div key={step.title} className="flex flex-col">
+                  <article className="relative flex gap-4 sm:gap-8 group z-10">
+                    {/* Node marker */}
+                    <div className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-[6px] border-[var(--color-bg)] bg-[var(--color-primary)] text-lg font-bold text-[var(--color-on-primary)] shadow-[var(--shadow-soft)] transition-transform group-hover:scale-110 group-hover:shadow-[var(--shadow-float)] sm:h-16 sm:w-16 sm:text-xl">
+                      {index + 1}
+                    </div>
+                    
+                    {/* Step Content */}
+                    <div className="flex-1 rounded-[2rem] border border-[var(--color-border)]/70 bg-[var(--color-card)] p-6 shadow-[var(--shadow-soft)] transition-all group-hover:-translate-y-1 group-hover:border-[var(--color-primary)]/30 group-hover:shadow-[var(--shadow-float)] sm:p-8">
+                      <h2 className="font-heading text-xl font-semibold text-[var(--color-text-primary)] sm:text-2xl">{step.title}</h2>
+                      <p className="mt-3 leading-relaxed text-[var(--color-text-secondary)]">{step.description}</p>
+                      <div className="mt-5">
+                        <span className="inline-flex items-center rounded-full border border-[var(--color-secondary)]/40 bg-[var(--color-secondary)]/10 px-4 py-1.5 text-xs font-semibold text-[var(--color-secondary)] transition-colors group-hover:border-[var(--color-secondary)]/60">
+                          {step.detail}
+                        </span>
+                      </div>
+                    </div>
+                  </article>
+                  
+                  {/* Wavy Connector between cards */}
+                  {index < steps.length - 1 && (
+                    <div className="relative h-16 sm:h-24 w-full z-0 -my-2 opacity-70">
+                      <svg viewBox="0 0 1000 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full text-[var(--color-primary)] overflow-visible">
+                        {index % 2 === 0 ? (
+                          <path d="M 150 0 C 400 50, 850 50, 850 100" fill="none" stroke="currentColor" strokeWidth="5" strokeDasharray="12 16" vectorEffect="non-scaling-stroke" strokeLinecap="round" />
+                        ) : (
+                          <path d="M 850 0 C 600 50, 150 50, 150 100" fill="none" stroke="currentColor" strokeWidth="5" strokeDasharray="12 16" vectorEffect="non-scaling-stroke" strokeLinecap="round" />
+                        )}
+                      </svg>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <h2 className="font-heading text-2xl font-semibold">{step.title}</h2>
-                  <p className="mt-3 leading-relaxed text-[var(--color-text-secondary)]">{step.description}</p>
-                  <p className="mt-4 inline-flex rounded-full border border-[var(--color-secondary)]/40 bg-[var(--color-secondary)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--color-secondary)]">
-                    {step.detail}
-                  </p>
-                </div>
-              </article>
-            ))}
+              ))}
+            </div>
           </section>
 
           <section className="mt-12 rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(193,140,93,0.16)] sm:p-8">
