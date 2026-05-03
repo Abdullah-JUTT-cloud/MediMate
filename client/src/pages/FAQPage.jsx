@@ -68,6 +68,15 @@ export default function FAQPage() {
     return faqItems.filter((item) => item.category === activeCategory);
   }, [activeCategory]);
 
+  const groupedItems = useMemo(() => {
+    const groups = {};
+    filteredItems.forEach((item, index) => {
+      if (!groups[item.category]) groups[item.category] = [];
+      groups[item.category].push({ ...item, originalIndex: index });
+    });
+    return groups;
+  }, [filteredItems]);
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-[var(--color-bg)] text-[var(--color-text-primary)]">
       <div aria-hidden="true" className="pointer-events-none absolute -left-20 top-24 h-80 w-80 rounded-[60%_40%_35%_65%/55%_35%_65%_45%] bg-[var(--color-accent)]/60 blur-3xl" />
@@ -76,16 +85,28 @@ export default function FAQPage() {
 
       <main className="relative z-10 px-4 pb-20 pt-28 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl">
-          <section className="rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-7 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] sm:p-10">
-            <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--color-primary)]">FAQ</p>
-            <h1 className="mt-4 max-w-4xl font-heading text-4xl font-semibold leading-tight sm:text-5xl">Frequently asked questions</h1>
-            <p className="mt-5 max-w-3xl text-lg leading-relaxed text-[var(--color-text-secondary)]">
-              Answers to common questions about pricing, onboarding, prescriptions, records, chat, and support.
-            </p>
-            <p className="mt-3 text-sm font-semibold text-[var(--color-secondary)]">{faqItems.length}+ questions currently available</p>
+          <section className="flex flex-col lg:flex-row gap-10 rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-7 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] sm:p-10">
+            <div className="flex-1">
+              <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--color-primary)]">FAQ</p>
+              <h1 className="mt-4 max-w-4xl font-heading text-4xl font-semibold leading-tight sm:text-5xl">Frequently asked questions</h1>
+              <p className="mt-5 max-w-3xl text-lg leading-relaxed text-[var(--color-text-secondary)]">
+                Answers to common questions about pricing, onboarding, prescriptions, records, chat, and support.
+              </p>
+              <p className="mt-3 text-sm font-semibold text-[var(--color-secondary)]">{faqItems.length}+ questions currently available</p>
+            </div>
+            <div className="lg:w-72 pt-4 border-t lg:border-t-0 lg:border-l border-[var(--color-border)]/40 lg:pl-10">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--color-primary)] mb-4">Popular Questions</p>
+              <div className="flex flex-col gap-2.5">
+                {["Is there a setup fee?", "Can I cancel anytime?", "Is patient data secure?"].map(q => (
+                  <div key={q} className="rounded-full bg-[var(--color-primary)]/10 px-4 py-2.5 text-[11px] font-bold text-[#0D2B3E] border border-[var(--color-primary)]/10 whitespace-nowrap overflow-hidden text-ellipsis">
+                    {q}
+                  </div>
+                ))}
+              </div>
+            </div>
           </section>
 
-          <section className="mt-8 flex flex-wrap gap-2">
+          <section className="mt-8 flex gap-2 overflow-x-auto pb-4 no-scrollbar [-ms-overflow-style:'none'] [scrollbar-width:'none']">
             {categories.map((category) => (
               <button
                 key={category}
@@ -94,10 +115,10 @@ export default function FAQPage() {
                   setActiveCategory(category);
                   setOpenFaqIndex(null);
                 }}
-                className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition ${
+                className={`shrink-0 rounded-full px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.15em] transition-all duration-300 ${
                   activeCategory === category
-                    ? "bg-[var(--color-primary)] text-[var(--color-on-primary)]"
-                    : "border border-[var(--color-border)]/80 bg-[var(--color-card)]/80 text-[var(--color-text-secondary)]"
+                    ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-lg shadow-[var(--color-primary)]/20"
+                    : "border border-[var(--color-border)]/80 bg-[var(--color-card)]/80 text-[var(--color-text-secondary)] hover:bg-white"
                 }`}
               >
                 {category}
@@ -106,39 +127,53 @@ export default function FAQPage() {
           </section>
 
           <section
-            className="mt-6 rounded-4xl border border-[var(--color-border)]/70 p-4 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.2)] sm:p-6"
+            className="mt-6 rounded-4xl border border-[var(--color-border)]/70 p-4 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.2)] sm:p-8"
             style={{ background: "color-mix(in srgb, var(--color-card) 92%, var(--color-primary) 8%)" }}
           >
-            <div className="space-y-3">
-              {filteredItems.map((item, index) => (
-                <article
-                  key={`${item.category}-${item.question}`}
-                  className="overflow-hidden rounded-3xl border"
-                  style={{
-                    borderColor: "color-mix(in srgb, var(--color-border) 78%, var(--color-primary) 22%)",
-                    background: "color-mix(in srgb, var(--color-card-elevated) 88%, var(--color-primary) 12%)",
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setOpenFaqIndex((prev) => (prev === index ? null : index))}
-                    aria-expanded={openFaqIndex === index}
-                    aria-controls={`faq-answer-${index}`}
-                    className="flex w-full items-center justify-between gap-4 px-4 py-4 text-left transition sm:px-5"
-                    style={{ background: openFaqIndex === index ? "color-mix(in srgb, var(--color-primary) 14%, transparent)" : "transparent" }}
-                  >
-                    <div>
-                      <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--color-primary)]">{item.category}</p>
-                      <h3 className="text-base font-bold text-[var(--color-text-primary)]">{item.question}</h3>
-                    </div>
-                    <span className="text-2xl font-semibold leading-none text-[var(--color-text-primary)]">{openFaqIndex === index ? "-" : "+"}</span>
-                  </button>
-                  {openFaqIndex === index ? (
-                    <div id={`faq-answer-${index}`}>
-                      <p className="px-4 pb-4 text-sm leading-relaxed text-[var(--color-text-secondary)] sm:px-5">{item.answer}</p>
-                    </div>
-                  ) : null}
-                </article>
+            <div className="space-y-10">
+              {Object.entries(groupedItems).map(([category, items]) => (
+                <div key={category} className="space-y-5">
+                  <div className="flex items-center gap-3 border-l-2 border-[var(--color-primary)] pl-3 ml-1">
+                    <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--color-primary)]">{category}</h2>
+                  </div>
+                  <div className="space-y-3">
+                    {items.map((item) => {
+                      const isOpen = openFaqIndex === item.originalIndex;
+                      return (
+                        <article
+                          key={item.question}
+                          className={`overflow-hidden rounded-3xl border transition-all duration-300 ${
+                            isOpen 
+                              ? "border-[var(--color-primary)]/30 bg-white shadow-xl shadow-[var(--color-primary)]/5" 
+                              : "border-[var(--color-border)]/50"
+                          }`}
+                          style={{
+                            background: isOpen ? "white" : "color-mix(in srgb, var(--color-card-elevated) 88%, var(--color-primary) 12%)"
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setOpenFaqIndex(isOpen ? null : item.originalIndex)}
+                            aria-expanded={isOpen}
+                            className="flex w-full items-center justify-between gap-4 px-5 py-5 text-left transition"
+                          >
+                            <h3 className="text-base font-bold text-[var(--color-text-primary)]">{item.question}</h3>
+                            <span className={`text-2xl font-bold leading-none text-[var(--color-primary)] transition-transform duration-300 ${isOpen ? 'rotate-45' : 'rotate-0'}`}>
+                              +
+                            </span>
+                          </button>
+                          {isOpen && (
+                            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                              <p className="px-5 pb-6 text-sm leading-relaxed text-[var(--color-text-secondary)]">
+                                {item.answer}
+                              </p>
+                            </div>
+                          )}
+                        </article>
+                      );
+                    })}
+                  </div>
+                </div>
               ))}
             </div>
           </section>

@@ -1,10 +1,18 @@
 import { useState } from "react";
-import { Cpu, Fingerprint, Mail, Shield } from "lucide-react";
+import { 
+  ShieldAlert, 
+  Mail, 
+  Fingerprint, 
+  ArrowRight, 
+  ShieldCheck, 
+  LayoutDashboard,
+  Cpu,
+  Lock
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
-import { cyberCardStyle, cyberInputStyle, cyberpunkTheme } from "../styles/cyberpunkTheme";
-import "../styles/cyberpunk.css";
+import logo from "../assets/logo-compact.webp";
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
@@ -20,7 +28,7 @@ export default function AdminLoginPage() {
     setIsLoading(true);
     try {
       await axiosInstance.post("/admin/login", form);
-      toast.success("Admin login successful");
+      toast.success("Identity verified. Accessing Command Center...");
       navigate("/admin");
     } catch (error) {
       toast.error(error.response?.data?.message || "Invalid credentials");
@@ -29,51 +37,132 @@ export default function AdminLoginPage() {
     }
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") submit();
+  };
+
   return (
-    <div className="cyber-shell min-h-screen flex items-center justify-center px-4">
-      <div className="relative w-full max-w-md cyber-chamfer border p-6" style={{ ...cyberCardStyle, boxShadow: cyberpunkTheme.shadows.neonSm }}>
-        <div className="pointer-events-none absolute right-3 top-3 opacity-70" style={{ color: cyberpunkTheme.colors.accent }}>
-          <Cpu size={18} />
-        </div>
-
-        <p className="cyber-label text-[10px] text-[var(--color-text-secondary)]">Restricted Node</p>
-        <h1 className="cyber-heading cyber-glitch mt-2 text-3xl font-black text-[var(--color-text-primary)]">Admin Login</h1>
-        <p className="cyber-text text-sm mt-1 text-[var(--color-text-secondary)]">Use your environment admin credentials.</p>
-
-        <div className="mt-5 space-y-3">
-          <label className="relative block">
-            <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: cyberpunkTheme.colors.accent }} />
-            <input
-              type="email"
-              value={form.email}
-              onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-              placeholder="> admin@email.com"
-              className="cyber-text w-full cyber-chamfer-sm pl-8 pr-3 py-2.5 border text-sm outline-none focus:ring-2"
-              style={{ ...cyberInputStyle, boxShadow: cyberpunkTheme.shadows.neonSm, borderColor: cyberpunkTheme.colors.border }}
-            />
-          </label>
-          <label className="relative block">
-            <Fingerprint size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: cyberpunkTheme.colors.accentSecondary }} />
-            <input
-              type="password"
-              value={form.password}
-              onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-              placeholder="> Password"
-              className="cyber-text w-full cyber-chamfer-sm pl-8 pr-3 py-2.5 border text-sm outline-none focus:ring-2"
-              style={{ ...cyberInputStyle, boxShadow: cyberpunkTheme.shadows.neonSm, borderColor: cyberpunkTheme.colors.border }}
-            />
-          </label>
-          <button
-            onClick={submit}
-            disabled={isLoading}
-            className="cyber-heading w-full cyber-chamfer-sm px-4 py-2.5 text-sm font-bold disabled:opacity-60 inline-flex items-center justify-center gap-2 transition-all hover:brightness-110"
-            style={{ background: cyberpunkTheme.colors.accent, color: cyberpunkTheme.colors.background, boxShadow: cyberpunkTheme.shadows.neon }}
-          >
-            <Shield size={14} />
-            {isLoading ? "Signing in..." : "Sign In"}
-          </button>
-        </div>
+    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[var(--color-bg-gradient)] font-body text-[var(--color-text-primary)] selection:bg-[var(--color-primary)]/30">
+      {/* Background Elements */}
+      <div className="absolute inset-0 z-0 overflow-hidden">
+        <div className="absolute -top-[10%] -left-[10%] w-[60%] h-[60%] rounded-full bg-cyan-900/20 blur-[150px] animate-pulse-slow" />
+        <div className="absolute bottom-[20%] -right-[10%] w-[40%] h-[40%] rounded-full bg-teal-900/20 blur-[120px] animate-float" />
+        
+        {/* Subtle Grain Overlay */}
+        <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+        
+        {/* Grid Pattern */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:30px_30px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
       </div>
+
+      <main className="relative z-10 w-full max-w-lg px-6 animate-fade-in">
+        <div className="glass-card px-8 md:px-10 pt-6 md:pt-8 pb-10 rounded-[2.5rem] border-[var(--color-border)] shadow-2xl overflow-hidden group relative">
+          {/* Internal scanner effect */}
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[var(--color-primary)]/50 to-transparent animate-pulse" />
+          
+          <div className="relative space-y-10">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-[50px] sm:w-[60px] lg:w-[85px] aspect-square glass-card rounded-2xl flex items-center justify-center border-[var(--color-border)] bg-[var(--color-bg-soft)] shadow-sm">
+                  <img src={logo} alt="MedAlerto" className="h-2/3 w-auto object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.08)]" />
+                </div>
+                <div className="px-3 py-1 rounded-full bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20 text-[10px] font-bold uppercase tracking-widest text-[var(--color-primary)]">
+                  Restricted Node
+                </div>
+              </div>
+              <div className="space-y-0">
+                <span className="block font-heading text-base font-bold tracking-[0.2em] text-[var(--color-text-primary)] uppercase mb-1">
+                  MEDALERTO
+                </span>
+                <div className="h-px w-16 bg-[var(--color-border)] mb-2 opacity-60" />
+                <div className="space-y-1">
+                  <h1 className="text-3xl font-heading font-extrabold text-[var(--color-text-primary)]">
+                    Command Center
+                  </h1>
+                  <p className="text-[var(--color-text-secondary)] text-sm leading-relaxed">
+                    Authentication required for administrative access to the clinical infrastructure.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-[var(--color-text-secondary)] flex items-center gap-2 ml-1">
+                  <Mail className="h-3.5 w-3.5" />
+                  Admin Email
+                </label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+                  onKeyDown={handleKeyDown}
+                  placeholder="admin@medalerto.com"
+                  className="w-full glass-input rounded-2xl px-5 py-4 text-sm text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)]"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-[var(--color-text-secondary)] flex items-center gap-2 ml-1">
+                  <Fingerprint className="h-3.5 w-3.5" />
+                  Access Key
+                </label>
+                <input
+                  type="password"
+                  value={form.password}
+                  onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+                  onKeyDown={handleKeyDown}
+                  placeholder="••••••••"
+                  className="w-full glass-input rounded-2xl px-5 py-4 text-sm text-[var(--color-text-primary)] outline-none placeholder:text-[var(--color-text-muted)]"
+                />
+              </div>
+
+              <button
+                onClick={submit}
+                disabled={isLoading}
+                className="w-full h-14 bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)] text-[var(--color-on-primary)] font-bold rounded-2xl shadow-[var(--shadow-soft)] transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed group animate-slide-up" style={{ animationDelay: '0.4s' }}
+              >
+                {isLoading ? (
+                  <div className="h-5 w-5 border-2 border-[var(--color-on-primary)]/30 border-t-[var(--color-on-primary)] rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <ShieldCheck className="h-5 w-5" />
+                    <span>Authorize Identity</span>
+                    <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div className="pt-6 grid grid-cols-2 gap-4 animate-slide-up" style={{ animationDelay: '0.5s' }}>
+              <div className="p-4 rounded-2xl glass-card border-[var(--color-border)]/50 space-y-2 group hover:border-[var(--color-primary)]/30 transition-all cursor-default">
+                <Cpu className="h-4 w-4 text-[var(--color-primary)]" />
+                <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-muted)]">System State</p>
+                <div className="flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-[var(--color-primary)] animate-pulse" />
+                  <span className="text-[10px] text-[var(--color-primary)] font-bold uppercase tracking-widest">Optimal</span>
+                </div>
+              </div>
+              <div className="p-4 rounded-2xl glass-card border-[var(--color-border)]/50 space-y-2 group hover:border-[var(--color-primary)]/30 transition-all cursor-default">
+                <Lock className="h-4 w-4 text-[var(--color-primary)]" />
+                <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-muted)]">Security</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-[var(--color-primary)] font-bold uppercase tracking-widest">TLS 1.3</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-8 flex items-center justify-center gap-6 text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-muted)] animate-fade-in" style={{ animationDelay: '0.6s' }}>
+          <div className="flex items-center gap-2">
+            <LayoutDashboard className="h-3 w-3" />
+            V4.2.1-PRO
+          </div>
+          <div className="h-1 w-1 rounded-full bg-[var(--color-border)]" />
+          <span>Restricted to Authorized Personnel Only</span>
+        </div>
+      </main>
     </div>
   );
 }

@@ -20,7 +20,7 @@ export default function useTheme() {
 
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.toggle("dark", theme === "dark");
+    root.setAttribute("data-theme", theme);
     root.style.colorScheme = theme;
   }, [theme]);
 

@@ -125,7 +125,7 @@ const SPECIALIZATION_SUGGESTIONS = [
 
 const S = {
   input: {
-    background: "var(--color-bg)",
+    background: "var(--color-bg-soft)",
     border: "1px solid var(--color-border)",
     color: "var(--color-text-primary)",
   },
@@ -135,11 +135,15 @@ const S = {
   },
 };
 
-const focusStyle = (e) =>
-  (e.target.style.border = "1px solid var(--color-primary)");
-const blurStyle = (e) =>
-  (e.target.style.border = "1px solid var(--color-border)");
-const inputCls = "w-full rounded-xl px-4 py-3 text-sm outline-none transition";
+const focusStyle = (e) => {
+  e.target.style.borderColor = "var(--color-primary)";
+  e.target.style.boxShadow = "0 0 0 4px rgba(13, 148, 136, 0.1)";
+};
+const blurStyle = (e) => {
+  e.target.style.borderColor = "var(--color-border)";
+  e.target.style.boxShadow = "none";
+};
+const inputCls = "w-full rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200 border border-[var(--color-border)] bg-[var(--color-bg-soft)] placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary)]/10";
 
 // ─── Searchable Input with Suggestions ───────────────────────────────────────
 
@@ -294,19 +298,13 @@ function TagListInput({
           {items.map((item, i) => (
             <span
               key={i}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
-              style={{
-                background: "rgba(37,99,235,0.1)",
-                border: "1px solid rgba(37,99,235,0.25)",
-                color: "var(--color-primary)",
-              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/10 text-[var(--color-primary)]"
             >
               {item}
               <button
                 type="button"
                 onClick={() => onRemove(i)}
-                className="opacity-70 hover:opacity-100"
-                style={{ color: "var(--color-danger)", fontSize: "10px" }}
+                className="opacity-70 hover:opacity-100 text-[var(--color-danger)] text-[10px]"
               >
                 ✕
               </button>
@@ -332,25 +330,13 @@ function StepIndicator({ current }) {
         <div key={step.num} className="flex items-center">
           <div className="flex flex-col items-center">
             <div
-              className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${current >= step.num ? "text-white" : ""}`}
-              style={{
-                background:
-                  current >= step.num
-                    ? "var(--color-primary)"
-                    : "var(--color-card)",
-                border:
-                  current >= step.num
-                    ? "1px solid var(--color-primary)"
-                    : "1px solid var(--color-border)",
-                color:
-                  current >= step.num ? "white" : "var(--color-text-secondary)",
-                boxShadow:
-                  current >= step.num
-                    ? "0 4px 12px rgba(37,99,235,0.25)"
-                    : "none",
-              }}
+              className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 border ${
+                current >= step.num
+                  ? "bg-[var(--color-primary)] border-[var(--color-primary)] text-[var(--color-on-primary)] shadow-[var(--shadow-float)]"
+                  : "bg-[var(--color-card)] border-[var(--color-border)] text-[var(--color-text-secondary)]"
+              }`}
             >
-              {current > step.num ? "✓" : step.num}
+              {step.num}
             </div>
             <span
               className="text-xs mt-1 font-medium"
@@ -471,7 +457,6 @@ function LocationCard({
     <div className="rounded-2xl p-4 sm:p-5" style={S.card}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <span className="text-base">{type === "clinic" ? "🏥" : "🏨"}</span>
           <span className="text-sm font-bold text-[var(--color-text-primary)]">
             {type === "clinic" ? "Clinic" : "Hospital"} {index + 1}
           </span>
@@ -479,11 +464,7 @@ function LocationCard({
         <button
           type="button"
           onClick={onRemove}
-          className="text-xs px-2.5 py-1.5 rounded-lg transition-all hover-danger-soft"
-          style={{
-            color: "var(--color-danger)",
-            border: "1px solid rgba(239,68,68,0.25)",
-          }}
+          className="text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg transition-all hover:bg-red-50 text-red-500 border border-red-100 hover:border-red-200"
         >
           Remove
         </button>
@@ -546,15 +527,11 @@ function LocationCard({
             return (
               <div
                 key={si}
-                className="grid grid-cols-1 sm:grid-cols-4 gap-2 p-3 rounded-xl items-end"
-                style={{
-                  background: overlapping
-                    ? "rgba(239,68,68,0.06)"
-                    : "var(--color-bg)",
-                  border: overlapping
-                    ? "1px solid rgba(239,68,68,0.25)"
-                    : "1px solid var(--color-border)",
-                }}
+                className={`grid grid-cols-1 sm:grid-cols-4 gap-2 p-3 rounded-xl items-end border ${
+                  overlapping
+                    ? "bg-[var(--color-danger)]/10 border-[var(--color-danger)]/25"
+                    : "bg-[var(--color-bg)] border-[var(--color-border)]"
+                }`}
               >
                 <div>
                   <label className="mb-1 block text-xs text-[var(--color-text-secondary)]">
@@ -610,11 +587,7 @@ function LocationCard({
                 <div className="flex items-end gap-2">
                   {overlapping && (
                     <span
-                      className="text-xs px-2 py-1 rounded-lg flex-1 text-center"
-                      style={{
-                        background: "rgba(239,68,68,0.1)",
-                        color: "var(--color-danger)",
-                      }}
+                      className="text-xs px-2 py-1 rounded-lg flex-1 text-center bg-[var(--color-danger)]/10 text-[var(--color-danger)]"
                     >
                       ⚠ Overlap
                     </span>
@@ -622,13 +595,9 @@ function LocationCard({
                   <button
                     type="button"
                     onClick={() => removeSession(si)}
-                    className="w-10 h-10 rounded-xl flex items-center justify-center transition-all hover-danger-soft flex-shrink-0"
-                    style={{
-                      color: "var(--color-danger)",
-                      border: "1px solid rgba(239,68,68,0.2)",
-                    }}
+                    className="px-3 h-10 rounded-xl flex items-center justify-center transition-all flex-shrink-0 text-[var(--color-danger)] border border-[var(--color-danger)]/20 hover:bg-[var(--color-danger)]/10 text-xs font-bold uppercase tracking-wider"
                   >
-                    🗑
+                    Remove
                   </button>
                 </div>
               </div>
@@ -638,14 +607,9 @@ function LocationCard({
         <button
           type="button"
           onClick={addSession}
-          className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all hover:opacity-80"
-          style={{
-            background: "rgba(37,99,235,0.08)",
-            border: "1px dashed rgba(37,99,235,0.35)",
-            color: "var(--color-primary)",
-          }}
+          className="w-full py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition-all hover:bg-[var(--color-primary)] hover:text-white bg-[var(--color-primary)]/5 border border-dashed border-[var(--color-primary)]/30 text-[var(--color-primary)]"
         >
-          + Add Session
+          + Add Working Session
         </button>
       </div>
     </div>
@@ -865,57 +829,60 @@ export default function SignupPage() {
     setHospitals((p) => p.filter((_, idx) => idx !== i));
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[var(--color-bg)] px-4 py-8 sm:px-6">
+    <div className="relative min-h-screen overflow-hidden bg-[var(--color-bg-gradient)] px-4 py-8 sm:px-6">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -left-24 top-10 h-80 w-80 rounded-[60%_40%_35%_65%/55%_35%_65%_45%] bg-[var(--color-accent)]/80 blur-3xl"
+        className="pointer-events-none absolute -left-24 top-10 h-80 w-80 rounded-[60%_40%_35%_65%/55%_35%_65%_45%] bg-[var(--color-accent)]/60 blur-3xl"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -right-24 top-24 h-96 w-96 rounded-[48%_52%_39%_61%/48%_34%_66%_52%] bg-[var(--color-primary)]/10 blur-3xl"
+        className="pointer-events-none absolute -right-24 top-24 h-96 w-96 rounded-[48%_52%_39%_61%/48%_34%_66%_52%] bg-[var(--color-primary)]/5 blur-3xl"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(222,216,207,0.45)_1px,transparent_1px),linear-gradient(to_bottom,rgba(222,216,207,0.45)_1px,transparent_1px)] bg-size-[52px_52px] opacity-[0.18] [mask-image:radial-gradient(circle_at_center,black_45%,transparent_100%)]"
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,var(--color-border)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-border)_1px,transparent_1px)] bg-size-[52px_52px] opacity-[0.2] [mask-image:radial-gradient(circle_at_center,black_45%,transparent_100%)]"
       />
       <div className="relative mx-auto w-full max-w-4xl">
         {/* Logo */}
         <Link
           to="/"
-          className="mb-8 flex flex-col items-center gap-3 rounded-2xl p-1 transition hover:opacity-90"
+          className="mb-4 mt-2 flex flex-col items-center p-1 transition hover:opacity-90"
         >
-          <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border border-[var(--color-border)]/80 bg-[var(--color-card)] shadow-[var(--shadow-soft)]">
+          <div className="mx-auto w-[50px] sm:w-[60px] lg:w-[85px] aspect-square glass-card rounded-full flex items-center justify-center border-[var(--color-border)]/80 bg-[var(--color-card)] shadow-[0_4px_10px_rgba(0,0,0,0.08)] mb-2">
             <img
               src={logo}
               alt="MedAlerto"
-              className="h-full w-full object-contain p-1"
+              className="h-2/3 w-auto object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.08)]"
             />
           </div>
-          <span className="bg-gradient-to-r from-[var(--color-primary)] via-[var(--color-secondary)] to-[var(--color-primary)] bg-clip-text text-lg font-black tracking-[0.3em] text-transparent sm:text-xl">
+          <span className="block font-heading text-base sm:text-lg font-bold tracking-[0.3em] text-[var(--color-text-primary)] uppercase mb-1">
             MEDALERTO
           </span>
+          <div className="h-px w-16 mx-auto bg-[var(--color-border)] mb-1 opacity-60" />
         </Link>
 
         {/* Header */}
-        <div className="mb-8 text-center">
-          <h1 className="mb-1 text-2xl font-heading font-semibold text-[var(--color-text-primary)] sm:text-3xl">
+        <div className="mb-6 text-center">
+          <h1 className="mb-1 text-2xl font-heading font-bold text-[var(--color-text-primary)] sm:text-3xl">
             Create your account
           </h1>
-          <p className="text-sm text-[var(--color-text-secondary)]">
+          <p className="text-sm text-[var(--color-text-secondary)] font-medium">
             Set up your doctor profile in a few steps.
           </p>
         </div>
 
         {/* Step Indicator */}
-        <StepIndicator current={step} />
+        <div className="mb-6">
+          <StepIndicator current={step} />
+        </div>
 
         {/* Card */}
-        <div className="rounded-[2rem] border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-5 shadow-[0_10px_40px_-10px_rgba(193,140,93,0.18)] backdrop-blur-md sm:p-8">
+        <div className="rounded-[2.5rem] border border-[var(--color-border)]/50 bg-[var(--color-card)]/80 p-6 shadow-[var(--shadow-float)] backdrop-blur-xl sm:p-10">
           {/* ── STEP 1: Personal Info ── */}
           {step === 1 && (
             <div className="space-y-4">
-              <h2 className="mb-5 text-lg font-heading font-semibold text-[var(--color-text-primary)]">
-                Personal Information
+              <h2 className="mb-6 text-xl font-heading font-bold text-[var(--color-text-primary)]">
+                Your Personal Details
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -927,7 +894,7 @@ export default function SignupPage() {
                   <input
                     value={personal.fullName}
                     onChange={(e) => updatePersonal("fullName", e.target.value)}
-                    placeholder="Dr. Ahmed Raza"
+                    placeholder="Enter your full name"
                     className={inputCls}
                     style={S.input}
                     onFocus={focusStyle}
@@ -940,28 +907,18 @@ export default function SignupPage() {
                     Gender{" "}
                     <span className="text-[var(--color-primary)]">*</span>
                   </label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 p-1 bg-[var(--color-bg)] rounded-xl">
                     {GENDERS.map((g) => (
-                      <button
-                        key={g}
-                        type="button"
-                        onClick={() => updatePersonal("gender", g)}
-                        className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
-                        style={{
-                          background:
+                        <button
+                          key={g}
+                          type="button"
+                          onClick={() => updatePersonal("gender", g)}
+                          className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${
                             personal.gender === g
-                              ? "rgba(93,112,82,0.15)"
-                              : "var(--color-bg)",
-                          border:
-                            personal.gender === g
-                              ? "1px solid var(--color-primary)"
-                              : "1px solid var(--color-border)",
-                          color:
-                            personal.gender === g
-                              ? "var(--color-primary)"
-                              : "var(--color-text-secondary)",
-                        }}
-                      >
+                              ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-md scale-[1.02]"
+                              : "text-[var(--color-text-secondary)] hover:bg-[var(--color-card)]"
+                          }`}
+                        >
                         {g}
                       </button>
                     ))}
@@ -975,7 +932,7 @@ export default function SignupPage() {
                   <input
                     value={personal.phone}
                     onChange={(e) => updatePersonal("phone", e.target.value)}
-                    placeholder="03001234567"
+                    placeholder="e.g. 0300 1234567"
                     className={inputCls}
                     style={S.input}
                     onFocus={focusStyle}
@@ -991,7 +948,7 @@ export default function SignupPage() {
                     type="email"
                     value={personal.email}
                     onChange={(e) => updatePersonal("email", e.target.value)}
-                    placeholder="doctor@example.com"
+                    placeholder="e.g. name@healthcare.com"
                     className={inputCls}
                     style={S.input}
                     onFocus={focusStyle}
@@ -1011,7 +968,7 @@ export default function SignupPage() {
                       onChange={(e) =>
                         updatePersonal("password", e.target.value)
                       }
-                      placeholder="Min. 8 characters"
+                      placeholder="Enter a strong password"
                       className={inputCls + " pr-10"}
                       style={S.input}
                       onFocus={focusStyle}
@@ -1020,11 +977,14 @@ export default function SignupPage() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-text-secondary)]"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] transition-colors"
                     >
-                      {showPassword ? "🙈" : "👁"}
+                      {showPassword ? "Hide" : "Show"}
                     </button>
                   </div>
+                  <p className="mt-1.5 text-[10px] font-medium text-[var(--color-text-secondary)] ml-1">
+                    Use at least 8 characters
+                  </p>
                 </div>
 
                 <div>
@@ -1055,9 +1015,9 @@ export default function SignupPage() {
                     <button
                       type="button"
                       onClick={() => setShowConfirm(!showConfirm)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-text-secondary)]"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] transition-colors"
                     >
-                      {showConfirm ? "🙈" : "👁"}
+                      {showConfirm ? "Hide" : "Show"}
                     </button>
                   </div>
                 </div>
@@ -1068,8 +1028,8 @@ export default function SignupPage() {
           {/* ── STEP 2: Professional Info ── */}
           {step === 2 && (
             <div className="space-y-4">
-              <h2 className="mb-5 text-lg font-bold text-[var(--color-text-primary)]">
-                Professional Information
+              <h2 className="mb-6 text-xl font-heading font-bold text-[var(--color-text-primary)]">
+                Professional Details
               </h2>
 
               {/* Title */}
@@ -1078,27 +1038,17 @@ export default function SignupPage() {
                   Professional Title{" "}
                   <span className="text-[var(--color-primary)]">*</span>
                 </label>
-                <div className="flex gap-2">
+                <div className="flex gap-2 p-1 bg-[var(--color-bg)] rounded-xl">
                   {TITLES.map((t) => (
                     <button
                       key={t}
                       type="button"
                       onClick={() => updateProfessional("title", t)}
-                      className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
-                      style={{
-                        background:
-                          professional.title === t
-                            ? "rgba(93,112,82,0.15)"
-                            : "var(--color-bg)",
-                        border:
-                          professional.title === t
-                            ? "1px solid var(--color-primary)"
-                            : "1px solid var(--color-border)",
-                        color:
-                          professional.title === t
-                            ? "var(--color-primary)"
-                            : "var(--color-text-secondary)",
-                      }}
+                      className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${
+                        professional.title === t
+                          ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-md scale-[1.02]"
+                          : "text-[var(--color-text-secondary)] hover:bg-[var(--color-card)]"
+                      }`}
                     >
                       {t}
                     </button>
@@ -1153,17 +1103,17 @@ export default function SignupPage() {
                     Medical University{" "}
                     <span className="text-[var(--color-primary)]">*</span>
                   </label>
-                  <input
-                    value={professional.university}
-                    onChange={(e) =>
-                      updateProfessional("university", e.target.value)
-                    }
-                    placeholder="e.g. King Edward Medical University"
-                    className={inputCls}
-                    style={S.input}
-                    onFocus={focusStyle}
-                    onBlur={blurStyle}
-                  />
+                    <input
+                      value={professional.university}
+                      onChange={(e) =>
+                        updateProfessional("university", e.target.value)
+                      }
+                      placeholder="Enter your medical university"
+                      className={inputCls}
+                      style={S.input}
+                      onFocus={focusStyle}
+                      onBlur={blurStyle}
+                    />
                 </div>
 
                 <div>
@@ -1171,20 +1121,20 @@ export default function SignupPage() {
                     Graduation Year{" "}
                     <span className="text-[var(--color-primary)]">*</span>
                   </label>
-                  <input
-                    type="number"
-                    value={professional.graduationYear}
-                    onChange={(e) =>
-                      updateProfessional("graduationYear", e.target.value)
-                    }
-                    placeholder="e.g. 2015"
-                    min="1970"
-                    max={new Date().getFullYear()}
-                    className={inputCls}
-                    style={S.input}
-                    onFocus={focusStyle}
-                    onBlur={blurStyle}
-                  />
+                    <input
+                      type="number"
+                      value={professional.graduationYear}
+                      onChange={(e) =>
+                        updateProfessional("graduationYear", e.target.value)
+                      }
+                      placeholder="Year of graduation"
+                      min="1970"
+                      max={new Date().getFullYear()}
+                      className={inputCls}
+                      style={S.input}
+                      onFocus={focusStyle}
+                      onBlur={blurStyle}
+                    />
                 </div>
 
                 <div className="sm:col-span-2">
@@ -1214,19 +1164,19 @@ export default function SignupPage() {
                     Years of Experience{" "}
                     <span className="text-[var(--color-primary)]">*</span>
                   </label>
-                  <input
-                    type="number"
-                    value={professional.yearsOfExperience}
-                    onChange={(e) =>
-                      updateProfessional("yearsOfExperience", e.target.value)
-                    }
-                    placeholder="e.g. 8"
-                    min="0"
-                    className={inputCls}
-                    style={S.input}
-                    onFocus={focusStyle}
-                    onBlur={blurStyle}
-                  />
+                    <input
+                      type="number"
+                      value={professional.yearsOfExperience}
+                      onChange={(e) =>
+                        updateProfessional("yearsOfExperience", e.target.value)
+                      }
+                      placeholder="Enter years of experience"
+                      min="0"
+                      className={inputCls}
+                      style={S.input}
+                      onFocus={focusStyle}
+                      onBlur={blurStyle}
+                    />
                 </div>
 
                 <div>
@@ -1234,17 +1184,17 @@ export default function SignupPage() {
                     PMDC Registration Number{" "}
                     <span className="text-[var(--color-primary)]">*</span>
                   </label>
-                  <input
-                    value={professional.pmdcNumber}
-                    onChange={(e) =>
-                      updateProfessional("pmdcNumber", e.target.value)
-                    }
-                    placeholder="e.g. PMDC-12345"
-                    className={inputCls}
-                    style={S.input}
-                    onFocus={focusStyle}
-                    onBlur={blurStyle}
-                  />
+                    <input
+                      value={professional.pmdcNumber}
+                      onChange={(e) =>
+                        updateProfessional("pmdcNumber", e.target.value)
+                      }
+                      placeholder="Enter PMDC number"
+                      className={inputCls}
+                      style={S.input}
+                      onFocus={focusStyle}
+                      onBlur={blurStyle}
+                    />
                 </div>
 
                 {/* License Status */}
@@ -1252,27 +1202,17 @@ export default function SignupPage() {
                   <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)]">
                     License Status
                   </label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 p-1 bg-[var(--color-bg)] rounded-xl">
                     {LICENSE_STATUSES.map((s) => (
                       <button
                         key={s}
                         type="button"
                         onClick={() => updateProfessional("licenseStatus", s)}
-                        className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all"
-                        style={{
-                          background:
-                            professional.licenseStatus === s
-                              ? "rgba(93,112,82,0.15)"
-                              : "var(--color-bg)",
-                          border:
-                            professional.licenseStatus === s
-                              ? "1px solid var(--color-primary)"
-                              : "1px solid var(--color-border)",
-                          color:
-                            professional.licenseStatus === s
-                              ? "var(--color-primary)"
-                              : "var(--color-text-secondary)",
-                        }}
+                        className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 ${
+                          professional.licenseStatus === s
+                            ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-md scale-[1.02]"
+                            : "text-[var(--color-text-secondary)] hover:bg-[var(--color-card)]"
+                        }`}
                       >
                         {s}
                       </button>
@@ -1325,7 +1265,7 @@ export default function SignupPage() {
                     </span>
                   </label>
                   <div className="w-full rounded-full border border-dashed border-[var(--color-border)] bg-[var(--color-muted)] px-4 py-3 text-sm text-[var(--color-text-secondary)]">
-                    📎 Upload will be available soon
+                    Upload will be available soon
                   </div>
                 </div>
               </div>
@@ -1335,8 +1275,8 @@ export default function SignupPage() {
           {/* ── STEP 3: Clinics & Hospitals ── */}
           {step === 3 && (
             <div className="space-y-5">
-              <h2 className="mb-2 text-lg font-bold text-[var(--color-text-primary)]">
-                Clinics & Hospitals
+              <h2 className="mb-2 text-xl font-heading font-bold text-[var(--color-text-primary)]">
+                Practice Locations
               </h2>
               <p className="mb-5 text-xs text-[var(--color-text-secondary)]">
                 Add your practice locations. Sessions with overlapping times
@@ -1347,7 +1287,7 @@ export default function SignupPage() {
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-sm font-bold text-[var(--color-text-primary)]">
-                    🏥 Clinics
+                    Clinics
                   </p>
                   <button
                     type="button"
@@ -1384,7 +1324,7 @@ export default function SignupPage() {
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <p className="text-sm font-bold text-[var(--color-text-primary)]">
-                    🏨 Hospitals
+                    Hospitals
                   </p>
                   <button
                     type="button"
@@ -1420,74 +1360,54 @@ export default function SignupPage() {
           )}
 
           {/* ── Navigation Buttons ── */}
-          <div className="flex gap-3 mt-8">
-            {step > 1 && (
-              <button
-                type="button"
-                onClick={() => setStep(step - 1)}
-                className="flex-1 rounded-full border border-[var(--color-border)] bg-[var(--color-card)] py-3.5 text-sm font-bold text-[var(--color-text-secondary)] transition-all hover:scale-105 hover:bg-[var(--color-muted)] active:scale-95"
-                style={{
-                  background: "var(--color-bg)",
-                  border: "1px solid var(--color-border)",
-                  color: "var(--color-text-secondary)",
-                }}
-              >
-                ← Back
-              </button>
-            )}
-            {step < 3 ? (
-              <button
-                type="button"
-                onClick={handleNext}
-                className="flex-1 rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)] py-3.5 text-sm font-bold text-[var(--color-primary-foreground)] shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)] transition-all hover:scale-105 hover:shadow-[0_6px_24px_-4px_rgba(93,112,82,0.25)] active:scale-95"
-                style={{
-                  background: "var(--color-primary)",
-                  boxShadow: "0 4px 20px rgba(93,112,82,0.15)",
-                }}
-              >
-                Continue →
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={isLoading}
-                className="flex-1 rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)] py-3.5 text-sm font-bold text-[var(--color-primary-foreground)] shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)] transition-all hover:scale-105 hover:shadow-[0_6px_24px_-4px_rgba(93,112,82,0.25)] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
-                style={{
-                  background: "var(--color-primary)",
-                  boxShadow: "0 4px 20px rgba(93,112,82,0.15)",
-                }}
-              >
-                {isLoading ? "Creating Account..." : "Create Account ✓"}
-              </button>
-            )}
+          <div className="flex flex-col items-center gap-4 mt-6">
+            <div className="flex w-full gap-3">
+              {step > 1 && (
+                <button
+                  type="button"
+                  onClick={() => setStep(step - 1)}
+                  className="flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] py-3.5 text-sm font-bold text-[var(--color-text-secondary)] transition-all hover:bg-[var(--color-bg-soft)] active:scale-[0.98]"
+                >
+                  Back
+                </button>
+              )}
+              {step < 3 ? (
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className="flex-[2] rounded-xl bg-[var(--color-primary)] py-3.5 text-sm font-bold text-[var(--color-on-primary)] shadow-[var(--shadow-soft)] transition-all hover:brightness-110 active:scale-[0.98]"
+                >
+                  Continue Setup
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={isLoading}
+                  className="flex-[2] rounded-xl bg-[var(--color-primary)] py-3.5 text-sm font-bold text-[var(--color-on-primary)] shadow-[var(--shadow-soft)] transition-all hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isLoading ? "Creating Account..." : "Complete Setup"}
+                </button>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-1.5 text-[11px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">
+              Secure & Private
+            </div>
           </div>
 
-          <p className="mt-4 text-center text-xs text-[var(--color-text-secondary)]">
+          <p className="mt-8 text-center text-[10px] text-[var(--color-text-muted)] leading-relaxed max-w-xs mx-auto">
             By creating an account, you agree to our{" "}
-            <Link
-              to="/terms-of-service"
-              className="font-semibold text-[var(--color-secondary)] transition hover:opacity-80"
-            >
-              Terms of Service
-            </Link>{" "}
-            and{" "}
-            <Link
-              to="/privacy-policy"
-              className="font-semibold text-[var(--color-secondary)] transition hover:opacity-80"
-            >
-              Privacy Policy
-            </Link>
-            .
+            <Link to="/terms-of-service" className="text-[var(--color-primary)] hover:underline font-semibold">Terms</Link>
+            {" "}and{" "}
+            <Link to="/privacy-policy" className="text-[var(--color-primary)] hover:underline font-semibold">Privacy Policy</Link>.
           </p>
 
-          <div className="mt-5 rounded-2xl border border-[var(--color-secondary)]/35 bg-[var(--color-secondary)]/10 px-4 py-4 text-center sm:flex sm:items-center sm:justify-between sm:text-left">
-            <p className="text-sm font-semibold text-[var(--color-text-primary)]">
-              Already have an account?
-            </p>
+          <div className="mt-6 flex items-center justify-center gap-2 text-sm border-t border-[var(--color-border)] pt-6">
+            <span className="text-[var(--color-text-secondary)]">Already have an account?</span>
             <Link
               to="/login"
-              className="mt-3 inline-flex h-10 items-center justify-center rounded-full border border-[var(--color-secondary)] bg-[var(--color-secondary)] px-5 text-sm font-bold text-white transition-all duration-300 hover:-translate-y-0.5 hover:opacity-95 sm:mt-0"
+              className="font-bold text-[var(--color-primary)] hover:underline"
             >
               Sign in
             </Link>

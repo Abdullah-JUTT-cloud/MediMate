@@ -37,22 +37,23 @@ export default function Navbar() {
           className="pointer-events-none absolute inset-x-8 top-0 h-px bg-[linear-gradient(to_right,transparent,rgba(93,112,82,0.55),rgba(193,140,93,0.8),transparent)]"
         />
 
-        <Link to="/" className="group flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-[var(--color-border)]/80 bg-[var(--color-card)] shadow-[var(--shadow-soft)]">
+        <Link to="/" className="group flex items-center gap-4">
+          <div className="flex w-[40px] sm:w-[48px] lg:w-[54px] aspect-square items-center justify-center overflow-hidden rounded-full border border-[var(--color-border)]/80 bg-[var(--color-card)] shadow-[var(--shadow-soft)] transition-all group-hover:scale-105">
             <img
               src={logo}
               alt="MedAlerto Logo"
-              className="h-full w-full object-contain p-1"
+              className="h-2/3 w-auto object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.08)]"
             />
-          </span>
-          <span>
-            <span className="block font-heading text-sm font-semibold uppercase tracking-[0.22em] text-[var(--color-text-primary)]">
-              MedAlerto
+          </div>
+          <div className="flex flex-col">
+            <span className="block font-heading text-xs sm:text-sm font-semibold uppercase tracking-[0.15em] text-[var(--color-text-primary)]">
+              MEDALERTO
             </span>
-            <span className="mt-1 block font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-text-secondary)] transition duration-300 group-hover:text-[var(--color-primary)]">
+            <div className="h-px w-10 bg-[var(--color-border)] mt-1 mb-1 opacity-60" />
+            <span className="block font-mono text-[8px] sm:text-[9px] uppercase tracking-[0.25em] text-[var(--color-text-secondary)] transition duration-300 group-hover:text-[var(--color-primary)]">
               rooted clinic tools
             </span>
-          </span>
+          </div>
         </Link>
 
         <div className="hidden items-center gap-8 lg:flex">

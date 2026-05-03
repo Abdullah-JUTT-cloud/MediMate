@@ -73,7 +73,7 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)]">
+    <div className="min-h-screen bg-[var(--color-bg-gradient)] text-[var(--color-text-primary)]">
       <div className="pointer-events-none fixed inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-primary)]/8 via-transparent to-[var(--color-primary)]/5" />
       </div>
@@ -85,15 +85,7 @@ export default function ResetPasswordPage() {
               MEDALERTO
             </span>
           </div>
-          <button
-            className="flex items-center gap-3"
-            onClick={() => navigate("/")}
-          >
-            <img src={logo} alt="MedAlerto" className="h-8 w-auto" />
-            <span className="text-sm font-extrabold sm:text-base">
-              MedAlerto
-            </span>
-          </button>
+            <span className="font-heading text-lg font-bold tracking-tight text-[var(--color-text-primary)]">MedAlerto</span>
           <button
             onClick={() => navigate("/login")}
             className="text-xs font-semibold text-[var(--color-text-secondary)] transition hover:text-[var(--color-primary)] sm:text-sm"
@@ -105,10 +97,14 @@ export default function ResetPasswordPage() {
 
       <main className="relative z-10 mx-auto flex min-h-[calc(100vh-73px)] w-full max-w-6xl items-center justify-center px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
         <section className="w-full max-w-md rounded-xl border bg-[var(--color-card)] p-6 shadow-sm sm:p-8">
-          <div className="mb-6 flex justify-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-xl border bg-[var(--color-primary)]/10 text-3xl sm:h-20 sm:w-20 sm:text-4xl">
-              🛡️
+          <div className="text-center mb-8">
+            <div className="mx-auto w-[50px] sm:w-[60px] lg:w-[85px] aspect-square glass-card rounded-2xl flex items-center justify-center border-[var(--color-border)] mb-2 bg-[var(--color-bg-soft)] shadow-sm">
+              <img src={logo} alt="MedAlerto" className="h-2/3 w-auto object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.08)]" />
             </div>
+            <span className="block font-heading text-base font-bold tracking-[0.2em] text-[var(--color-text-primary)] uppercase mb-1">
+              MEDALERTO
+            </span>
+            <div className="h-px w-16 mx-auto bg-[var(--color-border)] mb-2 opacity-60" />
           </div>
 
           <header className="mb-8 text-center">
@@ -121,7 +117,7 @@ export default function ResetPasswordPage() {
           </header>
 
           <div className="rounded-xl border bg-[var(--color-bg)] p-4 sm:p-6">
-            <div className="space-y-4">
+  <div className="space-y-4">
               <div>
                 <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)] sm:text-sm">
                   New Password
