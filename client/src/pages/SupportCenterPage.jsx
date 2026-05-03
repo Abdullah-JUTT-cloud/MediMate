@@ -1,11 +1,33 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, ChevronLeft, CircleHelp, History, LifeBuoy, MessageCircle, Mic, Pause, Play, Plus, RefreshCw, Send, Sparkles, Ticket, X } from "lucide-react";
+import {
+  ArrowDown,
+  ChevronLeft,
+  CircleHelp,
+  History,
+  LifeBuoy,
+  MessageCircle,
+  Mic,
+  Pause,
+  Play,
+  Plus,
+  RefreshCw,
+  Send,
+  Sparkles,
+  Ticket,
+  X,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import MessageStatusTicks from "../components/MessageStatusTicks";
 import VoiceMessagePlayer from "../components/VoiceMessagePlayer";
 import { getRealtimeSocketForRole } from "../realtime/socket";
-import { organicCardStyle, organicInputStyle, organicSectionStyle, organicTheme } from "../styles/organicTheme";
+import {
+  organicCardStyle,
+  organicInputStyle,
+  organicSectionStyle,
+  organicTheme,
+} from "../styles/organicTheme";
 
 const SUPPORT_SEEN_STORAGE_KEY = "support-ticket-seen-map-v2";
 
@@ -25,10 +47,19 @@ const RECORDER_MIME_CANDIDATES = [
   "audio/mp4",
 ];
 
-const normalizeAudioMimeType = (mimeType = "") => String(mimeType).split(";")[0].trim().toLowerCase();
+const normalizeAudioMimeType = (mimeType = "") =>
+  String(mimeType).split(";")[0].trim().toLowerCase();
 const getSupportedRecorderMimeType = () => {
-  if (typeof window === "undefined" || typeof window.MediaRecorder === "undefined") return "audio/webm";
-  return RECORDER_MIME_CANDIDATES.find((type) => window.MediaRecorder.isTypeSupported?.(type)) || "audio/webm";
+  if (
+    typeof window === "undefined" ||
+    typeof window.MediaRecorder === "undefined"
+  )
+    return "audio/webm";
+  return (
+    RECORDER_MIME_CANDIDATES.find((type) =>
+      window.MediaRecorder.isTypeSupported?.(type),
+    ) || "audio/webm"
+  );
 };
 const getAudioExtension = (mimeType = "") => {
   const normalized = normalizeAudioMimeType(mimeType);
@@ -40,39 +71,64 @@ const getAudioExtension = (mimeType = "") => {
   return "webm";
 };
 
-
 const statusTone = {
-  Open: { color: "var(--color-secondary)", border: "rgba(193,140,93,0.35)", bg: "rgba(193,140,93,0.12)" },
-  "In Progress": { color: "var(--color-primary)", border: "rgba(93,112,82,0.35)", bg: "rgba(93,112,82,0.12)" },
-  Resolved: { color: "var(--color-primary)", border: "rgba(78,98,69,0.35)", bg: "rgba(93,112,82,0.16)" },
-  Reopened: { color: "var(--color-danger)", border: "rgba(168,84,72,0.35)", bg: "rgba(168,84,72,0.12)" },
-  Closed: { color: "var(--color-text-secondary)", border: "rgba(120,120,108,0.3)", bg: "rgba(120,120,108,0.1)" },
+  Open: {
+    color: "var(--color-secondary)",
+    border: "rgba(193,140,93,0.35)",
+    bg: "rgba(193,140,93,0.12)",
+  },
+  "In Progress": {
+    color: "var(--color-primary)",
+    border: "rgba(93,112,82,0.35)",
+    bg: "rgba(93,112,82,0.12)",
+  },
+  Resolved: {
+    color: "var(--color-primary)",
+    border: "rgba(78,98,69,0.35)",
+    bg: "rgba(93,112,82,0.16)",
+  },
+  Reopened: {
+    color: "var(--color-danger)",
+    border: "rgba(168,84,72,0.35)",
+    bg: "rgba(168,84,72,0.12)",
+  },
+  Closed: {
+    color: "var(--color-text-secondary)",
+    border: "rgba(120,120,108,0.3)",
+    bg: "rgba(120,120,108,0.1)",
+  },
 };
 
 const chatCanvasStyle = {
-  backgroundColor: "color-mix(in srgb, var(--color-bg-soft) 78%, var(--color-card) 22%)",
-  backgroundImage: "radial-gradient(circle at 12px 12px, color-mix(in srgb, var(--color-primary) 18%, transparent) 1.5px, transparent 0)",
+  backgroundColor:
+    "color-mix(in srgb, var(--color-bg-soft) 78%, var(--color-card) 22%)",
+  backgroundImage:
+    "radial-gradient(circle at 12px 12px, color-mix(in srgb, var(--color-primary) 18%, transparent) 1.5px, transparent 0)",
   backgroundSize: "28px 28px",
 };
 
 const sentBubbleStyle = {
-  background: "color-mix(in srgb, var(--color-primary) 24%, var(--color-card) 76%)",
+  background:
+    "color-mix(in srgb, var(--color-primary) 24%, var(--color-card) 76%)",
   borderColor: "color-mix(in srgb, var(--color-primary) 42%, transparent)",
 };
 
 const receivedBubbleStyle = {
-  background: "color-mix(in srgb, var(--color-card-elevated) 88%, var(--color-bg) 12%)",
+  background:
+    "color-mix(in srgb, var(--color-card-elevated) 88%, var(--color-bg) 12%)",
   borderColor: "color-mix(in srgb, var(--color-border) 82%, transparent)",
 };
 
 const sentVoiceTheme = {
-  surface: "color-mix(in srgb, var(--color-primary) 18%, var(--color-card) 82%)",
+  surface:
+    "color-mix(in srgb, var(--color-primary) 18%, var(--color-card) 82%)",
   border: "color-mix(in srgb, var(--color-primary) 34%, transparent)",
   accent: "var(--color-primary)",
 };
 
 const receivedVoiceTheme = {
-  surface: "color-mix(in srgb, var(--color-card-elevated) 90%, var(--color-bg) 10%)",
+  surface:
+    "color-mix(in srgb, var(--color-card-elevated) 90%, var(--color-bg) 10%)",
   border: "color-mix(in srgb, var(--color-border) 80%, transparent)",
   accent: "var(--color-primary)",
 };
@@ -111,7 +167,9 @@ export default function SupportCenterPage() {
   const [isRecordingPaused, setIsRecordingPaused] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [voiceDraft, setVoiceDraft] = useState(null);
-  const [isMobileView, setIsMobileView] = useState(() => (typeof window !== "undefined" ? window.innerWidth < 1280 : false));
+  const [isMobileView, setIsMobileView] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth < 1280 : false,
+  );
   const [mobileScreen, setMobileScreen] = useState("list");
   const [seenIncomingAtByTicket, setSeenIncomingAtByTicket] = useState(() => {
     if (typeof window === "undefined") return {};
@@ -142,7 +200,8 @@ export default function SupportCenterPage() {
 
   const scrollMessagesToBottom = () => {
     if (!messagesContainerRef.current) return;
-    messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    messagesContainerRef.current.scrollTop =
+      messagesContainerRef.current.scrollHeight;
     setShowJumpToLatest(false);
   };
 
@@ -152,7 +211,8 @@ export default function SupportCenterPage() {
       setShowJumpToLatest(false);
       return;
     }
-    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
     setShowJumpToLatest(distanceFromBottom > 96);
   };
 
@@ -163,11 +223,13 @@ export default function SupportCenterPage() {
 
     const next = messages[index + 1];
     if (!next?.createdAt) return true;
-    if (String(next.senderRole || "") !== String(current.senderRole || "")) return true;
+    if (String(next.senderRole || "") !== String(current.senderRole || ""))
+      return true;
 
     const currentTime = new Date(current.createdAt).getTime();
     const nextTime = new Date(next.createdAt).getTime();
-    if (!Number.isFinite(currentTime) || !Number.isFinite(nextTime)) return true;
+    if (!Number.isFinite(currentTime) || !Number.isFinite(nextTime))
+      return true;
 
     return nextTime - currentTime > 5 * 60 * 1000;
   };
@@ -184,16 +246,26 @@ export default function SupportCenterPage() {
       return { ...prev, messages: nextMessages };
     });
 
-    setTickets((prev) => prev.map((ticket) => {
-      if (String(ticket?._id) !== normalizedTicketId) return ticket;
-      const currentMessages = Array.isArray(ticket?.messages) ? ticket.messages : [];
-      const nextMessages = updater(currentMessages);
-      if (nextMessages === currentMessages) return ticket;
-      return { ...ticket, messages: nextMessages };
-    }));
+    setTickets((prev) =>
+      prev.map((ticket) => {
+        if (String(ticket?._id) !== normalizedTicketId) return ticket;
+        const currentMessages = Array.isArray(ticket?.messages)
+          ? ticket.messages
+          : [];
+        const nextMessages = updater(currentMessages);
+        if (nextMessages === currentMessages) return ticket;
+        return { ...ticket, messages: nextMessages };
+      }),
+    );
   };
 
-  const patchIssueMessageStatuses = ({ ticketId, messageIds = [], status, deliveredAt, seenAt }) => {
+  const patchIssueMessageStatuses = ({
+    ticketId,
+    messageIds = [],
+    status,
+    deliveredAt,
+    seenAt,
+  }) => {
     const normalizedIds = (messageIds || []).map(String).filter(Boolean);
     if (!ticketId || normalizedIds.length === 0) return;
 
@@ -220,7 +292,8 @@ export default function SupportCenterPage() {
     const container = messagesContainerRef.current;
     if (!ticketId || !container || !selectedTicket?.messages?.length) return;
 
-    const ticketSeenSet = seenMessageIdsByTicketRef.current.get(ticketId) || new Set();
+    const ticketSeenSet =
+      seenMessageIdsByTicketRef.current.get(ticketId) || new Set();
     const containerRect = container.getBoundingClientRect();
     const visibleMessageIds = [];
 
@@ -232,7 +305,9 @@ export default function SupportCenterPage() {
       if (!node) continue;
 
       const rect = node.getBoundingClientRect();
-      const visibleHeight = Math.min(rect.bottom, containerRect.bottom) - Math.max(rect.top, containerRect.top);
+      const visibleHeight =
+        Math.min(rect.bottom, containerRect.bottom) -
+        Math.max(rect.top, containerRect.top);
       if (visibleHeight <= 0) continue;
 
       const threshold = Math.min(rect.height, containerRect.height) * 0.45;
@@ -254,13 +329,18 @@ export default function SupportCenterPage() {
     });
 
     const socket = getRealtimeSocketForRole(currentRole);
-    socket.emit("issue-message_seen", { ticketId, messageIds: visibleMessageIds });
+    socket.emit("issue-message_seen", {
+      ticketId,
+      messageIds: visibleMessageIds,
+    });
   };
 
   const loadTickets = async (history) => {
     setIsLoading(true);
     try {
-      const res = await axiosInstance.get(`/issues/doctor?history=${history ? "true" : "false"}&limit=50`);
+      const res = await axiosInstance.get(
+        `/issues/doctor?history=${history ? "true" : "false"}&limit=50`,
+      );
       const list = Array.isArray(res.data?.tickets) ? res.data.tickets : [];
       setTickets(list);
       if (!selectedId && list.length > 0) {
@@ -293,7 +373,9 @@ export default function SupportCenterPage() {
   const ticketMatchesTab = (ticket, tab) => {
     const status = String(ticket?.status || "");
     const isHistory = tab === "history";
-    return isHistory ? ["Resolved", "Closed"].includes(status) : !["Resolved", "Closed"].includes(status);
+    return isHistory
+      ? ["Resolved", "Closed"].includes(status)
+      : !["Resolved", "Closed"].includes(status);
   };
 
   const upsertVisibleTicket = (ticket, tab) => {
@@ -301,14 +383,15 @@ export default function SupportCenterPage() {
 
     setTickets((prev) => {
       const shouldInclude = ticketMatchesTab(ticket, tab);
-      const next = prev.filter((item) => String(item._id) !== String(ticket._id));
+      const next = prev.filter(
+        (item) => String(item._id) !== String(ticket._id),
+      );
       return shouldInclude ? [ticket, ...next] : next;
     });
   };
 
   useEffect(() => {
     loadTickets(activeTab === "history");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   useEffect(() => {
@@ -328,7 +411,12 @@ export default function SupportCenterPage() {
       }
     };
 
-    const handleIssueMessageDelivered = ({ ticketId, messageIds = [], status, deliveredAt } = {}) => {
+    const handleIssueMessageDelivered = ({
+      ticketId,
+      messageIds = [],
+      status,
+      deliveredAt,
+    } = {}) => {
       patchIssueMessageStatuses({
         ticketId,
         messageIds,
@@ -337,7 +425,13 @@ export default function SupportCenterPage() {
       });
     };
 
-    const handleIssueMessageSeen = ({ ticketId, messageIds = [], status, seenAt, deliveredAt } = {}) => {
+    const handleIssueMessageSeen = ({
+      ticketId,
+      messageIds = [],
+      status,
+      seenAt,
+      deliveredAt,
+    } = {}) => {
       patchIssueMessageStatuses({
         ticketId,
         messageIds,
@@ -451,7 +545,10 @@ export default function SupportCenterPage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    window.localStorage.setItem(SUPPORT_SEEN_STORAGE_KEY, JSON.stringify(seenIncomingAtByTicket));
+    window.localStorage.setItem(
+      SUPPORT_SEEN_STORAGE_KEY,
+      JSON.stringify(seenIncomingAtByTicket),
+    );
   }, [seenIncomingAtByTicket]);
 
   useEffect(() => {
@@ -511,7 +608,8 @@ export default function SupportCenterPage() {
     }
   };
 
-  const getTicketById = (ticketId) => tickets.find((ticket) => String(ticket?._id) === String(ticketId));
+  const getTicketById = (ticketId) =>
+    tickets.find((ticket) => String(ticket?._id) === String(ticketId));
 
   const getTicketLastMessage = (ticket) => {
     const list = Array.isArray(ticket?.messages) ? ticket.messages : [];
@@ -520,7 +618,11 @@ export default function SupportCenterPage() {
 
   const getTicketLastMessageTime = (ticket) => {
     const lastMessage = getTicketLastMessage(ticket);
-    const source = lastMessage?.createdAt || ticket?.lastMessageAt || ticket?.updatedAt || ticket?.createdAt;
+    const source =
+      lastMessage?.createdAt ||
+      ticket?.lastMessageAt ||
+      ticket?.updatedAt ||
+      ticket?.createdAt;
     const ts = new Date(source).getTime();
     return Number.isFinite(ts) ? ts : 0;
   };
@@ -555,7 +657,10 @@ export default function SupportCenterPage() {
 
   const handleSelectTicket = (ticketId, ticketOverride) => {
     if (selectedId && String(selectedId) !== String(ticketId)) {
-      markTicketAsSeenLocally(selectedId, selectedTicket || getTicketById(selectedId));
+      markTicketAsSeenLocally(
+        selectedId,
+        selectedTicket || getTicketById(selectedId),
+      );
     }
 
     setSelectedId(ticketId);
@@ -569,7 +674,9 @@ export default function SupportCenterPage() {
     if (!selectedTicket?._id) return;
 
     const textToSend = String(messageText || "").trim();
-    const outgoingFiles = voiceDraft?.file ? [...attachments, voiceDraft.file] : attachments;
+    const outgoingFiles = voiceDraft?.file
+      ? [...attachments, voiceDraft.file]
+      : attachments;
     if (!textToSend && outgoingFiles.length === 0) return;
 
     setIsSending(true);
@@ -605,12 +712,18 @@ export default function SupportCenterPage() {
       }
       outgoingFiles.forEach((file) => formData.append("attachments", file));
 
-      await axiosInstance.post(`/issues/doctor/${selectedTicket._id}/messages`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      await axiosInstance.post(
+        `/issues/doctor/${selectedTicket._id}/messages`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        },
+      );
     } catch (error) {
       optimisticAttachments.forEach((item) => URL.revokeObjectURL(item.url));
-      setOptimisticMessages((prev) => prev.filter((item) => item._id !== optimisticId));
+      setOptimisticMessages((prev) =>
+        prev.filter((item) => item._id !== optimisticId),
+      );
       toast.error(error.response?.data?.message || "Failed to send message");
     } finally {
       setIsSending(false);
@@ -651,23 +764,33 @@ export default function SupportCenterPage() {
   const isImageFile = (file) => {
     const mimeType = String(file?.type || "").toLowerCase();
     const name = String(file?.name || "").toLowerCase();
-    return mimeType.startsWith("image/") || /\.(png|jpe?g|gif|webp)$/i.test(name);
+    return (
+      mimeType.startsWith("image/") || /\.(png|jpe?g|gif|webp)$/i.test(name)
+    );
   };
 
   const isAudioAttachment = (attachment) => {
     const mimeType = String(attachment?.mimeType || "").toLowerCase();
     const name = String(attachment?.name || "").toLowerCase();
-    return mimeType.startsWith("audio/") || /\.(webm|ogg|mp3|wav|m4a|aac)$/i.test(name);
+    return (
+      mimeType.startsWith("audio/") ||
+      /\.(webm|ogg|mp3|wav|m4a|aac)$/i.test(name)
+    );
   };
 
   const isImageAttachment = (attachment) => {
     const mimeType = String(attachment?.mimeType || "").toLowerCase();
     const name = String(attachment?.name || "").toLowerCase();
     const url = String(attachment?.url || "").toLowerCase();
-    return mimeType.startsWith("image/") || /\.(png|jpe?g|gif|webp|bmp)$/i.test(name) || /\.(png|jpe?g|gif|webp|bmp)(\?|$)/i.test(url);
+    return (
+      mimeType.startsWith("image/") ||
+      /\.(png|jpe?g|gif|webp|bmp)$/i.test(name) ||
+      /\.(png|jpe?g|gif|webp|bmp)(\?|$)/i.test(url)
+    );
   };
 
-  const getAttachmentKey = (file) => `${file.name}-${file.size}-${file.lastModified}`;
+  const getAttachmentKey = (file) =>
+    `${file.name}-${file.size}-${file.lastModified}`;
 
   const imagePreviewUrls = useMemo(() => {
     const map = new Map();
@@ -718,7 +841,10 @@ export default function SupportCenterPage() {
 
       recorder.onstop = () => {
         stopRecordingTimer();
-        const mimeType = normalizeAudioMimeType(recorder.mimeType || preferredMimeType || "audio/webm") || "audio/webm";
+        const mimeType =
+          normalizeAudioMimeType(
+            recorder.mimeType || preferredMimeType || "audio/webm",
+          ) || "audio/webm";
         if (discardRecordingRef.current) {
           audioChunksRef.current = [];
           stream.getTracks().forEach((track) => track.stop());
@@ -739,7 +865,9 @@ export default function SupportCenterPage() {
         }
 
         const ext = getAudioExtension(mimeType);
-        const voiceFile = new File([blob], `voice-note-${Date.now()}.${ext}`, { type: mimeType });
+        const voiceFile = new File([blob], `voice-note-${Date.now()}.${ext}`, {
+          type: mimeType,
+        });
         const previewUrl = URL.createObjectURL(blob);
         setVoiceDraft((prev) => {
           if (prev?.previewUrl) {
@@ -773,7 +901,11 @@ export default function SupportCenterPage() {
   };
 
   const stopVoiceRecording = ({ sendAfter = false } = {}) => {
-    if (!mediaRecorderRef.current || mediaRecorderRef.current.state === "inactive") return;
+    if (
+      !mediaRecorderRef.current ||
+      mediaRecorderRef.current.state === "inactive"
+    )
+      return;
     discardRecordingRef.current = false;
     sendAfterRecordingRef.current = Boolean(sendAfter);
     mediaRecorderRef.current.stop();
@@ -783,10 +915,15 @@ export default function SupportCenterPage() {
   const cancelRecording = () => {
     discardRecordingRef.current = true;
     sendAfterRecordingRef.current = false;
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state !== "inactive"
+    ) {
       mediaRecorderRef.current.stop();
     } else if (mediaRecorderRef.current?.stream) {
-      mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
+      mediaRecorderRef.current.stream
+        .getTracks()
+        .forEach((track) => track.stop());
     }
     setIsRecording(false);
     setIsRecordingPaused(false);
@@ -836,12 +973,17 @@ export default function SupportCenterPage() {
     markTicketAsSeenLocally(selectedId, selectedTicket);
   }, [selectedId, selectedTicket, showChatPane]);
 
-  const canReopen = useMemo(() => selectedTicket?.status === "Resolved", [selectedTicket?.status]);
+  const canReopen = useMemo(
+    () => selectedTicket?.status === "Resolved",
+    [selectedTicket?.status],
+  );
 
   const reopenIssue = async () => {
     if (!selectedTicket?._id) return;
     try {
-      await axiosInstance.patch(`/issues/doctor/${selectedTicket._id}/status`, { status: "Reopened" });
+      await axiosInstance.patch(`/issues/doctor/${selectedTicket._id}/status`, {
+        status: "Reopened",
+      });
       toast.success("Issue reopened");
       setActiveTab("active");
     } catch (error) {
@@ -851,428 +993,696 @@ export default function SupportCenterPage() {
 
   return (
     <>
-    <div className="relative grid grid-cols-1 xl:grid-cols-12 gap-5 overflow-hidden">
-      <div
-        className="pointer-events-none absolute -left-20 -top-14 h-60 w-60 blur-3xl"
-        style={{ background: "rgba(93,112,82,0.18)", borderRadius: organicTheme.radii.blobA }}
-      />
-      <div
-        className="pointer-events-none absolute -right-24 top-1/2 h-72 w-72 blur-3xl"
-        style={{ background: "rgba(193,140,93,0.2)", borderRadius: organicTheme.radii.blobB }}
-      />
+      <div className="relative grid grid-cols-1 xl:grid-cols-12 gap-5 overflow-hidden">
+        <div
+          className="pointer-events-none absolute -left-20 -top-14 h-60 w-60 blur-3xl"
+          style={{
+            background: "rgba(93,112,82,0.18)",
+            borderRadius: organicTheme.radii.blobA,
+          }}
+        />
+        <div
+          className="pointer-events-none absolute -right-24 top-1/2 h-72 w-72 blur-3xl"
+          style={{
+            background: "rgba(193,140,93,0.2)",
+            borderRadius: organicTheme.radii.blobB,
+          }}
+        />
 
-      {showIssueListPane ? (
-      <section className="xl:col-span-4 h-[calc(100vh-9rem)] overflow-hidden rounded-[2rem] border p-5 flex flex-col" style={organicCardStyle}>
-        <div className="flex items-center gap-3">
-          <span
-            className="h-12 w-12 rounded-2xl flex items-center justify-center"
-            style={{ background: "rgba(93,112,82,0.12)", color: organicTheme.colors.primary }}
+        {showIssueListPane ? (
+          <section
+            className="xl:col-span-4 h-[calc(100vh-9rem)] overflow-hidden rounded-[2rem] border p-5 flex flex-col"
+            style={organicCardStyle}
           >
-            <LifeBuoy size={22} />
-          </span>
-          <div>
-            <h2 className="text-2xl font-bold text-[var(--color-text-primary)]" style={{ fontFamily: "Fraunces" }}>
-              Support Center
-            </h2>
-            <p className="text-xs mt-1 text-[var(--color-text-secondary)]">Create a ticket to chat with admin support.</p>
-          </div>
-        </div>
-
-        <div className="mt-4 space-y-3">
-          <select
-            value={newIssue.category}
-            onChange={(e) => setNewIssue((p) => ({ ...p, category: e.target.value }))}
-            className="w-full rounded-full px-4 py-3 border text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
-            style={organicInputStyle}
-          >
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-          <input
-            value={newIssue.title}
-            onChange={(e) => setNewIssue((p) => ({ ...p, title: e.target.value }))}
-            placeholder="Issue title"
-            className="w-full rounded-full px-4 py-3 border text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
-            style={organicInputStyle}
-          />
-          <textarea
-            value={newIssue.description}
-            onChange={(e) => setNewIssue((p) => ({ ...p, description: e.target.value }))}
-            placeholder="Describe your feedback/problem"
-            rows={4}
-            className="w-full rounded-3xl px-4 py-3 border text-sm resize-none outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
-            style={organicInputStyle}
-          />
-          <button
-            onClick={handleCreateIssue}
-            disabled={isCreating}
-            className="w-full rounded-full px-4 py-3 text-sm font-semibold text-white disabled:opacity-60 transition-all hover:scale-105 active:scale-95 inline-flex items-center justify-center gap-2"
-            style={{ background: organicTheme.colors.primary, boxShadow: organicTheme.shadows.button }}
-          >
-            <Ticket size={16} />
-            {isCreating ? "Creating..." : "Create Issue"}
-          </button>
-        </div>
-
-        <div className="mt-6 flex gap-2 rounded-full p-1 border" style={organicSectionStyle}>
-          <button
-            onClick={() => setActiveTab("active")}
-            className="flex-1 rounded-full px-2 py-2 text-xs font-semibold inline-flex items-center justify-center gap-1.5"
-            style={{
-              background: activeTab === "active" ? "rgba(93,112,82,0.14)" : "transparent",
-              color: activeTab === "active" ? organicTheme.colors.primary : organicTheme.colors.mutedForeground,
-            }}
-          >
-            <Sparkles size={13} />
-            Active
-          </button>
-          <button
-            onClick={() => setActiveTab("history")}
-            className="flex-1 rounded-full px-2 py-2 text-xs font-semibold inline-flex items-center justify-center gap-1.5"
-            style={{
-              background: activeTab === "history" ? "rgba(93,112,82,0.14)" : "transparent",
-              color: activeTab === "history" ? organicTheme.colors.primary : organicTheme.colors.mutedForeground,
-            }}
-          >
-            <History size={13} />
-            History
-          </button>
-        </div>
-
-        <div className="mt-3 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
-          {isLoading ? (
-            <p className="text-sm text-[var(--color-text-secondary)]">Loading issues...</p>
-          ) : tickets.length === 0 ? (
-            <p className="text-sm text-[var(--color-text-secondary)]">No issues found.</p>
-          ) : (
-            <>
-              {newChats.length > 0 ? (
-                <div>
-                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-[var(--color-primary)]">New chats</p>
-                  <div className="space-y-2">
-                    {newChats.map((t) => (
-                      <button
-                        key={t._id}
-                        onClick={() => handleSelectTicket(t._id, t)}
-                        className="w-full text-left rounded-2xl p-3 border transition-all hover:-translate-y-0.5"
-                        style={{
-                          borderColor: selectedId === t._id ? "rgba(93,112,82,0.42)" : "rgba(93,112,82,0.3)",
-                          background: selectedId === t._id ? "rgba(93,112,82,0.14)" : "rgba(93,112,82,0.08)",
-                        }}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-semibold text-[var(--color-text-primary)] line-clamp-1">{t.title}</p>
-                          <div className="flex items-center gap-2">
-                            <span className="rounded-full bg-[var(--color-primary)]/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-primary)]">New update</span>
-                            <StatusChip status={t.status} />
-                          </div>
-                        </div>
-                        <p className="text-xs mt-1 text-[var(--color-text-secondary)] line-clamp-1">{t.category}</p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              {otherChats.length > 0 ? (
-                <div>
-                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-[var(--color-text-secondary)]">All chats</p>
-                  <div className="space-y-2">
-                    {otherChats.map((t) => (
-                      <button
-                        key={t._id}
-                        onClick={() => handleSelectTicket(t._id, t)}
-                        className="w-full text-left rounded-2xl p-3 border transition-all hover:-translate-y-0.5"
-                        style={{
-                          borderColor: selectedId === t._id ? "rgba(93,112,82,0.36)" : "color-mix(in srgb, var(--color-border) 80%, transparent)",
-                          background: selectedId === t._id ? "rgba(93,112,82,0.1)" : "color-mix(in srgb, var(--color-bg-soft) 28%, transparent)",
-                        }}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-semibold text-[var(--color-text-primary)] line-clamp-1">{t.title}</p>
-                          <StatusChip status={t.status} />
-                        </div>
-                        <p className="text-xs mt-1 text-[var(--color-text-secondary)] line-clamp-1">{t.category}</p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </>
-          )}
-        </div>
-      </section>
-      ) : null}
-
-      {showChatPane ? (
-      <section className="xl:col-span-8 h-[calc(100vh-9rem)] overflow-hidden rounded-[2rem] border p-4 flex flex-col" style={organicCardStyle}>
-        {!selectedTicket ? (
-          <div className="m-auto text-center">
-            <div className="mx-auto mb-3 h-14 w-14 rounded-2xl flex items-center justify-center" style={{ background: "rgba(93,112,82,0.12)", color: organicTheme.colors.primary }}>
-              <CircleHelp size={24} />
-            </div>
-            {isMobileView ? (
-              <button
-                type="button"
-                onClick={() => setMobileScreen("list")}
-                className="mx-auto mb-3 inline-flex items-center gap-1 rounded-full border border-[var(--color-border)]/80 px-3 py-1.5 text-xs font-semibold text-[var(--color-text-secondary)]"
+            <div className="flex items-center gap-3">
+              <span
+                className="h-12 w-12 rounded-2xl flex items-center justify-center"
+                style={{
+                  background: "rgba(93,112,82,0.12)",
+                  color: organicTheme.colors.primary,
+                }}
               >
-                <ChevronLeft className="h-4 w-4" />
-                Back
-              </button>
-            ) : null}
-            <p className="text-sm text-[var(--color-text-secondary)]">Select an issue to open the chat.</p>
-          </div>
-        ) : (
-          <>
-            <div className="flex items-start justify-between gap-3 border-b pb-3" style={{ borderColor: "color-mix(in srgb, var(--color-border) 80%, transparent)" }}>
+                <LifeBuoy size={22} />
+              </span>
               <div>
+                <h2
+                  className="text-2xl font-bold text-[var(--color-text-primary)]"
+                  style={{ fontFamily: "Fraunces" }}
+                >
+                  Support Center
+                </h2>
+                <p className="text-xs mt-1 text-[var(--color-text-secondary)]">
+                  Create a ticket to chat with admin support.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <select
+                value={newIssue.category}
+                onChange={(e) =>
+                  setNewIssue((p) => ({ ...p, category: e.target.value }))
+                }
+                className="w-full rounded-full px-4 py-3 border text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
+                style={organicInputStyle}
+              >
+                {CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+              <input
+                value={newIssue.title}
+                onChange={(e) =>
+                  setNewIssue((p) => ({ ...p, title: e.target.value }))
+                }
+                placeholder="Issue title"
+                className="w-full rounded-full px-4 py-3 border text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
+                style={organicInputStyle}
+              />
+              <textarea
+                value={newIssue.description}
+                onChange={(e) =>
+                  setNewIssue((p) => ({ ...p, description: e.target.value }))
+                }
+                placeholder="Describe your feedback/problem"
+                rows={4}
+                className="w-full rounded-3xl px-4 py-3 border text-sm resize-none outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
+                style={organicInputStyle}
+              />
+              <button
+                onClick={handleCreateIssue}
+                disabled={isCreating}
+                className="w-full rounded-full px-4 py-3 text-sm font-semibold text-white disabled:opacity-60 transition-all hover:scale-105 active:scale-95 inline-flex items-center justify-center gap-2"
+                style={{
+                  background: organicTheme.colors.primary,
+                  boxShadow: organicTheme.shadows.button,
+                }}
+              >
+                <Ticket size={16} />
+                {isCreating ? "Creating..." : "Create Issue"}
+              </button>
+            </div>
+
+            <div
+              className="mt-6 flex gap-2 rounded-full p-1 border"
+              style={organicSectionStyle}
+            >
+              <button
+                onClick={() => setActiveTab("active")}
+                className="flex-1 rounded-full px-2 py-2 text-xs font-semibold inline-flex items-center justify-center gap-1.5"
+                style={{
+                  background:
+                    activeTab === "active"
+                      ? "rgba(93,112,82,0.14)"
+                      : "transparent",
+                  color:
+                    activeTab === "active"
+                      ? organicTheme.colors.primary
+                      : organicTheme.colors.mutedForeground,
+                }}
+              >
+                <Sparkles size={13} />
+                Active
+              </button>
+              <button
+                onClick={() => setActiveTab("history")}
+                className="flex-1 rounded-full px-2 py-2 text-xs font-semibold inline-flex items-center justify-center gap-1.5"
+                style={{
+                  background:
+                    activeTab === "history"
+                      ? "rgba(93,112,82,0.14)"
+                      : "transparent",
+                  color:
+                    activeTab === "history"
+                      ? organicTheme.colors.primary
+                      : organicTheme.colors.mutedForeground,
+                }}
+              >
+                <History size={13} />
+                History
+              </button>
+            </div>
+
+            <div className="mt-3 min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+              {isLoading ? (
+                <p className="text-sm text-[var(--color-text-secondary)]">
+                  Loading issues...
+                </p>
+              ) : tickets.length === 0 ? (
+                <p className="text-sm text-[var(--color-text-secondary)]">
+                  No issues found.
+                </p>
+              ) : (
+                <>
+                  {newChats.length > 0 ? (
+                    <div>
+                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-[var(--color-primary)]">
+                        New chats
+                      </p>
+                      <div className="space-y-2">
+                        {newChats.map((t) => (
+                          <button
+                            key={t._id}
+                            onClick={() => handleSelectTicket(t._id, t)}
+                            className="w-full text-left rounded-2xl p-3 border transition-all hover:-translate-y-0.5"
+                            style={{
+                              borderColor:
+                                selectedId === t._id
+                                  ? "rgba(93,112,82,0.42)"
+                                  : "rgba(93,112,82,0.3)",
+                              background:
+                                selectedId === t._id
+                                  ? "rgba(93,112,82,0.14)"
+                                  : "rgba(93,112,82,0.08)",
+                            }}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-sm font-semibold text-[var(--color-text-primary)] line-clamp-1">
+                                {t.title}
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <span className="rounded-full bg-[var(--color-primary)]/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--color-primary)]">
+                                  New update
+                                </span>
+                                <StatusChip status={t.status} />
+                              </div>
+                            </div>
+                            <p className="text-xs mt-1 text-[var(--color-text-secondary)] line-clamp-1">
+                              {t.category}
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {otherChats.length > 0 ? (
+                    <div>
+                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-[var(--color-text-secondary)]">
+                        All chats
+                      </p>
+                      <div className="space-y-2">
+                        {otherChats.map((t) => (
+                          <button
+                            key={t._id}
+                            onClick={() => handleSelectTicket(t._id, t)}
+                            className="w-full text-left rounded-2xl p-3 border transition-all hover:-translate-y-0.5"
+                            style={{
+                              borderColor:
+                                selectedId === t._id
+                                  ? "rgba(93,112,82,0.36)"
+                                  : "color-mix(in srgb, var(--color-border) 80%, transparent)",
+                              background:
+                                selectedId === t._id
+                                  ? "rgba(93,112,82,0.1)"
+                                  : "color-mix(in srgb, var(--color-bg-soft) 28%, transparent)",
+                            }}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-sm font-semibold text-[var(--color-text-primary)] line-clamp-1">
+                                {t.title}
+                              </p>
+                              <StatusChip status={t.status} />
+                            </div>
+                            <p className="text-xs mt-1 text-[var(--color-text-secondary)] line-clamp-1">
+                              {t.category}
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </>
+              )}
+            </div>
+          </section>
+        ) : null}
+
+        {showChatPane ? (
+          <section
+            className="xl:col-span-8 h-[calc(100vh-9rem)] overflow-hidden rounded-[2rem] border p-4 flex flex-col"
+            style={organicCardStyle}
+          >
+            {!selectedTicket ? (
+              <div className="m-auto text-center">
+                <div
+                  className="mx-auto mb-3 h-14 w-14 rounded-2xl flex items-center justify-center"
+                  style={{
+                    background: "rgba(93,112,82,0.12)",
+                    color: organicTheme.colors.primary,
+                  }}
+                >
+                  <CircleHelp size={24} />
+                </div>
                 {isMobileView ? (
                   <button
                     type="button"
                     onClick={() => setMobileScreen("list")}
-                    className="mb-2 inline-flex items-center gap-1 rounded-full border border-[var(--color-border)]/80 px-2.5 py-1 text-xs font-semibold text-[var(--color-text-secondary)]"
+                    className="mx-auto mb-3 inline-flex items-center gap-1 rounded-full border border-[var(--color-border)]/80 px-3 py-1.5 text-xs font-semibold text-[var(--color-text-secondary)]"
                   >
                     <ChevronLeft className="h-4 w-4" />
                     Back
                   </button>
                 ) : null}
-                <h3 className="text-lg font-bold text-[var(--color-text-primary)]" style={{ fontFamily: "Fraunces" }}>{selectedTicket.title}</h3>
-                <p className="text-xs text-[var(--color-text-secondary)] mt-1 inline-flex items-center gap-1.5"><MessageCircle size={12} /> {selectedTicket.category}</p>
+                <p className="text-sm text-[var(--color-text-secondary)]">
+                  Select an issue to open the chat.
+                </p>
               </div>
-              <div className="flex items-center gap-2">
-                <StatusChip status={selectedTicket.status} />
-                {canReopen && (
-                  <button
-                    onClick={reopenIssue}
-                    className="rounded-full px-3 py-1.5 text-xs font-semibold border inline-flex items-center gap-1"
-                    style={{ borderColor: "rgba(93,112,82,0.35)", color: organicTheme.colors.primary }}
-                  >
-                    <RefreshCw size={12} />
-                    Reopen
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="relative min-h-0 flex-1">
-              <div
-                ref={messagesContainerRef}
-                onScroll={() => {
-                  updateJumpToLatestVisibility();
-                  emitVisibleSeenMessages();
-                }}
-                className="h-full overflow-y-auto py-3 space-y-2 rounded-2xl px-2"
-                style={chatCanvasStyle}
-              >
-                {messages.map((m, index) => (
-                  <div
-                    key={m._id || `${m.senderRole}-${m.createdAt}`}
-                    ref={(node) => {
-                      const messageId = String(m._id || "");
-                      if (!messageId) return;
-                      if (node) {
-                        messageNodesRef.current.set(messageId, node);
-                      } else {
-                        messageNodesRef.current.delete(messageId);
-                      }
-                    }}
-                    data-message-id={m._id || ""}
-                    data-sender-role={m.senderRole || ""}
-                    className={`flex ${m.senderRole === "doctor" ? "justify-end" : "justify-start"}`}
-                  >
-                    <div
-                      className="max-w-[82%] rounded-[1.1rem] px-3 py-2 border"
-                      style={m.senderRole === "doctor" ? sentBubbleStyle : receivedBubbleStyle}
-                    >
-                      <p className="text-[11px] font-semibold mb-0.5 text-[var(--color-text-secondary)]">{m.senderName}</p>
-                      {m.text ? <p className="text-sm text-[var(--color-text-primary)] whitespace-pre-wrap">{m.text}</p> : null}
-                      {(m.attachments || []).length > 0 ? (
-                        <div className="mt-2 space-y-2">
-                          {m.attachments.map((attachment) => (
-                            isImageAttachment(attachment) ? (
-                              <button
-                                type="button"
-                                key={attachment.url}
-                                onClick={() => setPreviewImage({ url: attachment.url, name: attachment.name })}
-                                className="block overflow-hidden rounded-xl border border-[var(--color-border)]/80"
-                              >
-                                <img
-                                  src={attachment.url}
-                                  alt={attachment.name}
-                                  loading="lazy"
-                                  onLoad={scrollMessagesToBottom}
-                                  className="max-h-64 w-full object-cover"
-                                />
-                              </button>
-                            ) : isAudioAttachment(attachment) ? (
-                              <VoiceMessagePlayer
-                                key={attachment.url}
-                                src={attachment.url}
-                                title={attachment.name}
-                                badge={m.senderRole === "doctor" ? "Sent voice" : "Admin voice"}
-                                theme={m.senderRole === "doctor" ? sentVoiceTheme : receivedVoiceTheme}
-                              />
-                            ) : (
-                              <a key={attachment.url} href={attachment.url} target="_blank" rel="noreferrer" className="block rounded-xl border border-[var(--color-border)]/80 px-3 py-2 text-xs text-[var(--color-primary)] hover:underline">
-                                {attachment.name}
-                              </a>
-                            )
-                          ))}
-                        </div>
-                      ) : null}
-                      {shouldShowTimestamp(messages, index) ? (
-                        <p className="mt-1 flex items-center justify-end gap-1 text-[10px] text-[var(--color-text-secondary)]">
-                          <span>{m.createdAt ? new Date(m.createdAt).toLocaleTimeString("en-PK", { hour: "2-digit", minute: "2-digit" }) : ""}</span>
-                          {m.senderRole === currentRole ? <MessageStatusTicks status={m.status || "sent"} /> : null}
-                        </p>
-                      ) : (
-                        <p className="mt-1 flex items-center justify-end gap-1 text-[10px] text-[var(--color-text-secondary)]">
-                          {m.senderRole === currentRole ? <MessageStatusTicks status={m.status || "sent"} /> : null}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {showJumpToLatest ? (
-                <button
-                  type="button"
-                  onClick={scrollMessagesToBottom}
-                  className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold shadow-lg backdrop-blur"
-                  style={{ borderColor: "rgba(93,112,82,0.45)", background: "color-mix(in srgb, var(--color-card) 74%, var(--color-primary) 26%)", color: "var(--color-text-primary)" }}
+            ) : (
+              <>
+                <div
+                  className="flex items-start justify-between gap-3 border-b pb-3"
+                  style={{
+                    borderColor:
+                      "color-mix(in srgb, var(--color-border) 80%, transparent)",
+                  }}
                 >
-                  <ArrowDown className="h-3.5 w-3.5" />
-                  New messages
-                </button>
-              ) : null}
-            </div>
-
-            <div className="pt-2 border-t" style={{ borderColor: "color-mix(in srgb, var(--color-border) 80%, transparent)" }}>
-              {isRecording ? (
-                <div className="mb-4 flex flex-col gap-3 rounded-2xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:rounded-full" style={{ background: "color-mix(in srgb, var(--color-danger) 14%, transparent)", borderColor: "color-mix(in srgb, var(--color-danger) 34%, transparent)" }}>
-                  <div className="flex items-center gap-3">
-                    <div className="h-3 w-3 rounded-full bg-red-500 animate-pulse"></div>
-                    <span className="text-sm font-semibold text-[var(--color-danger)]">
-                      {isRecordingPaused ? "Paused" : "Recording..."} {formatTime(recordingTime)}
-                    </span>
+                  <div>
+                    {isMobileView ? (
+                      <button
+                        type="button"
+                        onClick={() => setMobileScreen("list")}
+                        className="mb-2 inline-flex items-center gap-1 rounded-full border border-[var(--color-border)]/80 px-2.5 py-1 text-xs font-semibold text-[var(--color-text-secondary)]"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                        Back
+                      </button>
+                    ) : null}
+                    <h3
+                      className="text-lg font-bold text-[var(--color-text-primary)]"
+                      style={{ fontFamily: "Fraunces" }}
+                    >
+                      {selectedTicket.title}
+                    </h3>
+                    <p className="text-xs text-[var(--color-text-secondary)] mt-1 inline-flex items-center gap-1.5">
+                      <MessageCircle size={12} /> {selectedTicket.category}
+                    </p>
                   </div>
-                  <div className="flex gap-2 self-end sm:self-auto">
-                    <button type="button" onClick={cancelRecording} className="rounded-full p-2.5 transition" style={{ background: "color-mix(in srgb, var(--color-danger) 26%, transparent)", color: "var(--color-danger)" }} aria-label="Discard recording">
-                      <X className="h-4 w-4" />
-                    </button>
-                    <button type="button" onClick={togglePauseRecording} className="rounded-full bg-amber-500 px-4 py-2 text-xs font-semibold text-white hover:bg-amber-600">
-                      {isRecordingPaused ? (
-                        <span className="inline-flex items-center gap-1"><Play className="h-3.5 w-3.5" />Resume</span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1"><Pause className="h-3.5 w-3.5" />Pause</span>
-                      )}
-                    </button>
-                    <button type="button" onClick={() => stopVoiceRecording({ sendAfter: true })} className="rounded-full bg-green-500 px-4 py-2 text-xs font-semibold text-white hover:bg-green-600">
-                      Send
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-
-              {voiceDraft ? (
-                <div className="mb-3 rounded-2xl border border-[var(--color-border)]/80 bg-[var(--color-card)]/85 px-3 py-2.5">
-                  <VoiceMessagePlayer
-                    src={voiceDraft.previewUrl}
-                    title={voiceDraft.file?.name || "Voice note"}
-                    badge="Draft"
-                    duration={voiceDraft.duration || 0}
-                    theme={receivedVoiceTheme}
-                    action={(
-                      <button type="button" onClick={() => discardVoiceDraft(true)} className="rounded-full p-1 text-[var(--color-text-secondary)] hover:bg-[var(--color-primary)]/10" aria-label="Discard voice note">
-                        <X className="h-4 w-4" />
+                  <div className="flex items-center gap-2">
+                    <StatusChip status={selectedTicket.status} />
+                    {canReopen && (
+                      <button
+                        onClick={reopenIssue}
+                        className="rounded-full px-3 py-1.5 text-xs font-semibold border inline-flex items-center gap-1"
+                        style={{
+                          borderColor: "rgba(93,112,82,0.35)",
+                          color: organicTheme.colors.primary,
+                        }}
+                      >
+                        <RefreshCw size={12} />
+                        Reopen
                       </button>
                     )}
-                  />
+                  </div>
                 </div>
-              ) : null}
 
-              {attachments.length > 0 ? (
-                <div className="mb-3 space-y-2">
-                  {attachments.map((file, idx) => (
-                    isImageFile(file) ? (
-                      <div key={idx} className="relative overflow-hidden rounded-2xl border border-[var(--color-border)]/80 p-2" style={{ background: "color-mix(in srgb, var(--color-card-elevated) 82%, var(--color-bg) 18%)" }}>
-                        <img src={imagePreviewUrls.get(getAttachmentKey(file))} alt={file.name} className="h-28 w-28 rounded-xl object-cover" />
-                        <p className="mt-1 w-28 truncate text-[11px] font-medium text-[var(--color-text-secondary)]">{file.name}</p>
-                        <button type="button" onClick={() => removeAttachment(idx)} className="absolute right-2 top-2 rounded-full bg-black/65 p-1 text-white" aria-label="Remove image">
-                          <X className="h-3.5 w-3.5" />
+                <div className="relative min-h-0 flex-1">
+                  <div
+                    ref={messagesContainerRef}
+                    onScroll={() => {
+                      updateJumpToLatestVisibility();
+                      emitVisibleSeenMessages();
+                    }}
+                    className="h-full overflow-y-auto py-3 space-y-2 rounded-2xl px-2"
+                    style={chatCanvasStyle}
+                  >
+                    {messages.map((m, index) => (
+                      <div
+                        key={m._id || `${m.senderRole}-${m.createdAt}`}
+                        ref={(node) => {
+                          const messageId = String(m._id || "");
+                          if (!messageId) return;
+                          if (node) {
+                            messageNodesRef.current.set(messageId, node);
+                          } else {
+                            messageNodesRef.current.delete(messageId);
+                          }
+                        }}
+                        data-message-id={m._id || ""}
+                        data-sender-role={m.senderRole || ""}
+                        className={`flex ${m.senderRole === "doctor" ? "justify-end" : "justify-start"}`}
+                      >
+                        <div
+                          className="max-w-[82%] rounded-[1.1rem] px-3 py-2 border"
+                          style={
+                            m.senderRole === "doctor"
+                              ? sentBubbleStyle
+                              : receivedBubbleStyle
+                          }
+                        >
+                          <p className="text-[11px] font-semibold mb-0.5 text-[var(--color-text-secondary)]">
+                            {m.senderName}
+                          </p>
+                          {m.text ? (
+                            <p className="text-sm text-[var(--color-text-primary)] whitespace-pre-wrap">
+                              {m.text}
+                            </p>
+                          ) : null}
+                          {(m.attachments || []).length > 0 ? (
+                            <div className="mt-2 space-y-2">
+                              {m.attachments.map((attachment) =>
+                                isImageAttachment(attachment) ? (
+                                  <button
+                                    type="button"
+                                    key={attachment.url}
+                                    onClick={() =>
+                                      setPreviewImage({
+                                        url: attachment.url,
+                                        name: attachment.name,
+                                      })
+                                    }
+                                    className="block overflow-hidden rounded-xl border border-[var(--color-border)]/80"
+                                  >
+                                    <img
+                                      src={attachment.url}
+                                      alt={attachment.name}
+                                      loading="lazy"
+                                      onLoad={scrollMessagesToBottom}
+                                      className="max-h-64 w-full object-cover"
+                                    />
+                                  </button>
+                                ) : isAudioAttachment(attachment) ? (
+                                  <VoiceMessagePlayer
+                                    key={attachment.url}
+                                    src={attachment.url}
+                                    title={attachment.name}
+                                    badge={
+                                      m.senderRole === "doctor"
+                                        ? "Sent voice"
+                                        : "Admin voice"
+                                    }
+                                    theme={
+                                      m.senderRole === "doctor"
+                                        ? sentVoiceTheme
+                                        : receivedVoiceTheme
+                                    }
+                                  />
+                                ) : (
+                                  <a
+                                    key={attachment.url}
+                                    href={attachment.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="block rounded-xl border border-[var(--color-border)]/80 px-3 py-2 text-xs text-[var(--color-primary)] hover:underline"
+                                  >
+                                    {attachment.name}
+                                  </a>
+                                ),
+                              )}
+                            </div>
+                          ) : null}
+                          {shouldShowTimestamp(messages, index) ? (
+                            <p className="mt-1 flex items-center justify-end gap-1 text-[10px] text-[var(--color-text-secondary)]">
+                              <span>
+                                {m.createdAt
+                                  ? new Date(m.createdAt).toLocaleTimeString(
+                                      "en-PK",
+                                      { hour: "2-digit", minute: "2-digit" },
+                                    )
+                                  : ""}
+                              </span>
+                              {m.senderRole === currentRole ? (
+                                <MessageStatusTicks
+                                  status={m.status || "sent"}
+                                />
+                              ) : null}
+                            </p>
+                          ) : (
+                            <p className="mt-1 flex items-center justify-end gap-1 text-[10px] text-[var(--color-text-secondary)]">
+                              {m.senderRole === currentRole ? (
+                                <MessageStatusTicks
+                                  status={m.status || "sent"}
+                                />
+                              ) : null}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {showJumpToLatest ? (
+                    <button
+                      type="button"
+                      onClick={scrollMessagesToBottom}
+                      className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold shadow-lg backdrop-blur"
+                      style={{
+                        borderColor: "rgba(93,112,82,0.45)",
+                        background:
+                          "color-mix(in srgb, var(--color-card) 74%, var(--color-primary) 26%)",
+                        color: "var(--color-text-primary)",
+                      }}
+                    >
+                      <ArrowDown className="h-3.5 w-3.5" />
+                      New messages
+                    </button>
+                  ) : null}
+                </div>
+
+                <div
+                  className="pt-2 border-t"
+                  style={{
+                    borderColor:
+                      "color-mix(in srgb, var(--color-border) 80%, transparent)",
+                  }}
+                >
+                  {isRecording ? (
+                    <div
+                      className="mb-4 flex flex-col gap-3 rounded-2xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:rounded-full"
+                      style={{
+                        background:
+                          "color-mix(in srgb, var(--color-danger) 14%, transparent)",
+                        borderColor:
+                          "color-mix(in srgb, var(--color-danger) 34%, transparent)",
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="h-3 w-3 rounded-full bg-red-500 animate-pulse"></div>
+                        <span className="text-sm font-semibold text-[var(--color-danger)]">
+                          {isRecordingPaused ? "Paused" : "Recording..."}{" "}
+                          {formatTime(recordingTime)}
+                        </span>
+                      </div>
+                      <div className="flex gap-2 self-end sm:self-auto">
+                        <button
+                          type="button"
+                          onClick={cancelRecording}
+                          className="rounded-full p-2.5 transition"
+                          style={{
+                            background:
+                              "color-mix(in srgb, var(--color-danger) 26%, transparent)",
+                            color: "var(--color-danger)",
+                          }}
+                          aria-label="Discard recording"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={togglePauseRecording}
+                          className="rounded-full bg-amber-500 px-4 py-2 text-xs font-semibold text-white hover:bg-amber-600"
+                        >
+                          {isRecordingPaused ? (
+                            <span className="inline-flex items-center gap-1">
+                              <Play className="h-3.5 w-3.5" />
+                              Resume
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1">
+                              <Pause className="h-3.5 w-3.5" />
+                              Pause
+                            </span>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            stopVoiceRecording({ sendAfter: true })
+                          }
+                          className="rounded-full bg-green-500 px-4 py-2 text-xs font-semibold text-white hover:bg-green-600"
+                        >
+                          Send
                         </button>
                       </div>
-                    ) : (
-                      <div key={idx} className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs" style={{ borderColor: "color-mix(in srgb, var(--color-primary) 38%, transparent)", background: "color-mix(in srgb, var(--color-primary) 18%, transparent)" }}>
-                        <span className="max-w-[220px] truncate font-medium text-[var(--color-primary)]">{file.name}</span>
-                        <button type="button" onClick={() => removeAttachment(idx)} className="font-bold text-[var(--color-primary)]">✕</button>
-                      </div>
-                    )
-                  ))}
-                </div>
-              ) : null}
+                    </div>
+                  ) : null}
 
-              <div className="flex gap-2">
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="rounded-full bg-[var(--color-primary)]/10 p-2.5 text-[var(--color-primary)] transition hover:bg-[var(--color-primary)]/20 sm:p-3">
-                  <Plus className="h-5 w-5" />
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.webm,.ogg,.mp3,.wav,.m4a,.aac"
-                  onChange={(e) => setAttachments((prev) => [...prev, ...Array.from(e.target.files || [])])}
-                  className="hidden"
-                />
+                  {voiceDraft ? (
+                    <div className="mb-3 rounded-2xl border border-[var(--color-border)]/80 bg-[var(--color-card)]/85 px-3 py-2.5">
+                      <VoiceMessagePlayer
+                        src={voiceDraft.previewUrl}
+                        title={voiceDraft.file?.name || "Voice note"}
+                        badge="Draft"
+                        duration={voiceDraft.duration || 0}
+                        theme={receivedVoiceTheme}
+                        action={
+                          <button
+                            type="button"
+                            onClick={() => discardVoiceDraft(true)}
+                            className="rounded-full p-1 text-[var(--color-text-secondary)] hover:bg-[var(--color-primary)]/10"
+                            aria-label="Discard voice note"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        }
+                      />
+                    </div>
+                  ) : null}
 
-                <textarea
-                  value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
-                  onKeyDown={handleMessageKeyDown}
-                  placeholder="Write message..."
-                  rows={1}
-                  className="max-h-32 min-h-[44px] flex-1 resize-none rounded-2xl px-4 py-2.5 border text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
-                  style={organicInputStyle}
-                />
-                {isRecording || messageText.trim() || attachments.length > 0 || voiceDraft?.file ? (
-                  <button
-                    onClick={() => {
-                      if (isRecording) {
-                        stopVoiceRecording({ sendAfter: true });
-                        return;
+                  {attachments.length > 0 ? (
+                    <div className="mb-3 space-y-2">
+                      {attachments.map((file, idx) =>
+                        isImageFile(file) ? (
+                          <div
+                            key={idx}
+                            className="relative overflow-hidden rounded-2xl border border-[var(--color-border)]/80 p-2"
+                            style={{
+                              background:
+                                "color-mix(in srgb, var(--color-card-elevated) 82%, var(--color-bg) 18%)",
+                            }}
+                          >
+                            <img
+                              src={imagePreviewUrls.get(getAttachmentKey(file))}
+                              alt={file.name}
+                              className="h-28 w-28 rounded-xl object-cover"
+                            />
+                            <p className="mt-1 w-28 truncate text-[11px] font-medium text-[var(--color-text-secondary)]">
+                              {file.name}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => removeAttachment(idx)}
+                              className="absolute right-2 top-2 rounded-full bg-black/65 p-1 text-white"
+                              aria-label="Remove image"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div
+                            key={idx}
+                            className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs"
+                            style={{
+                              borderColor:
+                                "color-mix(in srgb, var(--color-primary) 38%, transparent)",
+                              background:
+                                "color-mix(in srgb, var(--color-primary) 18%, transparent)",
+                            }}
+                          >
+                            <span className="max-w-[220px] truncate font-medium text-[var(--color-primary)]">
+                              {file.name}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => removeAttachment(idx)}
+                              className="font-bold text-[var(--color-primary)]"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  ) : null}
+
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="rounded-full bg-[var(--color-primary)]/10 p-2.5 text-[var(--color-primary)] transition hover:bg-[var(--color-primary)]/20 sm:p-3"
+                    >
+                      <Plus className="h-5 w-5" />
+                    </button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.webm,.ogg,.mp3,.wav,.m4a,.aac"
+                      onChange={(e) =>
+                        setAttachments((prev) => [
+                          ...prev,
+                          ...Array.from(e.target.files || []),
+                        ])
                       }
-                      sendMessage();
-                    }}
-                    disabled={isSending}
-                    className="rounded-full px-4 py-2.5 text-sm font-semibold text-white inline-flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 disabled:opacity-60"
-                    style={{ background: organicTheme.colors.primary, boxShadow: organicTheme.shadows.button }}
-                  >
-                    <Send size={14} />
-                    Send
-                  </button>
-                ) : (
-                  <button type="button" onClick={isRecording ? stopVoiceRecording : startVoiceRecording} className="rounded-full p-2.5 transition sm:p-3" style={{ background: isRecording ? "rgba(239,68,68,0.1)" : "transparent", color: isRecording ? "rgb(239,68,68)" : "var(--color-primary)" }}>
-                    <Mic className="h-5 w-5" />
-                  </button>
-                )}
-              </div>
-            </div>
-          </>
-        )}
-      </section>
-      ) : null}
-    </div>
+                      className="hidden"
+                    />
 
-    {previewImage ? (
-      <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/85 p-4">
-        <button type="button" onClick={() => setPreviewImage(null)} className="absolute right-4 top-4 rounded-full bg-white/15 p-2 text-white" aria-label="Close image preview">
-          <X className="h-6 w-6" />
-        </button>
-        <img src={previewImage.url} alt={previewImage.name} className="max-h-[90vh] max-w-[92vw] rounded-xl object-contain" />
+                    <textarea
+                      value={messageText}
+                      onChange={(e) => setMessageText(e.target.value)}
+                      onKeyDown={handleMessageKeyDown}
+                      placeholder="Write message..."
+                      rows={1}
+                      className="max-h-32 min-h-[44px] flex-1 resize-none rounded-2xl px-4 py-2.5 border text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
+                      style={organicInputStyle}
+                    />
+                    {isRecording ||
+                    messageText.trim() ||
+                    attachments.length > 0 ||
+                    voiceDraft?.file ? (
+                      <button
+                        onClick={() => {
+                          if (isRecording) {
+                            stopVoiceRecording({ sendAfter: true });
+                            return;
+                          }
+                          sendMessage();
+                        }}
+                        disabled={isSending}
+                        className="rounded-full px-4 py-2.5 text-sm font-semibold text-white inline-flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 disabled:opacity-60"
+                        style={{
+                          background: organicTheme.colors.primary,
+                          boxShadow: organicTheme.shadows.button,
+                        }}
+                      >
+                        <Send size={14} />
+                        Send
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={
+                          isRecording ? stopVoiceRecording : startVoiceRecording
+                        }
+                        className="rounded-full p-2.5 transition sm:p-3"
+                        style={{
+                          background: isRecording
+                            ? "rgba(239,68,68,0.1)"
+                            : "transparent",
+                          color: isRecording
+                            ? "rgb(239,68,68)"
+                            : "var(--color-primary)",
+                        }}
+                      >
+                        <Mic className="h-5 w-5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </section>
+        ) : null}
       </div>
-    ) : null}
+
+      {previewImage ? (
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/85 p-4">
+          <button
+            type="button"
+            onClick={() => setPreviewImage(null)}
+            className="absolute right-4 top-4 rounded-full bg-white/15 p-2 text-white"
+            aria-label="Close image preview"
+          >
+            <X className="h-6 w-6" />
+          </button>
+          <img
+            src={previewImage.url}
+            alt={previewImage.name}
+            className="max-h-[90vh] max-w-[92vw] rounded-xl object-contain"
+          />
+        </div>
+      ) : null}
     </>
   );
 }

@@ -43,9 +43,18 @@ export default function ResetPasswordPage() {
   }, [email, navigate, resetToken]);
 
   const handleSubmit = async () => {
-    if (!form.password) { toast.error("Password is required"); return; }
-    if (form.password.length < 8) { toast.error("Password must be at least 8 characters"); return; }
-    if (form.password !== form.confirmPassword) { toast.error("Passwords do not match"); return; }
+    if (!form.password) {
+      toast.error("Password is required");
+      return;
+    }
+    if (form.password.length < 8) {
+      toast.error("Password must be at least 8 characters");
+      return;
+    }
+    if (form.password !== form.confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -76,9 +85,14 @@ export default function ResetPasswordPage() {
               MEDALERTO
             </span>
           </div>
-          <button className="flex items-center gap-3" onClick={() => navigate("/")}>
+          <button
+            className="flex items-center gap-3"
+            onClick={() => navigate("/")}
+          >
             <img src={logo} alt="MedAlerto" className="h-8 w-auto" />
-            <span className="text-sm font-extrabold sm:text-base">MedAlerto</span>
+            <span className="text-sm font-extrabold sm:text-base">
+              MedAlerto
+            </span>
           </button>
           <button
             onClick={() => navigate("/login")}
@@ -98,7 +112,9 @@ export default function ResetPasswordPage() {
           </div>
 
           <header className="mb-8 text-center">
-            <h1 className="mb-2 text-2xl font-extrabold sm:text-3xl">Set New Password</h1>
+            <h1 className="mb-2 text-2xl font-extrabold sm:text-3xl">
+              Set New Password
+            </h1>
             <p className="text-sm text-[var(--color-text-secondary)] sm:text-base">
               Create a strong new password for your account
             </p>
@@ -107,12 +123,16 @@ export default function ResetPasswordPage() {
           <div className="rounded-xl border bg-[var(--color-bg)] p-4 sm:p-6">
             <div className="space-y-4">
               <div>
-                <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)] sm:text-sm">New Password</label>
+                <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)] sm:text-sm">
+                  New Password
+                </label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
                     value={form.password}
-                    onChange={(e) => setForm({ ...form, password: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, password: e.target.value })
+                    }
                     placeholder="Min 8 characters"
                     className="w-full rounded-xl border bg-[var(--color-card)] px-4 py-3 pr-12 text-sm outline-none transition focus:border-[var(--color-primary)]"
                   />
@@ -131,24 +151,35 @@ export default function ResetPasswordPage() {
                         <div
                           key={level}
                           className="h-1 flex-1 rounded-full transition-all duration-300"
-                          style={{ background: strength.score >= level ? strength.color : "var(--color-border)" }}
+                          style={{
+                            background:
+                              strength.score >= level
+                                ? strength.color
+                                : "var(--color-border)",
+                          }}
                         />
                       ))}
                     </div>
                     {strength.label && (
-                      <p className="text-xs" style={{ color: strength.color }}>{strength.label} password</p>
+                      <p className="text-xs" style={{ color: strength.color }}>
+                        {strength.label} password
+                      </p>
                     )}
                   </div>
                 )}
               </div>
 
               <div>
-                <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)] sm:text-sm">Confirm Password</label>
+                <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)] sm:text-sm">
+                  Confirm Password
+                </label>
                 <div className="relative">
                   <input
                     type={showConfirm ? "text" : "password"}
                     value={form.confirmPassword}
-                    onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, confirmPassword: e.target.value })
+                    }
                     onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
                     placeholder="Repeat your password"
                     className="w-full rounded-xl border bg-[var(--color-card)] px-4 py-3 pr-12 text-sm outline-none transition focus:border-[var(--color-primary)]"
@@ -169,8 +200,18 @@ export default function ResetPasswordPage() {
                 </div>
 
                 {form.confirmPassword && (
-                  <p className="mt-1 text-xs" style={{ color: form.password === form.confirmPassword ? "var(--color-success)" : "var(--color-danger)" }}>
-                    {form.password === form.confirmPassword ? "Passwords match" : "Passwords do not match"}
+                  <p
+                    className="mt-1 text-xs"
+                    style={{
+                      color:
+                        form.password === form.confirmPassword
+                          ? "var(--color-success)"
+                          : "var(--color-danger)",
+                    }}
+                  >
+                    {form.password === form.confirmPassword
+                      ? "Passwords match"
+                      : "Passwords do not match"}
                   </p>
                 )}
               </div>

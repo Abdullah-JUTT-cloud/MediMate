@@ -5,58 +5,58 @@
   --font-body: "Nunito", ui-sans-serif, system-ui, sans-serif;
   --font-heading: "Fraunces", ui-serif, Georgia, serif;
   --font-mono: "Nunito", ui-sans-serif, system-ui, sans-serif;
-  --organic-background: #fdfcf8;
-  --organic-foreground: #2c2c24;
-  --organic-primary: #5d7052;
-  --organic-secondary: #c18c5d;
-  --organic-accent: #e6dccd;
-  --organic-muted: #f0ebe5;
-  --organic-border: #ded8cf;
+  --organic-background: #f4fbfd;
+  --organic-foreground: #17313a;
+  --organic-primary: #1f7a8c;
+  --organic-secondary: #2a9d8f;
+  --organic-accent: #d7eef2;
+  --organic-muted: #e8f4f7;
+  --organic-border: #c4dde4;
 }
 
 :root {
-  --color-primary: #5d7052;
-  --color-primary-rgb: 93, 112, 82;
-  --color-secondary: #c18c5d;
-  --color-accent: #e6dccd;
-  --color-bg: #fdfcf8;
-  --color-bg-soft: #f7f3ec;
-  --color-card: #fefefa;
+  --color-primary: #1f7a8c;
+  --color-primary-rgb: 31, 122, 140;
+  --color-secondary: #2a9d8f;
+  --color-accent: #d7eef2;
+  --color-bg: #f4fbfd;
+  --color-bg-soft: #edf7f8;
+  --color-card: #ffffff;
   --color-card-elevated: #ffffff;
-  --color-text-primary: #2c2c24;
-  --color-text-secondary: #78786c;
-  --color-text-muted: #8e8e82;
-  --color-on-primary: #f3f4f1;
-  --color-border: #ded8cf;
-  --color-border-strong: #cfc7bc;
-  --color-success: #5d7052;
-  --color-warning: #c18c5d;
-  --color-danger: #a85448;
-  --color-overlay: rgba(33, 29, 21, 0.45);
-  --shadow-soft: 0 4px 20px -2px rgba(93, 112, 82, 0.12);
-  --shadow-float: 0 10px 40px -10px rgba(93, 112, 82, 0.18);
+  --color-text-primary: #17313a;
+  --color-text-secondary: #5f7580;
+  --color-text-muted: #7a8b93;
+  --color-on-primary: #f4fbfd;
+  --color-border: #c4dde4;
+  --color-border-strong: #93b8c3;
+  --color-success: #2f9e8f;
+  --color-warning: #c58940;
+  --color-danger: #d35d6e;
+  --color-overlay: rgba(10, 28, 34, 0.38);
+  --shadow-soft: 0 4px 20px -2px rgba(31, 122, 140, 0.12);
+  --shadow-float: 0 10px 40px -10px rgba(31, 122, 140, 0.18);
   color-scheme: light;
 }
 
 .dark {
-  --color-primary: #8ea77e;
-  --color-primary-rgb: 142, 167, 126;
-  --color-secondary: #d4a274;
-  --color-accent: #2f3d31;
-  --color-bg: #131712;
-  --color-bg-soft: #1a2019;
-  --color-card: #1f261f;
-  --color-card-elevated: #273129;
-  --color-text-primary: #eef0e8;
-  --color-text-secondary: #b7bcae;
-  --color-text-muted: #97a090;
-  --color-on-primary: #10140f;
-  --color-border: #3a4637;
-  --color-border-strong: #566551;
-  --color-success: #8fbf73;
-  --color-warning: #e0ae6f;
-  --color-danger: #d17867;
-  --color-overlay: rgba(6, 8, 6, 0.62);
+  --color-primary: #6ed7e3;
+  --color-primary-rgb: 110, 215, 227;
+  --color-secondary: #7de0c1;
+  --color-accent: #17313a;
+  --color-bg: #081419;
+  --color-bg-soft: #0e1e25;
+  --color-card: #10232b;
+  --color-card-elevated: #14303b;
+  --color-text-primary: #eef7f9;
+  --color-text-secondary: #a7c4cc;
+  --color-text-muted: #7d9aa3;
+  --color-on-primary: #052028;
+  --color-border: #244451;
+  --color-border-strong: #376174;
+  --color-success: #77d39f;
+  --color-warning: #efbd6a;
+  --color-danger: #ea8593;
+  --color-overlay: rgba(1, 8, 11, 0.65);
   --shadow-soft: 0 8px 24px -8px rgba(0, 0, 0, 0.45);
   --shadow-float: 0 18px 40px -16px rgba(0, 0, 0, 0.55);
   color-scheme: dark;
@@ -64,6 +64,29 @@
 
 * {
   border-color: var(--color-border);
+}
+
+*,
+*::before,
+*::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
+*:hover,
+*:hover::before,
+*:hover::after,
+.group:hover *,
+.group:hover *::before,
+.group:hover *::after {
+  color: inherit !important;
+  background-color: inherit !important;
+  border-color: inherit !important;
+  box-shadow: inherit !important;
+  filter: none !important;
+  opacity: 1 !important;
+  transform: none !important;
 }
 
 body {
@@ -99,9 +122,8 @@ body::before {
   font-family: var(--font-mono);
 }
 
-/* Keep native date-picker popups readable in dark theme browsers. */
 input[type="date"] {
-  color-scheme: light;
+  color-scheme: light dark;
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator {
@@ -127,84 +149,5 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
   body::before {
     opacity: 0.02;
-  }
-}
-
-.startup-lifeline-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 2000;
-  display: grid;
-  place-items: center;
-  background:
-    radial-gradient(circle at 22% 24%, color-mix(in srgb, var(--color-primary) 26%, transparent), transparent 34%),
-    radial-gradient(circle at 78% 76%, color-mix(in srgb, var(--color-secondary) 22%, transparent), transparent 34%),
-    color-mix(in srgb, var(--color-bg) 84%, #000 16%);
-  opacity: 1;
-  transition: opacity 420ms ease;
-}
-
-.startup-lifeline-overlay--done {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.startup-lifeline-wrap {
-  width: min(86vw, 760px);
-  padding: 20px 18px 14px;
-  border-radius: 20px;
-  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
-  background: color-mix(in srgb, var(--color-card) 76%, transparent);
-  box-shadow: 0 20px 70px -30px color-mix(in srgb, var(--color-primary) 42%, transparent);
-}
-
-.startup-lifeline-svg {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-
-.startup-lifeline-track {
-  fill: none;
-  stroke: color-mix(in srgb, var(--color-text-secondary) 35%, transparent);
-  stroke-width: 4.5;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.startup-lifeline-pulse {
-  fill: none;
-  stroke: #8ff6ff;
-  stroke-width: 4.5;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  filter: drop-shadow(0 0 7px rgba(143, 246, 255, 0.86)) drop-shadow(0 0 16px rgba(143, 246, 255, 0.55));
-  stroke-dasharray: 140 1200;
-  stroke-dashoffset: 1360;
-  animation: startup-lifeline-run 1.65s linear infinite;
-}
-
-.startup-lifeline-text {
-  margin: 10px 2px 0;
-  font-size: 12px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--color-text-secondary);
-}
-
-@keyframes startup-lifeline-run {
-  0% {
-    stroke-dashoffset: 1360;
-  }
-  100% {
-    stroke-dashoffset: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .startup-lifeline-pulse {
-    animation: none;
-    stroke-dasharray: none;
-    stroke-dashoffset: 0;
   }
 }

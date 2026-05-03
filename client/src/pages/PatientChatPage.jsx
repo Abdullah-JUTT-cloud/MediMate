@@ -1,7 +1,17 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { ArrowDown, LogOut, Mic, Pause, Play, Plus, Send, X } from "lucide-react";
+import {
+  ArrowDown,
+  LogOut,
+  Mic,
+  Pause,
+  Play,
+  Plus,
+  Send,
+  X,
+} from "lucide-react";
 import axiosInstance from "../api/axios";
 import MessageStatusTicks from "../components/MessageStatusTicks";
 import VoiceMessagePlayer from "../components/VoiceMessagePlayer";
@@ -9,7 +19,10 @@ import { getRealtimeSocketForRole } from "../realtime/socket";
 import usePatientAuthStore from "../store/patientAuthStore";
 
 const formatMessageDate = (date) =>
-  new Date(date).toLocaleString("en-PK", { dateStyle: "medium", timeStyle: "short" });
+  new Date(date).toLocaleString("en-PK", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 
 const shouldShowTimestamp = (messages, index) => {
   const current = messages[index];
@@ -18,7 +31,8 @@ const shouldShowTimestamp = (messages, index) => {
 
   const next = messages[index + 1];
   if (!next?.createdAt) return true;
-  if (String(next.senderRole || "") !== String(current.senderRole || "")) return true;
+  if (String(next.senderRole || "") !== String(current.senderRole || ""))
+    return true;
 
   const currentTime = new Date(current.createdAt).getTime();
   const nextTime = new Date(next.createdAt).getTime();
@@ -36,11 +50,20 @@ const RECORDER_MIME_CANDIDATES = [
   "audio/mp4",
 ];
 
-const normalizeAudioMimeType = (mimeType = "") => String(mimeType).split(";")[0].trim().toLowerCase();
+const normalizeAudioMimeType = (mimeType = "") =>
+  String(mimeType).split(";")[0].trim().toLowerCase();
 
 const getSupportedRecorderMimeType = () => {
-  if (typeof window === "undefined" || typeof window.MediaRecorder === "undefined") return "audio/webm";
-  return RECORDER_MIME_CANDIDATES.find((type) => window.MediaRecorder.isTypeSupported?.(type)) || "audio/webm";
+  if (
+    typeof window === "undefined" ||
+    typeof window.MediaRecorder === "undefined"
+  )
+    return "audio/webm";
+  return (
+    RECORDER_MIME_CANDIDATES.find((type) =>
+      window.MediaRecorder.isTypeSupported?.(type),
+    ) || "audio/webm"
+  );
 };
 
 const getAudioExtension = (mimeType = "") => {
@@ -90,7 +113,9 @@ export default function PatientChatPage() {
   const patchMessages = (updater) => {
     setChatData((prev) => {
       if (!prev?.chat) return prev;
-      const nextMessages = updater(Array.isArray(prev.chat.messages) ? prev.chat.messages : []);
+      const nextMessages = updater(
+        Array.isArray(prev.chat.messages) ? prev.chat.messages : [],
+      );
       return {
         ...prev,
         chat: {
@@ -107,15 +132,17 @@ export default function PatientChatPage() {
 
     const now = new Date().toISOString();
     const idSet = new Set(normalizedIds);
-    patchMessages((messages) => messages.map((message) => {
-      if (!idSet.has(String(message._id || ""))) return message;
-      return {
-        ...message,
-        status: "seen",
-        deliveredAt: message.deliveredAt || now,
-        seenAt: now,
-      };
-    }));
+    patchMessages((messages) =>
+      messages.map((message) => {
+        if (!idSet.has(String(message._id || ""))) return message;
+        return {
+          ...message,
+          status: "seen",
+          deliveredAt: message.deliveredAt || now,
+          seenAt: now,
+        };
+      }),
+    );
   };
 
   const markMessagesDeliveredLocally = (messageIds = []) => {
@@ -124,15 +151,17 @@ export default function PatientChatPage() {
 
     const now = new Date().toISOString();
     const idSet = new Set(normalizedIds);
-    patchMessages((messages) => messages.map((message) => {
-      if (!idSet.has(String(message._id || ""))) return message;
-      if (message.status === "seen") return message;
-      return {
-        ...message,
-        status: "delivered",
-        deliveredAt: message.deliveredAt || now,
-      };
-    }));
+    patchMessages((messages) =>
+      messages.map((message) => {
+        if (!idSet.has(String(message._id || ""))) return message;
+        if (message.status === "seen") return message;
+        return {
+          ...message,
+          status: "delivered",
+          deliveredAt: message.deliveredAt || now,
+        };
+      }),
+    );
   };
 
   const emitVisibleSeenMessages = () => {
@@ -150,7 +179,9 @@ export default function PatientChatPage() {
       if (!node) continue;
 
       const rect = node.getBoundingClientRect();
-      const visibleHeight = Math.min(rect.bottom, containerRect.bottom) - Math.max(rect.top, containerRect.top);
+      const visibleHeight =
+        Math.min(rect.bottom, containerRect.bottom) -
+        Math.max(rect.top, containerRect.top);
       if (visibleHeight <= 0) continue;
 
       const threshold = Math.min(rect.height, containerRect.height) * 0.45;
@@ -174,7 +205,8 @@ export default function PatientChatPage() {
       setShowJumpToLatest(false);
       return;
     }
-    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    const distanceFromBottom =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
     setShowJumpToLatest(distanceFromBottom > 96);
   };
 
@@ -300,7 +332,9 @@ export default function PatientChatPage() {
     }
 
     const textToSend = messageText.trim();
-    const outgoingFiles = voiceDraft?.file ? [...files, voiceDraft.file] : files;
+    const outgoingFiles = voiceDraft?.file
+      ? [...files, voiceDraft.file]
+      : files;
     const optimisticId = `temp-${Date.now()}`;
     const optimisticAttachments = outgoingFiles.map((file) => ({
       url: URL.createObjectURL(file),
@@ -334,9 +368,15 @@ export default function PatientChatPage() {
         headers: { "Content-Type": "multipart/form-data" },
       });
     } catch (error) {
-      optimisticAttachments.forEach((attachment) => URL.revokeObjectURL(attachment.url));
-      setOptimisticMessages((prev) => prev.filter((message) => message._id !== optimisticId));
-      toast.error(error.response?.data?.message || "Message not sent. Try again.");
+      optimisticAttachments.forEach((attachment) =>
+        URL.revokeObjectURL(attachment.url),
+      );
+      setOptimisticMessages((prev) =>
+        prev.filter((message) => message._id !== optimisticId),
+      );
+      toast.error(
+        error.response?.data?.message || "Message not sent. Try again.",
+      );
     } finally {
       setIsSending(false);
     }
@@ -395,7 +435,10 @@ export default function PatientChatPage() {
 
       recorder.onstop = () => {
         stopRecordingTimer();
-        const mimeType = normalizeAudioMimeType(recorder.mimeType || preferredMimeType || "audio/webm") || "audio/webm";
+        const mimeType =
+          normalizeAudioMimeType(
+            recorder.mimeType || preferredMimeType || "audio/webm",
+          ) || "audio/webm";
         if (discardRecordingRef.current) {
           audioChunksRef.current = [];
           stream.getTracks().forEach((track) => track.stop());
@@ -416,7 +459,9 @@ export default function PatientChatPage() {
         }
 
         const ext = getAudioExtension(mimeType);
-        const voiceFile = new File([blob], `voice-note-${Date.now()}.${ext}`, { type: mimeType });
+        const voiceFile = new File([blob], `voice-note-${Date.now()}.${ext}`, {
+          type: mimeType,
+        });
         const previewUrl = URL.createObjectURL(blob);
         setVoiceDraft((prev) => {
           if (prev?.previewUrl) {
@@ -449,7 +494,11 @@ export default function PatientChatPage() {
   };
 
   const stopVoiceRecording = ({ sendAfter = false } = {}) => {
-    if (!mediaRecorderRef.current || mediaRecorderRef.current.state === "inactive") return;
+    if (
+      !mediaRecorderRef.current ||
+      mediaRecorderRef.current.state === "inactive"
+    )
+      return;
     discardRecordingRef.current = false;
     sendAfterRecordingRef.current = Boolean(sendAfter);
     mediaRecorderRef.current.stop();
@@ -459,10 +508,15 @@ export default function PatientChatPage() {
   const cancelRecording = () => {
     discardRecordingRef.current = true;
     sendAfterRecordingRef.current = false;
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state !== "inactive"
+    ) {
       mediaRecorderRef.current.stop();
     } else if (mediaRecorderRef.current?.stream) {
-      mediaRecorderRef.current.stream.getTracks().forEach((track) => track.stop());
+      mediaRecorderRef.current.stream
+        .getTracks()
+        .forEach((track) => track.stop());
     }
     setIsRecording(false);
     setIsRecordingPaused(false);
@@ -503,16 +557,21 @@ export default function PatientChatPage() {
 
   const renderMessageStatus = (message) => {
     if (message.senderRole !== currentRole) return null;
-    return <MessageStatusTicks status={message.status || "sent"} className="ml-1" />;
+    return (
+      <MessageStatusTicks status={message.status || "sent"} className="ml-1" />
+    );
   };
 
   const isImageFile = (file) => {
     const mimeType = String(file?.type || "").toLowerCase();
     const name = String(file?.name || "").toLowerCase();
-    return mimeType.startsWith("image/") || /\.(png|jpe?g|gif|webp)$/i.test(name);
+    return (
+      mimeType.startsWith("image/") || /\.(png|jpe?g|gif|webp)$/i.test(name)
+    );
   };
 
-  const getAttachmentKey = (file) => `${file.name}-${file.size}-${file.lastModified}`;
+  const getAttachmentKey = (file) =>
+    `${file.name}-${file.size}-${file.lastModified}`;
 
   const imagePreviewUrls = useMemo(() => {
     const map = new Map();
@@ -538,40 +597,53 @@ export default function PatientChatPage() {
   const isAudioAttachment = (attachment) => {
     const mimeType = String(attachment?.mimeType || "").toLowerCase();
     const name = String(attachment?.name || "").toLowerCase();
-    return mimeType.startsWith("audio/") || /\.(webm|ogg|mp3|wav|m4a|aac)$/i.test(name);
+    return (
+      mimeType.startsWith("audio/") ||
+      /\.(webm|ogg|mp3|wav|m4a|aac)$/i.test(name)
+    );
   };
 
   const isImageAttachment = (attachment) => {
     const mimeType = String(attachment?.mimeType || "").toLowerCase();
     const name = String(attachment?.name || "").toLowerCase();
     const url = String(attachment?.url || "").toLowerCase();
-    return mimeType.startsWith("image/") || /\.(png|jpe?g|gif|webp|bmp)$/i.test(name) || /\.(png|jpe?g|gif|webp|bmp)(\?|$)/i.test(url);
+    return (
+      mimeType.startsWith("image/") ||
+      /\.(png|jpe?g|gif|webp|bmp)$/i.test(name) ||
+      /\.(png|jpe?g|gif|webp|bmp)(\?|$)/i.test(url)
+    );
   };
 
   const chatCanvasStyle = {
-    backgroundColor: "color-mix(in srgb, var(--color-bg-soft) 78%, var(--color-card) 22%)",
-    backgroundImage: "radial-gradient(circle at 12px 12px, color-mix(in srgb, var(--color-primary) 18%, transparent) 1.5px, transparent 0)",
+    backgroundColor:
+      "color-mix(in srgb, var(--color-bg-soft) 78%, var(--color-card) 22%)",
+    backgroundImage:
+      "radial-gradient(circle at 12px 12px, color-mix(in srgb, var(--color-primary) 18%, transparent) 1.5px, transparent 0)",
     backgroundSize: "28px 28px",
   };
 
   const sentBubbleStyle = {
-    background: "color-mix(in srgb, var(--color-primary) 24%, var(--color-card) 76%)",
+    background:
+      "color-mix(in srgb, var(--color-primary) 24%, var(--color-card) 76%)",
     borderColor: "color-mix(in srgb, var(--color-primary) 42%, transparent)",
   };
 
   const receivedBubbleStyle = {
-    background: "color-mix(in srgb, var(--color-card-elevated) 88%, var(--color-bg) 12%)",
+    background:
+      "color-mix(in srgb, var(--color-card-elevated) 88%, var(--color-bg) 12%)",
     borderColor: "color-mix(in srgb, var(--color-border) 82%, transparent)",
   };
 
   const sentVoiceTheme = {
-    surface: "color-mix(in srgb, var(--color-primary) 18%, var(--color-card) 82%)",
+    surface:
+      "color-mix(in srgb, var(--color-primary) 18%, var(--color-card) 82%)",
     border: "color-mix(in srgb, var(--color-primary) 34%, transparent)",
     accent: "var(--color-primary)",
   };
 
   const receivedVoiceTheme = {
-    surface: "color-mix(in srgb, var(--color-card-elevated) 90%, var(--color-bg) 10%)",
+    surface:
+      "color-mix(in srgb, var(--color-card-elevated) 90%, var(--color-bg) 10%)",
     border: "color-mix(in srgb, var(--color-border) 80%, transparent)",
     accent: "var(--color-primary)",
   };
@@ -592,9 +664,15 @@ export default function PatientChatPage() {
       <div className="border-b border-[var(--color-border)]/80 px-4 py-3 sm:px-5 sm:py-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-[var(--color-text-secondary)]">Patient Chat</p>
-            <h1 className="mt-1 text-xl font-bold sm:text-2xl">{doctor ? `Dr. ${doctor.fullName}` : "Doctor"}</h1>
-            <p className="text-xs text-[var(--color-text-secondary)]">{patientName}</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-[var(--color-text-secondary)]">
+              Patient Chat
+            </p>
+            <h1 className="mt-1 text-xl font-bold sm:text-2xl">
+              {doctor ? `Dr. ${doctor.fullName}` : "Doctor"}
+            </h1>
+            <p className="text-xs text-[var(--color-text-secondary)]">
+              {patientName}
+            </p>
           </div>
           <button
             type="button"
@@ -608,23 +686,29 @@ export default function PatientChatPage() {
       </div>
 
       <div className="relative min-h-0 flex-1">
-          <div
+        <div
           ref={messagesContainerRef}
-            onScroll={() => {
-              updateJumpToLatestVisibility();
-              emitVisibleSeenMessages();
-            }}
+          onScroll={() => {
+            updateJumpToLatestVisibility();
+            emitVisibleSeenMessages();
+          }}
           className="h-full overflow-y-auto px-3 py-4 space-y-3 sm:px-4"
           style={chatCanvasStyle}
         >
           {isLoading ? (
-            <p className="text-sm text-[var(--color-text-secondary)]">Loading chat...</p>
+            <p className="text-sm text-[var(--color-text-secondary)]">
+              Loading chat...
+            </p>
           ) : messages.length === 0 ? (
-            <p className="text-sm text-[var(--color-text-secondary)]">No messages yet.</p>
+            <p className="text-sm text-[var(--color-text-secondary)]">
+              No messages yet.
+            </p>
           ) : (
             messages.map((message, index) => (
               <div
-                key={message._id || `${message.senderRole}-${message.createdAt}`}
+                key={
+                  message._id || `${message.senderRole}-${message.createdAt}`
+                }
                 ref={(node) => {
                   const messageId = String(message._id || "");
                   if (!messageId) return;
@@ -638,35 +722,73 @@ export default function PatientChatPage() {
                 data-sender-role={message.senderRole || ""}
                 className={`flex ${message.senderRole === currentRole ? "justify-end" : "justify-start"}`}
               >
-                <div className="max-w-[88%] rounded-[1.1rem] border px-3 py-2.5 sm:max-w-[80%] sm:px-4" style={message.senderRole === currentRole ? sentBubbleStyle : receivedBubbleStyle}>
-                  <p className="text-[11px] font-semibold text-[var(--color-text-secondary)]">{message.senderName}</p>
-                  {message.text && <p className="mt-1 whitespace-pre-wrap text-sm text-[var(--color-text-primary)]">{message.text}</p>}
+                <div
+                  className="max-w-[88%] rounded-[1.1rem] border px-3 py-2.5 sm:max-w-[80%] sm:px-4"
+                  style={
+                    message.senderRole === currentRole
+                      ? sentBubbleStyle
+                      : receivedBubbleStyle
+                  }
+                >
+                  <p className="text-[11px] font-semibold text-[var(--color-text-secondary)]">
+                    {message.senderName}
+                  </p>
+                  {message.text && (
+                    <p className="mt-1 whitespace-pre-wrap text-sm text-[var(--color-text-primary)]">
+                      {message.text}
+                    </p>
+                  )}
                   {(message.attachments || []).length > 0 && (
                     <div className="mt-2 space-y-2">
-                      {message.attachments.map((attachment) => (
+                      {message.attachments.map((attachment) =>
                         isImageAttachment(attachment) ? (
                           <button
                             type="button"
                             key={attachment.url}
-                            onClick={() => setPreviewImage({ url: attachment.url, name: attachment.name })}
+                            onClick={() =>
+                              setPreviewImage({
+                                url: attachment.url,
+                                name: attachment.name,
+                              })
+                            }
                             className="block overflow-hidden rounded-xl border border-[var(--color-border)]/80"
                           >
-                            <img src={attachment.url} alt={attachment.name} loading="lazy" onLoad={scrollMessagesToBottom} className="max-h-64 w-full object-cover" />
+                            <img
+                              src={attachment.url}
+                              alt={attachment.name}
+                              loading="lazy"
+                              onLoad={scrollMessagesToBottom}
+                              className="max-h-64 w-full object-cover"
+                            />
                           </button>
                         ) : isAudioAttachment(attachment) ? (
                           <VoiceMessagePlayer
                             key={attachment.url}
                             src={attachment.url}
                             title={attachment.name}
-                            badge={message.senderRole === "patient" ? "Sent voice" : "Voice note"}
-                            theme={message.senderRole === "patient" ? sentVoiceTheme : receivedVoiceTheme}
+                            badge={
+                              message.senderRole === "patient"
+                                ? "Sent voice"
+                                : "Voice note"
+                            }
+                            theme={
+                              message.senderRole === "patient"
+                                ? sentVoiceTheme
+                                : receivedVoiceTheme
+                            }
                           />
                         ) : (
-                          <a key={attachment.url} href={attachment.url} target="_blank" rel="noreferrer" className="block rounded-2xl border border-[var(--color-border)]/80 px-3 py-2 text-xs text-[var(--color-primary)] hover:underline">
+                          <a
+                            key={attachment.url}
+                            href={attachment.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block rounded-2xl border border-[var(--color-border)]/80 px-3 py-2 text-xs text-[var(--color-primary)] hover:underline"
+                          >
                             {attachment.name}
                           </a>
-                        )
-                      ))}
+                        ),
+                      )}
                     </div>
                   )}
                   {shouldShowTimestamp(messages, index) ? (
@@ -689,7 +811,13 @@ export default function PatientChatPage() {
             type="button"
             onClick={scrollMessagesToBottom}
             className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold shadow-lg backdrop-blur"
-            style={{ borderColor: "color-mix(in srgb, var(--color-primary) 45%, transparent)", background: "color-mix(in srgb, var(--color-card) 75%, var(--color-primary) 25%)", color: "var(--color-text-primary)" }}
+            style={{
+              borderColor:
+                "color-mix(in srgb, var(--color-primary) 45%, transparent)",
+              background:
+                "color-mix(in srgb, var(--color-card) 75%, var(--color-primary) 25%)",
+              color: "var(--color-text-primary)",
+            }}
           >
             <ArrowDown className="h-3.5 w-3.5" />
             New messages
@@ -699,7 +827,15 @@ export default function PatientChatPage() {
 
       <div className="border-t border-[var(--color-border)]/80 p-3 sm:p-4">
         {isRecording ? (
-          <div className="mb-4 flex flex-col gap-3 rounded-2xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:rounded-full" style={{ background: "color-mix(in srgb, var(--color-danger) 14%, transparent)", borderColor: "color-mix(in srgb, var(--color-danger) 34%, transparent)" }}>
+          <div
+            className="mb-4 flex flex-col gap-3 rounded-2xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:rounded-full"
+            style={{
+              background:
+                "color-mix(in srgb, var(--color-danger) 14%, transparent)",
+              borderColor:
+                "color-mix(in srgb, var(--color-danger) 34%, transparent)",
+            }}
+          >
             <div className="flex items-center gap-3">
               <div className="h-3 w-3 rounded-full bg-red-500 animate-pulse"></div>
               <div className="flex items-end gap-1">
@@ -707,12 +843,16 @@ export default function PatientChatPage() {
                   <span
                     key={`${barHeight}-${index}`}
                     className="w-1 rounded-full bg-red-500 animate-pulse"
-                    style={{ height: barHeight, animationDelay: `${index * 0.12}s` }}
+                    style={{
+                      height: barHeight,
+                      animationDelay: `${index * 0.12}s`,
+                    }}
                   />
                 ))}
               </div>
               <span className="text-sm font-semibold text-red-600">
-                {isRecordingPaused ? "Paused" : "Recording..."} {formatTime(recordingTime)}
+                {isRecordingPaused ? "Paused" : "Recording..."}{" "}
+                {formatTime(recordingTime)}
               </span>
             </div>
             <div className="flex gap-2 self-end sm:self-auto">
@@ -720,7 +860,11 @@ export default function PatientChatPage() {
                 type="button"
                 onClick={cancelRecording}
                 className="rounded-full p-2.5 transition"
-                style={{ background: "color-mix(in srgb, var(--color-danger) 26%, transparent)", color: "var(--color-danger)" }}
+                style={{
+                  background:
+                    "color-mix(in srgb, var(--color-danger) 26%, transparent)",
+                  color: "var(--color-danger)",
+                }}
                 aria-label="Discard recording"
               >
                 <X className="h-4 w-4" />
@@ -731,9 +875,15 @@ export default function PatientChatPage() {
                 className="rounded-full bg-amber-500 px-4 py-2 text-xs font-semibold text-white hover:bg-amber-600"
               >
                 {isRecordingPaused ? (
-                  <span className="inline-flex items-center gap-1"><Play className="h-3.5 w-3.5" />Resume</span>
+                  <span className="inline-flex items-center gap-1">
+                    <Play className="h-3.5 w-3.5" />
+                    Resume
+                  </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1"><Pause className="h-3.5 w-3.5" />Pause</span>
+                  <span className="inline-flex items-center gap-1">
+                    <Pause className="h-3.5 w-3.5" />
+                    Pause
+                  </span>
                 )}
               </button>
               <button
@@ -755,7 +905,7 @@ export default function PatientChatPage() {
               badge="Draft"
               duration={voiceDraft.duration || 0}
               theme={receivedVoiceTheme}
-              action={(
+              action={
                 <button
                   type="button"
                   onClick={() => discardVoiceDraft(true)}
@@ -764,22 +914,31 @@ export default function PatientChatPage() {
                 >
                   <X className="h-4 w-4" />
                 </button>
-              )}
+              }
             />
           </div>
         ) : null}
 
         {files.length > 0 && (
           <div className="mb-3 space-y-2">
-            {files.map((file, idx) => (
+            {files.map((file, idx) =>
               isImageFile(file) ? (
-                <div key={idx} className="relative overflow-hidden rounded-2xl border border-[var(--color-border)]/80 p-2" style={{ background: "color-mix(in srgb, var(--color-card-elevated) 82%, var(--color-bg) 18%)" }}>
+                <div
+                  key={idx}
+                  className="relative overflow-hidden rounded-2xl border border-[var(--color-border)]/80 p-2"
+                  style={{
+                    background:
+                      "color-mix(in srgb, var(--color-card-elevated) 82%, var(--color-bg) 18%)",
+                  }}
+                >
                   <img
                     src={imagePreviewUrls.get(getAttachmentKey(file))}
                     alt={file.name}
                     className="h-28 w-28 rounded-xl object-cover"
                   />
-                  <p className="mt-1 w-28 truncate text-[11px] font-medium text-[var(--color-text-secondary)]">{file.name}</p>
+                  <p className="mt-1 w-28 truncate text-[11px] font-medium text-[var(--color-text-secondary)]">
+                    {file.name}
+                  </p>
                   <button
                     type="button"
                     onClick={() => removeAttachment(idx)}
@@ -790,8 +949,19 @@ export default function PatientChatPage() {
                   </button>
                 </div>
               ) : (
-                <div key={idx} className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs" style={{ borderColor: "color-mix(in srgb, var(--color-primary) 38%, transparent)", background: "color-mix(in srgb, var(--color-primary) 18%, transparent)" }}>
-                  <span className="max-w-[220px] truncate font-medium text-[var(--color-primary)]">{file.name}</span>
+                <div
+                  key={idx}
+                  className="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs"
+                  style={{
+                    borderColor:
+                      "color-mix(in srgb, var(--color-primary) 38%, transparent)",
+                    background:
+                      "color-mix(in srgb, var(--color-primary) 18%, transparent)",
+                  }}
+                >
+                  <span className="max-w-[220px] truncate font-medium text-[var(--color-primary)]">
+                    {file.name}
+                  </span>
                   <button
                     type="button"
                     onClick={() => removeAttachment(idx)}
@@ -800,8 +970,8 @@ export default function PatientChatPage() {
                     ✕
                   </button>
                 </div>
-              )
-            ))}
+              ),
+            )}
           </div>
         )}
 
@@ -818,7 +988,9 @@ export default function PatientChatPage() {
             type="file"
             multiple
             accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.webm,.ogg,.mp3,.wav,.m4a,.aac"
-            onChange={(e) => setFiles((prev) => [...prev, ...Array.from(e.target.files || [])])}
+            onChange={(e) =>
+              setFiles((prev) => [...prev, ...Array.from(e.target.files || [])])
+            }
             className="hidden"
           />
 
@@ -831,7 +1003,10 @@ export default function PatientChatPage() {
             className="max-h-32 min-h-[44px] flex-1 resize-none rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)]/70 px-4 py-2.5 text-sm outline-none focus:border-[var(--color-primary)] sm:py-3"
           />
 
-          {isRecording || messageText.trim() || files.length > 0 || voiceDraft?.file ? (
+          {isRecording ||
+          messageText.trim() ||
+          files.length > 0 ||
+          voiceDraft?.file ? (
             <button
               onClick={() => {
                 if (isRecording) {
@@ -871,7 +1046,11 @@ export default function PatientChatPage() {
           >
             <X className="h-6 w-6" />
           </button>
-          <img src={previewImage.url} alt={previewImage.name} className="max-h-[90vh] max-w-[92vw] rounded-xl object-contain" />
+          <img
+            src={previewImage.url}
+            alt={previewImage.name}
+            className="max-h-[90vh] max-w-[92vw] rounded-xl object-contain"
+          />
         </div>
       ) : null}
     </div>
