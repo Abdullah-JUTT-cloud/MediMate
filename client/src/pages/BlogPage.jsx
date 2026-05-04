@@ -287,16 +287,13 @@ export default function BlogPage() {
   const [selectedBlog, setSelectedBlog] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState("ALL");
 
-  const CATEGORIES = [
-    "ALL",
-    "MANAGEMENT",
-    "SCHEDULING",
-    "CLINICAL",
-    "TECHNOLOGY",
-    "FINANCE",
-    "SECURITY",
-    "AUTOMATION",
-  ];
+  const CATEGORIES = useMemo(() => {
+    const categories = Array.from(
+      new Set(blogs.map((blog) => blog.category.toUpperCase()))
+    );
+
+    return ["ALL", ...categories];
+  }, []);
 
   const filteredBlogs = useMemo(() => {
     if (selectedCategory === "ALL") return blogs;
