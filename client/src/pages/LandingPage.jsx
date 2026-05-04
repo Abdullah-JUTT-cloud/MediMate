@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import doc from "../assets/doc-hero.webp";
+import logoCompact from "../assets/logo-compact.webp";
 
 const features = [
   {
@@ -97,12 +98,7 @@ const features = [
   },
 ];
 
-const stats = [
-  { value: "10x", label: "Faster prescriptions" },
-  { value: "Zero", label: "Lost prescriptions" },
-  { value: "100%", label: "WhatsApp delivery" },
-  { value: "24/7", label: "Patient records access" },
-];
+const audioGuideBarHeights = [35, 70, 50, 85];
 
 const trustSignals = [
   "Independent doctors",
@@ -500,21 +496,27 @@ export default function LandingPage() {
               <div className="absolute -inset-4 rounded-[3rem] bg-gradient-to-tr from-[var(--color-primary)]/10 via-transparent to-[var(--color-secondary)]/10 blur-2xl" />
               <div
                 onClick={() => setIsPaused(!isPaused)}
-                className="relative rounded-3xl border border-[var(--color-border)] bg-white shadow-2xl overflow-hidden aspect-[16/10] flex flex-col cursor-pointer transition-transform hover:scale-[1.005] active:scale-[0.995]"
+                className="relative rounded-3xl border border-[var(--color-border)] bg-[var(--color-card)] shadow-2xl overflow-hidden aspect-[16/10] flex flex-col cursor-pointer transition-transform hover:scale-[1.005] active:scale-[0.995]"
               >
-                <div className="h-12 w-full bg-[#0D2B3E] flex items-center justify-between px-6">
+                <div className="h-12 w-full bg-[var(--color-card-elevated)] border-b border-[var(--color-border)]/60 flex items-center justify-between px-6">
                   <div className="flex gap-2">
                     <div className="h-3 w-3 rounded-full bg-red-400/80" />
                     <div className="h-3 w-3 rounded-full bg-yellow-400/80" />
                     <div className="h-3 w-3 rounded-full bg-green-400/80" />
                   </div>
-                  <div className="h-6 w-48 rounded bg-white/10 ">
+                  <a
+                    href="https://medalerto.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={(event) => event.stopPropagation()}
+                    className="inline-flex h-7 min-w-52 items-center justify-center rounded-md border border-[var(--color-border)] bg-[var(--color-bg-soft)] px-3 text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] transition-colors"
+                  >
                     https://medalerto.com
-                  </div>
+                  </a>
 
-                  <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
+                  <div className="h-8 w-8 rounded-full bg-[var(--color-bg-soft)] border border-[var(--color-border)] flex items-center justify-center overflow-hidden">
                     <img
-                      src="/src/assets/logo-compact.webp"
+                      src={logoCompact}
                       alt="MedAlerto"
                       className="h-6 w-6 object-contain"
                     />
@@ -522,7 +524,7 @@ export default function LandingPage() {
                 </div>
                 <div className="flex-1 flex overflow-hidden bg-[var(--color-bg-soft)]">
                   {/* Internal Sidebar */}
-                  <div className="w-16 bg-[#0D2B3E] border-r border-white/5 p-4 flex flex-col gap-8">
+                  <div className="w-16 bg-[var(--color-card-elevated)] border-r border-[var(--color-border)]/60 p-4 flex flex-col gap-8">
                     {[
                       {
                         icon: (
@@ -551,7 +553,7 @@ export default function LandingPage() {
                     ].map((item, i) => (
                       <svg
                         key={i}
-                        className={`h-6 w-6 transition-all duration-500 ${activeView === item.id ? "text-[var(--color-primary)] scale-110" : "text-white/40"}`}
+                        className={`h-6 w-6 transition-all duration-500 ${activeView === item.id ? "text-[var(--color-primary)] scale-110" : "text-[var(--color-text-secondary)]/70"}`}
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -570,7 +572,7 @@ export default function LandingPage() {
                       {/* Header */}
                       <div className="flex items-center justify-between mb-10">
                         <div className="flex items-center gap-6">
-                          <h3 className="text-2xl font-heading font-bold text-[#0D2B3E] dark:text-white">
+                          <h3 className="text-2xl font-heading font-bold text-[var(--color-text-primary)]">
                             Daily Overview
                           </h3>
                           <div className="flex items-center gap-3 px-3 py-1.5 rounded-full bg-green-100 text-green-700 text-xs font-bold uppercase tracking-wider">
@@ -593,13 +595,13 @@ export default function LandingPage() {
                         ].map((stat) => (
                           <div
                             key={stat.label}
-                            className="bg-white rounded-[2rem] p-6 border border-[var(--color-border)]/40 shadow-sm"
+                            className="bg-[var(--color-card)] rounded-[2rem] p-6 border border-[var(--color-border)]/40 shadow-sm"
                           >
                             <p className="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-widest mb-2">
                               {stat.label}
                             </p>
                             <div className="flex items-baseline gap-3">
-                              <span className="text-3xl font-black text-[#0D2B3E]">
+                              <span className="text-3xl font-black text-[var(--color-text-primary)]">
                                 {stat.value}
                               </span>
                               <span className="text-xs text-green-600 font-bold">
@@ -611,9 +613,9 @@ export default function LandingPage() {
                       </div>
 
                       {/* Table */}
-                      <div className="flex-1 bg-white rounded-[2rem] border border-[var(--color-border)]/40 shadow-sm p-6 overflow-hidden">
+                      <div className="flex-1 bg-[var(--color-card)] rounded-[2rem] border border-[var(--color-border)]/40 shadow-sm p-6 overflow-hidden">
                         <div className="flex items-center justify-between mb-6 border-b border-[var(--color-border)]/30 pb-4">
-                          <span className="text-xs font-black text-[#0D2B3E] uppercase tracking-widest">
+                          <span className="text-xs font-black text-[var(--color-text-primary)] uppercase tracking-widest">
                             Recent Patients
                           </span>
                           <span className="text-xs font-bold text-[var(--color-primary)]">
@@ -646,7 +648,7 @@ export default function LandingPage() {
                           ].map((patient) => (
                             <div
                               key={patient.name}
-                              className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0"
+                              className="flex items-center justify-between py-3 border-b border-[var(--color-border)]/30 last:border-0"
                             >
                               <div className="flex items-center gap-5">
                                 <img
@@ -655,7 +657,7 @@ export default function LandingPage() {
                                   className="h-12 w-12 rounded-full object-cover border border-slate-200"
                                 />
                                 <div>
-                                  <p className="text-sm font-bold text-[#0D2B3E]">
+                                  <p className="text-sm font-bold text-[var(--color-text-primary)]">
                                     {patient.name}
                                   </p>
                                   <p className="text-xs text-[var(--color-text-secondary)]">
@@ -677,12 +679,12 @@ export default function LandingPage() {
                     <div
                       className={`transition-all duration-700 absolute inset-0 p-8 flex flex-col ${activeView === 1 ? "opacity-100 translate-x-0" : "opacity-0 translate-x-8 pointer-events-none"}`}
                     >
-                      <h3 className="text-2xl font-heading font-bold text-[#0D2B3E]  dark:text-white mb-10">
+                      <h3 className="text-2xl font-heading font-bold text-[var(--color-text-primary)] mb-10">
                         Patient Directory
                       </h3>
-                      <div className="flex-1 bg-white rounded-[2rem] border border-[var(--color-border)]/40 shadow-sm p-6">
+                      <div className="flex-1 bg-[var(--color-card)] rounded-[2rem] border border-[var(--color-border)]/40 shadow-sm p-6">
                         <div className="flex items-center justify-between mb-8">
-                          <div className="h-12 w-64 bg-slate-50 rounded-xl border border-slate-100 px-4 flex items-center text-sm text-slate-400">
+                          <div className="h-12 w-64 bg-[var(--color-bg-soft)] rounded-xl border border-[var(--color-border)] px-4 flex items-center text-sm text-[var(--color-text-secondary)]">
                             Search patients...
                           </div>
                           <div className="h-12 w-32 bg-[var(--color-primary)] rounded-xl flex items-center justify-center text-xs text-white font-bold tracking-wide">
@@ -712,7 +714,7 @@ export default function LandingPage() {
                           ].map((p, i) => (
                             <div
                               key={i}
-                              className="flex items-center gap-6 py-4 border-b border-slate-50"
+                              className="flex items-center gap-6 py-4 border-b border-[var(--color-border)]/30"
                             >
                               <img
                                 src={p.img}
@@ -721,18 +723,18 @@ export default function LandingPage() {
                               />
                               <div className="flex-1">
                                 <div className="flex items-center gap-3 mb-1">
-                                  <p className="text-base font-bold text-[#0D2B3E]">
+                                  <p className="text-base font-bold text-[var(--color-text-primary)]">
                                     {p.name}
                                   </p>
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase">
+                                  <span className="text-[10px] font-bold text-[var(--color-text-secondary)] uppercase">
                                     {p.id}
                                   </span>
                                 </div>
-                                <div className="text-xs text-slate-500">
+                                <div className="text-xs text-[var(--color-text-secondary)]">
                                   {p.phone}
                                 </div>
                               </div>
-                              <div className="h-10 w-24 bg-slate-50 rounded-full flex items-center justify-center text-[10px] font-bold text-slate-400 uppercase tracking-widest border border-slate-100">
+                              <div className="h-10 w-24 bg-[var(--color-bg-soft)] rounded-full flex items-center justify-center text-[10px] font-bold text-[var(--color-text-secondary)] uppercase tracking-widest border border-[var(--color-border)]">
                                 View File
                               </div>
                             </div>
@@ -744,17 +746,17 @@ export default function LandingPage() {
                     <div
                       className={`transition-all duration-700 absolute inset-0 p-8 flex flex-col ${activeView === 2 ? "opacity-100 translate-x-0" : "opacity-0 translate-x-8 pointer-events-none"}`}
                     >
-                      <h3 className="text-2xl font-heading font-bold text-[#0D2B3E] dark:text-white  dark:text-white mb-10">
+                      <h3 className="text-2xl font-heading font-bold text-[var(--color-text-primary)] mb-10">
                         Clinical Calendar
                       </h3>
-                      <div className="flex-1 bg-white rounded-[2rem] border border-[var(--color-border)]/40 shadow-sm p-6 overflow-hidden">
+                      <div className="flex-1 bg-[var(--color-card)] rounded-[2rem] border border-[var(--color-border)]/40 shadow-sm p-6 overflow-hidden">
                         <div className="grid grid-cols-7 gap-2 h-full">
                           {Array.from({ length: 21 }).map((_, i) => (
                             <div
                               key={i}
-                              className="border border-slate-50 relative p-2 min-h-[80px]"
+                              className="border border-[var(--color-border)]/40 relative p-2 min-h-[80px]"
                             >
-                              <span className="text-xs font-bold text-slate-400">
+                              <span className="text-xs font-bold text-[var(--color-text-secondary)]">
                                 {i + 1}
                               </span>
                               {i % 7 === 2 && (
@@ -781,10 +783,10 @@ export default function LandingPage() {
                     <div
                       className={`transition-all duration-700 absolute inset-0 p-8 flex flex-col ${activeView === 3 ? "opacity-100 translate-x-0" : "opacity-0 translate-x-8 pointer-events-none"}`}
                     >
-                      <h3 className="text-2xl font-heading font-bold text-[#0D2B3E]  dark:text-white mb-10">
+                      <h3 className="text-2xl font-heading font-bold text-[var(--color-text-primary)] mb-10">
                         Smart Prescriptions
                       </h3>
-                      <div className="flex-1 bg-white rounded-[2rem] border border-[var(--color-border)]/40 shadow-sm p-8">
+                      <div className="flex-1 bg-[var(--color-card)] rounded-[2rem] border border-[var(--color-border)]/40 shadow-sm p-8">
                         <div className="space-y-6">
                           {[
                             {
@@ -808,14 +810,14 @@ export default function LandingPage() {
                           ].map((rx, i) => (
                             <div
                               key={i}
-                              className="p-6 border border-slate-100 rounded-3xl bg-slate-50/50 flex justify-between items-center"
+                              className="p-6 border border-[var(--color-border)] rounded-3xl bg-[var(--color-bg-soft)] flex justify-between items-center"
                             >
                               <div>
                                 <div className="flex items-center gap-3 mb-2">
-                                  <span className="text-base font-bold text-[#0D2B3E]">
+                                  <span className="text-base font-bold text-[var(--color-text-primary)]">
                                     {rx.drug}
                                   </span>
-                                  <span className="text-xs font-medium text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-100">
+                                  <span className="text-xs font-medium text-[var(--color-text-secondary)] bg-[var(--color-card)] px-2 py-0.5 rounded border border-[var(--color-border)]">
                                     {rx.dose}
                                   </span>
                                 </div>
@@ -823,7 +825,7 @@ export default function LandingPage() {
                                   Patient: {rx.patient}
                                 </div>
                               </div>
-                              <div className="text-xs font-bold text-slate-400 uppercase tracking-tighter">
+                              <div className="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-tighter">
                                 {rx.date}
                               </div>
                             </div>
@@ -886,7 +888,7 @@ export default function LandingPage() {
                             className={`w-0.5 bg-[var(--color-primary)] rounded-full animate-bounce`}
                             style={{
                               animationDelay: `${i * 0.1}s`,
-                              height: `${Math.random() * 100}%`,
+                              height: `${audioGuideBarHeights[i - 1]}%`,
                             }}
                           />
                         ))}
