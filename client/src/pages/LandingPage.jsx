@@ -313,8 +313,12 @@ export default function LandingPage() {
         </section>
 
         {/* Trusted By Marquee */}
-        <section className="border-y border-[var(--color-border)]/40 bg-white/30 backdrop-blur-sm py-10 overflow-hidden">
-          <p className="text-center text-xs font-semibold uppercase tracking-widest text-[var(--color-text)]/50 mb-8 px-4">
+        <section
+          className="border-y border-[var(--color-border)]/40 bg-white/30 backdrop-blur-sm py-10 overflow-hidden"
+          role="region"
+          aria-label="Trusted by clinics and healthcare professionals"
+        >
+          <p className="text-center text-xs font-semibold uppercase tracking-widest text-[var(--color-text-muted)] mb-8 px-4">
             Trusted by clinics and healthcare professionals
           </p>
           <div className="relative">
@@ -322,45 +326,65 @@ export default function LandingPage() {
             <div className="pointer-events-none absolute left-0 top-0 h-full w-24 z-10 bg-gradient-to-r from-white/80 to-transparent" />
             {/* Right fade */}
             <div className="pointer-events-none absolute right-0 top-0 h-full w-24 z-10 bg-gradient-to-l from-white/80 to-transparent" />
-            <div className="marquee-track" aria-label="Trusted integrations and partners">
-              {[
-                { initials: "HC", name: "HealthCore" },
-                { initials: "CP", name: "CarePoint" },
-                { initials: "ML", name: "MedLink" },
-                { initials: "VT", name: "Vitalis" },
-                { initials: "SR", name: "Serenity Rx" },
-                { initials: "NX", name: "NexClinic" },
-                { initials: "PM", name: "PulseMedia" },
-                { initials: "OC", name: "OpenChart" },
-                { initials: "HC", name: "HealthCore" },
-                { initials: "CP", name: "CarePoint" },
-                { initials: "ML", name: "MedLink" },
-                { initials: "VT", name: "Vitalis" },
-                { initials: "SR", name: "Serenity Rx" },
-                { initials: "NX", name: "NexClinic" },
-                { initials: "PM", name: "PulseMedia" },
-                { initials: "OC", name: "OpenChart" },
-              ].map((item, i) => (
-                <span key={i} className="marquee-item grayscale opacity-50">
-                  <span className="marquee-avatar">{item.initials}</span>
-                  <span className="marquee-label">{item.name}</span>
-                </span>
-              ))}
+            <div className="marquee-viewport">
+              {/* Primary track – announced by assistive tech */}
+              <ul className="marquee-track" role="list">
+                {[
+                  { initials: "HC", name: "HealthCore" },
+                  { initials: "CP", name: "CarePoint" },
+                  { initials: "ML", name: "MedLink" },
+                  { initials: "VT", name: "Vitalis" },
+                  { initials: "SR", name: "Serenity Rx" },
+                  { initials: "NX", name: "NexClinic" },
+                  { initials: "PM", name: "PulseMedia" },
+                  { initials: "OC", name: "OpenChart" },
+                ].map((item) => (
+                  <li key={item.name} className="marquee-item">
+                    <span className="marquee-avatar">{item.initials}</span>
+                    <span className="marquee-label">{item.name}</span>
+                  </li>
+                ))}
+              </ul>
+              {/* Duplicate track for seamless loop – hidden from assistive tech */}
+              <ul className="marquee-track" role="list" aria-hidden="true">
+                {[
+                  { initials: "HC", name: "HealthCore" },
+                  { initials: "CP", name: "CarePoint" },
+                  { initials: "ML", name: "MedLink" },
+                  { initials: "VT", name: "Vitalis" },
+                  { initials: "SR", name: "Serenity Rx" },
+                  { initials: "NX", name: "NexClinic" },
+                  { initials: "PM", name: "PulseMedia" },
+                  { initials: "OC", name: "OpenChart" },
+                ].map((item) => (
+                  <li key={item.name} className="marquee-item">
+                    <span className="marquee-avatar">{item.initials}</span>
+                    <span className="marquee-label">{item.name}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
           <style>{`
             @keyframes marquee-scroll {
               0%   { transform: translateX(0); }
-              100% { transform: translateX(-50%); }
+              100% { transform: translateX(-100%); }
+            }
+            .marquee-viewport {
+              display: flex;
+              overflow: hidden;
+            }
+            .marquee-viewport:hover .marquee-track {
+              animation-play-state: paused;
             }
             .marquee-track {
               display: flex;
-              width: max-content;
+              flex-shrink: 0;
+              list-style: none;
+              margin: 0;
+              padding: 0;
               animation: marquee-scroll 40s linear infinite;
               will-change: transform;
-            }
-            .marquee-track:hover {
-              animation-play-state: paused;
             }
             .marquee-item {
               display: inline-flex;
@@ -368,6 +392,7 @@ export default function LandingPage() {
               gap: 10px;
               padding: 0 40px;
               white-space: nowrap;
+              opacity: 0.55;
             }
             .marquee-avatar {
               display: inline-flex;
@@ -389,7 +414,18 @@ export default function LandingPage() {
               font-weight: 650;
               letter-spacing: 0.08em;
               text-transform: uppercase;
-              color: var(--color-text);
+              color: var(--color-text-primary);
+              filter: grayscale(1);
+            }
+            @media (prefers-reduced-motion: reduce) {
+              .marquee-track {
+                animation: none;
+              }
+              .marquee-viewport {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 8px;
+              }
             }
           `}</style>
         </section>
