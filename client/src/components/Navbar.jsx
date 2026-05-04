@@ -69,6 +69,9 @@ export default function Navbar() {
           <Link to="/faq" className={linkClass("/faq")}>
             FAQ
           </Link>
+          <Link to="/blog" className={linkClass("/blog")}>
+            Blog
+          </Link>
           <button
             onClick={() => navigate("/login")}
             className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--color-secondary)] bg-[var(--color-card)]/65 px-5 font-body text-sm font-bold text-[var(--color-secondary)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--color-secondary)] hover:bg-[var(--color-bg-soft)] hover:shadow-[0_10px_28px_-14px_rgba(193,140,93,0.28)] active:translate-y-0"
@@ -139,6 +142,13 @@ export default function Navbar() {
               onClick={() => setMenuOpen(false)}
             >
               FAQ
+            </Link>
+            <Link
+              to="/blog"
+              className="font-mono text-[11px] uppercase tracking-[0.24em] text-[var(--color-text-secondary)] transition duration-300 hover:text-[var(--color-primary)]"
+              onClick={() => setMenuOpen(false)}
+            >
+              Blog
             </Link>
             <button
               onClick={() => {
