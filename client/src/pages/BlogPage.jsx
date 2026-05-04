@@ -376,16 +376,15 @@ export default function BlogPage() {
                   </p>
 
                   <div className="mt-6">
-                    <a
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault();
+                    <button
+                      type="button"
+                      onClick={() => {
                         setSelectedBlog(featured);
                       }}
                       className="text-[var(--color-primary)] font-bold"
                     >
                       Read Featured Post →
-                    </a>
+                    </button>
                   </div>
                 </motion.article>
               </div>
