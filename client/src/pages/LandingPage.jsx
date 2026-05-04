@@ -341,7 +341,7 @@ export default function LandingPage() {
                 { initials: "PM", name: "PulseMedia" },
                 { initials: "OC", name: "OpenChart" },
               ].map((item, i) => (
-                <span key={item.name + i} className="marquee-item grayscale opacity-50">
+                <span key={i} className="marquee-item grayscale opacity-50">
                   <span className="marquee-avatar">{item.initials}</span>
                   <span className="marquee-label">{item.name}</span>
                 </span>
@@ -378,7 +378,7 @@ export default function LandingPage() {
               border-radius: 50%;
               background: var(--color-primary);
               color: #fff;
-              font-size: 11px;
+              font-size: 0.688rem;
               font-weight: 700;
               letter-spacing: 0.03em;
               flex-shrink: 0;
