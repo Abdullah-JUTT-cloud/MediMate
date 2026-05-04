@@ -313,28 +313,119 @@ export default function LandingPage() {
         </section>
 
         {/* Trusted By Marquee */}
-        <section className="border-y border-[var(--color-border)]/40 bg-white/30 backdrop-blur-sm py-12 overflow-hidden">
-          <div className="flex whitespace-nowrap animate-marquee">
-            <div className="flex items-center gap-16 px-8 grayscale opacity-40">
-              {["HEALTHCARE", "CLINIC OS", "MEDLINK", "CAREPATH", "VITALIS", "SERENE", "HEALTHCARE", "CLINIC OS", "MEDLINK", "CAREPATH", "VITALIS", "SERENE"].map((brand, i) => (
-                <span key={brand + i} className="font-heading text-xl font-black tracking-tighter">{brand}</span>
-              ))}
-            </div>
-            <div className="flex items-center gap-16 px-8 grayscale opacity-40" aria-hidden="true">
-              {["HEALTHCARE", "CLINIC OS", "MEDLINK", "CAREPATH", "VITALIS", "SERENE", "HEALTHCARE", "CLINIC OS", "MEDLINK", "CAREPATH", "VITALIS", "SERENE"].map((brand, i) => (
-                <span key={brand + i} className="font-heading text-xl font-black tracking-tighter">{brand}</span>
-              ))}
+        <section
+          className="border-y border-[var(--color-border)]/40 bg-white/30 backdrop-blur-sm py-10 overflow-hidden"
+          role="region"
+          aria-label="Trusted by clinics and healthcare professionals"
+        >
+          <p className="text-center text-xs font-semibold uppercase tracking-widest text-[var(--color-text-muted)] mb-8 px-4">
+            Trusted by clinics and healthcare professionals
+          </p>
+          <div className="relative">
+            {/* Left fade */}
+            <div className="pointer-events-none absolute left-0 top-0 h-full w-24 z-10 bg-gradient-to-r from-white/80 to-transparent" />
+            {/* Right fade */}
+            <div className="pointer-events-none absolute right-0 top-0 h-full w-24 z-10 bg-gradient-to-l from-white/80 to-transparent" />
+            <div className="marquee-viewport">
+              {/* Primary track – announced by assistive tech */}
+              <ul className="marquee-track" role="list">
+                {[
+                  { initials: "HC", name: "HealthCore" },
+                  { initials: "CP", name: "CarePoint" },
+                  { initials: "ML", name: "MedLink" },
+                  { initials: "VT", name: "Vitalis" },
+                  { initials: "SR", name: "Serenity Rx" },
+                  { initials: "NX", name: "NexClinic" },
+                  { initials: "PM", name: "PulseMedia" },
+                  { initials: "OC", name: "OpenChart" },
+                ].map((item) => (
+                  <li key={item.name} className="marquee-item">
+                    <span className="marquee-avatar">{item.initials}</span>
+                    <span className="marquee-label">{item.name}</span>
+                  </li>
+                ))}
+              </ul>
+              {/* Duplicate track for seamless loop – hidden from assistive tech */}
+              <ul className="marquee-track" role="list" aria-hidden="true">
+                {[
+                  { initials: "HC", name: "HealthCore" },
+                  { initials: "CP", name: "CarePoint" },
+                  { initials: "ML", name: "MedLink" },
+                  { initials: "VT", name: "Vitalis" },
+                  { initials: "SR", name: "Serenity Rx" },
+                  { initials: "NX", name: "NexClinic" },
+                  { initials: "PM", name: "PulseMedia" },
+                  { initials: "OC", name: "OpenChart" },
+                ].map((item) => (
+                  <li key={item.name} className="marquee-item">
+                    <span className="marquee-avatar">{item.initials}</span>
+                    <span className="marquee-label">{item.name}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
           <style>{`
-            @keyframes marquee {
-              0% { transform: translateX(0); }
-              100% { transform: translateX(-50%); }
+            @keyframes marquee-scroll {
+              0%   { transform: translateX(0); }
+              100% { transform: translateX(-100%); }
             }
-            .animate-marquee {
+            .marquee-viewport {
               display: flex;
-              width: max-content;
-              animation: marquee 30s linear infinite;
+              overflow: hidden;
+            }
+            .marquee-viewport:hover .marquee-track {
+              animation-play-state: paused;
+            }
+            .marquee-track {
+              display: flex;
+              flex-shrink: 0;
+              list-style: none;
+              margin: 0;
+              padding: 0;
+              animation: marquee-scroll 40s linear infinite;
+              will-change: transform;
+            }
+            .marquee-item {
+              display: inline-flex;
+              align-items: center;
+              gap: 10px;
+              padding: 0 40px;
+              white-space: nowrap;
+              opacity: 0.55;
+            }
+            .marquee-avatar {
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              width: 32px;
+              height: 32px;
+              border-radius: 50%;
+              background: var(--color-primary);
+              color: #fff;
+              font-size: 0.688rem;
+              font-weight: 700;
+              letter-spacing: 0.03em;
+              flex-shrink: 0;
+            }
+            .marquee-label {
+              font-family: var(--font-heading, inherit);
+              font-size: 0.9rem;
+              font-weight: 650;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              color: var(--color-text-primary);
+              filter: grayscale(1);
+            }
+            @media (prefers-reduced-motion: reduce) {
+              .marquee-track {
+                animation: none;
+              }
+              .marquee-viewport {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 8px;
+              }
             }
           `}</style>
         </section>
