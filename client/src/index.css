@@ -1,6 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800&family=Nunito:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
-/* stylelint-disable-next-line */
+/* stylelint-disable-next-line at-rule-no-unknown */
 @plugin "@tailwindcss/typography";
 
 :root {
