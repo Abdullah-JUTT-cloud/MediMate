@@ -469,7 +469,7 @@ export default function LandingPage() {
                     </div>
 
                     <div className={`transition-all duration-700 absolute inset-0 p-8 flex flex-col ${activeView === 2 ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8 pointer-events-none'}`}>
-                      <h3 className="text-2xl font-heading font-bold text-[#0D2B3E] mb-10">Clinical Calendar</h3>
+                      <h3 className="text-2xl font-heading font-bold text-[#0D2B3E] dark:text-white mb-10">Clinical Calendar</h3>
                       <div className="flex-1 bg-white rounded-[2rem] border border-[var(--color-border)]/40 shadow-sm p-6 overflow-hidden">
                         <div className="grid grid-cols-7 gap-2 h-full">
                           {Array.from({length: 21}).map((_, i) => (
