@@ -274,7 +274,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   overflow-wrap: normal;
 }
 
-/* One-line single-ellipsis that truncates at word boundaries where possible */
+/* One-line single-ellipsis: truncates with an ellipsis wherever the text overflows */
 .single-line-ellipsis {
   display: block;
   white-space: nowrap;
