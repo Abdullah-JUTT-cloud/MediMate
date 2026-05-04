@@ -8,34 +8,36 @@
   --font-mono: "Nunito", ui-sans-serif, system-ui, sans-serif;
 
   /* New Variables (Light) */
-  --bg-primary: #EEF2F7;
-  --bg-surface: #FFFFFF;
-  --color-primary: #0D9488;
-  --color-primary-hover: #0F766E;
-  --text-primary: #1E293B;
-  --text-secondary: #64748B;
-  --border-color: #E2E8F0;
-  --accent: #CCFBF1;
+  --bg-primary: #eef2f7;
+  --bg-surface: #ffffff;
+  --color-primary: #0d9488;
+  --color-primary-hover: #0f766e;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --border-color: #e2e8f0;
+  --accent: #ccfbf1;
   --shadow: rgba(0, 0, 0, 0.08);
-  --color-bg-gradient: linear-gradient(135deg, #F8FAFC 0%, #EEF2F7 100%);
+  --color-bg-gradient: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
 
   /* Mapping old variables to new variables to maintain site-wide compatibility */
   --color-bg: var(--bg-primary);
-  --color-bg-soft: #EEF2F7;
+  --color-bg-soft: #eef2f7;
   --color-card: var(--bg-surface);
   --color-card-elevated: var(--bg-surface);
-  
+
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
-  --color-text-muted: #94A3B8;
-  --color-on-primary: #FFFFFF; /* High contrast text on primary buttons */
-  
+  --color-text-muted: #94a3b8;
+  --color-on-primary: #ffffff; /* High contrast text on primary buttons */
+
   --color-border: var(--border-color);
-  --color-border-strong: #CBD5E1;
-  
-  --color-secondary: var(--color-primary); /* Instead of ultra-light accent, use primary for readability */
+  --color-border-strong: #cbd5e1;
+
+  --color-secondary: var(
+    --color-primary
+  ); /* Instead of ultra-light accent, use primary for readability */
   --color-accent: var(--accent);
-  
+
   --shadow-soft: 0 4px 20px -2px var(--shadow);
   --shadow-float: 0 10px 40px -10px var(--shadow);
 
@@ -56,33 +58,35 @@
 
 [data-theme="dark"] {
   /* New Variables (Dark) */
-  --bg-primary: #0F172A;
-  --bg-surface: #1E293B;
-  --color-primary: #2DD4BF;
-  --color-primary-hover: #5EEAD4;
-  --text-primary: #F1F5F9;
-  --text-secondary: #94A3B8;
+  --bg-primary: #0f172a;
+  --bg-surface: #1e293b;
+  --color-primary: #2dd4bf;
+  --color-primary-hover: #5eead4;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
   --border-color: #334155;
-  --accent: #134E4A;
+  --accent: #134e4a;
   --shadow: rgba(0, 0, 0, 0.4);
-  --color-bg-gradient: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+  --color-bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
 
   --color-bg: var(--bg-primary);
-  --color-bg-soft: #0B1120;
+  --color-bg-soft: #0b1120;
   --color-card: var(--bg-surface);
   --color-card-elevated: var(--bg-surface);
-  
+
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
-  --color-text-muted: #64748B;
-  --color-on-primary: #0F172A; /* High contrast text on primary buttons */
-  
+  --color-text-muted: #64748b;
+  --color-on-primary: #0f172a; /* High contrast text on primary buttons */
+
   --color-border: var(--border-color);
   --color-border-strong: #475569;
-  
-  --color-secondary: var(--color-primary); /* Use bright teal for secondary text instead of dark accent */
+
+  --color-secondary: var(
+    --color-primary
+  ); /* Use bright teal for secondary text instead of dark accent */
   --color-accent: var(--accent);
-  
+
   --shadow-soft: 0 8px 24px -8px var(--shadow);
   --shadow-float: 0 18px 40px -16px var(--shadow);
 
@@ -101,7 +105,12 @@
 
 * {
   border-color: var(--color-border);
-  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease,
+    transform 0.2s ease,
+    box-shadow 0.3s ease;
 }
 
 /* Base styles */
@@ -149,25 +158,50 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* Premium Animations */
 @keyframes float {
-  0% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(10px, -15px) scale(1.05); }
-  66% { transform: translate(-15px, 10px) scale(0.95); }
-  100% { transform: translate(0, 0) scale(1); }
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(10px, -15px) scale(1.05);
+  }
+  66% {
+    transform: translate(-15px, 10px) scale(0.95);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
 }
 
 @keyframes pulse-slow {
-  0%, 100% { opacity: 0.3; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(1.1); }
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.1);
+  }
 }
 
 @keyframes slide-up {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .animate-float {
@@ -227,4 +261,61 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   body::before {
     opacity: 0.02;
   }
+}
+
+/* Multi-line truncation that avoids mid-word clipping: clamps at 3 lines by default */
+.multi-line-clamp-3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: normal; /* avoid breaking words mid-word */
+  overflow-wrap: normal;
+}
+
+/* One-line single-ellipsis that truncates at word boundaries where possible */
+.single-line-ellipsis {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Category badge color utilities (muted, low-saturation backgrounds) */
+.badge-management {
+  background-color: rgba(13, 148, 136, 0.1);
+  color: var(--color-primary);
+}
+.badge-scheduling {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: rgba(59, 130, 246, 1);
+}
+.badge-clinical {
+  background-color: rgba(34, 197, 94, 0.1);
+  color: rgba(34, 197, 94, 1);
+}
+.badge-technology {
+  background-color: rgba(14, 165, 233, 0.06);
+  color: rgba(14, 165, 233, 1);
+}
+.badge-finance {
+  background-color: rgba(249, 115, 22, 0.1);
+  color: rgba(249, 115, 22, 1);
+}
+.badge-security {
+  background-color: rgba(139, 92, 246, 0.08);
+  color: rgba(139, 92, 246, 1);
+}
+.badge-automation {
+  background-color: rgba(99, 102, 241, 0.08);
+  color: rgba(99, 102, 241, 1);
+}
+.badge-communication {
+  background-color: rgba(168, 85, 247, 0.06);
+  color: rgba(168, 85, 247, 1);
+}
+.badge-analytics {
+  background-color: rgba(14, 165, 233, 0.06);
+  color: rgba(14, 165, 233, 1);
 }
