@@ -1,5 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800&family=Nunito:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
+/* stylelint-disable-next-line */
 @plugin "@tailwindcss/typography";
 
 :root {
@@ -268,6 +269,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   overflow: hidden;
   text-overflow: ellipsis;
   word-break: normal; /* avoid breaking words mid-word */
