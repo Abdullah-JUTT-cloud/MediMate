@@ -480,6 +480,8 @@ export default function BlogPage() {
                 >
                   <button
                     onClick={() => setSelectedBlog(null)}
+                    aria-label="Close article"
+                    title="Close article"
                     className="absolute right-6 top-6 h-10 w-10 flex items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-text-primary)] hover:bg-[var(--color-primary)] hover:text-[var(--color-on-primary)] transition-all"
                   >
                     <svg
@@ -487,6 +489,7 @@ export default function BlogPage() {
                       height="20"
                       viewBox="0 0 20 20"
                       fill="none"
+                      aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                     >
                       <path
