@@ -322,7 +322,7 @@ export default function LandingPage() {
                 </button>
                 <button
                   onClick={() => navigate("/features")}
-                  className="inline-flex h-14 items-center justify-center rounded-full border border-[var(--color-border)]  dark:text-black bg-white/50 px-10 font-body text-sm font-bold text-[var(--color-text-primary)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-xl"
+                  className="see-platform-button inline-flex h-14 items-center justify-center rounded-full border border-[var(--color-border)] bg-white/50 px-10 font-body text-sm font-bold backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-xl"
                 >
                   See Platform
                 </button>
@@ -495,7 +495,16 @@ export default function LandingPage() {
             <div className="relative mx-auto max-w-5xl">
               <div className="absolute -inset-4 rounded-[3rem] bg-gradient-to-tr from-[var(--color-primary)]/10 via-transparent to-[var(--color-secondary)]/10 blur-2xl" />
               <div
+                role="button"
+                tabIndex={0}
+                aria-label={isPaused ? "Play demo preview" : "Pause demo preview"}
                 onClick={() => setIsPaused(!isPaused)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setIsPaused(!isPaused);
+                  }
+                }}
                 className="relative rounded-3xl border border-[var(--color-border)] bg-[var(--color-card)] shadow-2xl overflow-hidden aspect-[16/10] flex flex-col cursor-pointer transition-transform hover:scale-[1.005] active:scale-[0.995]"
               >
                 <div className="h-12 w-full bg-[var(--color-card-elevated)] border-b border-[var(--color-border)]/60 flex items-center justify-between px-6">
@@ -507,7 +516,7 @@ export default function LandingPage() {
                   <a
                     href="https://medalerto.com"
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                     onClick={(event) => event.stopPropagation()}
                     className="inline-flex h-7 min-w-52 items-center justify-center rounded-md border border-[var(--color-border)] bg-[var(--color-bg-soft)] px-3 text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] transition-colors"
                   >
@@ -1120,18 +1129,23 @@ export default function LandingPage() {
                 >
                   <div className="mb-6 flex items-center gap-4">
                     <div
-                      className="h-12 w-12 rounded-full border-2 border-white shadow-md bg-cover bg-no-repeat"
+                      className="h-12 w-12 rounded-full border-2 border-white shadow-md flex items-center justify-center text-white text-sm font-bold select-none"
                       style={{
-                        backgroundImage: `url('/Users/anasyousaf/.gemini/antigravity/brain/002e1aa7-d1f5-43fa-b33c-6c120daa2c29/doctor_avatars_1777819380265.png')`,
-                        backgroundPosition:
-                          idx === 0
-                            ? "0% 50%"
-                            : idx === 1
-                              ? "50% 50%"
-                              : "100% 50%",
-                        backgroundSize: "300% 100%",
+                        background: [
+                          "linear-gradient(135deg, #6B8F71, #4a7c59)",
+                          "linear-gradient(135deg, #5b7fa6, #3d6b99)",
+                          "linear-gradient(135deg, #a67c5b, #8a5c3a)",
+                        ][idx % 3],
                       }}
-                    />
+                      aria-hidden="true"
+                    >
+                      {item.author
+                        .split(" ")
+                        .filter((n) => n.length > 0)
+                        .slice(0, 2)
+                        .map((n) => n[0])
+                        .join("")}
+                    </div>
                     <div>
                       <p className="text-sm font-bold text-[var(--color-text-primary)]">
                         {item.author}
