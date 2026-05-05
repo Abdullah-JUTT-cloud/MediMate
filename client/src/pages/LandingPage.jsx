@@ -322,7 +322,7 @@ export default function LandingPage() {
                 </button>
                 <button
                   onClick={() => navigate("/features")}
-                  className="inline-flex h-14 items-center justify-center rounded-full border border-[var(--color-border)] bg-white/50 px-10 font-body text-sm font-bold text-[var(--color-text-primary)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-xl"
+                  className="see-platform-button inline-flex h-14 items-center justify-center rounded-full border border-[var(--color-border)] bg-white/50 px-10 font-body text-sm font-bold backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-xl"
                 >
                   See Platform
                 </button>
