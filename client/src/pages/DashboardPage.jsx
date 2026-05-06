@@ -660,7 +660,6 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                   { icon: AlertTriangle, label: "Emergency Cancel", color: "var(--color-danger)", onClick: () => setActiveNav("emergency-cancelled") },
                 ].map((action) => (
                   <button key={action.label} onClick={action.onClick}
-                    // Fix fragile emoji icon rendering by using SVG icons that stay consistent across platforms and fonts.
                     className="flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-14px_rgba(93,112,82,0.22)] sm:px-4 sm:py-2.5 sm:text-sm"
                     style={{
                       background: action.color === "var(--color-danger)" ? "rgba(168,84,72,0.1)" : "rgba(93,112,82,0.1)",
