@@ -39,6 +39,8 @@ export default function Navbar() {
         : "text-[var(--color-text-secondary)]"
     }`;
 
+  // Keep the mobile drawer aligned with page gutters and collapse it after navigation.
+
   return (
     <nav className="sticky top-4 z-50 px-4 sm:px-6 lg:px-8">
       <div
@@ -124,14 +126,12 @@ export default function Navbar() {
       {menuOpen && (
         <div
           id="mobile-nav"
-          // Fix the mobile nav panel overlap by matching the page gutters and keeping the open state visually obvious.
           className="absolute left-4 right-4 top-full z-50 mt-3 rounded-4xl border border-[var(--color-border)]/80 bg-[var(--color-card)]/96 p-5 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.18)] backdrop-blur-md sm:left-6 sm:right-6 lg:hidden"
         >
           <div className="flex flex-col gap-4">
             <Link
               to="/features"
               className={linkClass("/features")}
-              // Fix stale menu state after navigation by collapsing the drawer directly from each mobile action.
               onClick={() => setMenuOpen(false)}
             >
               Features
