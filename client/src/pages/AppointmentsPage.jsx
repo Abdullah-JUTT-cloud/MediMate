@@ -810,7 +810,7 @@ export default function AppointmentsPage({
         </div>
 
         {/* Status filters */}
-        <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
           {["All", ...STATUSES].map((s) => (
             <button key={s} onClick={() => setActiveFilter(s)}
               aria-pressed={activeFilter === s}

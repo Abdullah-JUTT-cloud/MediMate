@@ -393,7 +393,7 @@ export default function BlogPage() {
 
             {/* Category pills */}
             {/* Fix category pills wrapping onto extra lines at tablet widths by turning them into a horizontal scroller. */}
-            <div className="mt-6 flex items-center gap-3 overflow-x-auto pb-2 no-scrollbar [-ms-overflow-style:none] [scrollbar-width:none]">
+            <div className="mt-6 flex items-center gap-3 overflow-x-auto pb-2 no-scrollbar">
               {CATEGORIES.map((cat) => (
                 <button
                   key={cat}
