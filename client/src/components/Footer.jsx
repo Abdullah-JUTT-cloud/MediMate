@@ -12,7 +12,11 @@ const footerLinks = {
     { name: "Contact", href: "/contact" },
     { name: "Blog", href: "/blog" },
   ],
-  Support: [{ name: "Contact Us", href: "/contact" }],
+  // Fix duplicate footer content by replacing the repeated contact link with distinct support destinations.
+  Support: [
+    { name: "FAQ", href: "/faq" },
+    { name: "Privacy Policy", href: "/privacy-policy" },
+  ],
   Integrations: [
     { name: "WhatsApp", href: "#" },
     { name: "PDF Export", href: "#" },
@@ -113,7 +117,7 @@ export default function Footer() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-x-8 gap-y-10 lg:col-span-4 lg:gap-x-4">
+          <div className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-4 lg:col-span-4 lg:gap-x-4">
             {Object.entries(footerLinks).map(([category, links]) => (
               <div key={category}>
                 <h4 className="font-heading text-sm font-bold uppercase tracking-[0.22em] text-[var(--color-text-primary)]">

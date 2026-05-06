@@ -98,7 +98,8 @@ export default function FAQPage() {
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--color-primary)] mb-4">Popular Questions</p>
               <div className="flex flex-col gap-2.5">
                 {["Is there a setup fee?", "Can I cancel anytime?", "Is patient data secure?"].map(q => (
-                  <div key={q} className="rounded-full bg-[var(--color-primary)]/10 px-4 py-2.5 text-[11px] font-bold text-[#0D2B3E] border border-[var(--color-primary)]/10 whitespace-nowrap overflow-hidden text-ellipsis">
+                  // Fix dark-theme contrast and clipped chip text by letting the popular-question pills wrap inside the card.
+                  <div key={q} className="rounded-2xl border border-[var(--color-primary)]/10 bg-[var(--color-primary)]/10 px-4 py-2.5 text-[11px] font-bold text-[var(--color-text-primary)]">
                     {q}
                   </div>
                 ))}
@@ -115,6 +116,8 @@ export default function FAQPage() {
                   setActiveCategory(category);
                   setOpenFaqIndex(null);
                 }}
+                aria-pressed={activeCategory === category}
+                // Fix ambiguous tab state by exposing the active category visually and semantically without allowing wrap.
                 className={`shrink-0 rounded-full px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.15em] transition-all duration-300 ${
                   activeCategory === category
                     ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-lg shadow-[var(--color-primary)]/20"
@@ -155,6 +158,7 @@ export default function FAQPage() {
                             type="button"
                             onClick={() => setOpenFaqIndex(isOpen ? null : item.originalIndex)}
                             aria-expanded={isOpen}
+                            aria-controls={`faq-answer-${item.originalIndex}`}
                             className="flex w-full items-center justify-between gap-4 px-5 py-5 text-left transition"
                           >
                             <h3 className="text-base font-bold text-[var(--color-text-primary)]">{item.question}</h3>
@@ -163,7 +167,7 @@ export default function FAQPage() {
                             </span>
                           </button>
                           {isOpen && (
-                            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                            <div id={`faq-answer-${item.originalIndex}`} className="animate-in fade-in slide-in-from-top-2 duration-300">
                               <p className="px-5 pb-6 text-sm leading-relaxed text-[var(--color-text-secondary)]">
                                 {item.answer}
                               </p>

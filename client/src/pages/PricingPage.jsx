@@ -115,6 +115,8 @@ export default function PricingPage() {
               <button
                 type="button"
                 onClick={() => setBillingCycle("monthly")}
+                aria-pressed={billingCycle === "monthly"}
+                // Fix the billing toggle state so the active option is communicated visually and semantically.
                 className={`rounded-full px-6 py-2 text-sm font-semibold transition-all duration-300 ${billingCycle === "monthly" ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-md" : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"}`}
               >
                 Monthly
@@ -122,6 +124,7 @@ export default function PricingPage() {
               <button
                 type="button"
                 onClick={() => setBillingCycle("annual")}
+                aria-pressed={billingCycle === "annual"}
                 className={`flex items-center gap-2 rounded-full px-6 py-2 text-sm font-semibold transition-all duration-300 ${billingCycle === "annual" ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-md" : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"}`}
               >
                 <span>Annual</span>
@@ -165,7 +168,8 @@ export default function PricingPage() {
               
               <button 
                 onClick={() => setShowAllFeatures(!showAllFeatures)}
-                className="mt-6 text-sm font-bold text-[var(--color-primary)] hover:underline"
+                // Fix the missing feedback state on the feature toggle by adding hover and active affordances.
+                className="mt-6 text-sm font-bold text-[var(--color-primary)] transition hover:opacity-80 active:scale-[0.99]"
               >
                 {showAllFeatures ? "View fewer features" : "View all features"}
               </button>

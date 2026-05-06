@@ -54,7 +54,8 @@ export default function AboutUsPage() {
           </section>
 
           <section className="mt-12 grid gap-5 lg:grid-cols-12">
-            <article className="rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(193,140,93,0.16)] sm:p-7 lg:col-span-7">
+            {/* Fix mismatched card heights in the same row by stretching both lead cards to the full grid height. */}
+            <article className="h-full rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(193,140,93,0.16)] sm:p-7 lg:col-span-7">
               <h2 className="font-heading text-3xl font-semibold">What is broken in small-clinic operations</h2>
               <p className="mt-4 leading-relaxed text-[var(--color-text-secondary)]">
                 Most small clinics are still forced to run core workflow across disconnected tools. That creates delays, avoidable mistakes, and operational stress for both doctors and staff.
@@ -69,7 +70,7 @@ export default function AboutUsPage() {
               </ul>
             </article>
 
-            <article className="rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] sm:p-7 lg:col-span-5">
+            <article className="h-full rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] sm:p-7 lg:col-span-5">
               <h2 className="font-heading text-3xl font-semibold">Why MedAlerto exists</h2>
               <p className="mt-4 leading-relaxed text-[var(--color-text-secondary)]">
                 We created MedAlerto so doctors can spend more time on care and less time on repetitive admin. The product is focused on the workflows that directly affect consultation quality and clinic consistency.
@@ -88,7 +89,7 @@ export default function AboutUsPage() {
             <h2 className="font-heading text-3xl font-semibold">How we build</h2>
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               {principles.map((item) => (
-                <article key={item.title} className="rounded-3xl border border-[var(--color-border)]/80 bg-[var(--color-bg-soft)]/45 p-4">
+                <article key={item.title} className="h-full rounded-3xl border border-[var(--color-border)]/80 bg-[var(--color-bg-soft)]/45 p-4">
                   <h3 className="text-lg font-bold text-[var(--color-text-primary)]">{item.title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-[var(--color-text-secondary)]">{item.description}</p>
                 </article>

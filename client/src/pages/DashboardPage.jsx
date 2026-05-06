@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { createElement, useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { BarChart3, CalendarCheck2, CircleUserRound, CreditCard, LayoutDashboard, LifeBuoy, LogOut, MessagesSquare, Users } from "lucide-react";
+import { AlertTriangle, BarChart3, CalendarCheck2, CircleUserRound, CreditCard, FileText, LayoutDashboard, LifeBuoy, LogOut, MessagesSquare, MessageSquareWarning, UserPlus, Users, Wallet } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import useAuthStore from "../store/authStore";
@@ -51,6 +51,10 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 const getInitials = (name) => name?.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "P";
+
+function dashboardGlyph(Icon, className = "h-4 w-4") {
+  return createElement(Icon, { className, strokeWidth: 2.2, "aria-hidden": true });
+}
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -650,19 +654,20 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
             <>
               <div className="flex flex-wrap gap-2 sm:gap-3 mb-6">
                 {[
-                  { icon: "👤", label: "New Patient", color: "var(--color-primary)", onClick: () => setActiveNav("patients") },
-                  { icon: "📅", label: "Book Appointment", color: "var(--color-primary)", onClick: () => setActiveNav("appointments") },
-                  { icon: "🛟", label: "Feedback/Problem", color: "var(--color-primary)", onClick: () => setActiveNav("support") },
-                  { icon: "🚨", label: "Emergency Cancel", color: "var(--color-danger)", onClick: () => setActiveNav("emergency-cancelled") },
+                  { icon: UserPlus, label: "New Patient", color: "var(--color-primary)", onClick: () => setActiveNav("patients") },
+                  { icon: CalendarCheck2, label: "Book Appointment", color: "var(--color-primary)", onClick: () => setActiveNav("appointments") },
+                  { icon: MessageSquareWarning, label: "Feedback/Problem", color: "var(--color-primary)", onClick: () => setActiveNav("support") },
+                  { icon: AlertTriangle, label: "Emergency Cancel", color: "var(--color-danger)", onClick: () => setActiveNav("emergency-cancelled") },
                 ].map((action) => (
                   <button key={action.label} onClick={action.onClick}
+                    // Fix fragile emoji icon rendering by using SVG icons that stay consistent across platforms and fonts.
                     className="flex cursor-pointer items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-14px_rgba(93,112,82,0.22)] sm:px-4 sm:py-2.5 sm:text-sm"
                     style={{
                       background: action.color === "var(--color-danger)" ? "rgba(168,84,72,0.1)" : "rgba(93,112,82,0.1)",
                       border: "1px solid " + (action.color === "var(--color-danger)" ? "rgba(168,84,72,0.25)" : "rgba(93,112,82,0.25)"),
                       color: action.color,
                     }}>
-                    <span>{action.icon}</span>
+                    <span className="shrink-0">{dashboardGlyph(action.icon)}</span>
                     <span className="hidden sm:inline">{action.label}</span>
                     <span className="sm:hidden">{action.label.split(" ")[0]}</span>
                   </button>
@@ -679,17 +684,18 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                   </>
                 ) : (
                   [
-                    { label: "Total Patients", value: String(totalPatients || 0), sub: "Registered patients", icon: "👥", color: "var(--color-primary)", tint: "rgba(93,112,82,0.14)" },
-                    { label: "Today's Appointments", value: todayAppointments.length.toString(), sub: todayAppointments.filter((a) => a.status === "Pending").length + " pending", icon: "📅", color: "var(--color-secondary)", tint: "rgba(193,140,93,0.16)" },
-                    { label: "Today's Earnings", value: `PKR ${todayEarnings.toLocaleString()}`, sub: "From insights", icon: "💰", color: "var(--color-success)", tint: "rgba(111,138,97,0.15)" },
-                    { label: "Prescriptions", value: totalPrescriptions === null ? "0" : String(totalPrescriptions), sub: "PDFs generated", icon: "📋", color: "var(--color-text-secondary)", tint: "rgba(139,125,102,0.16)" },
+                    { label: "Total Patients", value: String(totalPatients || 0), sub: "Registered patients", icon: Users, color: "var(--color-primary)", tint: "rgba(93,112,82,0.14)" },
+                    { label: "Today's Appointments", value: todayAppointments.length.toString(), sub: todayAppointments.filter((a) => a.status === "Pending").length + " pending", icon: CalendarCheck2, color: "var(--color-secondary)", tint: "rgba(193,140,93,0.16)" },
+                    { label: "Today's Earnings", value: `PKR ${todayEarnings.toLocaleString()}`, sub: "From insights", icon: Wallet, color: "var(--color-success)", tint: "rgba(111,138,97,0.15)" },
+                    { label: "Prescriptions", value: totalPrescriptions === null ? "0" : String(totalPrescriptions), sub: "PDFs generated", icon: FileText, color: "var(--color-text-secondary)", tint: "rgba(139,125,102,0.16)" },
                   ].map((stat) => (
                     <div key={stat.label} className="rounded-4xl p-4 shadow-[0_4px_20px_-2px_rgba(93,112,82,0.14)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_32px_-10px_rgba(93,112,82,0.2)] sm:p-5"
                       style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}>
                       <div className="mb-3">
                         <div className="flex h-9 w-9 items-center justify-center rounded-2xl text-base sm:h-10 sm:w-10 sm:text-lg"
                           style={{ background: stat.tint }}>
-                          {stat.icon}
+                          {/* Fix platform-dependent emoji stats by rendering the dashboard summary icons as SVGs. */}
+                          <span className="shrink-0">{dashboardGlyph(stat.icon, "h-4 w-4 sm:h-5 sm:w-5")}</span>
                         </div>
                       </div>
                       <p className="mb-0.5 text-lg font-extrabold text-[var(--color-text-primary)] sm:text-2xl">{stat.value}</p>

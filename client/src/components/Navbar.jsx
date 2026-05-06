@@ -15,6 +15,18 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    // Fix the stuck-open drawer state on small screens by letting Escape close the menu.
+    if (!menuOpen) return undefined;
+
+    const handleEscape = (event) => {
+      if (event.key === "Escape") setMenuOpen(false);
+    };
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [menuOpen]);
+
   const navBaseClass =
     scrolled || !isHome
       ? "border border-[var(--color-border)]/70 bg-[var(--color-bg)]/85 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.16)] backdrop-blur-md"
@@ -112,40 +124,42 @@ export default function Navbar() {
       {menuOpen && (
         <div
           id="mobile-nav"
-          className="absolute left-4 right-4 top-full mt-3 rounded-4xl border border-[var(--color-border)]/80 bg-[var(--color-card)]/96 p-5 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.18)] backdrop-blur-md lg:hidden"
+          // Fix the mobile nav panel overlap by matching the page gutters and keeping the open state visually obvious.
+          className="absolute left-4 right-4 top-full z-50 mt-3 rounded-4xl border border-[var(--color-border)]/80 bg-[var(--color-card)]/96 p-5 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.18)] backdrop-blur-md sm:left-6 sm:right-6 lg:hidden"
         >
           <div className="flex flex-col gap-4">
             <Link
               to="/features"
-              className="font-mono text-[11px] uppercase tracking-[0.24em] text-[var(--color-text-secondary)] transition duration-300 hover:text-[var(--color-primary)]"
+              className={linkClass("/features")}
+              // Fix stale menu state after navigation by collapsing the drawer directly from each mobile action.
               onClick={() => setMenuOpen(false)}
             >
               Features
             </Link>
             <Link
               to="/how-it-works"
-              className="font-mono text-[11px] uppercase tracking-[0.24em] text-[var(--color-text-secondary)] transition duration-300 hover:text-[var(--color-primary)]"
+              className={linkClass("/how-it-works")}
               onClick={() => setMenuOpen(false)}
             >
               How it Works
             </Link>
             <Link
               to="/pricing"
-              className="font-mono text-[11px] uppercase tracking-[0.24em] text-[var(--color-text-secondary)] transition duration-300 hover:text-[var(--color-primary)]"
+              className={linkClass("/pricing")}
               onClick={() => setMenuOpen(false)}
             >
               Pricing
             </Link>
             <Link
               to="/faq"
-              className="font-mono text-[11px] uppercase tracking-[0.24em] text-[var(--color-text-secondary)] transition duration-300 hover:text-[var(--color-primary)]"
+              className={linkClass("/faq")}
               onClick={() => setMenuOpen(false)}
             >
               FAQ
             </Link>
             <Link
               to="/blog"
-              className="font-mono text-[11px] uppercase tracking-[0.24em] text-[var(--color-text-secondary)] transition duration-300 hover:text-[var(--color-primary)]"
+              className={linkClass("/blog")}
               onClick={() => setMenuOpen(false)}
             >
               Blog

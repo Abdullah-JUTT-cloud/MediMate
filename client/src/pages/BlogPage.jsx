@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
+void motion;
+
 const blogs = [
   {
     id: 1,
@@ -371,7 +373,8 @@ export default function BlogPage() {
                     {featured.title}
                   </h3>
 
-                  <p className="mt-4 text-sm leading-relaxed text-[var(--color-text-secondary)] single-line-ellipsis">
+                  {/* Fix mid-word truncation in the featured copy by using the multi-line clamp that preserves whole words. */}
+                  <p className="mt-4 text-sm leading-relaxed text-[var(--color-text-secondary)] multi-line-clamp-3">
                     {featured.metaDescription}
                   </p>
 
@@ -391,12 +394,14 @@ export default function BlogPage() {
             </div>
 
             {/* Category pills */}
-            <div className="mt-6 flex flex-wrap items-center gap-3">
+            {/* Fix category pills wrapping onto extra lines at tablet widths by turning them into a horizontal scroller. */}
+            <div className="mt-6 flex items-center gap-3 overflow-x-auto pb-2 no-scrollbar [-ms-overflow-style:'none'] [scrollbar-width:'none']">
               {CATEGORIES.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-4 py-1 rounded-full text-sm font-bold tracking-wide transition-all ${selectedCategory === cat ? "bg-[var(--color-primary)] text-[var(--color-on-primary)]" : "bg-transparent border border-[var(--color-border)] text-[var(--color-text-primary)]"}`}
+                  aria-pressed={selectedCategory === cat}
+                  className={`shrink-0 px-4 py-1 rounded-full text-sm font-bold tracking-wide transition-all ${selectedCategory === cat ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-md" : "bg-transparent border border-[var(--color-border)] text-[var(--color-text-primary)] hover:border-[var(--color-primary)]/30"}`}
                 >
                   {cat}
                 </button>
@@ -412,7 +417,8 @@ export default function BlogPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 * idx }}
-                className={`group relative flex flex-col rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] transition-all duration-300 hover:shadow-[0_20px_50px_-15px_rgba(93,112,82,0.18)] hover:-translate-y-1 ${idx === filteredBlogs.length - 1 && filteredBlogs.length % 3 === 1 ? "lg:col-span-3 md:col-span-2" : ""}`}
+                // Fix lone trailing cards and uneven rows by stretching each card and widening the final orphan at shared breakpoints.
+                className={`group relative flex h-full flex-col rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] transition-all duration-300 hover:shadow-[0_20px_50px_-15px_rgba(93,112,82,0.18)] hover:-translate-y-1 ${idx === filteredBlogs.length - 1 && filteredBlogs.length % 2 === 1 ? "md:col-span-2" : ""} ${idx === filteredBlogs.length - 1 && filteredBlogs.length % 3 === 1 ? "lg:col-span-3" : ""}`}
               >
                 <div className="flex items-center justify-between mb-4">
                   <span
