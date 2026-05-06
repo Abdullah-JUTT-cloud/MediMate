@@ -329,3 +329,11 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   background-color: rgba(14, 165, 233, 0.06);
   color: rgba(14, 165, 233, 1);
 }
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
