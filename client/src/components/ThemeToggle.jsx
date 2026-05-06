@@ -52,7 +52,6 @@ export default function ThemeToggle({ theme, onToggle }) {
               event.stopPropagation();
               setShowHint(false);
             }}
-            // Fix the plain-text close glyph so the dismiss control renders as a consistent icon in every font stack.
             className="absolute right-2 top-2 inline-flex h-5 w-5 items-center justify-center rounded-md text-[var(--color-text-secondary)] transition hover:bg-[var(--color-bg)]"
             aria-label="Close theme tip"
           >

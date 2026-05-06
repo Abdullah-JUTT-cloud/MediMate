@@ -138,7 +138,6 @@ export default function PricingPage() {
                 type="button"
                 onClick={() => setBillingCycle("monthly")}
                 aria-pressed={billingCycle === "monthly"}
-                // Fix the billing toggle state so the active option is communicated visually and semantically.
                 className={`rounded-full px-6 py-2 text-sm font-semibold transition-all duration-300 ${billingCycle === "monthly" ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-md" : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"}`}
               >
                 Monthly

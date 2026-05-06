@@ -1086,7 +1086,6 @@ export default function SupportCenterPage() {
             </div>
 
             <div
-              // Fix ambiguous support tab state by giving the segmented control stronger active treatment without changing theme values.
               className="mt-6 flex gap-2 rounded-full p-1 border"
               style={organicSectionStyle}
             >

@@ -117,7 +117,6 @@ export default function FAQPage() {
                   setOpenFaqIndex(null);
                 }}
                 aria-pressed={activeCategory === category}
-                // Fix ambiguous tab state by exposing the active category visually and semantically without allowing wrap.
                 className={`shrink-0 rounded-full px-5 py-2.5 text-[10px] font-bold uppercase tracking-[0.15em] transition-all duration-300 ${
                   activeCategory === category
                     ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-lg shadow-[var(--color-primary)]/20"

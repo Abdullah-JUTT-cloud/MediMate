@@ -3,8 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
-void motion;
-
 const blogs = [
   {
     id: 1,
@@ -417,7 +415,6 @@ export default function BlogPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 * idx }}
-                // Fix lone trailing cards and uneven rows by stretching each card and widening the final orphan at shared breakpoints.
                 className={`group relative flex h-full flex-col rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] transition-all duration-300 hover:shadow-[0_20px_50px_-15px_rgba(93,112,82,0.18)] hover:-translate-y-1 ${idx === filteredBlogs.length - 1 && filteredBlogs.length % 2 === 1 ? "md:col-span-2" : ""} ${idx === filteredBlogs.length - 1 && filteredBlogs.length % 3 === 1 ? "lg:col-span-3" : ""}`}
               >
                 <div className="flex items-center justify-between mb-4">
