@@ -39,6 +39,8 @@ export default function Navbar() {
         : "text-[var(--color-text-secondary)]"
     }`;
 
+  // Keep the mobile drawer aligned with page gutters and collapse it after navigation.
+
   return (
     <nav className="sticky top-4 z-50 px-4 sm:px-6 lg:px-8">
       <div
