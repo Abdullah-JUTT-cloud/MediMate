@@ -1091,12 +1091,17 @@ export default function SupportCenterPage() {
             >
               <button
                 onClick={() => setActiveTab("active")}
+                aria-pressed={activeTab === "active"}
                 className="flex-1 rounded-full px-2 py-2 text-xs font-semibold inline-flex items-center justify-center gap-1.5"
                 style={{
                   background:
                     activeTab === "active"
                       ? "rgba(93,112,82,0.14)"
                       : "transparent",
+                  border:
+                    activeTab === "active"
+                      ? "1px solid rgba(93,112,82,0.28)"
+                      : "1px solid transparent",
                   color:
                     activeTab === "active"
                       ? organicTheme.colors.primary
@@ -1108,12 +1113,17 @@ export default function SupportCenterPage() {
               </button>
               <button
                 onClick={() => setActiveTab("history")}
+                aria-pressed={activeTab === "history"}
                 className="flex-1 rounded-full px-2 py-2 text-xs font-semibold inline-flex items-center justify-center gap-1.5"
                 style={{
                   background:
                     activeTab === "history"
                       ? "rgba(93,112,82,0.14)"
                       : "transparent",
+                  border:
+                    activeTab === "history"
+                      ? "1px solid rgba(93,112,82,0.28)"
+                      : "1px solid transparent",
                   color:
                     activeTab === "history"
                       ? organicTheme.colors.primary

@@ -328,7 +328,8 @@ export default function LandingPage() {
                 </button>
               </div>
 
-              <div className="mt-12 flex items-center gap-8 border-t border-[var(--color-border)]/50 pt-10">
+              {/* Fix the hero stat strip wrapping awkwardly on narrower widths by allowing the metrics to flow cleanly. */}
+              <div className="mt-12 flex flex-wrap items-center gap-8 border-t border-[var(--color-border)]/50 pt-10">
                 <div>
                   <p className="text-2xl font-bold text-[var(--color-primary)]">
                     5,000+

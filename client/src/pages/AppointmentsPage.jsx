@@ -795,6 +795,7 @@ export default function AppointmentsPage({
       </div>
 
       {/* Filters */}
+      {/* Fix filter rows wrapping unpredictably on tablet by keeping the status chips on a horizontal scroller. */}
       <div className="flex flex-wrap items-center gap-3 mb-5">
         {/* Date filter first so native calendar popup has room on the right */}
         <div className="flex items-center gap-2">
@@ -804,15 +805,16 @@ export default function AppointmentsPage({
             onFocus={focusInput} onBlur={blurInput} />
           {dateFilter && (
             <button onClick={() => setDateFilter("")}
-              className="text-xs px-3 py-2 rounded-full transition-all text-[var(--color-text-secondary)]">✕</button>
+              className="text-xs px-3 py-2 rounded-full transition-all text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-soft)] active:scale-[0.99]">✕</button>
           )}
         </div>
 
         {/* Status filters */}
-        <div className="flex gap-1.5 flex-wrap">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar [-ms-overflow-style:'none'] [scrollbar-width:'none']">
           {["All", ...STATUSES].map((s) => (
             <button key={s} onClick={() => setActiveFilter(s)}
-              className="px-3 py-2 rounded-full text-xs font-semibold transition-all"
+              aria-pressed={activeFilter === s}
+              className="shrink-0 px-3 py-2 rounded-full text-xs font-semibold transition-all"
               style={{
                 background: activeFilter === s ? "rgba(93,112,82,0.14)" : "color-mix(in srgb, var(--color-bg-soft) 46%, transparent)",
                 border: activeFilter === s ? "1px solid rgba(93,112,82,0.35)" : "1px solid color-mix(in srgb, var(--color-border) 80%, transparent)",

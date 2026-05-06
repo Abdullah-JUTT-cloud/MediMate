@@ -283,7 +283,8 @@ export default function FeaturesPage() {
               { ...featureGroups[5], icon: <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751A11.959 11.959 0 0112 2.714z" /> } // Shield (Admin & Security)
             ]
 .map((group) => (
-              <article key={group.title} className="group rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-8 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.04)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.08)]">
+              // Fix inconsistent feature-card heights by stretching every card to fill its grid track.
+              <article key={group.title} className="group h-full rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-8 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.04)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.08)]">
                 <div className="flex items-center gap-3">
                   <svg className="h-5 w-5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                     {group.icon}
@@ -320,7 +321,8 @@ export default function FeaturesPage() {
                 { text: outcomes[4], icon: <path d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /> },
                 { text: outcomes[5], icon: <><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></> }
               ].map((item) => (
-                <div key={item.text} className="flex items-center gap-4 rounded-3xl border border-[var(--color-primary)]/15 bg-[var(--color-primary)]/5 p-5 text-sm font-bold text-[var(--color-text-primary)] transition-all duration-300 hover:scale-[1.03] hover:border-[var(--color-primary)]/40 hover:bg-white hover:shadow-md cursor-default">
+                <div key={item.text} className="flex h-full items-center gap-4 rounded-3xl border border-[var(--color-primary)]/15 bg-[var(--color-primary)]/5 p-5 text-sm font-bold text-[var(--color-text-primary)] transition-all duration-300 hover:scale-[1.03] hover:border-[var(--color-primary)]/40 hover:bg-white hover:shadow-md cursor-default">
+                  {/* Fix uneven outcome rows by giving every impact card the same full-height footprint. */}
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm">
                     <svg className="h-5 w-5 text-[var(--color-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                       {item.icon}
