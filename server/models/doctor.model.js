@@ -36,6 +36,16 @@ const locationSchema = new Schema({
 const doctorSchema = new Schema(
   {
     // Step 1 - Personal Info
+    firstName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    lastName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     fullName: {
       type: String,
       required: true,
@@ -185,5 +195,22 @@ const doctorSchema = new Schema(
   },
   { timestamps: true }
 );
+
+doctorSchema.pre("validate", function syncNames(next) {
+  if ((!this.firstName || !this.lastName) && this.fullName) {
+    const parts = String(this.fullName).trim().split(/\s+/).filter(Boolean);
+    this.firstName = this.firstName || parts[0] || "";
+    this.lastName = this.lastName || parts.slice(1).join(" ") || parts[0] || "";
+  }
+
+  if ((this.firstName || this.lastName) && !this.fullName) {
+    this.fullName = `${this.firstName || ""} ${this.lastName || ""}`.trim();
+  }
+
+  if (this.firstName && this.lastName) {
+    this.fullName = `${this.firstName} ${this.lastName}`.trim();
+  }
+  next();
+});
 
 export const Doctor = mongoose.model("Doctor", doctorSchema);

@@ -7,7 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "migrate:profile-verification": "node scripts/migrateProfileVerification.js"
+    "migrate:profile-verification": "node scripts/migrateProfileVerification.js",
+    "migrate:doctor-names": "node scripts/migrateDoctorNames.js"
   },
   "keywords": [],
   "author": "",

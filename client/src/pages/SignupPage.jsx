@@ -145,6 +145,35 @@ const blurStyle = (e) => {
 };
 const inputCls = "w-full rounded-xl px-4 py-3 text-sm outline-none transition-all duration-200 border border-[var(--color-border)] bg-[var(--color-bg-soft)] placeholder:text-[var(--color-text-muted)] focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary)]/10";
 
+const PASSWORD_RULES = [
+  { key: "minLength", label: "At least 8 characters" },
+  { key: "uppercase", label: "At least 1 uppercase letter" },
+  { key: "number", label: "At least 1 number" },
+  { key: "special", label: "At least 1 special character" },
+];
+
+const evaluatePassword = (password = "") => {
+  const checks = {
+    minLength: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    number: /\d/.test(password),
+    special: /[^A-Za-z0-9]/.test(password),
+  };
+
+  const score = Object.values(checks).filter(Boolean).length;
+  const labels = ["Very Weak", "Weak", "Fair", "Good", "Strong"];
+  const colors = ["#ef4444", "#f97316", "#f59e0b", "#22c55e", "#14b8a6"];
+
+  return {
+    checks,
+    score,
+    percent: (score / PASSWORD_RULES.length) * 100,
+    label: labels[score],
+    color: colors[score],
+    isValid: score === PASSWORD_RULES.length,
+  };
+};
+
 // ─── Searchable Input with Suggestions ───────────────────────────────────────
 
 function SuggestInput({
@@ -629,7 +658,8 @@ export default function SignupPage() {
 
   // ── Step 1 state
   const [personal, setPersonal] = useState({
-    fullName: "",
+    firstName: "",
+    lastName: "",
     gender: "",
     email: "",
     phone: "",
@@ -666,10 +696,14 @@ export default function SignupPage() {
 
   // ── Step validation
   const validateStep1 = () => {
-    const { fullName, gender, email, phone, password, confirmPassword } =
+    const { firstName, lastName, gender, email, phone, password, confirmPassword } =
       personal;
-    if (!fullName.trim()) {
-      toast.error("Full name is required");
+    if (!firstName.trim()) {
+      toast.error("First name is required");
+      return false;
+    }
+    if (!lastName.trim()) {
+      toast.error("Last name is required");
       return false;
     }
     if (!gender) {
@@ -693,8 +727,9 @@ export default function SignupPage() {
       toast.error("Password is required");
       return false;
     }
-    if (password.length < 8) {
-      toast.error("Password must be at least 8 characters");
+    const passwordState = evaluatePassword(password);
+    if (!passwordState.isValid) {
+      toast.error("Password must include uppercase, number, special character, and be at least 8 characters");
       return false;
     }
     if (password !== confirmPassword) {
@@ -828,6 +863,8 @@ export default function SignupPage() {
   const removeHospital = (i) =>
     setHospitals((p) => p.filter((_, idx) => idx !== i));
 
+  const passwordState = evaluatePassword(personal.password);
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-[var(--color-bg-gradient)] px-4 py-8 sm:px-6">
       <div
@@ -886,15 +923,31 @@ export default function SignupPage() {
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="sm:col-span-2">
+                <div>
                   <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)]">
-                    Full Name{" "}
+                    First Name{" "}
                     <span className="text-[var(--color-primary)]">*</span>
                   </label>
                   <input
-                    value={personal.fullName}
-                    onChange={(e) => updatePersonal("fullName", e.target.value)}
-                    placeholder="Enter your full name"
+                    value={personal.firstName}
+                    onChange={(e) => updatePersonal("firstName", e.target.value)}
+                    placeholder="Enter first name"
+                    className={inputCls}
+                    style={S.input}
+                    onFocus={focusStyle}
+                    onBlur={blurStyle}
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)]">
+                    Last Name{" "}
+                    <span className="text-[var(--color-primary)]">*</span>
+                  </label>
+                  <input
+                    value={personal.lastName}
+                    onChange={(e) => updatePersonal("lastName", e.target.value)}
+                    placeholder="Enter last name"
                     className={inputCls}
                     style={S.input}
                     onFocus={focusStyle}
@@ -1019,6 +1072,57 @@ export default function SignupPage() {
                     >
                       {showConfirm ? "Hide" : "Show"}
                     </button>
+                  </div>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <div className="mx-auto mt-1 w-full max-w-xl rounded-2xl border border-[var(--color-border)]/60 bg-[var(--color-bg-soft)]/50 px-4 py-3">
+                    <div className="mb-2 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.12em]">
+                      <span className="text-[var(--color-text-secondary)]">
+                        Password strength
+                      </span>
+                      <span
+                        className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                        style={{
+                          color: passwordState.color,
+                          backgroundColor: `${passwordState.color}22`,
+                        }}
+                      >
+                        {passwordState.label}
+                      </span>
+                    </div>
+                    <div className="h-2.5 w-full overflow-hidden rounded-full bg-[var(--color-bg)]">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${passwordState.percent}%`,
+                          backgroundColor: passwordState.color,
+                          boxShadow:
+                            passwordState.percent > 0
+                              ? `0 0 10px ${passwordState.color}66`
+                              : "none",
+                        }}
+                      />
+                    </div>
+                    <div className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                      {PASSWORD_RULES.map((rule) => {
+                        const passed = passwordState.checks[rule.key];
+                        return (
+                          <p
+                            key={rule.key}
+                            className="text-[11px] font-medium"
+                            style={{
+                              color: passed
+                                ? "var(--color-primary)"
+                                : "var(--color-text-secondary)",
+                              textAlign: "center",
+                            }}
+                          >
+                            {passed ? "✓" : "•"} {rule.label}
+                          </p>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>

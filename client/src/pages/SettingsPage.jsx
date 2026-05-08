@@ -478,7 +478,7 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   // ── Tab state
-  const [personal, setPersonal] = useState({ fullName: "", gender: "", phone: "" });
+  const [personal, setPersonal] = useState({ firstName: "", lastName: "", gender: "", phone: "" });
   const [professional, setProfessional] = useState({
     title: "", specialization: "", primaryDegree: "",
     additionalDegrees: [], university: "", graduationYear: "",
@@ -499,7 +499,9 @@ export default function SettingsPage() {
       try {
         const res = await axiosInstance.get("/doctor/profile");
         const d = res.data.doctor;
-        setPersonal({ fullName: d.fullName || "", gender: d.gender || "", phone: d.phone || "" });
+        const firstName = d.firstName || d.fullName?.split(" ")?.[0] || "";
+        const lastName = d.lastName || d.fullName?.split(" ")?.slice(1).join(" ") || "";
+        setPersonal({ firstName, lastName, gender: d.gender || "", phone: d.phone || "" });
         setProfessional({
           title: d.title || "",
           specialization: d.specialization || "",
@@ -549,9 +551,16 @@ export default function SettingsPage() {
   };
 
   const savePersonal = () => {
-    if (!personal.fullName.trim()) { toast.error("Name is required"); return; }
+    if (!personal.firstName.trim()) { toast.error("First name is required"); return; }
+    if (!personal.lastName.trim()) { toast.error("Last name is required"); return; }
     if (!personal.phone.trim()) { toast.error("Phone is required"); return; }
-    save(personal, "Personal info updated!");
+    save(
+      {
+        ...personal,
+        fullName: `${personal.firstName} ${personal.lastName}`.trim(),
+      },
+      "Personal info updated!",
+    );
   };
 
   const saveProfessional = () => {
@@ -786,14 +795,25 @@ export default function SettingsPage() {
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <div className="sm:col-span-2">
-              <FieldLabel text="Full Name" />
+            <div>
+              <FieldLabel text="First Name" />
               <input
-                value={personal.fullName}
+                value={personal.firstName}
                 onChange={(e) =>
-                  setPersonal((p) => ({ ...p, fullName: e.target.value }))
+                  setPersonal((p) => ({ ...p, firstName: e.target.value }))
                 }
-                placeholder="Dr. Ahmed Raza"
+                placeholder="Ahmed"
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <FieldLabel text="Last Name" />
+              <input
+                value={personal.lastName}
+                onChange={(e) =>
+                  setPersonal((p) => ({ ...p, lastName: e.target.value }))
+                }
+                placeholder="Raza"
                 className={inputCls}
               />
             </div>

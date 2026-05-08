@@ -9,8 +9,20 @@ import {
 import { generateToken } from "../utils/generateToken.js";
 import crypto from "crypto";
 
+const isStrongPassword = (password) => {
+  if (typeof password !== "string") return false;
+  return (
+    password.length >= 8 &&
+    /[A-Z]/.test(password) &&
+    /\d/.test(password) &&
+    /[^A-Za-z0-9]/.test(password)
+  );
+};
+
 export const registerDoctor = async (req, res) => {
   const {
+    firstName,
+    lastName,
     fullName,
     gender,
     email,
@@ -32,8 +44,11 @@ export const registerDoctor = async (req, res) => {
     hospitals,
   } = req.body;
   try {
+    const resolvedFirstName = String(firstName || "").trim();
+    const resolvedLastName = String(lastName || "").trim();
+    const resolvedFullName = String(fullName || "").trim();
+
     if (
-      !fullName ||
       !email ||
       !gender ||
       !phone ||
@@ -51,9 +66,35 @@ export const registerDoctor = async (req, res) => {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    if (typeof password !== "string" || password.length < 8) {
-      return res.status(400).json({ message: "Password must be at least 8 characters" });
+    const hasNames =
+      (resolvedFirstName && resolvedLastName) || resolvedFullName;
+
+    if (!hasNames) {
+      return res
+        .status(400)
+        .json({ message: "First and last name are required" });
     }
+
+    if (!isStrongPassword(password)) {
+      return res
+        .status(400)
+        .json({
+          message:
+            "Password must be at least 8 characters and include uppercase, number, and special character",
+        });
+    }
+
+    const normalizedFullName =
+      `${resolvedFirstName} ${resolvedLastName}`.trim() || resolvedFullName;
+    const [fallbackFirstName = ""] = normalizedFullName.split(/\s+/);
+    const fallbackLastName = normalizedFullName
+      .split(/\s+/)
+      .slice(1)
+      .join(" ");
+
+    const normalizedFirstName = resolvedFirstName || fallbackFirstName;
+    const normalizedLastName =
+      resolvedLastName || fallbackLastName || fallbackFirstName;
 
     // const doctorExisted=await Doctor.findOne({
     //     $and:[
@@ -78,7 +119,9 @@ export const registerDoctor = async (req, res) => {
     const otpExpiry = Date.now() + 30 * 60 * 1000;
 
     const doctor = new Doctor({
-      fullName,
+      firstName: normalizedFirstName,
+      lastName: normalizedLastName,
+      fullName: normalizedFullName,
       email,
       password: hashedPassword,
       phone,
@@ -106,7 +149,7 @@ export const registerDoctor = async (req, res) => {
       await sendEmail({
         to: email,
         subject: "Verify your MedAlerto account",
-        html: verificationEmailTemplate(fullName, otp),
+        html: verificationEmailTemplate(normalizedFullName, otp),
       });
     } catch (emailError) {
       console.error("Verification email failed: ", emailError.message);
@@ -168,14 +211,27 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "Email not verified" });
     }
     const token = generateToken(doctor._id);
-    res.cookie("token", token, {
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      // For cross-site deployments (client and API on different origins)
+      // browsers require SameSite=None and Secure to send cookies. Use
+      // strict locally to retain stronger defaults in development.
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+      path: "/",
       maxAge: 15 * 24 * 60 * 60 * 1000,
-    });
+    };
+
+    // Optional domain override for multi-subdomain setups (set COOKIE_DOMAIN env var)
+    if (process.env.COOKIE_DOMAIN) {
+      cookieOptions.domain = process.env.COOKIE_DOMAIN;
+    }
+
+    res.cookie("token", token, cookieOptions);
     res.status(200).json({
       message: "Login successful",
+      firstName: doctor.firstName,
+      lastName: doctor.lastName,
       fullName: doctor.fullName,
       email: doctor.email,
       gender: doctor.gender,
@@ -290,8 +346,13 @@ export const resetPassword = async (req, res) => {
         .status(400)
         .json({ message: "Reset token and password are required" });
     }
-    if (typeof newPassword !== "string" || newPassword.length < 8) {
-      return res.status(400).json({ message: "Password must be at least 8 characters" });
+    if (!isStrongPassword(newPassword)) {
+      return res
+        .status(400)
+        .json({
+          message:
+            "Password must be at least 8 characters and include uppercase, number, and special character",
+        });
     }
     // Hash the submitted token to compare against the stored hash
     const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");

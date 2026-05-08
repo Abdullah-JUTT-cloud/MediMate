@@ -43,6 +43,10 @@ const PORT=process.env.PORT || 3000;
 
 const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "http://localhost:5173").split(",").map(o => o.trim());
 
+if (process.env.NODE_ENV === 'production' && ALLOWED_ORIGINS.some(o => o.includes('localhost'))) {
+  console.warn('WARNING: ALLOWED_ORIGINS contains localhost while running in production. Set ALLOWED_ORIGINS environment variable to your client origin(s) to avoid CORS issues.');
+}
+
 app.use(cors({
     origin: (origin, callback) => {
         if (!origin || ALLOWED_ORIGINS.includes(origin)) {

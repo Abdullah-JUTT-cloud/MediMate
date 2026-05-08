@@ -43,6 +43,8 @@ export const getVerificationStatus = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   const {
+    firstName,
+    lastName,
     fullName,
     gender,
     phone,
@@ -94,7 +96,17 @@ export const updateProfile = async (req, res) => {
     if (!doctor) {
       return res.status(404).json({ message: "Doctor not found" });
     }
-    if (typeof fullName !== "undefined") doctor.fullName = String(fullName).trim();
+    if (typeof firstName !== "undefined") doctor.firstName = String(firstName).trim();
+    if (typeof lastName !== "undefined") doctor.lastName = String(lastName).trim();
+    if (typeof fullName !== "undefined") {
+      const normalized = String(fullName).trim();
+      doctor.fullName = normalized;
+      if (typeof firstName === "undefined" || typeof lastName === "undefined") {
+        const parts = normalized.split(/\s+/).filter(Boolean);
+        doctor.firstName = typeof firstName === "undefined" ? (parts[0] || doctor.firstName || "") : doctor.firstName;
+        doctor.lastName = typeof lastName === "undefined" ? (parts.slice(1).join(" ") || parts[0] || doctor.lastName || "") : doctor.lastName;
+      }
+    }
     if (typeof phone !== "undefined") doctor.phone = String(phone).trim();
     if (typeof specialization !== "undefined") doctor.specialization = String(specialization).trim();
     if (typeof clinics !== "undefined") doctor.clinics = clinics;
