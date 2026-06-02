@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import usePatientAuthStore from "../store/patientAuthStore";
+import { RouteSkeleton } from "./RouteSkeleton";
 
 export default function PatientProtectedRoute({ children }) {
   const isAuthenticated = usePatientAuthStore((state) => state.patient !== null);
@@ -14,7 +15,7 @@ export default function PatientProtectedRoute({ children }) {
   }, []);
 
   if (!isHydrated) {
-    return null;
+    return <RouteSkeleton />;
   }
 
   if (!isAuthenticated) {

@@ -1,0 +1,62 @@
+/* Heartbeat EKG Animation - Sweeps a glowing pulse wave from far left to the end in a distinct heartbeat rhythm */
+@keyframes heartbeat-sweep {
+  0% {
+    background-position: 200% 0;
+  }
+  /* Lub: First contraction sweeping from left to middle */
+  18% {
+    background-position: 120% 0;
+  }
+  /* Short contraction pause/recoil */
+  24% {
+    background-position: 110% 0;
+  }
+  /* Dub: Second strong contraction sweeping all the way to the right end */
+  45% {
+    background-position: -100% 0;
+  }
+  /* Rest period (diastole) to complete the heartbeat cycle */
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.skeleton-pulse {
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-pulse::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    transparent 35%,
+    color-mix(in srgb, var(--color-primary, #5d7052) 28%, transparent) 50%,
+    transparent 65%,
+    transparent 100%
+  );
+  background-size: 300% 100%;
+  animation: heartbeat-sweep 2.2s cubic-bezier(0.25, 0.8, 0.25, 1) infinite;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Smooth fade-in transition when skeleton is replaced with content */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-in {
+  animation: fadeIn 300ms ease-in;
+}

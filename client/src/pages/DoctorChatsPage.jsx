@@ -15,6 +15,7 @@ import axiosInstance from "../api/axios";
 import MessageStatusTicks from "../components/MessageStatusTicks";
 import VoiceMessagePlayer from "../components/VoiceMessagePlayer";
 import { getRealtimeSocketForRole } from "../realtime/socket";
+import { RowSkeleton, ChatHistorySkeleton } from "../components/SkeletonLoaders";
 
 const CHAT_SEEN_STORAGE_KEY = "doctor-chat-seen-map-v1";
 
@@ -871,6 +872,7 @@ export default function DoctorChatsPage() {
   const isSelectedChatAligned =
     Boolean(selectedPatientId) &&
     selectedChatPatientId === String(selectedPatientId);
+  const isChatLoading = Boolean(selectedPatientId) && !isSelectedChatAligned;
   const messages = [
     ...(isSelectedChatAligned ? selectedChat?.chat?.messages || [] : []),
     ...optimisticMessages,
@@ -958,9 +960,11 @@ export default function DoctorChatsPage() {
 
           <div className="mt-4 space-y-3 max-h-[72vh] overflow-y-auto pr-1">
             {isLoading ? (
-              <p className="text-sm text-[var(--color-text-secondary)]">
-                Loading...
-              </p>
+              <div className="space-y-3">
+                {[...Array(5)].map((_, i) => (
+                  <RowSkeleton key={i} hasAvatar={true} />
+                ))}
+              </div>
             ) : patients.length === 0 ? (
               <p className="text-sm text-[var(--color-text-secondary)]">
                 No chat-enabled patients yet.
@@ -1155,7 +1159,9 @@ export default function DoctorChatsPage() {
                   className="h-full overflow-y-auto px-3 py-4 space-y-3 sm:px-4"
                   style={chatCanvasStyle}
                 >
-                  {messages.length === 0 ? (
+                  {isChatLoading ? (
+                    <ChatHistorySkeleton />
+                  ) : messages.length === 0 ? (
                     <p className="text-sm text-[var(--color-text-secondary)]">
                       No messages yet.
                     </p>

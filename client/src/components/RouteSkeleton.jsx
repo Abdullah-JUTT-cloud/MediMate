@@ -1,16 +1,28 @@
+import "./RouteSkeleton.css";
+import logoCompact from "../assets/logo-compact.webp";
+
 export function RouteSkeleton() {
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] p-4 sm:p-6">
-      <div className="mx-auto w-full max-w-6xl space-y-4">
-        <div className="h-12 w-1/3 animate-pulse rounded-2xl border border-[var(--color-border)]/80 bg-[var(--color-card)]/80" />
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <div
-              key={`route-skeleton-card-${index}`}
-              className="h-36 animate-pulse rounded-3xl border border-[var(--color-border)]/80 bg-[var(--color-card)]/80"
+    <div className="route-loader">
+      <div className="route-loader__content">
+        <img src={logoCompact} alt="MediMate" className="route-loader__logo" />
+        <div className="route-loader__heartbeat-track">
+          <svg
+            className="route-loader__heartbeat-svg"
+            viewBox="0 0 600 80"
+            preserveAspectRatio="none"
+          >
+            <polyline
+              className="route-loader__heartbeat-line"
+              points="0,40 80,40 110,40 130,12 150,68 170,28 190,52 210,40 280,40 310,40 330,12 350,68 370,28 390,52 410,40 480,40 510,40 530,12 550,68 570,28 590,52 600,40"
+              fill="none"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             />
-          ))}
+          </svg>
         </div>
+        <p className="route-loader__text">Loading</p>
       </div>
     </div>
   );
@@ -18,15 +30,30 @@ export function RouteSkeleton() {
 
 export function DashboardSectionSkeleton() {
   return (
-    <div className="rounded-4xl border border-[var(--color-border)]/80 bg-[var(--color-card)]/95 p-4 shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)] sm:p-6">
-      <div className="mb-4 h-8 w-48 animate-pulse rounded-xl bg-[var(--color-bg-soft)]/70" />
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-        {Array.from({ length: 6 }).map((_, index) => (
-          <div
-            key={`dashboard-section-skeleton-${index}`}
-            className="h-28 animate-pulse rounded-3xl border border-[var(--color-border)]/80 bg-[var(--color-bg-soft)]/55"
-          />
-        ))}
+    <div
+      className="route-loader"
+      style={{ minHeight: "auto", padding: "2rem" }}
+    >
+      <div className="route-loader__content">
+        <div
+          className="route-loader__heartbeat-track"
+          style={{ maxWidth: "180px" }}
+        >
+          <svg
+            className="route-loader__heartbeat-svg"
+            viewBox="0 0 600 80"
+            preserveAspectRatio="none"
+          >
+            <polyline
+              className="route-loader__heartbeat-line"
+              points="0,40 80,40 110,40 130,12 150,68 170,28 190,52 210,40 280,40 310,40 330,12 350,68 370,28 390,52 410,40 480,40 510,40 530,12 550,68 570,28 590,52 600,40"
+              fill="none"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
       </div>
     </div>
   );

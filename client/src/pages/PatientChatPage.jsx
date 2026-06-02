@@ -17,6 +17,7 @@ import MessageStatusTicks from "../components/MessageStatusTicks";
 import VoiceMessagePlayer from "../components/VoiceMessagePlayer";
 import { getRealtimeSocketForRole } from "../realtime/socket";
 import usePatientAuthStore from "../store/patientAuthStore";
+import { ChatHistorySkeleton } from "../components/SkeletonLoaders";
 
 const formatMessageDate = (date) =>
   new Date(date).toLocaleString("en-PK", {
@@ -696,9 +697,7 @@ export default function PatientChatPage() {
           style={chatCanvasStyle}
         >
           {isLoading ? (
-            <p className="text-sm text-[var(--color-text-secondary)]">
-              Loading chat...
-            </p>
+            <ChatHistorySkeleton />
           ) : messages.length === 0 ? (
             <p className="text-sm text-[var(--color-text-secondary)]">
               No messages yet.

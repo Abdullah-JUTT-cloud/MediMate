@@ -7,6 +7,7 @@ import PatientProtectedRoute from "./components/PatientProtectedRoute";
 import ThemeToggle from "./components/ThemeToggle";
 import ScrollToTop from "./components/ScrollToTop";
 import useTheme from "./hooks/useTheme";
+import { RouteSkeleton } from "./components/RouteSkeleton";
 
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 const SignupPage = lazy(() => import("./pages/SignupPage"));
@@ -43,9 +44,7 @@ function App() {
         <ScrollToTop />
         <ThemeToggle theme={theme} onToggle={toggleTheme} />
         <Toaster position="top-right" />
-        <Suspense
-          fallback={<div className="min-h-screen bg-[var(--color-bg)]" />}
-        >
+        <Suspense fallback={<RouteSkeleton />}>
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/signup" element={<SignupPage />} />

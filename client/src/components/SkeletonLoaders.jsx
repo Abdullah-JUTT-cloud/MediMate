@@ -1,4 +1,5 @@
 import { Skeleton } from "@mui/material";
+import "./SkeletonLoaders.css";
 
 /**
  * Common styles for our skeletons to match the app's theme.
@@ -15,7 +16,7 @@ const skeletonSx = {
 
 export const CardSkeleton = () => (
   <div
-    className="rounded-2xl p-4 sm:p-5 transition-all w-full"
+    className="rounded-2xl p-4 sm:p-5 transition-all w-full skeleton-pulse"
     style={{
       background: "var(--color-card)",
       border: "1px solid var(--color-border)",
@@ -47,7 +48,7 @@ export const CardSkeleton = () => (
 
 export const RowSkeleton = ({ hasAvatar = true }) => (
   <div
-    className="rounded-xl p-3 sm:p-4 transition-all flex items-center gap-4 w-full"
+    className="rounded-xl p-3 sm:p-4 transition-all flex items-center gap-4 w-full skeleton-pulse"
     style={{
       background: "color-mix(in srgb, var(--color-bg) 65%, var(--color-card))",
       border: "1px solid var(--color-border)",
@@ -101,7 +102,7 @@ export const RowSkeleton = ({ hasAvatar = true }) => (
 
 export const AppointmentRowSkeleton = () => (
   <div
-    className="flex items-center gap-3 p-3 rounded-xl transition-all"
+    className="flex items-center gap-3 p-3 rounded-xl transition-all skeleton-pulse"
     style={{
       background: "color-mix(in srgb, var(--color-bg) 65%, var(--color-card))",
       border: "1px solid var(--color-border)",
@@ -129,7 +130,7 @@ export const AppointmentRowSkeleton = () => (
 );
 
 export const ChartSkeleton = () => (
-  <div className="w-full h-[200px] flex items-end gap-2 px-2 pt-4">
+  <div className="w-full h-[200px] flex items-end gap-2 px-2 pt-4 skeleton-pulse">
     {[...Array(12)].map((_, i) => (
       <Skeleton
         key={i}
@@ -147,7 +148,7 @@ export const ChartSkeleton = () => (
 
 export const ProfileHeaderSkeleton = () => (
   <div
-    className="rounded-2xl p-5 sm:p-6 mb-5"
+    className="rounded-2xl p-5 sm:p-6 mb-5 skeleton-pulse"
     style={{
       background: "var(--color-card)",
       border: "1px solid var(--color-border)",
@@ -218,7 +219,7 @@ export const ProfileHeaderSkeleton = () => (
 );
 
 export const FormFieldSkeleton = () => (
-  <div className="space-y-2">
+  <div className="space-y-2 skeleton-pulse">
     <Skeleton variant="text" width="30%" height={16} sx={skeletonSx} />
     <Skeleton
       variant="rectangular"
@@ -226,5 +227,64 @@ export const FormFieldSkeleton = () => (
       height={44}
       sx={{ ...skeletonSx, borderRadius: "0.75rem" }}
     />
+  </div>
+);
+
+export const ChatHistorySkeleton = () => (
+  <div className="space-y-4 w-full h-full p-2 skeleton-pulse">
+    {[...Array(5)].map((_, i) => {
+      const isRight = i % 2 === 1;
+      return (
+        <div
+          key={i}
+          className={`flex ${isRight ? "justify-end" : "justify-start"} items-end gap-2`}
+        >
+          {!isRight && (
+            <Skeleton
+              variant="circular"
+              width={32}
+              height={32}
+              sx={skeletonSx}
+              className="shrink-0"
+            />
+          )}
+          <div
+            className="max-w-[70%] rounded-2xl p-3 space-y-1.5 border"
+            style={{
+              background: isRight
+                ? "color-mix(in srgb, var(--color-primary) 12%, var(--color-card) 88%)"
+                : "color-mix(in srgb, var(--color-card-elevated) 88%, var(--color-bg) 12%)",
+              borderColor: "var(--color-border)",
+              borderRadius: isRight
+                ? "1.25rem 1.25rem 0.25rem 1.25rem"
+                : "1.25rem 1.25rem 1.25rem 0.25rem",
+            }}
+          >
+            <Skeleton
+              variant="text"
+              width={
+                i === 0
+                  ? "120px"
+                  : i === 1
+                    ? "180px"
+                    : i === 2
+                      ? "90px"
+                      : "150px"
+              }
+              height={20}
+              sx={skeletonSx}
+            />
+            {i % 3 === 0 && (
+              <Skeleton
+                variant="text"
+                width="80px"
+                height={16}
+                sx={skeletonSx}
+              />
+            )}
+          </div>
+        </div>
+      );
+    })}
   </div>
 );
