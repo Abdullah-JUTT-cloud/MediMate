@@ -337,3 +337,53 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* ✅ RESPONSIVE: Improve small screen support */
+@media (max-width: 640px) {
+  button {
+    min-height: 44px;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+    min-height: 44px;
+  }
+
+  .card {
+    padding: 12px;
+  }
+
+  .text-xs {
+    line-height: 1.5;
+  }
+}
+
+/* ✅ ACCESSIBILITY: Reduce motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ✅ TABLET: Optimize for medium screens */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .container-responsive {
+    max-width: 95%;
+  }
+
+  .grid-2col {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ✅ HIGH DPI: Crisp rendering on Retina displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  body::before {
+    opacity: 0.02;
+  }
+}

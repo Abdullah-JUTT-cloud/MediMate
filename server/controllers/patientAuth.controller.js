@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import Patient from "../models/patient.model.js";
+import { getClearCookieOptions, getCookieOptions } from "../utils/security.js";
 
 const buildPatientToken = (patient) =>
   jwt.sign({ id: patient._id, role: "patient" }, process.env.JWT_SECRET, {
@@ -8,11 +9,7 @@ const buildPatientToken = (patient) =>
   });
 
 const clearPatientCookie = (res) => {
-  res.clearCookie("patientToken", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-  });
+  res.clearCookie("patientToken", getClearCookieOptions());
 };
 
 export const loginPatient = async (req, res) => {
@@ -38,12 +35,7 @@ export const loginPatient = async (req, res) => {
     await patient.save();
 
     const token = buildPatientToken(patient);
-    res.cookie("patientToken", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 15 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie("patientToken", token, getCookieOptions());
 
     return res.status(200).json({
       message: "Login successful",

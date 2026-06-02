@@ -8,6 +8,7 @@ import {
 } from "../utils/sendEmail.js";
 import { generateToken } from "../utils/generateToken.js";
 import crypto from "crypto";
+import { getClearCookieOptions, getCookieOptions } from "../utils/security.js";
 
 const isStrongPassword = (password) => {
   if (typeof password !== "string") return false;
@@ -16,6 +17,18 @@ const isStrongPassword = (password) => {
     /[A-Z]/.test(password) &&
     /\d/.test(password) &&
     /[^A-Za-z0-9]/.test(password)
+  );
+};
+
+const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
+
+const secureOtpMatches = (storedOtp, submittedOtp) => {
+  const stored = String(storedOtp || "");
+  const submitted = String(submittedOtp || "");
+  return (
+    stored.length > 0 &&
+    stored.length === submitted.length &&
+    crypto.timingSafeEqual(Buffer.from(stored), Buffer.from(submitted))
   );
 };
 
@@ -44,12 +57,13 @@ export const registerDoctor = async (req, res) => {
     hospitals,
   } = req.body;
   try {
+    const normalizedEmail = normalizeEmail(email);
     const resolvedFirstName = String(firstName || "").trim();
     const resolvedLastName = String(lastName || "").trim();
     const resolvedFullName = String(fullName || "").trim();
 
     if (
-      !email ||
+      !normalizedEmail ||
       !gender ||
       !phone ||
       !title ||
@@ -103,7 +117,7 @@ export const registerDoctor = async (req, res) => {
     //     ]
     // })
 
-    const emailExists = await Doctor.findOne({ email });
+    const emailExists = await Doctor.findOne({ email: normalizedEmail });
     if (emailExists)
       return res.status(409).json({ message: "Email already registered" });
 
@@ -122,7 +136,7 @@ export const registerDoctor = async (req, res) => {
       firstName: normalizedFirstName,
       lastName: normalizedLastName,
       fullName: normalizedFullName,
-      email,
+      email: normalizedEmail,
       password: hashedPassword,
       phone,
       specialization,
@@ -147,7 +161,7 @@ export const registerDoctor = async (req, res) => {
 
     try {
       await sendEmail({
-        to: email,
+        to: normalizedEmail,
         subject: "Verify your MedAlerto account",
         html: verificationEmailTemplate(normalizedFullName, otp),
       });
@@ -165,20 +179,18 @@ export const registerDoctor = async (req, res) => {
 export const verifyEmail = async (req, res) => {
   const { email, otp } = req.body;
   try {
-    if (!email || !otp) {
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail || !otp) {
       return res.status(400).json({ message: "Email and OTP are required" });
     }
-    const doctor = await Doctor.findOne({ email });
+    const doctor = await Doctor.findOne({ email: normalizedEmail });
     if (!doctor) {
       return res.status(404).json({ message: "Doctor not found" });
     }
     if (doctor.isVerified) {
       return res.status(400).json({ message: "Email already verified" });
     }
-    if (
-      doctor.otp.length !== otp.length ||
-      !crypto.timingSafeEqual(Buffer.from(doctor.otp), Buffer.from(otp))
-    ) {
+    if (!secureOtpMatches(doctor.otp, otp)) {
       return res.status(400).json({ message: "Invalid OTP" });
     }
     if (doctor.otpExpiry < Date.now()) {
@@ -199,10 +211,11 @@ export const verifyEmail = async (req, res) => {
 export const login = async (req, res) => {
   const { email, password } = req.body;
   try {
-    if (!email || !password) {
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail || !password) {
       return res.status(400).json({ message: "All fields are required" });
     }
-    const doctor = await Doctor.findOne({ email });
+    const doctor = await Doctor.findOne({ email: normalizedEmail });
     const isMatch = doctor ? await bcrypt.compare(password, doctor.password) : false;
     if (!doctor || !isMatch) {
       return res.status(401).json({ message: "Invalid email or password" });
@@ -211,23 +224,7 @@ export const login = async (req, res) => {
       return res.status(400).json({ message: "Email not verified" });
     }
     const token = generateToken(doctor._id);
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      // For cross-site deployments (client and API on different origins)
-      // browsers require SameSite=None and Secure to send cookies. Use
-      // strict locally to retain stronger defaults in development.
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-      path: "/",
-      maxAge: 15 * 24 * 60 * 60 * 1000,
-    };
-
-    // Optional domain override for multi-subdomain setups (set COOKIE_DOMAIN env var)
-    if (process.env.COOKIE_DOMAIN) {
-      cookieOptions.domain = process.env.COOKIE_DOMAIN;
-    }
-
-    res.cookie("token", token, cookieOptions);
+    res.cookie("token", token, getCookieOptions());
     res.status(200).json({
       message: "Login successful",
       firstName: doctor.firstName,
@@ -260,7 +257,7 @@ export const login = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
-    res.clearCookie("token");
+    res.clearCookie("token", getClearCookieOptions());
     res.status(200).json({ message: "Logout successful" });
   } catch (error) {
     console.error("[logout]", error);
@@ -271,10 +268,11 @@ export const logout = async (req, res) => {
 export const forgotPassword = async (req, res) => {
   const { email } = req.body;
   try {
-    if (!email) {
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail) {
       return res.status(400).json({ message: "Email is required" });
     }
-    const doctor = await Doctor.findOne({ email });
+    const doctor = await Doctor.findOne({ email: normalizedEmail });
     // Generic response to prevent email enumeration
     if (!doctor) {
       return res.status(200).json({ message: "If this email is registered, an OTP has been sent" });
@@ -286,7 +284,7 @@ export const forgotPassword = async (req, res) => {
     await doctor.save();
     try {
       await sendEmail({
-        to: email,
+        to: normalizedEmail,
         subject: "Reset your MedAlerto password",
         html: resetPasswordEmailTemplate(doctor.fullName, otp),
       });
@@ -304,18 +302,15 @@ export const forgotPassword = async (req, res) => {
 export const verifyResetOtp = async (req, res) => {
   const { email, otp } = req.body;
   try {
-    if (!email || !otp) {
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail || !otp) {
       return res.status(400).json({ message: "Email and OTP are required" });
     }
-    const doctor = await Doctor.findOne({ email });
+    const doctor = await Doctor.findOne({ email: normalizedEmail });
     if (!doctor) {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
-    if (
-      !doctor.otp ||
-      doctor.otp.length !== otp.length ||
-      !crypto.timingSafeEqual(Buffer.from(doctor.otp), Buffer.from(otp))
-    ) {
+    if (!secureOtpMatches(doctor.otp, otp)) {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
     if (doctor.otpExpiry < Date.now()) {
@@ -379,9 +374,10 @@ export const resetPassword = async (req, res) => {
 export const resendOtp = async (req, res) => {
   try {
     const { email } = req.body;
-    if (!email) return res.status(400).json({ message: "Email is required" });
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail) return res.status(400).json({ message: "Email is required" });
 
-    const doctor = await Doctor.findOne({ email });
+    const doctor = await Doctor.findOne({ email: normalizedEmail });
     // Generic response to prevent email enumeration
     if (!doctor || doctor.isVerified) {
       return res.status(200).json({ message: "If this email is registered and unverified, a new OTP has been sent" });
@@ -394,7 +390,7 @@ export const resendOtp = async (req, res) => {
 
     try {
       await sendEmail({
-        to: email,
+        to: normalizedEmail,
         subject: "MedAlerto - New Verification OTP",
         html: verificationEmailTemplate(doctor.fullName, otp),
       });
