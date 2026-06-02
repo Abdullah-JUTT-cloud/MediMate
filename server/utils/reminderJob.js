@@ -2,7 +2,7 @@ import cron from 'node-cron';
 import Appointment from '../models/appointment.model.js';
 import { sendTextWhatsApp } from './whatsapp.js';
 
-const cronSchedule = '*/30 * * * *';
+const cronSchedule = '0 */6 * * *';
 const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const LOCK_KEY = 'reminder-job-lock';
