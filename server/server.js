@@ -34,9 +34,11 @@ import rateLimit from "express-rate-limit";
 import mongoSanitize from "express-mongo-sanitize";
 import http from "http";
 import { initSocketServer } from "./realtime/socket.js";
+import { createUnsafeRequestOriginGuard } from "./utils/security.js";
 
 const app=express();
 const server = http.createServer(app);
+app.disable("x-powered-by");
 app.use(helmet());
 
 const PORT=process.env.PORT || 3000;
@@ -57,7 +59,8 @@ app.use(cors({
     },
     credentials: true
 }))
-app.use(express.json())
+app.use(createUnsafeRequestOriginGuard(ALLOWED_ORIGINS));
+app.use(express.json({ limit: "128kb" }))
 app.use((req, res, next) => {
     // Express 5 has a read-only req.query, so sanitize mutable objects only.
     if (req.body) req.body = mongoSanitize.sanitize(req.body);
@@ -86,12 +89,17 @@ const dataLimiter = rateLimit({
   message: { message: "Too many requests to this endpoint, please try again later" },
   skip: (req) => req.method === "GET",
 });
+const prescriptionLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  message: { message: "Too many prescription requests, please try again later" },
+});
 
 app.use("/api/doctor", dataLimiter, doctorRoutes);
 app.use("/api/patients", dataLimiter, patientRoutes);
 app.use("/api/checkups", dataLimiter, checkupRoutes);
 app.use("/api/appointments", dataLimiter, appointmentRoutes);
-app.use("/api/prescriptions", dataLimiter, prescriptionRoutes);
+app.use("/api/prescriptions", prescriptionLimiter, dataLimiter, prescriptionRoutes);
 app.use("/api/reports", dataLimiter, reportsRoutes);
 app.use("/api/billing", dataLimiter, billingRoutes);
 app.use("/api/admin", dataLimiter, adminRoutes);

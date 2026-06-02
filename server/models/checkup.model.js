@@ -1,12 +1,21 @@
 import mongoose from "mongoose";
 
 const medicineSchema = new mongoose.Schema({
-  name: { type: String, required: true, trim: true },
-  dosage: { type: String, required: true, trim: true },
-  frequency: { type: String, required: true, trim: true },
-  duration: { type: String, required: true, trim: true },
-  instructions: { type: String, default: "", trim: true },
+  name: { type: String, required: true, trim: true, maxlength: 120 },
+  dosage: { type: String, required: true, trim: true, maxlength: 80 },
+  frequency: { type: String, required: true, trim: true, maxlength: 80 },
+  duration: { type: String, required: true, trim: true, maxlength: 80 },
+  instructions: { type: String, default: "", trim: true, maxlength: 240 },
 });
+
+const visitedFacilitySchema = new mongoose.Schema(
+  {
+    locationType: { type: String, enum: ["Clinic", "Hospital"], required: true },
+    locationName: { type: String, required: true, trim: true, maxlength: 160 },
+    locationAddress: { type: String, default: "", trim: true, maxlength: 260 },
+  },
+  { _id: false },
+);
 
 const checkupSchema = new mongoose.Schema(
   {
@@ -21,31 +30,47 @@ const checkupSchema = new mongoose.Schema(
       required: true,
     },
     diseases: {
-      type: [String],
+      type: [{ type: String, trim: true, maxlength: 120 }],
       default: [],
+      validate: {
+        validator: (items) => Array.isArray(items) && items.length <= 25,
+        message: "Diseases list is too long",
+      },
     },
     notes: {
       type: String,
       default: "",
+      trim: true,
+      maxlength: 5000,
     },
     prescription: {
-      diagnosis: { type: String, default: "" },
+      diagnosis: { type: String, default: "", trim: true, maxlength: 1000 },
       nextAppointment: { type: Date },
-      medicines: { type: [medicineSchema], default: [] },
-      labTests: { type: [String], default: [] },
-      patientAdvice: { type: String, default: "", trim: true },
-      pdfUrl: { type: String, default: "" },
+      medicines: {
+        type: [medicineSchema],
+        default: [],
+        validate: {
+          validator: (items) => Array.isArray(items) && items.length <= 50,
+          message: "Medicines list is too long",
+        },
+      },
+      labTests: {
+        type: [{ type: String, trim: true, maxlength: 160 }],
+        default: [],
+        validate: {
+          validator: (items) => Array.isArray(items) && items.length <= 50,
+          message: "Lab tests list is too long",
+        },
+      },
+      patientAdvice: { type: String, default: "", trim: true, maxlength: 2000 },
+      pdfUrl: { type: String, default: "", trim: true, maxlength: 1000 },
     },
     visitedFacility: {
-      type: {
-        locationType: { type: String, enum: ["Clinic", "Hospital"] },
-        locationName: String,
-        locationAddress: String,
-      },
+      type: visitedFacilitySchema,
       default: null,
     },
     payment: {
-      amount: { type: Number, required: true, default: 0 },
+      amount: { type: Number, required: true, default: 0, min: 0, max: 1000000 },
       method: {
         type: String,
         enum: ["Cash", "Card", "Online Transfer"],
