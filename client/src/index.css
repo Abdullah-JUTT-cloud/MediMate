@@ -3,6 +3,8 @@
 /* stylelint-disable-next-line at-rule-no-unknown */
 @plugin "@tailwindcss/typography";
 
+
+
 :root {
   --font-body: "Nunito", ui-sans-serif, system-ui, sans-serif;
   --font-heading: "Fraunces", ui-serif, Georgia, serif;
