@@ -2,10 +2,11 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
-import logo from "../assets/logo-compact.webp";
+import useThemedLogo from "../hooks/useThemedLogo";
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
+  const logo = useThemedLogo();
   const location = useLocation();
   const email = location.state?.email || "";
   const resetToken = location.state?.resetToken || "";

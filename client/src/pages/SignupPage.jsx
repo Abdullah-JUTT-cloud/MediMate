@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
-import logo from "../assets/logo-compact.webp";
+import useThemedLogo from "../hooks/useThemedLogo";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -651,6 +651,7 @@ function LocationCard({
 
 export default function SignupPage() {
   const navigate = useNavigate();
+  const logo = useThemedLogo();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);

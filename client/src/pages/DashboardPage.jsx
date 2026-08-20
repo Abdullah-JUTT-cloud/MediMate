@@ -5,7 +5,8 @@ import { AlertTriangle, BarChart3, CalendarCheck2, CircleUserRound, CreditCard, 
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import useAuthStore from "../store/authStore";
-import logo from "../assets/logo-compact.webp";
+import useThemedLogo from "../hooks/useThemedLogo";
+import fullblueLogo from "../assets/fullblue.png";
 import SettingsPage from "./SettingsPage";
 import PatientsPage from "./PatientsPage";
 import PaymentPage from "./PaymentPage";
@@ -59,6 +60,7 @@ function dashboardGlyph(Icon, className = "h-4 w-4") {
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { doctor, logout, setDoctor } = useAuthStore();
+  const logo = useThemedLogo();
   const [activeNav, setActiveNav] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [todayAppointments, setTodayAppointments] = useState([]);
@@ -390,8 +392,8 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
         className={"fixed inset-y-0 left-0 z-30 flex flex-col border-r border-[var(--color-border)]/80 bg-[var(--color-card)]/95 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.2)] transition-transform duration-300 lg:static " + (sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0")}
         style={{ width: "240px", flexShrink: 0 }}>
 
-        <div className="flex items-center gap-3 border-b border-[var(--color-border)]/80 px-5 py-5">
-          <img src={logo} alt="MedAlerto" className="h-8 w-auto" />
+        <div className="flex items-center gap-3 border-b border-[var(--color-border)]/80 px-5 py-4">
+          <img src={logo} alt="MedAlerto" className="h-12 sm:h-12 w-auto max-w-[190px] object-contain" />
           <button className="ml-auto rounded-full border border-[var(--color-border)] px-2 py-1 text-[var(--color-text-secondary)] transition hover:text-[var(--color-text-primary)] lg:hidden" onClick={() => setSidebarOpen(false)}>✕</button>
         </div>
 
@@ -454,14 +456,17 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="relative shrink-0 border-b border-[var(--color-border)]/70 bg-[var(--color-card)]/90 px-4 py-4 backdrop-blur-md sm:px-6">
+        <header className="relative shrink-0 border-b border-[var(--color-border)]/70 bg-[var(--color-card)]/90 px-4 py-4 backdrop-blur-md sm:px-6 min-h-[90px] flex items-center">
           <div className="pointer-events-none absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 md:flex flex-col items-center">
-            <p className="font-heading text-base font-semibold tracking-[0.26em] text-[var(--color-primary)] lg:text-lg" style={{ textShadow: "0 10px 24px rgba(93,112,82,0.15)" }}>
-              Smart Healthcare Workspace
-            </p>
+            <img
+              src={fullblueLogo}
+              alt="MedAlerto Logo"
+              className="h-20 lg:h-28 w-auto max-w-[360px] lg:max-w-[520px] object-contain transform scale-105"
+              style={{ filter: "drop-shadow(0 10px 24px rgba(93,112,82,0.18))" }}
+            />
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex w-full items-center justify-between">
             <div className="flex items-center gap-3">
               <button
                 type="button"

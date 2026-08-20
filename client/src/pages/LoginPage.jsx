@@ -14,11 +14,12 @@ import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import useAuthStore from "../store/authStore";
-import logo from "../assets/logo-compact.webp";
+import useThemedLogo from "../hooks/useThemedLogo";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { setDoctor } = useAuthStore();
+  const logo = useThemedLogo();
 
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);

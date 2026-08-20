@@ -1,7 +1,9 @@
 import "./RouteSkeleton.css";
-import logoCompact from "../assets/logo-compact.webp";
+import useThemedLogo from "../hooks/useThemedLogo";
 
 export function RouteSkeleton() {
+  const logoCompact = useThemedLogo();
+
   return (
     <div className="route-loader">
       <div className="route-loader__content">

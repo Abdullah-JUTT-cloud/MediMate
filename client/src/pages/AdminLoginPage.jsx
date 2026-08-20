@@ -12,10 +12,11 @@ import {
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
-import logo from "../assets/logo-compact.webp";
+import useThemedLogo from "../hooks/useThemedLogo";
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
+  const logo = useThemedLogo();
   const [form, setForm] = useState({ email: "", password: "" });
   const [isLoading, setIsLoading] = useState(false);
 

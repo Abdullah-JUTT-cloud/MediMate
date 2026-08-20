@@ -14,11 +14,12 @@ import {
 } from "lucide-react";
 import axiosInstance from "../api/axios";
 import usePatientAuthStore from "../store/patientAuthStore";
-import logo from "../assets/logo-compact.webp";
+import useThemedLogo from "../hooks/useThemedLogo";
 
 export default function PatientLoginPage() {
   const navigate = useNavigate();
   const { setPatient } = usePatientAuthStore();
+  const logo = useThemedLogo();
   const [form, setForm] = useState({ username: "", password: "" });
   const [isLoading, setIsLoading] = useState(false);
 

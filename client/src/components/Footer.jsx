@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import logo from "../assets/logo-compact.webp";
+import useThemedLogo from "../hooks/useThemedLogo";
 
 const footerLinks = {
   Product: [
@@ -25,6 +25,8 @@ const footerLinks = {
 };
 
 export default function Footer() {
+  const logo = useThemedLogo();
+
   return (
     <footer
       id="contact"

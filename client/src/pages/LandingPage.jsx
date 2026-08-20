@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import doc from "../assets/doc-hero.webp";
-import logoCompact from "../assets/logo-compact.webp";
+import useThemedLogo from "../hooks/useThemedLogo";
 
 const features = [
   {
@@ -201,6 +201,7 @@ const testimonials = [
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const logoCompact = useThemedLogo();
   const videoRef = useRef(null);
   const [activeView, setActiveView] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
