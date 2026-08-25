@@ -103,9 +103,9 @@ export const sendTextWhatsApp = async (phone, message) => {
   await client.sendMessage(chatId, message);
 };
 
-initializeWhatsApp().catch((error) => {
-  console.error("Failed to initialize WhatsApp client:", error.message);
-});
+// initializeWhatsApp().catch((error) => {
+//   console.error("Failed to initialize WhatsApp client:", error.message);
+// });
 
 export const sendPrescriptionWhatsApp = async (phone, patientName, doctorName, facilityName, facilityType, pdfBuffer) => {
   try {

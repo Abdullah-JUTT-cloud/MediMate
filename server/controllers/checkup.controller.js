@@ -104,6 +104,10 @@ const normalizePdfUrl = (value) => {
   const url = cleanText(value, 1000);
   if (!url) return { valid: true, value: "" };
 
+  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    return { valid: true, value: url };
+  }
+
   try {
     const parsed = new URL(url);
     const allowedProtocols =

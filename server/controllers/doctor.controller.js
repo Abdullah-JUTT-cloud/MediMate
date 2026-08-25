@@ -1,5 +1,5 @@
 import { Doctor } from "../models/doctor.model.js";
-import cloudinary from "../config/cloudinary.js";
+import { uploadToR2, deleteFromR2, getFileUrl } from "../services/storage.service.js";
 import { allowedImageMimeTypes } from "../middlewares/upload.middleware.js";
 import Patient from "../models/patient.model.js";
 import Appointment from "../models/appointment.model.js";
@@ -12,7 +12,10 @@ export const getProfile = async (req, res) => {
     if (!doctor) {
       return res.status(404).json({ message: "Doctor not found" });
     }
-    res.status(200).json({ doctor });
+    const docObj = doctor.toObject();
+    if (docObj.profilePicture) docObj.profilePicture = getFileUrl(docObj.profilePicture);
+    if (docObj.pmdcCertificate) docObj.pmdcCertificate = getFileUrl(docObj.pmdcCertificate);
+    res.status(200).json({ doctor: docObj });
   } catch (error) {
     console.error("[getProfile]", error);
     res.status(500).json({ message: "Internal server error" });
@@ -151,26 +154,22 @@ export const uploadProfilePicture = async (req, res) => {
       });
     }
 
-    const uploadResult = await new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        { folder: "medimate/profiles", resource_type: "image" },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      );
-      stream.end(req.file.buffer);
-    });
-
     const doctor = await Doctor.findById(req.doctorId);
     if (!doctor) return res.status(404).json({ message: "Doctor not found" });
 
-    doctor.profilePicture = uploadResult.secure_url;
+    if (doctor.profilePicture) {
+      await deleteFromR2(doctor.profilePicture);
+    }
+
+    const { key, url } = await uploadToR2(req.file, "profiles");
+
+    doctor.profilePicture = key;
     await doctor.save();
 
     res.status(200).json({
       message: "Profile picture updated successfully",
-      profilePicture: uploadResult.secure_url,
+      profilePicture: url,
+      key,
     });
   } catch (error) {
     console.error("[uploadProfilePicture]", error);
@@ -183,29 +182,29 @@ export const uploadPmdcCertificate = async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
     }
-    const uploadResult = await new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        { folder: "medimate/pmdc", resource_type: "raw" },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      );
-      stream.end(req.file.buffer);
-    });
+
     const doctor = await Doctor.findById(req.doctorId);
     if (!doctor) return res.status(404).json({ message: "Doctor not found" });
-    doctor.pmdcCertificate = uploadResult.secure_url;
+
+    if (doctor.pmdcCertificate) {
+      await deleteFromR2(doctor.pmdcCertificate);
+    }
+
+    const { key, url } = await uploadToR2(req.file, "pmdc");
+
+    doctor.pmdcCertificate = key;
     await doctor.save();
+
     res.status(200).json({
       message: "PMDC certificate uploaded successfully",
-      pmdcCertificate: uploadResult.secure_url,
+      pmdcCertificate: url,
+      key,
     });
   } catch (error) {
     console.error("[uploadPmdcCertificate]", error);
     res.status(500).json({ message: "Internal server error" });
   }
-}
+};
 
 export const deleteAccount = async (req, res) => {
   try {

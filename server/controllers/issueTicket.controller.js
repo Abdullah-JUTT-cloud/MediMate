@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import cloudinary from "../config/cloudinary.js";
+import { uploadToR2, getFileUrl } from "../services/storage.service.js";
 import IssueTicket from "../models/issueTicket.model.js";
 import { Doctor } from "../models/doctor.model.js";
 import Notification from "../models/notification.model.js";
@@ -18,28 +18,8 @@ const validStatuses = ["Open", "In Progress", "Resolved", "Reopened", "Closed"];
 
 const isAdminRequest = (req) => Boolean(req.admin?.role === "admin");
 
-const uploadAttachmentToCloudinary = async (file) => {
-  const mimeType = file.detectedMimeType || file.mimetype;
-  const isImage = allowedImageMimeTypes.has(mimeType);
-  const isAudio = String(mimeType || "").toLowerCase().startsWith("audio/");
-  const resourceType = isImage ? "image" : isAudio ? "video" : "raw";
-
-  return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      {
-        folder: "medimate/issue-chats",
-        resource_type: resourceType,
-        use_filename: true,
-        unique_filename: true,
-      },
-      (error, result) => {
-        if (error) reject(error);
-        else resolve(result);
-      },
-    );
-
-    stream.end(file.buffer);
-  });
+const uploadAttachmentToR2 = async (file) => {
+  return await uploadToR2(file, "issue-chats");
 };
 
 const getMessageType = ({ text = "", attachments = [] }) => {
@@ -51,16 +31,9 @@ const getMessageType = ({ text = "", attachments = [] }) => {
   const allImages = normalizedAttachments.every((attachment) =>
     allowedImageMimeTypes.has(attachment.detectedMimeType || attachment.mimetype || attachment.mimeType)
   );
-  const allAudio = normalizedAttachments.every((attachment) =>
-    String(attachment.detectedMimeType || attachment.mimetype || attachment.mimeType || "")
-      .toLowerCase()
-      .startsWith("audio/")
-  );
 
   if (allImages && !text) return "image";
-  if (allAudio && !text) return "audio";
   if (allImages) return "image";
-  if (allAudio) return "audio";
   return "mixed";
 };
 
@@ -68,9 +41,10 @@ const buildTicketMessagePayload = async ({ senderRole, senderName, text, files }
   const attachments = [];
 
   for (const file of files || []) {
-    const uploadResult = await uploadAttachmentToCloudinary(file);
+    const uploadResult = await uploadAttachmentToR2(file);
     attachments.push({
-      url: uploadResult.secure_url,
+      url: uploadResult.url,
+      key: uploadResult.key,
       name: file.originalname,
       mimeType: file.detectedMimeType || file.mimetype,
       size: file.size || 0,
