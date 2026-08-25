@@ -1,9 +1,6 @@
 import jwt from "jsonwebtoken";
 import { Server } from "socket.io";
-import Patient from "../models/patient.model.js";
-import PatientChat from "../models/patientChat.model.js";
 import IssueTicket from "../models/issueTicket.model.js";
-import { Doctor } from "../models/doctor.model.js";
 
 let ioInstance = null;
 
@@ -88,70 +85,13 @@ const getSocketAuth = (socket) => {
 };
 
 const getDoctorRoom = (doctorId) => `doctor:${doctorId}`;
-const getPatientRoom = (patientId) => `patient:${patientId}`;
 const getAdminRoom = () => "admin";
-const getPatientChatThreadRoom = (doctorId, patientId) => `patient-chat:${doctorId}:${patientId}`;
 const getIssueTicketRoom = (ticketId) => `issue-ticket:${ticketId}`;
-
-const getChatRoomForRole = (role, id) => (role === "doctor" ? getDoctorRoom(id) : getPatientRoom(id));
 
 const isRoomActive = (room) => {
   if (!ioInstance || !room) return false;
   const socketsInRoom = ioInstance.sockets.adapter.rooms.get(room);
   return Boolean(socketsInRoom && socketsInRoom.size > 0);
-};
-
-const applyOutgoingDeliveryState = async ({ doctorId, patientId, chat, senderRole }) => {
-  if (!chat || !senderRole) return { chat, deliveredMessageIds: [] };
-
-  const recipientRole = senderRole === "doctor" ? "patient" : "doctor";
-  const recipientRoom = getChatRoomForRole(recipientRole, recipientRole === "doctor" ? doctorId : patientId);
-  if (!isRoomActive(recipientRoom)) {
-    return { chat, deliveredMessageIds: [] };
-  }
-
-  const deliveredAt = new Date();
-  const deliveredMessageIds = [];
-
-  for (const message of chat.messages || []) {
-    if (message?.senderRole !== senderRole) continue;
-    if (message?.status && message.status !== "sent") continue;
-    message.status = "delivered";
-    message.deliveredAt = message.deliveredAt || deliveredAt;
-    deliveredMessageIds.push(String(message._id));
-  }
-
-  if (deliveredMessageIds.length > 0) {
-    chat.markModified("messages");
-    await chat.save();
-  }
-
-  return { chat, deliveredMessageIds };
-};
-
-const applyIncomingSeenState = async ({ doctorId, patientId, chat, viewerRole, messageIds = [] }) => {
-  if (!chat || !viewerRole) return { chat, seenMessageIds: [] };
-
-  const normalizedMessageIds = new Set(messageIds.map(String));
-  const seenAt = new Date();
-  const seenMessageIds = [];
-
-  for (const message of chat.messages || []) {
-    if (message?.senderRole === viewerRole) continue;
-    if (normalizedMessageIds.size > 0 && !normalizedMessageIds.has(String(message._id))) continue;
-    if (message?.status === "seen") continue;
-    message.status = "seen";
-    message.seenAt = seenAt;
-    message.deliveredAt = message.deliveredAt || seenAt;
-    seenMessageIds.push(String(message._id));
-  }
-
-  if (seenMessageIds.length > 0) {
-    chat.markModified("messages");
-    await chat.save();
-  }
-
-  return { chat, seenMessageIds };
 };
 
 const applyIssueOutgoingDeliveryState = async ({ ticket, senderRole }) => {
@@ -207,165 +147,6 @@ const applyIssueIncomingSeenState = async ({ ticket, viewerRole, messageIds = []
   }
 
   return { ticket, seenMessageIds };
-};
-
-const getUnreadIncomingCount = (messages = []) => {
-  let unreadCount = 0;
-  for (let index = messages.length - 1; index >= 0; index -= 1) {
-    const message = messages[index];
-    if (message?.senderRole === "patient") {
-      unreadCount += 1;
-      continue;
-    }
-    if (message?.senderRole === "doctor") {
-      break;
-    }
-  }
-  return unreadCount;
-};
-
-const buildDoctorPatientListEntry = async (doctorId, patientId, chatOverride = null) => {
-  const [patient, chat] = await Promise.all([
-    Patient.findOne({ _id: patientId, doctor: doctorId })
-      .select("name phone locations chatUsername chatAccessEnabled chatInviteStatus chatInviteSentAt chatLastLoginAt createdAt")
-      .lean(),
-    chatOverride
-      ? Promise.resolve(chatOverride.toObject ? chatOverride.toObject() : chatOverride)
-      : PatientChat.findOne({ doctor: doctorId, patient: patientId }).select("patient lastMessageAt messages").lean(),
-  ]);
-
-  if (!patient) return null;
-
-  const messages = Array.isArray(chat?.messages) ? chat.messages : [];
-  const lastMessage = messages[messages.length - 1] || null;
-
-  return {
-    ...patient,
-    lastMessageAt: chat?.lastMessageAt || null,
-    lastMessage,
-    messageCount: messages.length,
-    unreadIncomingCount: getUnreadIncomingCount(messages),
-  };
-};
-
-const buildDoctorPatientDetailPayload = async (doctorId, patientId, chatOverride = null) => {
-  const [patient, doctor, chat] = await Promise.all([
-    Patient.findOne({ _id: patientId, doctor: doctorId })
-      .select("name phone locations chatUsername chatAccessEnabled chatInviteStatus chatInviteSentAt chatLastLoginAt createdAt")
-      .lean(),
-    Doctor.findById(doctorId).select("fullName").lean(),
-    chatOverride
-      ? Promise.resolve(chatOverride.toObject ? chatOverride.toObject() : chatOverride)
-      : PatientChat.findOne({ doctor: doctorId, patient: patientId }).lean(),
-  ]);
-
-  if (!patient || !chat) return null;
-
-  return {
-    patientId: String(patientId),
-    payload: {
-      patient,
-      chat,
-      senderName: doctor?.fullName || "Doctor",
-    },
-  };
-};
-
-const buildPatientChatDetailPayload = async (doctorId, patientId, chatOverride = null) => {
-  const [patient, doctor, chat] = await Promise.all([
-    Patient.findById(patientId)
-      .select("doctor name phone locations chatUsername chatAccessEnabled chatInviteStatus chatInviteSentAt chatLastLoginAt")
-      .lean(),
-    Doctor.findById(doctorId).select("fullName specialization profilePicture clinics hospitals").lean(),
-    chatOverride
-      ? Promise.resolve(chatOverride.toObject ? chatOverride.toObject() : chatOverride)
-      : PatientChat.findOne({ doctor: doctorId, patient: patientId }).lean(),
-  ]);
-
-  if (!patient || !chat) return null;
-
-  return {
-    patientId: String(patientId),
-    payload: {
-      patient,
-      doctor,
-      chat,
-    },
-  };
-};
-
-const emitPatientChatUpdated = async ({ doctorId, patientId, chat }) => {
-  if (!ioInstance) return;
-
-  const senderRole = chat?.messages?.[chat.messages.length - 1]?.senderRole || null;
-  const deliveryResult = senderRole ? await applyOutgoingDeliveryState({ doctorId, patientId, chat, senderRole }) : { chat, deliveredMessageIds: [] };
-  chat = deliveryResult.chat || chat;
-
-  const [listEntry, doctorDetail, patientDetail] = await Promise.all([
-    buildDoctorPatientListEntry(doctorId, patientId, chat),
-    buildDoctorPatientDetailPayload(doctorId, patientId, chat),
-    buildPatientChatDetailPayload(doctorId, patientId, chat),
-  ]);
-
-  if (listEntry) {
-    ioInstance.to(getDoctorRoom(doctorId)).emit("patient-chat:list-updated", { entry: listEntry });
-  }
-
-  if (doctorDetail) {
-    ioInstance.to(getDoctorRoom(doctorId)).emit("patient-chat:detail-updated", doctorDetail);
-    ioInstance.to(getPatientChatThreadRoom(doctorId, patientId)).emit("patient-chat:detail-updated", doctorDetail);
-  }
-
-  if (patientDetail) {
-    ioInstance.to(getPatientRoom(patientId)).emit("patient-chat:self-updated", patientDetail);
-  }
-
-  if (deliveryResult.deliveredMessageIds.length > 0) {
-    const payload = {
-      doctorId: String(doctorId),
-      patientId: String(patientId),
-      messageIds: deliveryResult.deliveredMessageIds,
-      status: "delivered",
-    };
-    ioInstance.to(getDoctorRoom(doctorId)).emit("message_delivered", payload);
-    ioInstance.to(getPatientRoom(patientId)).emit("message_delivered", payload);
-  }
-};
-
-export const markChatMessagesSeen = async ({ doctorId, patientId, viewerRole, messageIds = [] }) => {
-  if (!doctorId || !patientId || !viewerRole || !ioInstance) return null;
-
-  const chat = await PatientChat.findOne({ doctor: doctorId, patient: patientId });
-  if (!chat) return null;
-
-  const result = await applyIncomingSeenState({ doctorId, patientId, chat, viewerRole, messageIds });
-  if (!result.seenMessageIds.length) return chat;
-
-  const [doctorDetail, patientDetail] = await Promise.all([
-    buildDoctorPatientDetailPayload(doctorId, patientId, result.chat),
-    buildPatientChatDetailPayload(doctorId, patientId, result.chat),
-  ]);
-
-  const payload = {
-    doctorId: String(doctorId),
-    patientId: String(patientId),
-    messageIds: result.seenMessageIds,
-    status: "seen",
-  };
-
-  ioInstance.to(getDoctorRoom(doctorId)).emit("message_seen", payload);
-  ioInstance.to(getPatientRoom(patientId)).emit("message_seen", payload);
-
-  if (doctorDetail) {
-    ioInstance.to(getDoctorRoom(doctorId)).emit("patient-chat:detail-updated", doctorDetail);
-    ioInstance.to(getPatientChatThreadRoom(doctorId, patientId)).emit("patient-chat:detail-updated", doctorDetail);
-  }
-
-  if (patientDetail) {
-    ioInstance.to(getPatientRoom(patientId)).emit("patient-chat:self-updated", patientDetail);
-  }
-
-  return result.chat;
 };
 
 const emitIssueTicketUpdated = async (ticketInput) => {
@@ -442,78 +223,9 @@ export const initSocketServer = (httpServer, allowedOrigins = []) => {
     if (auth.role === "doctor") {
       socket.join(getDoctorRoom(auth.id));
     }
-    if (auth.role === "patient") {
-      socket.join(getPatientRoom(auth.id));
-    }
     if (auth.role === "admin") {
       socket.join(getAdminRoom());
     }
-
-    socket.on("patient-chat:join", async ({ patientId } = {}) => {
-      try {
-        if (auth.role === "doctor") {
-          const patient = await Patient.findOne({ _id: patientId, doctor: auth.id }).select("_id doctor").lean();
-          if (!patient) return;
-          socket.join(getPatientChatThreadRoom(auth.id, String(patient._id)));
-          const chat = await PatientChat.findOne({ doctor: auth.id, patient: String(patient._id) });
-          if (chat) {
-            const result = await applyOutgoingDeliveryState({ doctorId: auth.id, patientId: String(patient._id), chat, senderRole: "patient" });
-            if (result.deliveredMessageIds.length > 0) {
-              const payload = {
-                doctorId: String(auth.id),
-                patientId: String(patient._id),
-                messageIds: result.deliveredMessageIds,
-                status: "delivered",
-              };
-              ioInstance.to(getDoctorRoom(auth.id)).emit("message_delivered", payload);
-              ioInstance.to(getPatientRoom(String(patient._id))).emit("message_delivered", payload);
-              await emitPatientChatUpdated({ doctorId: auth.id, patientId: String(patient._id), chat: result.chat });
-            }
-          }
-          return;
-        }
-
-        if (auth.role === "patient") {
-          const patient = await Patient.findById(auth.id).select("_id doctor").lean();
-          if (!patient?.doctor) return;
-          socket.join(getPatientChatThreadRoom(String(patient.doctor), String(patient._id)));
-          const chat = await PatientChat.findOne({ doctor: String(patient.doctor), patient: String(patient._id) });
-          if (chat) {
-            const result = await applyOutgoingDeliveryState({ doctorId: String(patient.doctor), patientId: String(patient._id), chat, senderRole: "doctor" });
-            if (result.deliveredMessageIds.length > 0) {
-              const payload = {
-                doctorId: String(patient.doctor),
-                patientId: String(patient._id),
-                messageIds: result.deliveredMessageIds,
-                status: "delivered",
-              };
-              ioInstance.to(getDoctorRoom(String(patient.doctor))).emit("message_delivered", payload);
-              ioInstance.to(getPatientRoom(String(patient._id))).emit("message_delivered", payload);
-              await emitPatientChatUpdated({ doctorId: String(patient.doctor), patientId: String(patient._id), chat: result.chat });
-            }
-          }
-        }
-      } catch (error) {
-        console.error("[socket][patient-chat:join]", error);
-      }
-    });
-
-    socket.on("patient-chat:leave", async ({ patientId } = {}) => {
-      try {
-        if (auth.role === "doctor" && patientId) {
-          socket.leave(getPatientChatThreadRoom(auth.id, String(patientId)));
-          return;
-        }
-
-        if (auth.role === "patient") {
-          const patient = await Patient.findById(auth.id).select("_id doctor").lean();
-          if (!patient?.doctor) return;
-          socket.leave(getPatientChatThreadRoom(String(patient.doctor), String(patient._id)));
-        }
-      } catch (error) {
-        console.error("[socket][patient-chat:leave]", error);
-      }
-    });
 
     socket.on("issue-ticket:join", async ({ ticketId } = {}) => {
       try {
@@ -537,26 +249,6 @@ export const initSocketServer = (httpServer, allowedOrigins = []) => {
     socket.on("issue-ticket:leave", ({ ticketId } = {}) => {
       if (!ticketId) return;
       socket.leave(getIssueTicketRoom(ticketId));
-    });
-
-    socket.on("message_seen", async ({ patientId, messageIds = [] } = {}) => {
-      try {
-        if (auth.role === "doctor") {
-          if (!patientId) return;
-          const patient = await Patient.findOne({ _id: patientId, doctor: auth.id }).select("_id doctor").lean();
-          if (!patient) return;
-          await markChatMessagesSeen({ doctorId: auth.id, patientId: String(patient._id), viewerRole: "doctor", messageIds });
-          return;
-        }
-
-        if (auth.role === "patient") {
-          const patient = await Patient.findById(auth.id).select("_id doctor").lean();
-          if (!patient?.doctor) return;
-          await markChatMessagesSeen({ doctorId: String(patient.doctor), patientId: String(patient._id), viewerRole: "patient", messageIds });
-        }
-      } catch (error) {
-        console.error("[socket][message_seen]", error);
-      }
     });
 
     socket.on("issue-message_seen", async ({ ticketId, messageIds = [] } = {}) => {
@@ -602,5 +294,4 @@ export const initSocketServer = (httpServer, allowedOrigins = []) => {
   return ioInstance;
 };
 
-export const emitPatientChatUpdate = emitPatientChatUpdated;
 export const emitIssueTicketUpdate = emitIssueTicketUpdated;

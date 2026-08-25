@@ -37,11 +37,11 @@ const faqItems = [
   { category: "Patient Records", question: "Can we gradually migrate old records?", answer: "Yes. Record migration can be done in manageable phases." },
   { category: "Patient Records", question: "Can consultation notes be standardized?", answer: "Yes. Structured note entry helps maintain consistent records." },
 
-  { category: "Chat & Communication", question: "Does MedAlerto include doctor-patient chat?", answer: "Yes. Real-time chat is available in the system." },
-  { category: "Chat & Communication", question: "Can patients send attachments in chat?", answer: "Yes. File and image attachments are supported." },
-  { category: "Chat & Communication", question: "Are voice notes supported in chat?", answer: "Yes. Voice message support is built into chat workflow." },
-  { category: "Chat & Communication", question: "Can chat be used for follow-up communication?", answer: "Yes. Chat history supports continuity after consultation." },
-  { category: "Chat & Communication", question: "Is patient-side chat access available?", answer: "Yes. Patients can access chat through their login flow." },
+  { category: "Chat & Communication", question: "Does MedAlerto include doctor-patient chat?", answer: "Patient-doctor chat is currently disabled while we rebuild it. It is coming soon." },
+  { category: "Chat & Communication", question: "Can patients send attachments in chat?", answer: "Not currently. Patient chat attachments are disabled while the chat feature is being rebuilt." },
+  { category: "Chat & Communication", question: "Are voice notes supported in chat?", answer: "Not currently. Voice notes are planned for the rebuilt patient chat experience." },
+  { category: "Chat & Communication", question: "Can chat be used for follow-up communication?", answer: "Not currently. Follow-up communication should use appointments, reminders, prescriptions, or support channels until chat returns." },
+  { category: "Chat & Communication", question: "Is patient-side chat access available?", answer: "Not currently. The patient portal shows a coming-soon message." },
 
   { category: "Security & Access", question: "Is clinic data secure on MedAlerto?", answer: "Yes. We use secure authentication and controlled access practices." },
   { category: "Security & Access", question: "Who can access clinic records?", answer: "Access is restricted to authorized account users and roles." },

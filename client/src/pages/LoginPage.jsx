@@ -108,7 +108,7 @@ export default function LoginPage() {
     {
       icon: MessageSquareMore,
       title: "Connected Care",
-      description: "Stay in touch with patients through secure chat.",
+      description: "Use reminders, prescriptions, and support workflows.",
       color: "text-[var(--color-primary)]",
     },
   ];

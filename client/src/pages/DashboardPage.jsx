@@ -36,7 +36,6 @@ const navItems = [
 ];
 
 const LOCKED_PROFILE_STATUSES = ["Needs Changes", "Rejected"];
-const CHAT_SEEN_STORAGE_KEY = "doctor-chat-seen-map-v1";
 const SUPPORT_SEEN_STORAGE_KEY = "support-ticket-seen-map-v2";
 
 const CustomTooltip = ({ active, payload, label }) => {
@@ -77,7 +76,6 @@ export default function DashboardPage() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
-  const [pendingChatThreads, setPendingChatThreads] = useState(0);
   const [pendingSupportThreads, setPendingSupportThreads] = useState(0);
   const notificationsMenuRef = useRef(null);
   const notificationsPanelRef = useRef(null);
@@ -128,24 +126,8 @@ export default function DashboardPage() {
 
   const refreshSidebarUpdateBadges = async () => {
     try {
-      const [chatRes, supportRes] = await Promise.all([
-        axiosInstance.get("/patient-chats/doctor?limit=100"),
-        axiosInstance.get("/issues/doctor?history=false&limit=50"),
-      ]);
-
-      const chatSeen = parseSeenMap(CHAT_SEEN_STORAGE_KEY);
+      const supportRes = await axiosInstance.get("/issues/doctor?history=false&limit=50");
       const supportSeen = parseSeenMap(SUPPORT_SEEN_STORAGE_KEY);
-
-      const patients = Array.isArray(chatRes.data?.patients) ? chatRes.data.patients : [];
-      const pendingChats = patients.filter((entry) => {
-        const unreadIncomingCount = Number(entry?.unreadIncomingCount || 0);
-        if (unreadIncomingCount <= 0) return false;
-        const patientId = String(entry?._id || "");
-        const seenAt = Number(chatSeen?.[patientId] || 0);
-        const lastSender = String(entry?.lastMessage?.senderRole || "").toLowerCase();
-        const lastIncomingTailTime = lastSender === "patient" ? getItemLastMessageTime(entry, entry?.lastMessage) : 0;
-        return !(lastIncomingTailTime > 0 && seenAt >= lastIncomingTailTime);
-      }).length;
 
       const tickets = Array.isArray(supportRes.data?.tickets) ? supportRes.data.tickets : [];
       const pendingSupport = tickets.filter((ticket) => {
@@ -161,7 +143,6 @@ export default function DashboardPage() {
         return seenAt < incomingTailTime;
       }).length;
 
-      setPendingChatThreads(pendingChats);
       setPendingSupportThreads(pendingSupport);
     } catch {
       // Keep existing values on transient network failures.
@@ -235,11 +216,9 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
     };
 
     socket.connect();
-    socket.on("patient-chat:list-updated", handleRealtimeUpdate);
     socket.on("issue-ticket:list-updated", handleRealtimeUpdate);
 
     return () => {
-      socket.off("patient-chat:list-updated", handleRealtimeUpdate);
       socket.off("issue-ticket:list-updated", handleRealtimeUpdate);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -431,11 +410,6 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
               }}>
               <item.icon size={16} strokeWidth={2} className="shrink-0" />
               <span>{item.label}</span>
-              {item.key === "chats" && pendingChatThreads > 0 ? (
-                <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--color-primary)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-on-primary)]">
-                  {pendingChatThreads > 99 ? "99+" : pendingChatThreads}
-                </span>
-              ) : null}
               {item.key === "support" && pendingSupportThreads > 0 ? (
                 <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-[var(--color-secondary)] px-1.5 py-0.5 text-[10px] font-bold text-[var(--color-on-primary)]">
                   {pendingSupportThreads > 99 ? "99+" : pendingSupportThreads}
@@ -574,10 +548,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                                   // Ignore mark-read failures on click.
                                 }
                               }
-                              if (note.type === "patient-message") {
-                                setActiveNav("chats");
-                                setNotificationsOpen(false);
-                              } else if (["issue-message", "issue-status", "admin-update"].includes(note.type)) {
+                              if (["issue-message", "issue-status", "admin-update"].includes(note.type)) {
                                 setActiveNav("support");
                                 setNotificationsOpen(false);
                               } else if (note.type === "profile-status") {

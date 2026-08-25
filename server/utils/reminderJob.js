@@ -1,6 +1,6 @@
 import cron from 'node-cron';
-import Appointment from '../models/appointment.model.js';
-import { sendTextWhatsApp } from './whatsapp.js';
+import Appointment from "../models/appointment.model.js";
+import { sendWhatsAppTextMessage } from "../services/whatsapp.service.js";
 
 const cronSchedule = '0 */6 * * *';
 const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
@@ -112,7 +112,7 @@ export const startReminderJob = () => {
 						? `Dear ${patient.name}, reminder: your appointment is in ~6 hours on ${dateLabel} at ${appointment.slot}. - MedAlerto`
 						: `Dear ${patient.name}, reminder: your appointment is on ${dateLabel} at ${appointment.slot}. - MedAlerto`;
 
-					await sendTextWhatsApp(patient.phone, reminderText);
+					await sendWhatsAppTextMessage(patient.phone, reminderText);
 					await Appointment.updateOne(
 						{ _id: appointment._id, status: { $nin: ['Cancelled', 'Completed'] } },
 						{ $set: { reminderSent: true } }

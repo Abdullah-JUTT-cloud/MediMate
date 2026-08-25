@@ -11,8 +11,7 @@ const PLAN_FEATURES = [
   "Emergency bulk-cancel button for appointments",
   "Automated follow-up reminders",
   "Medicine alternatives by composition",
-  "Real-time patient chat with attachments",
-  "Voice note support in chat",
+  "Patient-doctor chat coming soon",
   "Operational dashboard and reports",
   "Support center with issue tracking",
   "Admin controls and verification workflow",
@@ -124,7 +123,7 @@ export default function PricingPage() {
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-[var(--color-text-secondary)]">
               Everything needed to run prescriptions, records, appointments,
-              reminders, and patient chat.
+              reminders, billing, and support workflows.
             </p>
           </section>
 

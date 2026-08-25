@@ -9,7 +9,6 @@ process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
   process.exit(1);
 });
-// import "./utils/whatsapp.js";
 import express from "express";
 import { connectDB } from "./db/connectDB.js";
 import authRoutes from "./routes/auth.routes.js";
@@ -114,8 +113,6 @@ connectDB()
     initSocketServer(server, ALLOWED_ORIGINS);
     server.listen(PORT,async()=>{
         console.log(`Server is running on port ${PORT}`);
-        const { default: _ } = await import("./utils/whatsapp.js");
-        console.log("WhatsApp integration initialized");
     })
     startReminderJob();
 })

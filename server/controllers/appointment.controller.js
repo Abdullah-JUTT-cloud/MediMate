@@ -2,14 +2,14 @@ import mongoose from "mongoose";
 import Appointment from "../models/appointment.model.js";
 import Patient from "../models/patient.model.js";
 import { Doctor } from "../models/doctor.model.js";
-import { sendTextWhatsApp } from "../utils/whatsapp.js";
+import { sendWhatsAppTextMessage } from "../services/whatsapp.service.js";
 
 const MAX_APPOINTMENTS_PER_SLOT = 3;
 const INACTIVE_STATUSES = ["Cancelled", "No-show", "Completed"];
 
 const sendAppointmentWhatsApp = async (patient, appointment, message) => {
   try {
-    await sendTextWhatsApp(patient.phone, message);
+    await sendWhatsAppTextMessage(patient.phone, message);
   } catch (err) {
     console.error(
       `Appointment WhatsApp error for appointment ${appointment?._id || "N/A"}:`,
