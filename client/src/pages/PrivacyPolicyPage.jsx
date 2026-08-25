@@ -56,10 +56,10 @@ const sections = [
       },
       {
         type: "subsection",
-        title: "d. Communication Data",
+        title: "d. Support and Notification Data",
         bullets: [
-          "Messages exchanged between doctors and patients",
-          "Files and images shared within chat",
+          "Support ticket requests and support center correspondence",
+          "Automated appointment reminder and prescription delivery logs",
         ],
       },
       {
@@ -95,7 +95,7 @@ const sections = [
           "To provide and maintain clinic management features",
           "To generate prescriptions and medical documents",
           "To enable appointment scheduling and reminders",
-          "To facilitate secure doctor–patient communication",
+          "To facilitate support ticket communication and notifications",
           "To process billing and track payments",
           "To improve system performance, reliability, and usability",
           "To detect, prevent, and respond to security threats",

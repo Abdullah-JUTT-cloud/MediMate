@@ -104,7 +104,7 @@ const trustSignals = [
   "Independent doctors",
   "Specialist clinics",
   "Role-based access",
-  "Patient chat support",
+  "WhatsApp notifications",
   "Emergency bulk cancel",
   "Audit-friendly records",
   "Clinic-hour support",
@@ -124,7 +124,7 @@ const flowSteps = [
   {
     step: "03",
     title: "Patient communication",
-    text: "Use built-in chat and reminders to keep post-visit communication organized.",
+    text: "Use WhatsApp delivery and reminders to keep post-visit communication organized.",
   },
   {
     step: "04",
@@ -150,7 +150,7 @@ const testimonials = [
   },
   {
     quote:
-      "We finally have one reliable view of patient history, prescriptions, and chat. Decision-making is much faster now.",
+      "We finally have one reliable view of patient history, prescriptions, and visit records. Decision-making is much faster now.",
     author: "Dr. Sana M.",
     role: "Internal Medicine, Islamabad",
     metric: "10x faster record retrieval",
@@ -178,7 +178,7 @@ const testimonials = [
   },
   {
     quote:
-      "Patient chat helped us reduce unclear post-visit instructions and avoid repeat clarification calls.",
+      "Automated WhatsApp delivery helped us reduce unclear post-visit instructions and avoid repeat clarification calls.",
     author: "Dr. Mahnoor S.",
     role: "Pediatrics, Lahore",
     metric: "-31% post-visit clarification calls",
