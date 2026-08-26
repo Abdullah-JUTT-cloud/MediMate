@@ -289,6 +289,7 @@ export default function RevenueLabPage() {
       <section aria-label="Revenue metrics" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {metrics.map(({ label, value, trend, Icon }) => {
           const TrendIcon = trend.icon;
+          const IconComponent = Icon;
           return (
             <article
               key={label}
@@ -296,7 +297,7 @@ export default function RevenueLabPage() {
             >
               <div className="mb-5 flex items-start justify-between gap-3">
                 <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-300">
-                  <Icon size={18} strokeWidth={2.25} />
+                  <IconComponent size={18} strokeWidth={2.25} />
                 </span>
                 <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
                   <TrendIcon size={13} strokeWidth={2.5} />

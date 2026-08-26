@@ -25,8 +25,6 @@ async function run() {
     { $set: { profileVerificationStatus: "Verified" } }
   );
 
-  console.log(`Matched: ${result.matchedCount}, Updated: ${result.modifiedCount}`);
-  console.log(`Legacy normalized: ${normalized.modifiedCount}`);
   await mongoose.connection.close();
 }
 

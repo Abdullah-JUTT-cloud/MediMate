@@ -12,7 +12,6 @@ export default function PrescriptionModal({
 }) {
   const [pdfBase64, setPdfBase64] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [saved, setSaved] = useState(!!checkup?.prescription?.pdfUrl);
   const [pdfUrl, setPdfUrl] = useState(checkup?.prescription?.pdfUrl || "");
@@ -45,7 +44,6 @@ export default function PrescriptionModal({
         const url = URL.createObjectURL(blob);
         window.open(url, "_blank");
 
-        setIsSaving(true);
         try {
           const saveRes = await axiosInstance.post(
             `/prescriptions/save/${checkup._id}`
@@ -60,8 +58,6 @@ export default function PrescriptionModal({
             toast.error(
               err.response?.data?.message || "Failed to save prescription"
             );
-        } finally {
-          if (!cancelled) setIsSaving(false);
         }
       } catch (err) {
         if (!cancelled)
@@ -76,7 +72,7 @@ export default function PrescriptionModal({
     return () => {
       cancelled = true;
     };
-  }, [checkup?._id, autoGenerateOnOpen]);
+  }, [checkup?._id, autoGenerateOnOpen, onSaved]);
 
   const handleDownload = async () => {
     const filename = `prescription_${patient?.name?.replace(/\s+/g, "_") || "patient"}_${new Date()

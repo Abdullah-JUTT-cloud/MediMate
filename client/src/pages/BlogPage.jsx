@@ -1,5 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+
+const FramerMotion = { motion, AnimatePresence };
+
 import {
   Search,
   X,
@@ -1730,14 +1733,14 @@ export default function BlogPage() {
       </main>
 
       {/* Publication Reader Modal */}
-      <AnimatePresence>
+      <FramerMotion.AnimatePresence>
         {activeArticleModal && (
           <ArticleReaderModal
             article={activeArticleModal}
             onClose={() => setActiveArticleModal(null)}
           />
         )}
-      </AnimatePresence>
+      </FramerMotion.AnimatePresence>
 
       <Footer />
     </div>

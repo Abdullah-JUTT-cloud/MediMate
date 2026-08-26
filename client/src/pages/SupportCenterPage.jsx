@@ -75,18 +75,6 @@ const chatCanvasStyle = {
   backgroundSize: "28px 28px",
 };
 
-const sentBubbleStyle = {
-  background:
-    "color-mix(in srgb, var(--color-primary) 24%, var(--color-card) 76%)",
-  borderColor: "color-mix(in srgb, var(--color-primary) 42%, transparent)",
-};
-
-const receivedBubbleStyle = {
-  background:
-    "color-mix(in srgb, var(--color-card-elevated) 88%, var(--color-bg) 12%)",
-  borderColor: "color-mix(in srgb, var(--color-border) 82%, transparent)",
-};
-
 const sentVoiceTheme = {
   surface:
     "color-mix(in srgb, var(--color-primary) 18%, var(--color-card) 82%)",

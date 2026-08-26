@@ -25,7 +25,6 @@ const run = async () => {
   ).lean();
 
   if (!doctors.length) {
-    console.log("No doctor records need name migration.");
     await mongoose.connection.close();
     return;
   }
@@ -50,11 +49,7 @@ const run = async () => {
     };
   });
 
-  const result = await Doctor.bulkWrite(ops);
-  console.log("Doctor name migration complete:", {
-    matched: result.matchedCount,
-    modified: result.modifiedCount,
-  });
+  await Doctor.bulkWrite(ops);
 
   await mongoose.connection.close();
 };

@@ -13,9 +13,6 @@ export const blockExpiredSubscriptions = async () => {
     },
   );
 
-  if (result.modifiedCount > 0) {
-    console.log(`[subscriptionJob] Blocked ${result.modifiedCount} expired subscription(s)`);
-  }
 };
 
 export const startSubscriptionExpiryJob = () => {

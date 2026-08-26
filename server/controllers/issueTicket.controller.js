@@ -18,6 +18,17 @@ const validCategories = [
 
 const validStatuses = ["Open", "In Progress", "Resolved", "Reopened", "Closed"];
 
+const sanitizeIssueText = (value, maxLength = 5000) => {
+  const safeText = String(value ?? "")
+    .replace(/<script[\s\S]*?(?:<\/script>|$)/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return safeText.slice(0, maxLength);
+};
+
 const isAdminRequest = (req) => Boolean(req.admin?.role === "admin");
 
 const isBillingCategory = (category = "") =>
@@ -58,9 +69,9 @@ const buildTicketMessagePayload = async ({ senderRole, senderName, text, files, 
 
   return {
     senderRole,
-    senderName,
-    text: String(text || "").trim(),
-    type: getMessageType({ text, attachments }),
+    senderName: sanitizeIssueText(senderName, 120),
+    text: sanitizeIssueText(text, 5000),
+    type: getMessageType({ text: sanitizeIssueText(text, 5000), attachments }),
     status: "sent",
     deliveredAt: null,
     seenAt: null,
@@ -71,12 +82,15 @@ const buildTicketMessagePayload = async ({ senderRole, senderName, text, files, 
 export const createTicket = async (req, res) => {
   try {
     const { category, title, description } = req.body;
+    const sanitizedCategory = sanitizeIssueText(category, 80);
+    const sanitizedTitle = sanitizeIssueText(title, 160);
+    const sanitizedDescription = sanitizeIssueText(description, 5000);
 
-    if (!category || !title || !description) {
+    if (!sanitizedCategory || !sanitizedTitle || !sanitizedDescription) {
       return res.status(400).json({ message: "Category, title and description are required" });
     }
 
-    if (!validCategories.includes(category)) {
+    if (!validCategories.includes(sanitizedCategory)) {
       return res.status(400).json({ message: "Invalid issue category" });
     }
 
@@ -87,15 +101,15 @@ export const createTicket = async (req, res) => {
 
     const ticket = await IssueTicket.create({
       doctor: req.doctorId,
-      category,
-      title,
-      description,
+      category: sanitizedCategory,
+      title: sanitizedTitle,
+      description: sanitizedDescription,
       status: "Open",
       messages: [
         {
           senderRole: "doctor",
-          senderName: doctor.fullName,
-          text: description,
+          senderName: sanitizeIssueText(doctor.fullName, 120),
+          text: sanitizedDescription,
           type: "text",
           status: "sent",
           deliveredAt: null,
@@ -192,7 +206,7 @@ export const addTicketMessage = async (req, res) => {
   try {
     const { text } = req.body;
 
-    const messageText = String(text || "").trim();
+    const messageText = sanitizeIssueText(text, 5000);
     if (!messageText && (!req.files || req.files.length === 0)) {
       return res.status(400).json({ message: "Message text or attachment is required" });
     }

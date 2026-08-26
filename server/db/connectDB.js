@@ -19,7 +19,6 @@ const removeObsoleteUniqueSlotIndex = async () => {
 
             if ((isExactLegacyIndex || isLegacyName) && index.name) {
                 await collection.dropIndex(index.name);
-                console.log(`Dropped obsolete index: ${index.name}`);
             }
         }
     } catch (error) {
@@ -36,7 +35,6 @@ export const connectDB = async () => {
             await removeObsoleteUniqueSlotIndex();
         }
 
-        console.log(`MongoDB connected: ${conn.connection.host}`);
     } catch (error) {
         console.error("Error connecting to MongoDB:", error.message);
         process.exit(1);

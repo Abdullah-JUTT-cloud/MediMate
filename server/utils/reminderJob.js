@@ -133,6 +133,5 @@ export const startReminderJob = () => {
 		}
 	});
 
-	console.log(`Reminder cron started (${cronSchedule})`);
 };
 

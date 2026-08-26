@@ -25,6 +25,8 @@ const parsePagination = ({ page = 1, limit = 50 }) => {
 
 const cleanText = (value, maxLength) =>
   String(value ?? "")
+    .replace(/<script[\s\S]*?(?:<\/script>|$)/gi, " ")
+    .replace(/<[^>]+>/g, " ")
     .replace(/[\u0000-\u001f\u007f]/g, " ")
     .replace(/\s+/g, " ")
     .trim()

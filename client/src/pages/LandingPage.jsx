@@ -72,8 +72,7 @@ export default function LandingPage() {
       const playPromise = videoRef.current.play();
       if (playPromise !== undefined) {
         playPromise.catch(() => {
-          // Fallback if autoplay is blocked
-          console.log("Autoplay blocked, user interaction required");
+          // Autoplay is intentionally ignored when browser policy blocks it.
         });
       }
     }

@@ -21,9 +21,6 @@ export default function useThemedLogo() {
 
     observer.observe(root, { attributes: true, attributeFilter: ["data-theme"] });
 
-    const theme = root.getAttribute("data-theme");
-    setLogo(theme === "dark" ? whiteLogo : blackLogo);
-
     return () => observer.disconnect();
   }, []);
 

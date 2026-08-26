@@ -108,7 +108,6 @@ const MedicineRow = ({
   medicine,
   onUpdate,
   onRemove,
-  isLast,
 }) => {
   const [activeFrequency, setActiveFrequency] = useState(medicine.frequency || "");
   const [activeDuration, setActiveDuration] = useState(medicine.duration || "");

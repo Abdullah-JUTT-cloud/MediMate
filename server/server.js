@@ -12,7 +12,7 @@ process.on('uncaughtException', (error) => {
 import express from "express";
 import { connectDB } from "./db/connectDB.js";
 import authRoutes from "./routes/auth.routes.js";
-import cors from "cors";    
+import cors from "cors";
 import cookieParser from "cookie-parser";
 import doctorRoutes from "./routes/doctor.routes.js";
 import patientRoutes from "./routes/patient.routes.js";
@@ -21,7 +21,7 @@ import appointmentRoutes from "./routes/appointment.routes.js";
 import prescriptionRoutes from "./routes/prescription.routes.js";
 import reportsRoutes from "./routes/reports.routes.js";
 import billingRoutes from "./routes/billing.routes.js";
-import {startReminderJob} from "./utils/reminderJob.js";
+import { startReminderJob } from "./utils/reminderJob.js";
 import insightsRoutes from "./routes/insights.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import issueTicketRoutes from "./routes/issueTicket.routes.js";
@@ -37,9 +37,13 @@ import http from "http";
 import { initSocketServer } from "./realtime/socket.js";
 import { createUnsafeRequestOriginGuard } from "./utils/security.js";
 
-const app=express();
+const app = express();
 const server = http.createServer(app);
 app.disable("x-powered-by");
+
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET is required for secure authentication");
+}
 
 // ─── Public health check (uptime monitoring) ─────────────────────────────────
 // Registered BEFORE auth, rate-limiting, and other middleware so it stays
@@ -50,33 +54,41 @@ app.get("/api/health", (req, res) => {
 
 app.use(helmet());
 
-const PORT=process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || "http://localhost:5173").split(",").map(o => o.trim());
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || (process.env.NODE_ENV === "production" ? "" : "http://localhost:5173,http://127.0.0.1:5173")).split(",").map((origin) => origin.trim()).filter(Boolean);
 
-if (process.env.NODE_ENV === 'production' && ALLOWED_ORIGINS.some(o => o.includes('localhost'))) {
-  console.warn('WARNING: ALLOWED_ORIGINS contains localhost while running in production. Set ALLOWED_ORIGINS environment variable to your client origin(s) to avoid CORS issues.');
-}
-
-app.use(cors({
+app.use(
+  cors({
     origin: (origin, callback) => {
-        if (!origin || ALLOWED_ORIGINS.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error("Not allowed by CORS"));
-        }
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      if (process.env.NODE_ENV !== "production") {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error("Not allowed by CORS"));
     },
-    credentials: true
-}))
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  }),
+);
 app.use(createUnsafeRequestOriginGuard(ALLOWED_ORIGINS));
-app.use(express.json({ limit: "128kb" }))
+app.use(express.json({ limit: "128kb" }));
+app.use(express.urlencoded({ extended: true, limit: "128kb" }));
+app.use(mongoSanitize());
 app.use((req, res, next) => {
-    // Express 5 has a read-only req.query, so sanitize mutable objects only.
-    if (req.body) req.body = mongoSanitize.sanitize(req.body);
-    if (req.params) req.params = mongoSanitize.sanitize(req.params);
-    next();
+  if (req.body && typeof req.body === "object") req.body = mongoSanitize.sanitize(req.body);
+  if (req.params && typeof req.params === "object") req.params = mongoSanitize.sanitize(req.params);
+  if (req.query && typeof req.query === "object") req.query = mongoSanitize.sanitize(req.query);
+  next();
 });
-app.use(cookieParser())
+app.use(cookieParser());
 
 app.get("/",(req,res)=>{
     res.send("landing page");
@@ -86,12 +98,16 @@ const authLimiter = rateLimit({
   max: 20,
   message: { message: "Too many requests, please try again later" },
 });
+const supportTicketLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  message: { message: "Too many support requests, please try again later" },
+});
 app.use("/api/auth", authLimiter);
-app.use("/api/auth",authRoutes);
+app.use("/api/auth", authRoutes);
 app.use("/api/patient-auth", authLimiter);
 app.use("/api/patient-auth", patientAuthRoutes);
 
-// Apply rate limiting to data mutation routes to prevent abuse
 const dataLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 100,
@@ -112,41 +128,45 @@ app.use("/api/prescriptions", prescriptionLimiter, dataLimiter, prescriptionRout
 app.use("/api/reports", dataLimiter, reportsRoutes);
 app.use("/api/billing", dataLimiter, billingRoutes);
 app.use("/api/admin", dataLimiter, adminRoutes);
-app.use("/api/issues", dataLimiter, issueTicketRoutes);
+app.use("/api/issues", supportTicketLimiter, dataLimiter, issueTicketRoutes);
 app.use("/api/notifications", dataLimiter, notificationRoutes);
 app.use("/api/patient-chats", dataLimiter, patientChatRoutes);
 app.use("/api/subscriptions", dataLimiter, subscriptionRoutes);
-
- app.use("/api/insights", dataLimiter, insightsRoutes)
+app.use("/api/insights", dataLimiter, insightsRoutes);
 
 connectDB()
-.then(()=>{
+  .then(() => {
     initSocketServer(server, ALLOWED_ORIGINS);
-    server.listen(PORT,async()=>{
-        console.log(`Server is running on port ${PORT}`);
-    })
+    server.listen(PORT, () => {
+      // Operational startup log intentionally omitted to avoid leaking runtime details in production logs.
+    });
     startReminderJob();
     startSubscriptionExpiryJob();
-})
-.catch((error)=>{
-    console.log("Error connecting to MongoDB: ",error.message);
+  })
+  .catch((error) => {
+    console.error("Error connecting to MongoDB:", error.message);
     process.exit(1);
-})
+  });
 
 // Global error handler for Express (catches async errors from middleware/handlers) - ERR-3
 app.use((err, req, res, next) => {
-  console.error("[Error]", err.message, err.stack);
-  
-  // Multer errors
+  console.error("[Error]", err.message);
+
   if (err.message && err.message.includes("file")) {
     return res.status(400).json({ message: err.message });
   }
-  
-  // CORS errors
+
   if (err.message === "Not allowed by CORS") {
     return res.status(403).json({ message: "CORS policy violation" });
   }
-  
-  // Default 500 error
+
   res.status(500).json({ message: "Internal server error" });
+});
+
+app.use((req, res) => {
+  const redirectPath = req.path.startsWith("/api") ? "/api/health" : "/";
+  res.status(404).json({
+    message: "Not found",
+    redirect: redirectPath,
+  });
 });
