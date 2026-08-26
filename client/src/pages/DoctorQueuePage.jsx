@@ -10,43 +10,40 @@ import {
   RefreshCw,
   Phone,
   Calendar,
-  AlertCircle,
   Activity,
   Users,
   ChevronDown,
   ChevronRight,
-  DollarSign,
-  UserCheck,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import ConsultationWorkspace from "./ConsultationWorkspace";
 
-// Queue Status configs with crisp high contrast
+// Queue status configs — strict WCAG-safe semantic contrast classes in both themes
 const QUEUE_STATUS_CONFIG = {
   WAITING: {
     label: "Waiting",
     badgeClass:
-      "bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-700/60",
+      "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-300 dark:border-amber-800",
     dotClass: "bg-amber-500",
   },
   IN_CONSULTATION: {
     label: "In Consultation",
     badgeClass:
-      "bg-teal-50 text-teal-800 border-teal-200 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-700/60",
+      "bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300 border-teal-300 dark:border-teal-800",
     dotClass: "bg-teal-500",
     hasPulse: true,
   },
   COMPLETED: {
     label: "Completed",
     badgeClass:
-      "bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-700/60",
+      "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800",
     dotClass: "bg-emerald-500",
   },
   NO_SHOW: {
     label: "No Show",
     badgeClass:
-      "bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-700/60",
+      "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-rose-300 dark:border-rose-800",
     dotClass: "bg-rose-500",
   },
 };
@@ -224,7 +221,7 @@ export default function DoctorQueuePage({ standalone = false, onBackToDashboard 
           STANDALONE TOP NAVIGATION BAR (If viewed directly on /queue route)
          ========================================================================= */}
       {standalone && (
-        <header className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 shadow-sm flex items-center justify-between">
+        <header className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -262,12 +259,12 @@ export default function DoctorQueuePage({ standalone = false, onBackToDashboard 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1
-            className="text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl"
+            className="text-slate-900 dark:text-white font-bold text-2xl"
             style={{ fontFamily: "Fraunces, Georgia, serif" }}
           >
             Clinical Assembly Line
           </h1>
-          <p className="mt-1 text-sm font-medium text-slate-600 dark:text-slate-400">
+          <p className="mt-1 text-sm font-medium text-slate-600 dark:text-slate-300">
             Real-time patient queue, live token sequencing & WhatsApp prescription dispatch
           </p>
         </div>
@@ -277,7 +274,7 @@ export default function DoctorQueuePage({ standalone = false, onBackToDashboard 
             <button
               onClick={() => fetchQueue(false)}
               disabled={isRefreshing}
-              className="inline-flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-2.5 text-xs font-bold text-slate-800 dark:text-slate-200 shadow-sm transition-all hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2.5 text-xs font-bold text-slate-800 dark:text-slate-200 shadow-sm transition-all hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95"
             >
               <RefreshCw
                 size={14}
@@ -291,57 +288,57 @@ export default function DoctorQueuePage({ standalone = false, onBackToDashboard 
 
       {/* Live Flow Stats Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 shadow-sm flex items-center gap-3">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center font-bold">
             <Users size={18} />
           </div>
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <p className="text-xs font-semibold tracking-wider text-slate-500 dark:text-slate-400 uppercase">
               Total Today
             </p>
-            <p className="text-xl font-bold text-slate-900 dark:text-white font-mono">
+            <p className="text-3xl font-extrabold text-slate-900 dark:text-white">
               {stats.total}
             </p>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-[var(--color-card)] p-4 shadow-sm flex items-center gap-3">
+        <div className="rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-white dark:bg-slate-900 p-4 shadow-sm flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 flex items-center justify-center font-bold">
             <Clock size={18} />
           </div>
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+            <p className="text-xs font-semibold tracking-wider text-slate-500 dark:text-slate-400 uppercase">
               Waiting Now
             </p>
-            <p className="text-xl font-bold text-amber-800 dark:text-amber-300 font-mono">
+            <p className="text-3xl font-extrabold text-slate-900 dark:text-white">
               {stats.waiting}
             </p>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-teal-200 dark:border-teal-900/50 bg-[var(--color-card)] p-4 shadow-sm flex items-center gap-3">
+        <div className="rounded-2xl border border-teal-200 dark:border-teal-900/50 bg-white dark:bg-slate-900 p-4 shadow-sm flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 flex items-center justify-center font-bold">
             <Activity size={18} />
           </div>
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400">
+            <p className="text-xs font-semibold tracking-wider text-slate-500 dark:text-slate-400 uppercase">
               In Consultation
             </p>
-            <p className="text-xl font-bold text-teal-800 dark:text-teal-300 font-mono">
+            <p className="text-3xl font-extrabold text-slate-900 dark:text-white">
               {stats.inConsultation}
             </p>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-emerald-200 dark:border-emerald-900/50 bg-[var(--color-card)] p-4 shadow-sm flex items-center gap-3">
+        <div className="rounded-2xl border border-emerald-200 dark:border-emerald-900/50 bg-white dark:bg-slate-900 p-4 shadow-sm flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 flex items-center justify-center font-bold">
             <CheckCircle2 size={18} />
           </div>
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+            <p className="text-xs font-semibold tracking-wider text-slate-500 dark:text-slate-400 uppercase">
               Completed
             </p>
-            <p className="text-xl font-bold text-emerald-800 dark:text-emerald-300 font-mono">
+            <p className="text-3xl font-extrabold text-slate-900 dark:text-white">
               {stats.completed}
             </p>
           </div>
@@ -373,8 +370,8 @@ export default function DoctorQueuePage({ standalone = false, onBackToDashboard 
                 onClick={() => setActiveFilter(tab.key)}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 border flex items-center gap-1.5 ${
                   isSelected
-                    ? "bg-teal-600 text-white border-teal-600 shadow-sm"
-                    : "bg-[var(--color-card)] text-slate-700 dark:text-slate-300 border-[var(--color-border)] hover:bg-slate-100 dark:hover:bg-slate-800"
+                    ? "bg-teal-700 text-white border-teal-700 shadow-sm hover:bg-teal-600"
+                    : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
                 }`}
               >
                 <span>{tab.label}</span>
@@ -396,14 +393,14 @@ export default function DoctorQueuePage({ standalone = false, onBackToDashboard 
         <div className="relative min-w-[240px] sm:w-72 shrink-0">
           <Search
             size={16}
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400"
           />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search patient name, phone, slot..."
-            className="w-full bg-[var(--color-card)] text-slate-900 dark:text-slate-100 border border-[var(--color-border)] focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 py-2.5 pl-10 pr-4 text-xs font-semibold rounded-xl outline-none transition-all placeholder:text-slate-400"
+            className="w-full bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 py-2.5 pl-10 pr-4 text-xs font-semibold rounded-xl outline-none transition-all placeholder:text-slate-500 dark:placeholder:text-slate-400"
           />
         </div>
       </div>
@@ -412,21 +409,21 @@ export default function DoctorQueuePage({ standalone = false, onBackToDashboard 
           QUEUE LISTING CARDS
          ========================================================================= */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-24 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] space-y-3">
-          <div className="w-8 h-8 border-3 border-teal-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">
+        <div className="flex flex-col items-center justify-center py-24 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-3">
+          <div className="w-8 h-8 border-3 border-teal-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">
             Loading clinical assembly line...
           </p>
         </div>
       ) : appointmentGroups.length === 0 ? (
-        <div className="text-center py-20 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] space-y-3 p-6 shadow-sm">
-          <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 mx-auto flex items-center justify-center">
+        <div className="text-center py-20 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-3 p-6 shadow-sm">
+          <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 mx-auto flex items-center justify-center">
             <Users size={24} />
           </div>
           <h3 className="text-base font-bold text-slate-900 dark:text-white">
             No patients found
           </h3>
-          <p className="text-xs text-slate-600 dark:text-slate-400 max-w-sm mx-auto">
+          <p className="text-xs text-slate-600 dark:text-slate-300 max-w-sm mx-auto">
             {searchQuery
               ? `No appointments match "${searchQuery}" under ${activeFilter} status.`
               : "No patient visits scheduled for this queue status currently."}
@@ -440,20 +437,20 @@ export default function DoctorQueuePage({ standalone = false, onBackToDashboard 
             return (
               <div
                 key={group.key}
-                className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] shadow-sm overflow-hidden"
+                className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden"
               >
                 {/* Date Accordion Header */}
                 <button
                   type="button"
                   onClick={() => toggleGroup(group.key)}
-                  className="w-full flex items-center justify-between px-5 py-3.5 text-left bg-slate-50/70 dark:bg-slate-800/60 border-b border-[var(--color-border)] hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors"
+                  className="w-full flex items-center justify-between px-5 py-3.5 text-left bg-slate-100 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700 hover:bg-slate-200/70 dark:hover:bg-slate-800 transition-colors"
                 >
                   <div className="flex items-center gap-2.5">
                     <Calendar size={15} className="text-teal-600 dark:text-teal-400" />
                     <span className="text-sm font-bold text-slate-900 dark:text-white">
                       {group.label}
                     </span>
-                    <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200">
+                    <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100">
                       {group.items.length} patient{group.items.length === 1 ? "" : "s"}
                     </span>
                   </div>
@@ -486,7 +483,7 @@ export default function DoctorQueuePage({ standalone = false, onBackToDashboard 
                       return (
                         <div
                           key={appt._id}
-                          className="rounded-2xl p-4 sm:p-5 border border-[var(--color-border)] bg-[var(--color-card)] shadow-[0_4px_20px_rgba(15,23,42,0.06)] flex flex-col lg:flex-row lg:items-center justify-between gap-4 transition-all hover:border-teal-500/50 hover:shadow-md"
+                          className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm hover:border-teal-500/50 hover:shadow-md transition-all p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4"
                         >
                           {/* Left: Patient Avatar & High-Visibility Details */}
                           <div className="flex items-center gap-3.5 min-w-0">
@@ -504,12 +501,12 @@ export default function DoctorQueuePage({ standalone = false, onBackToDashboard 
                             {/* Patient Info */}
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
-                                <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate">
+                                <h3 className="text-base font-bold text-slate-900 dark:text-white truncate">
                                   {patient.name || "Unknown Patient"}
                                 </h3>
 
                                 {appt.isWalkIn && (
-                                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800">
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-700">
                                     Walk-In
                                   </span>
                                 )}
@@ -522,7 +519,7 @@ export default function DoctorQueuePage({ standalone = false, onBackToDashboard 
                                   {patient.gender || "Gender N/A"}
                                 </span>
 
-                                <span className="text-xs font-medium text-slate-600 dark:text-slate-400 flex items-center gap-1">
+                                <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 flex items-center gap-1">
                                   <Phone size={12} className="text-slate-400" />
                                   <span className="font-mono">{patient.phone || "—"}</span>
                                 </span>
@@ -534,7 +531,7 @@ export default function DoctorQueuePage({ standalone = false, onBackToDashboard 
                           <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-xs">
                             {/* Slot Time */}
                             <div className="space-y-0.5">
-                              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                              <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
                                 Slot Time
                               </p>
                               <p className="font-bold text-slate-900 dark:text-white text-sm">
@@ -544,7 +541,7 @@ export default function DoctorQueuePage({ standalone = false, onBackToDashboard 
 
                             {/* Check-In Time */}
                             <div className="space-y-0.5">
-                              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                              <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
                                 Check-In
                               </p>
                               <p className="font-semibold text-slate-800 dark:text-slate-200 text-xs">
@@ -554,15 +551,15 @@ export default function DoctorQueuePage({ standalone = false, onBackToDashboard 
 
                             {/* Upfront Paid Financial Pill */}
                             <div className="space-y-0.5">
-                              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                              <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
                                 Upfront Fee
                               </p>
                               {appt.paymentStatus === "PAID" ? (
-                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-700/60">
+                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700">
                                   ✓ Paid Rs. {feeValue.toLocaleString()}
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-700/60">
+                                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-700">
                                   ⏳ Pending Rs. {feeValue.toLocaleString()}
                                 </span>
                               )}
@@ -570,7 +567,7 @@ export default function DoctorQueuePage({ standalone = false, onBackToDashboard 
 
                             {/* Status Badge */}
                             <div className="space-y-0.5">
-                              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                              <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
                                 Status
                               </p>
                               <span
@@ -597,7 +594,7 @@ export default function DoctorQueuePage({ standalone = false, onBackToDashboard 
                               <button
                                 type="button"
                                 onClick={() => handleStartConsultation(appt)}
-                                className="bg-teal-600 hover:bg-teal-500 active:bg-teal-700 text-white font-bold px-4 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-2 text-sm"
+                                className="bg-teal-700 hover:bg-teal-600 active:bg-teal-800 text-white font-bold px-4 py-2.5 rounded-xl shadow-md transition-all flex items-center gap-2 text-sm"
                               >
                                 <Play size={14} fill="currentColor" />
                                 <span>
@@ -620,7 +617,7 @@ export default function DoctorQueuePage({ standalone = false, onBackToDashboard 
                             )}
 
                             {isCompleted && (
-                              <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60">
+                              <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-700">
                                 <CheckCircle2 size={15} />
                                 <span>Consultation Completed</span>
                               </span>

@@ -4,15 +4,12 @@ import {
   Plus,
   Trash2,
   Calendar,
-  DollarSign,
   AlertCircle,
   CheckCircle2,
   FileText,
   Stethoscope,
   Pill,
   FlaskConical,
-  Send,
-  User,
   Phone,
   Clock,
   ChevronRight,
@@ -70,6 +67,13 @@ const formatVisitDate = (dateVal) => {
     return "—";
   }
 };
+
+// Shared input styling — strict high-contrast dark clinical console
+const FIELD_INPUT_CLASS =
+  "w-full bg-slate-900/80 border border-slate-700 text-white text-sm rounded-xl p-3 focus:border-teal-400 focus:ring-1 focus:ring-teal-400 outline-none placeholder:text-slate-500 font-normal transition-all";
+
+const FIELD_LABEL_CLASS =
+  "text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5 block";
 
 export default function ConsultationWorkspace({
   isOpen,
@@ -327,12 +331,12 @@ export default function ConsultationWorkspace({
         onClick={onClose}
       />
 
-      {/* Main Slide-in drawer container */}
-      <div className="relative z-10 flex h-full w-full max-w-none flex-col bg-[var(--color-bg)] text-[var(--color-text-primary)] shadow-2xl transition-transform duration-300">
+      {/* Main Slide-in drawer container — fixed high-contrast clinical console */}
+      <div className="relative z-10 flex h-full w-full max-w-none flex-col bg-slate-950 text-slate-100 shadow-2xl transition-transform duration-300">
         {/* =========================================================================
-            HIGH-CONTRAST CLINICAL DRAWER HEADER
+            HIGH-CONTRAST CLINICAL DRAWER HEADER & PATIENT BANNER
            ========================================================================= */}
-        <header className="shrink-0 border-b border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900 px-4 sm:px-6 py-3.5 shadow-sm">
+        <header className="shrink-0 bg-slate-900 border-b border-slate-800 text-white p-4 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             {/* Patient Details Left Section */}
             <div className="flex items-center gap-3.5 min-w-0">
@@ -357,13 +361,13 @@ export default function ConsultationWorkspace({
                 <div className="flex flex-wrap items-center gap-2">
                   <h3
                     id="workspace-heading"
-                    className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white truncate"
+                    className="text-lg font-bold text-white truncate"
                   >
                     {patient.name || "Unknown Patient"}
                   </h3>
 
                   {/* Status indicator pill */}
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-50 text-teal-800 border border-teal-200 dark:bg-teal-950/60 dark:text-teal-300 dark:border-teal-800">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-500/15 text-teal-300 border border-teal-500/40">
                     <span className="relative flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75" />
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-500" />
@@ -372,15 +376,15 @@ export default function ConsultationWorkspace({
                   </span>
 
                   {appointment.isWalkIn && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800">
+                    <span className="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-500/40">
                       Walk-In
                     </span>
                   )}
                 </div>
 
                 {/* Patient Clinical Subtext */}
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 dark:text-slate-300 mt-1">
-                  <span className="font-semibold text-slate-900 dark:text-slate-100">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-300 text-sm font-medium mt-1">
+                  <span className="font-semibold text-white">
                     Slot: {appointment.slot || "—"}
                   </span>
                   <span>•</span>
@@ -396,7 +400,7 @@ export default function ConsultationWorkspace({
                   {patient.bloodGroup && (
                     <>
                       <span>•</span>
-                      <span className="font-bold text-rose-600 dark:text-rose-400">
+                      <span className="font-bold text-rose-400">
                         {patient.bloodGroup}
                       </span>
                     </>
@@ -411,18 +415,18 @@ export default function ConsultationWorkspace({
               <div
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
                   appointment.paymentStatus === "PAID"
-                    ? "bg-emerald-50 text-emerald-800 border border-emerald-300 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-700/60"
-                    : "bg-amber-50 text-amber-800 border border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-700/60"
+                    ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/40"
+                    : "bg-amber-500/15 text-amber-300 border border-amber-500/40"
                 }`}
               >
                 {appointment.paymentStatus === "PAID" ? (
                   <>
-                    <CheckCircle2 size={13} className="text-emerald-600 dark:text-emerald-400" />
+                    <CheckCircle2 size={13} className="text-emerald-400" />
                     <span>✓ Paid Rs. {Number(appointment.paymentAmount || appointment.netAmount || 0).toLocaleString()}</span>
                   </>
                 ) : (
                   <>
-                    <Clock size={13} className="text-amber-600 dark:text-amber-400" />
+                    <Clock size={13} className="text-amber-400" />
                     <span>Pending Rs. {Number(appointment.paymentAmount || appointment.netAmount || originalFee).toLocaleString()}</span>
                   </>
                 )}
@@ -433,7 +437,7 @@ export default function ConsultationWorkspace({
                 type="button"
                 onClick={onClose}
                 aria-label="Close consultation workspace"
-                className="p-2 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors flex items-center gap-1 text-xs font-bold"
+                className="p-2 rounded-xl border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 transition-colors flex items-center gap-1 text-xs font-bold"
               >
                 <X size={17} />
                 <span className="hidden sm:inline">Esc</span>
@@ -445,39 +449,39 @@ export default function ConsultationWorkspace({
         {/* =========================================================================
             SPLIT WORKSPACE BODY (2 COLUMNS)
            ========================================================================= */}
-        <div className="grid flex-1 grid-cols-1 overflow-hidden lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-200 dark:divide-slate-700/80">
+        <div className="grid flex-1 grid-cols-1 overflow-hidden lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-800">
           {/* ---------------------------------------------------------------------
               LEFT COLUMN: High-Legibility Patient History
              --------------------------------------------------------------------- */}
           <section
             aria-label="Patient clinical history"
-            className="lg:col-span-5 flex flex-col h-full overflow-hidden bg-slate-50/60 dark:bg-slate-900/40"
+            className="lg:col-span-5 flex flex-col h-full overflow-hidden bg-slate-950"
           >
             {/* Column Header */}
-            <div className="shrink-0 px-4 sm:px-6 py-3.5 border-b border-slate-200 dark:border-slate-700/80 bg-white/70 dark:bg-slate-900/60 flex items-center justify-between">
+            <div className="shrink-0 px-4 sm:px-6 py-3.5 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <FileText size={16} className="text-teal-600 dark:text-teal-400" />
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                <FileText size={16} className="text-teal-400" />
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200">
                   Patient History
                 </h4>
               </div>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-50 text-teal-800 border border-teal-200 dark:bg-teal-950/60 dark:text-teal-300 dark:border-teal-800">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-500/15 text-teal-300 border border-teal-500/40">
                 {history.length} Prior Visit{history.length === 1 ? "" : "s"}
               </span>
             </div>
 
             {/* Scrollable History Cards */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
               {history.length === 0 ? (
-                <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-8 text-center shadow-sm space-y-3">
-                  <div className="w-12 h-12 rounded-full bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 flex items-center justify-center mx-auto border border-teal-200 dark:border-teal-800">
+                <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-8 text-center shadow-md space-y-3">
+                  <div className="w-12 h-12 rounded-full bg-teal-500/15 text-teal-300 flex items-center justify-center mx-auto border border-teal-500/40">
                     <Stethoscope size={22} />
                   </div>
                   <div>
-                    <h5 className="text-sm font-bold text-slate-900 dark:text-white">
+                    <h5 className="text-sm font-bold text-white">
                       First Time Consultation
                     </h5>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 leading-relaxed max-w-sm mx-auto">
+                    <p className="text-xs text-slate-300 mt-1 leading-relaxed max-w-sm mx-auto">
                       No previous clinical consultation records exist for this
                       patient. Prescribing now will automatically record their initial
                       medical history.
@@ -494,27 +498,27 @@ export default function ConsultationWorkspace({
                   return (
                     <article
                       key={h._id || idx}
-                      className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 shadow-sm space-y-4 transition-all hover:border-teal-500/40"
+                      className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 mb-4 shadow-md space-y-4 last:mb-0 transition-all hover:border-teal-500/40"
                     >
                       {/* Date Badge & Meta */}
-                      <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/60 pb-3">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-600 shadow-2xs">
-                          <Calendar size={12} className="text-teal-600 dark:text-teal-400" />
+                      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-800 text-slate-100 border border-slate-700">
+                          <Calendar size={12} className="text-teal-400" />
                           {visitDate}
                         </span>
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                           Visit #{history.length - idx}
                         </span>
                       </div>
 
                       {/* Diagnosis & Notes */}
                       <div className="space-y-1.5">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
+                        <span className="text-xs font-bold uppercase tracking-wider text-teal-400 mb-1 block">
                           Diagnosis
                         </span>
-                        <h5 className="text-base font-bold text-slate-900 dark:text-white leading-snug">
+                        <p className="text-slate-100 text-sm font-medium leading-relaxed">
                           {prescription.diagnosis || "No specific diagnosis recorded"}
-                        </h5>
+                        </p>
 
                         {/* Diseases / Symptoms tags */}
                         {Array.isArray(h.diseases) && h.diseases.length > 0 && (
@@ -522,7 +526,7 @@ export default function ConsultationWorkspace({
                             {h.diseases.map((dis, dIdx) => (
                               <span
                                 key={dIdx}
-                                className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700/70 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600"
+                                className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-800 text-slate-200 border border-slate-700"
                               >
                                 {dis}
                               </span>
@@ -534,10 +538,10 @@ export default function ConsultationWorkspace({
                       {/* Doctor Clinical Notes */}
                       {h.notes && (
                         <div className="space-y-1">
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
+                          <span className="text-xs font-bold uppercase tracking-wider text-teal-400 mb-1 block">
                             Doctor Notes
                           </span>
-                          <div className="text-sm font-medium text-slate-800 dark:text-slate-200 leading-relaxed bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700/80">
+                          <div className="text-slate-100 text-sm font-medium leading-relaxed bg-slate-800/60 p-3 rounded-xl border border-slate-700/60">
                             {h.notes}
                           </div>
                         </div>
@@ -546,30 +550,28 @@ export default function ConsultationWorkspace({
                       {/* Prescribed Medicines List */}
                       {meds.length > 0 && (
                         <div className="space-y-2 pt-1">
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block">
+                          <span className="text-xs font-bold uppercase tracking-wider text-teal-400 mb-1 block">
                             Prescribed Medicines ({meds.length})
                           </span>
                           <div className="space-y-2">
                             {meds.map((med, mIdx) => (
                               <div
                                 key={mIdx}
-                                className="rounded-xl p-3 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700/80 space-y-1 shadow-2xs"
+                                className="bg-slate-800 border border-slate-700 text-white px-3 py-2 rounded-lg text-xs font-medium"
                               >
-                                <div className="flex flex-wrap items-center justify-between gap-1.5">
-                                  <span className="font-bold text-slate-900 dark:text-white text-sm">
+                                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                                  <span className="font-bold text-white">
                                     {med.name} {med.dosage}
                                   </span>
-                                  <div className="flex items-center gap-1.5 text-xs">
-                                    <span className="font-bold px-2 py-0.5 rounded-md bg-teal-50 dark:bg-teal-950/70 text-teal-800 dark:text-teal-300 border border-teal-200 dark:border-teal-800/80">
+                                  <span className="flex items-center gap-1.5 text-slate-300">
+                                    <span className="font-bold text-teal-300">
                                       {med.frequency}
                                     </span>
-                                    <span className="font-semibold text-slate-700 dark:text-slate-300">
-                                      • {med.duration}
-                                    </span>
-                                  </div>
+                                    <span>• {med.duration}</span>
+                                  </span>
                                 </div>
                                 {med.instructions && (
-                                  <p className="text-xs text-slate-600 dark:text-slate-400 italic">
+                                  <p className="text-slate-400 italic mt-1">
                                     Instructions: {med.instructions}
                                   </p>
                                 )}
@@ -581,16 +583,16 @@ export default function ConsultationWorkspace({
 
                       {/* Lab Tests Section (Teal Callout Box) */}
                       {labTestsList.length > 0 && (
-                        <div className="bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800/80 rounded-xl p-3.5 space-y-2">
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-teal-900 dark:text-teal-200 flex items-center gap-1.5">
-                            <FlaskConical size={14} className="text-teal-600 dark:text-teal-400" />
+                        <div className="bg-teal-950/40 border border-teal-800/80 rounded-xl p-3.5 space-y-2">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-teal-300 flex items-center gap-1.5">
+                            <FlaskConical size={14} className="text-teal-400" />
                             Prescribed Lab Tests ({labTestsList.length})
                           </span>
                           <div className="flex flex-wrap gap-1.5">
                             {labTestsList.map((test, tIdx) => (
                               <span
                                 key={tIdx}
-                                className="bg-white dark:bg-teal-900/60 text-teal-950 dark:text-teal-100 border border-teal-300 dark:border-teal-700 px-2.5 py-1 rounded-lg text-xs font-bold shadow-2xs"
+                                className="bg-teal-900/60 text-teal-100 border border-teal-700 px-2.5 py-1 rounded-lg text-xs font-bold"
                               >
                                 {test}
                               </span>
@@ -601,12 +603,12 @@ export default function ConsultationWorkspace({
 
                       {/* Patient Advice in readable prose */}
                       {prescription.patientAdvice && (
-                        <div className="bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 rounded-xl p-3.5 space-y-1">
-                          <span className="text-[11px] font-bold uppercase tracking-wider text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
-                            <Sparkles size={13} className="text-amber-600 dark:text-amber-400" />
+                        <div className="bg-amber-950/30 border border-amber-800/60 rounded-xl p-3.5 space-y-1">
+                          <span className="text-[11px] font-bold uppercase tracking-wider text-amber-200 flex items-center gap-1.5">
+                            <Sparkles size={13} className="text-amber-400" />
                             Patient Advice
                           </span>
-                          <p className="text-sm font-medium text-slate-800 dark:text-slate-200 leading-relaxed">
+                          <p className="text-slate-100 text-sm font-medium leading-relaxed">
                             {prescription.patientAdvice}
                           </p>
                         </div>
@@ -614,11 +616,11 @@ export default function ConsultationWorkspace({
 
                       {/* Next Appointment Date if recorded */}
                       {prescription.nextAppointment && (
-                        <div className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 pt-1">
-                          <Calendar size={13} className="text-teal-600 dark:text-teal-400" />
+                        <div className="text-xs font-semibold text-slate-300 flex items-center gap-1.5 pt-1">
+                          <Calendar size={13} className="text-teal-400" />
                           <span>
                             Next Follow-Up:{" "}
-                            <strong className="text-slate-900 dark:text-white">
+                            <strong className="text-white">
                               {formatVisitDate(prescription.nextAppointment)}
                             </strong>
                           </span>
@@ -636,17 +638,17 @@ export default function ConsultationWorkspace({
              --------------------------------------------------------------------- */}
           <section
             aria-label="New checkup and prescription form"
-            className="lg:col-span-7 flex flex-col h-full overflow-hidden bg-white dark:bg-slate-900"
+            className="lg:col-span-7 flex flex-col h-full overflow-hidden bg-slate-950"
           >
             {/* Column Header */}
-            <div className="shrink-0 px-4 sm:px-6 py-3.5 border-b border-slate-200 dark:border-slate-700/80 bg-white/70 dark:bg-slate-900/60 flex items-center justify-between">
+            <div className="shrink-0 px-4 sm:px-6 py-3.5 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Stethoscope size={16} className="text-teal-600 dark:text-teal-400" />
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                <Stethoscope size={16} className="text-teal-400" />
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-200">
                   New Checkup & Prescription
                 </h4>
               </div>
-              <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              <span className="text-xs text-slate-400 font-medium">
                 All changes dispatched to patient WhatsApp
               </span>
             </div>
@@ -661,7 +663,7 @@ export default function ConsultationWorkspace({
             >
               {/* Field 1: Common Diseases / Symptoms */}
               <div>
-                <label className="text-xs font-bold tracking-wider text-slate-700 dark:text-slate-300 mb-1.5 block uppercase">
+                <label className={FIELD_LABEL_CLASS}>
                   Common Diseases / Symptoms (Comma Separated)
                 </label>
                 <input
@@ -669,11 +671,11 @@ export default function ConsultationWorkspace({
                   value={diseases}
                   onChange={(e) => setDiseases(e.target.value)}
                   placeholder="e.g. Hypertension, Seasonal Flu, Type 2 Diabetes"
-                  className="w-full bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-600 focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 py-3 px-4 text-base min-h-[44px] rounded-xl outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-2xs"
+                  className={FIELD_INPUT_CLASS}
                 />
                 {/* Quick Add Suggestion Chips */}
                 <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                  <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mr-1">
+                  <span className="text-[11px] font-bold text-slate-400 uppercase mr-1">
                     Quick suggestions:
                   </span>
                   {QUICK_DISEASES.map((item) => (
@@ -681,7 +683,7 @@ export default function ConsultationWorkspace({
                       key={item}
                       type="button"
                       onClick={() => appendQuickItem(setDiseases, diseases, item)}
-                      className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-teal-50 hover:text-teal-800 dark:hover:bg-teal-950/60 dark:hover:text-teal-200 border border-slate-200 dark:border-slate-700 transition-colors"
+                      className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1 rounded-md transition-colors"
                     >
                       + {item}
                     </button>
@@ -691,7 +693,7 @@ export default function ConsultationWorkspace({
 
               {/* Field 2: Clinical Examination Notes */}
               <div>
-                <label className="text-xs font-bold tracking-wider text-slate-700 dark:text-slate-300 mb-1.5 block uppercase">
+                <label className={FIELD_LABEL_CLASS}>
                   Clinical Examination & Vitals Notes
                 </label>
                 <textarea
@@ -699,30 +701,30 @@ export default function ConsultationWorkspace({
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder="Clinical examination findings, vitals (BP, pulse, temp), symptoms timeline, systemic review..."
                   rows={3}
-                  className="w-full bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-600 focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 py-3 px-4 text-base min-h-[80px] rounded-xl outline-none resize-y transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-2xs"
+                  className={`${FIELD_INPUT_CLASS} resize-y`}
                 />
               </div>
 
               {/* =============================================================
                   PRESCRIPTION SECTION CARD
                  ============================================================= */}
-              <div className="rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/40 p-4 sm:p-5 space-y-5 shadow-sm">
-                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700/80 pb-3">
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 sm:p-5 space-y-5 shadow-md">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                   <div className="flex items-center gap-2">
-                    <Pill size={17} className="text-teal-600 dark:text-teal-400" />
-                    <span className="text-xs font-bold text-teal-800 dark:text-teal-300 uppercase tracking-wider">
+                    <Pill size={17} className="text-teal-400" />
+                    <span className="text-xs font-bold text-teal-400 uppercase tracking-wider">
                       Prescription Details
                     </span>
                   </div>
-                  <span className="text-xs text-rose-600 dark:text-rose-400 font-semibold">
+                  <span className="text-xs text-rose-400 font-semibold">
                     * Required fields
                   </span>
                 </div>
 
                 {/* Diagnosis (Required) */}
                 <div>
-                  <label className="text-xs font-bold tracking-wider text-slate-700 dark:text-slate-300 mb-1.5 block uppercase">
-                    Diagnosis <span className="text-rose-500">*</span>
+                  <label className={FIELD_LABEL_CLASS}>
+                    Diagnosis <span className="text-rose-400">*</span>
                   </label>
                   <input
                     type="text"
@@ -734,14 +736,14 @@ export default function ConsultationWorkspace({
                       }
                     }}
                     placeholder="e.g. Acute Viral Bronchitis, Essential Hypertension"
-                    className={`w-full bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border ${
+                    className={`w-full bg-slate-900/80 border text-white text-sm rounded-xl p-3 outline-none placeholder:text-slate-500 font-normal transition-all ${
                       formErrors.diagnosis
-                        ? "border-rose-500 ring-2 ring-rose-500/20"
-                        : "border-slate-300 dark:border-slate-600 focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20"
-                    } py-3 px-4 text-base min-h-[44px] rounded-xl outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-2xs font-semibold`}
+                        ? "border-rose-500 ring-1 ring-rose-500/40"
+                        : "border-slate-700 focus:border-teal-400 focus:ring-1 focus:ring-teal-400"
+                    }`}
                   />
                   {formErrors.diagnosis && (
-                    <p className="text-xs font-bold text-rose-600 dark:text-rose-400 mt-1 flex items-center gap-1">
+                    <p className="text-xs font-bold text-rose-400 mt-1 flex items-center gap-1">
                       <AlertCircle size={13} /> {formErrors.diagnosis}
                     </p>
                   )}
@@ -752,38 +754,38 @@ export default function ConsultationWorkspace({
                    ============================================================= */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold tracking-wider text-slate-700 dark:text-slate-300 uppercase">
-                      Prescribed Medicines <span className="text-rose-500">*</span> ({medicines.length})
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                      Prescribed Medicines <span className="text-rose-400">*</span> ({medicines.length})
                     </label>
                     <button
                       type="button"
                       onClick={addMedicineRow}
-                      className="bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-300 dark:bg-teal-950/60 dark:hover:bg-teal-900/60 dark:text-teal-200 dark:border-teal-700 font-bold py-1.5 px-3 rounded-lg text-xs flex items-center gap-1.5 transition-colors shadow-2xs"
+                      className="bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 border border-teal-500/40 font-bold py-1.5 px-3 rounded-lg text-xs flex items-center gap-1.5 transition-colors"
                     >
                       <Plus size={13} /> Add Medicine
                     </button>
                   </div>
 
                   {formErrors.medicines && (
-                    <p className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                    <p className="text-xs font-bold text-rose-400 flex items-center gap-1">
                       <AlertCircle size={13} /> {formErrors.medicines}
                     </p>
                   )}
 
                   {/* Medicines List */}
-                  <div className="space-y-4">
+                  <div>
                     {medicines.map((med, index) => (
                       <div
                         key={index}
-                        className="rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 p-4 space-y-3 shadow-sm transition-all"
+                        className="bg-slate-900 border border-slate-800 p-4 rounded-xl mb-3 space-y-3 last:mb-0 transition-all"
                       >
                         {/* Medicine Row Top Action Bar */}
-                        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-700/60 pb-2">
+                        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                           <div className="flex items-center gap-2">
-                            <span className="w-5 h-5 rounded-full bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200 text-xs font-bold flex items-center justify-center">
+                            <span className="w-5 h-5 rounded-full bg-teal-500/15 text-teal-300 border border-teal-500/40 text-xs font-bold flex items-center justify-center">
                               {index + 1}
                             </span>
-                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                            <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
                               Medicine #{index + 1}
                             </span>
                           </div>
@@ -793,7 +795,7 @@ export default function ConsultationWorkspace({
                             type="button"
                             onClick={() => removeMedicineRow(index)}
                             aria-label={`Remove medicine #${index + 1}`}
-                            className="text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 dark:bg-rose-950/40 dark:border-rose-800/60 dark:text-rose-300 p-2 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
+                            className="text-rose-300 hover:text-rose-200 bg-rose-950/40 hover:bg-rose-900/50 border border-rose-800/70 p-2 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
                           >
                             <Trash2 size={14} />
                             <span className="hidden sm:inline">Delete</span>
@@ -804,8 +806,8 @@ export default function ConsultationWorkspace({
                         <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
                           {/* Medicine Name & Formulation */}
                           <div className="sm:col-span-8">
-                            <label className="text-[11px] font-bold tracking-wider text-slate-600 dark:text-slate-400 mb-1 block uppercase">
-                              Medicine Name & Formulation <span className="text-rose-500">*</span>
+                            <label className={FIELD_LABEL_CLASS}>
+                              Medicine Name & Formulation <span className="text-rose-400">*</span>
                             </label>
                             <input
                               type="text"
@@ -814,14 +816,14 @@ export default function ConsultationWorkspace({
                                 updateMedicine(index, "name", e.target.value)
                               }
                               placeholder="e.g. Augmentin, Brufen, Panadol Extra"
-                              className="w-full bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-600 focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 py-3 px-4 text-base min-h-[44px] rounded-xl outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-2xs font-semibold"
+                              className={FIELD_INPUT_CLASS}
                             />
                           </div>
 
                           {/* Dosage */}
                           <div className="sm:col-span-4">
-                            <label className="text-[11px] font-bold tracking-wider text-slate-600 dark:text-slate-400 mb-1 block uppercase">
-                              Dosage <span className="text-rose-500">*</span>
+                            <label className={FIELD_LABEL_CLASS}>
+                              Dosage <span className="text-rose-400">*</span>
                             </label>
                             <input
                               type="text"
@@ -830,7 +832,7 @@ export default function ConsultationWorkspace({
                                 updateMedicine(index, "dosage", e.target.value)
                               }
                               placeholder="e.g. 500mg, 1 tablet"
-                              className="w-full bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-600 focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 py-3 px-4 text-base min-h-[44px] rounded-xl outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-2xs"
+                              className={FIELD_INPUT_CLASS}
                             />
                           </div>
                         </div>
@@ -839,11 +841,9 @@ export default function ConsultationWorkspace({
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {/* Frequency */}
                           <div>
-                            <div className="flex items-center justify-between mb-1">
-                              <label className="text-[11px] font-bold tracking-wider text-slate-600 dark:text-slate-400 uppercase">
-                                Frequency <span className="text-rose-500">*</span>
-                              </label>
-                            </div>
+                            <label className={FIELD_LABEL_CLASS}>
+                              Frequency <span className="text-rose-400">*</span>
+                            </label>
                             <input
                               type="text"
                               value={med.frequency}
@@ -851,7 +851,7 @@ export default function ConsultationWorkspace({
                                 updateMedicine(index, "frequency", e.target.value)
                               }
                               placeholder="e.g. 1-0-1, 2x Daily, Once Daily"
-                              className="w-full bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-600 focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 py-3 px-4 text-base min-h-[44px] rounded-xl outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-2xs"
+                              className={FIELD_INPUT_CLASS}
                             />
                             {/* Preset pills for rapid entry */}
                             <div className="flex flex-wrap gap-1 mt-1.5">
@@ -860,7 +860,7 @@ export default function ConsultationWorkspace({
                                   key={preset}
                                   type="button"
                                   onClick={() => updateMedicine(index, "frequency", preset)}
-                                  className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700/80 text-slate-700 dark:text-slate-200 hover:bg-teal-50 hover:text-teal-800 dark:hover:bg-teal-900/60 transition-colors"
+                                  className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1 rounded-md transition-colors"
                                 >
                                   {preset}
                                 </button>
@@ -870,8 +870,8 @@ export default function ConsultationWorkspace({
 
                           {/* Duration */}
                           <div>
-                            <label className="text-[11px] font-bold tracking-wider text-slate-600 dark:text-slate-400 mb-1 block uppercase">
-                              Duration <span className="text-rose-500">*</span>
+                            <label className={FIELD_LABEL_CLASS}>
+                              Duration <span className="text-rose-400">*</span>
                             </label>
                             <input
                               type="text"
@@ -880,7 +880,7 @@ export default function ConsultationWorkspace({
                                 updateMedicine(index, "duration", e.target.value)
                               }
                               placeholder="e.g. 5 Days, 1 Week, 10 Days"
-                              className="w-full bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-600 focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 py-3 px-4 text-base min-h-[44px] rounded-xl outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-2xs"
+                              className={FIELD_INPUT_CLASS}
                             />
                             {/* Preset pills for duration */}
                             <div className="flex flex-wrap gap-1 mt-1.5">
@@ -889,7 +889,7 @@ export default function ConsultationWorkspace({
                                   key={preset}
                                   type="button"
                                   onClick={() => updateMedicine(index, "duration", preset)}
-                                  className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-700/80 text-slate-700 dark:text-slate-200 hover:bg-teal-50 hover:text-teal-800 dark:hover:bg-teal-900/60 transition-colors"
+                                  className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1 rounded-md transition-colors"
                                 >
                                   {preset}
                                 </button>
@@ -900,7 +900,7 @@ export default function ConsultationWorkspace({
 
                         {/* Bottom Row: Instructions (Full Width) */}
                         <div>
-                          <label className="text-[11px] font-bold tracking-wider text-slate-600 dark:text-slate-400 mb-1 block uppercase">
+                          <label className={FIELD_LABEL_CLASS}>
                             Instructions & Administration
                           </label>
                           <input
@@ -910,7 +910,7 @@ export default function ConsultationWorkspace({
                               updateMedicine(index, "instructions", e.target.value)
                             }
                             placeholder="e.g. Take after meals with plenty of water, avoid dairy"
-                            className="w-full bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-600 focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 py-3 px-4 text-base min-h-[44px] rounded-xl outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-2xs"
+                            className={FIELD_INPUT_CLASS}
                           />
                         </div>
                       </div>
@@ -921,7 +921,7 @@ export default function ConsultationWorkspace({
                   <button
                     type="button"
                     onClick={addMedicineRow}
-                    className="w-full py-3.5 rounded-xl border-2 border-dashed border-teal-300 dark:border-teal-700/80 bg-teal-50/50 hover:bg-teal-100/60 dark:bg-teal-950/30 dark:hover:bg-teal-950/60 text-teal-800 dark:text-teal-200 font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-2xs"
+                    className="w-full py-3.5 rounded-xl border-2 border-dashed border-teal-700/80 bg-teal-950/40 hover:bg-teal-950/70 text-teal-300 font-bold text-sm flex items-center justify-center gap-2 transition-all"
                   >
                     <Plus size={16} />
                     + Add Another Medicine Row
@@ -935,7 +935,7 @@ export default function ConsultationWorkspace({
               <div className="space-y-5">
                 {/* Prescribe Lab Tests */}
                 <div>
-                  <label className="text-xs font-bold tracking-wider text-slate-700 dark:text-slate-300 mb-1.5 block uppercase">
+                  <label className={FIELD_LABEL_CLASS}>
                     Prescribe Lab Tests (Comma Separated)
                   </label>
                   <input
@@ -943,11 +943,11 @@ export default function ConsultationWorkspace({
                     value={labTests}
                     onChange={(e) => setLabTests(e.target.value)}
                     placeholder="e.g. CBC, Serum Creatinine, Liver Function Test (LFT), Lipid Profile"
-                    className="w-full bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-600 focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 py-3 px-4 text-base min-h-[44px] rounded-xl outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-2xs"
+                    className={FIELD_INPUT_CLASS}
                   />
                   {/* Quick Lab Tests Suggestions */}
                   <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                    <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase mr-1">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase mr-1">
                       Common tests:
                     </span>
                     {QUICK_LAB_TESTS.map((test) => (
@@ -955,7 +955,7 @@ export default function ConsultationWorkspace({
                         key={test}
                         type="button"
                         onClick={() => appendQuickItem(setLabTests, labTests, test)}
-                        className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-teal-50 text-teal-800 dark:bg-teal-950/60 dark:text-teal-200 hover:bg-teal-100 border border-teal-200 dark:border-teal-800 transition-colors"
+                        className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs px-2.5 py-1 rounded-md transition-colors"
                       >
                         + {test}
                       </button>
@@ -965,7 +965,7 @@ export default function ConsultationWorkspace({
 
                 {/* Patient Advice */}
                 <div>
-                  <label className="text-xs font-bold tracking-wider text-slate-700 dark:text-slate-300 mb-1.5 block uppercase">
+                  <label className={FIELD_LABEL_CLASS}>
                     Patient Advice & Lifestyle Guidance
                   </label>
                   <textarea
@@ -973,14 +973,14 @@ export default function ConsultationWorkspace({
                     onChange={(e) => setPatientAdvice(e.target.value)}
                     placeholder="Diet constraints, bed rest advice, hydration guidance (e.g. 8 glasses/day), warning signs to return..."
                     rows={3}
-                    className="w-full bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-600 focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 py-3 px-4 text-base min-h-[80px] rounded-xl outline-none resize-y transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 shadow-2xs"
+                    className={`${FIELD_INPUT_CLASS} resize-y`}
                   />
                 </div>
 
                 {/* Next Follow-Up Appointment Date */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-bold tracking-wider text-slate-700 dark:text-slate-300 uppercase">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-300">
                       Next Follow-Up Appointment Date
                     </label>
                   </div>
@@ -991,7 +991,7 @@ export default function ConsultationWorkspace({
                         min={todayFormatted}
                         value={nextAppointment}
                         onChange={(e) => setNextAppointment(e.target.value)}
-                        className="w-full bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-600 focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 py-3 px-4 text-base min-h-[44px] rounded-xl outline-none transition-all shadow-2xs"
+                        className="w-full bg-slate-900/80 border border-slate-700 text-white text-sm rounded-xl p-3 focus:border-teal-400 focus:ring-1 focus:ring-teal-400 outline-none transition-all [color-scheme:dark]"
                       />
                     </div>
                     {/* Quick follow-up buttons */}
@@ -1006,7 +1006,7 @@ export default function ConsultationWorkspace({
                           key={item.label}
                           type="button"
                           onClick={() => setQuickFollowUp(item.days)}
-                          className="text-xs font-bold px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-teal-50 hover:text-teal-800 dark:hover:bg-teal-900/60 border border-slate-200 dark:border-slate-700 transition-colors"
+                          className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold px-3 py-2 rounded-xl transition-colors"
                         >
                           {item.label}
                         </button>
@@ -1016,19 +1016,19 @@ export default function ConsultationWorkspace({
                 </div>
 
                 {/* Financial Adjustments Card */}
-                <div className="rounded-2xl border border-slate-300 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/40 p-4 space-y-3">
-                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700/80 pb-2">
-                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <span className="text-xs font-bold text-slate-200 uppercase tracking-wider">
                       Fee & Billing Summary
                     </span>
-                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+                    <span className="text-xs font-semibold text-slate-400">
                       Standard Fee: Rs. {originalFee.toLocaleString()}
                     </span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[11px] font-bold tracking-wider text-slate-600 dark:text-slate-400 mb-1 block uppercase">
+                      <label className={FIELD_LABEL_CLASS}>
                         Consultation Discount (PKR)
                       </label>
                       <input
@@ -1037,11 +1037,11 @@ export default function ConsultationWorkspace({
                         value={consultationDiscount}
                         onChange={(e) => setConsultationDiscount(e.target.value)}
                         placeholder="0"
-                        className="w-full bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-600 focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 py-2.5 px-3 text-sm rounded-xl outline-none transition-all"
+                        className={FIELD_INPUT_CLASS}
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] font-bold tracking-wider text-slate-600 dark:text-slate-400 mb-1 block uppercase">
+                      <label className={FIELD_LABEL_CLASS}>
                         Lab / Ancillary Fee (PKR)
                       </label>
                       <input
@@ -1050,17 +1050,17 @@ export default function ConsultationWorkspace({
                         value={labFee}
                         onChange={(e) => setLabFee(e.target.value)}
                         placeholder="0"
-                        className="w-full bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-600 focus:border-teal-600 focus:ring-2 focus:ring-teal-500/20 py-2.5 px-3 text-sm rounded-xl outline-none transition-all"
+                        className={FIELD_INPUT_CLASS}
                       />
                     </div>
                   </div>
 
                   {/* Net Calculated Fee Pill */}
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-slate-900 border border-slate-800">
+                    <span className="text-xs font-bold text-slate-300">
                       Net Total Payable:
                     </span>
-                    <span className="text-sm font-bold text-teal-700 dark:text-teal-300 font-mono">
+                    <span className="text-sm font-bold text-teal-300 font-mono">
                       Rs. {totalPayable.toLocaleString()}
                     </span>
                   </div>
@@ -1074,16 +1074,16 @@ export default function ConsultationWorkspace({
             {/* =============================================================
                 ACTION CTA GROUP (FIXED BOTTOM BAR)
                ============================================================= */}
-            <div className="shrink-0 border-t border-slate-200 dark:border-slate-700/80 bg-white dark:bg-slate-900 px-4 sm:px-6 py-4 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="text-xs text-slate-600 dark:text-slate-400 hidden sm:block">
-                Patient: <strong className="text-slate-900 dark:text-white">{patient.name}</strong> · Net: <strong className="text-teal-700 dark:text-teal-300">Rs. {totalPayable.toLocaleString()}</strong>
+            <div className="shrink-0 border-t border-slate-800 bg-slate-950 px-4 sm:px-6 py-4 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="text-xs text-slate-400 hidden sm:block">
+                Patient: <strong className="text-white">{patient.name}</strong> · Net: <strong className="text-teal-300">Rs. {totalPayable.toLocaleString()}</strong>
               </div>
 
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 sm:flex-initial px-5 py-3.5 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold text-sm transition-colors"
+                  className="flex-1 sm:flex-initial px-5 py-3.5 rounded-xl border border-slate-700 text-slate-200 hover:bg-slate-800 font-bold text-sm transition-colors"
                 >
                   Cancel
                 </button>
@@ -1092,11 +1092,11 @@ export default function ConsultationWorkspace({
                   type="button"
                   onClick={handleCompleteConsultation}
                   disabled={isSubmitting}
-                  className="flex-2 sm:flex-initial bg-teal-600 hover:bg-teal-500 active:bg-teal-700 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 sm:flex-initial bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold py-3.5 px-6 rounded-xl shadow-lg transition-all text-sm uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
                       <span>Dispatching Prescription...</span>
                     </>
                   ) : (
