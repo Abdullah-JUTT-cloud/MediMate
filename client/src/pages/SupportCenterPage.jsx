@@ -22,12 +22,7 @@ import axiosInstance from "../api/axios";
 import MessageStatusTicks from "../components/MessageStatusTicks";
 import VoiceMessagePlayer from "../components/VoiceMessagePlayer";
 import { getRealtimeSocketForRole } from "../realtime/socket";
-import {
-  organicCardStyle,
-  organicInputStyle,
-  organicSectionStyle,
-  organicTheme,
-} from "../styles/organicTheme";
+import { organicTheme } from "../styles/organicTheme";
 import { RowSkeleton, ChatHistorySkeleton } from "../components/SkeletonLoaders";
 
 const SUPPORT_SEEN_STORAGE_KEY = "support-ticket-seen-map-v2";
@@ -72,34 +67,6 @@ const getAudioExtension = (mimeType = "") => {
   return "webm";
 };
 
-const statusTone = {
-  Open: {
-    color: "var(--color-secondary)",
-    border: "rgba(193,140,93,0.35)",
-    bg: "rgba(193,140,93,0.12)",
-  },
-  "In Progress": {
-    color: "var(--color-primary)",
-    border: "rgba(93,112,82,0.35)",
-    bg: "rgba(93,112,82,0.12)",
-  },
-  Resolved: {
-    color: "var(--color-primary)",
-    border: "rgba(78,98,69,0.35)",
-    bg: "rgba(93,112,82,0.16)",
-  },
-  Reopened: {
-    color: "var(--color-danger)",
-    border: "rgba(168,84,72,0.35)",
-    bg: "rgba(168,84,72,0.12)",
-  },
-  Closed: {
-    color: "var(--color-text-secondary)",
-    border: "rgba(120,120,108,0.3)",
-    bg: "rgba(120,120,108,0.1)",
-  },
-};
-
 const chatCanvasStyle = {
   backgroundColor:
     "color-mix(in srgb, var(--color-bg-soft) 78%, var(--color-card) 22%)",
@@ -135,15 +102,14 @@ const receivedVoiceTheme = {
 };
 
 function StatusChip({ status }) {
-  const tone = statusTone[status] || statusTone.Open;
+  const resolved = status === "Resolved" || status === "Closed";
   return (
     <span
-      className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] border font-semibold"
-      style={{
-        color: tone.color,
-        borderColor: tone.border,
-        background: tone.bg,
-      }}
+      className={
+        resolved
+          ? "bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 font-bold px-2.5 py-0.5 rounded-full text-[11px]"
+          : "bg-teal-100 text-teal-900 dark:bg-teal-950 dark:text-teal-300 border border-teal-300 font-bold px-2.5 py-0.5 rounded-full text-[11px]"
+      }
     >
       {status}
     </span>
@@ -1012,41 +978,31 @@ export default function SupportCenterPage() {
         />
 
         {showIssueListPane ? (
-          <section
-            className="xl:col-span-4 h-[calc(100vh-9rem)] overflow-hidden rounded-[2rem] border p-5 flex flex-col"
-            style={organicCardStyle}
-          >
-            <div className="flex items-center gap-3">
-              <span
-                className="h-12 w-12 rounded-2xl flex items-center justify-center"
-                style={{
-                  background: "rgba(93,112,82,0.12)",
-                  color: organicTheme.colors.primary,
-                }}
-              >
+          <section className="xl:col-span-4 h-[calc(100vh-9rem)] overflow-hidden flex flex-col">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="h-12 w-12 rounded-2xl flex items-center justify-center bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300">
                 <LifeBuoy size={22} />
               </span>
               <div>
-                <h2
-                  className="text-2xl font-bold text-[var(--color-text-primary)]"
-                  style={{ fontFamily: "Fraunces" }}
-                >
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
                   Support Center
                 </h2>
-                <p className="text-xs mt-1 text-[var(--color-text-secondary)]">
+                <p className="text-xs mt-1 text-slate-600 dark:text-slate-400">
                   Create a ticket to chat with admin support.
                 </p>
               </div>
             </div>
 
-            <div className="mt-4 space-y-3">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm mb-4 space-y-3">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5 block">
+                Category
+              </label>
               <select
                 value={newIssue.category}
                 onChange={(e) =>
                   setNewIssue((p) => ({ ...p, category: e.target.value }))
                 }
-                className="w-full rounded-full px-4 py-3 border text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
-                style={organicInputStyle}
+                className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl p-3 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 w-full placeholder:text-slate-400 shadow-xs"
               >
                 {CATEGORIES.map((c) => (
                   <option key={c} value={c}>
@@ -1054,15 +1010,20 @@ export default function SupportCenterPage() {
                   </option>
                 ))}
               </select>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5 block">
+                Title
+              </label>
               <input
                 value={newIssue.title}
                 onChange={(e) =>
                   setNewIssue((p) => ({ ...p, title: e.target.value }))
                 }
                 placeholder="Issue title"
-                className="w-full rounded-full px-4 py-3 border text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
-                style={organicInputStyle}
+                className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl p-3 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 w-full placeholder:text-slate-400 shadow-xs"
               />
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5 block">
+                Description
+              </label>
               <textarea
                 value={newIssue.description}
                 onChange={(e) =>
@@ -1070,45 +1031,27 @@ export default function SupportCenterPage() {
                 }
                 placeholder="Describe your feedback/problem"
                 rows={4}
-                className="w-full rounded-3xl px-4 py-3 border text-sm resize-none outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
-                style={organicInputStyle}
+                className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl p-3 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 w-full placeholder:text-slate-400 shadow-xs resize-none"
               />
               <button
                 onClick={handleCreateIssue}
                 disabled={isCreating}
-                className="w-full rounded-full px-4 py-3 text-sm font-semibold text-white disabled:opacity-60 transition-all hover:scale-105 active:scale-95 inline-flex items-center justify-center gap-2"
-                style={{
-                  background: organicTheme.colors.primary,
-                  boxShadow: organicTheme.shadows.button,
-                }}
+                className="bg-teal-600 hover:bg-teal-500 text-white font-bold py-3 rounded-xl shadow-md transition-all text-sm w-full disabled:opacity-60 inline-flex items-center justify-center gap-2"
               >
                 <Ticket size={16} />
                 {isCreating ? "Creating..." : "Create Issue"}
               </button>
             </div>
 
-            <div
-              className="mt-6 flex gap-2 rounded-full p-1 border"
-              style={organicSectionStyle}
-            >
+            <div className="flex gap-2 mb-3">
               <button
                 onClick={() => setActiveTab("active")}
                 aria-pressed={activeTab === "active"}
-                className="flex-1 rounded-full px-2 py-2 text-xs font-semibold inline-flex items-center justify-center gap-1.5"
-                style={{
-                  background:
-                    activeTab === "active"
-                      ? "rgba(93,112,82,0.14)"
-                      : "transparent",
-                  border:
-                    activeTab === "active"
-                      ? "1px solid rgba(93,112,82,0.28)"
-                      : "1px solid transparent",
-                  color:
-                    activeTab === "active"
-                      ? organicTheme.colors.primary
-                      : organicTheme.colors.mutedForeground,
-                }}
+                className={
+                  activeTab === "active"
+                    ? "bg-teal-600 text-white font-bold shadow-xs px-4 py-1.5 rounded-full text-xs inline-flex items-center gap-1.5"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-4 py-1.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5"
+                }
               >
                 <Sparkles size={13} />
                 Active
@@ -1116,21 +1059,11 @@ export default function SupportCenterPage() {
               <button
                 onClick={() => setActiveTab("history")}
                 aria-pressed={activeTab === "history"}
-                className="flex-1 rounded-full px-2 py-2 text-xs font-semibold inline-flex items-center justify-center gap-1.5"
-                style={{
-                  background:
-                    activeTab === "history"
-                      ? "rgba(93,112,82,0.14)"
-                      : "transparent",
-                  border:
-                    activeTab === "history"
-                      ? "1px solid rgba(93,112,82,0.28)"
-                      : "1px solid transparent",
-                  color:
-                    activeTab === "history"
-                      ? organicTheme.colors.primary
-                      : organicTheme.colors.mutedForeground,
-                }}
+                className={
+                  activeTab === "history"
+                    ? "bg-teal-600 text-white font-bold shadow-xs px-4 py-1.5 rounded-full text-xs inline-flex items-center gap-1.5"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-4 py-1.5 rounded-full text-xs font-semibold inline-flex items-center gap-1.5"
+                }
               >
                 <History size={13} />
                 History
@@ -1160,20 +1093,14 @@ export default function SupportCenterPage() {
                           <button
                             key={t._id}
                             onClick={() => handleSelectTicket(t._id, t)}
-                            className="w-full text-left rounded-2xl p-3 border transition-all hover:-translate-y-0.5"
-                            style={{
-                              borderColor:
-                                selectedId === t._id
-                                  ? "rgba(93,112,82,0.42)"
-                                  : "rgba(93,112,82,0.3)",
-                              background:
-                                selectedId === t._id
-                                  ? "rgba(93,112,82,0.14)"
-                                  : "rgba(93,112,82,0.08)",
-                            }}
+                            className={
+                              selectedId === t._id
+                                ? "w-full text-left bg-teal-50/70 dark:bg-teal-950/40 border-2 border-teal-500 rounded-xl p-4 mb-2 shadow-xs cursor-pointer"
+                                : "w-full text-left bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 mb-2 hover:border-teal-400 cursor-pointer transition-colors"
+                            }
                           >
                             <div className="flex items-center justify-between gap-2">
-                              <p className="text-sm font-semibold text-[var(--color-text-primary)] line-clamp-1">
+                              <p className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1">
                                 {t.title}
                               </p>
                               <div className="flex items-center gap-2">
@@ -1183,7 +1110,7 @@ export default function SupportCenterPage() {
                                 <StatusChip status={t.status} />
                               </div>
                             </div>
-                            <p className="text-xs mt-1 text-[var(--color-text-secondary)] line-clamp-1">
+                            <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 mt-1 line-clamp-1">
                               {t.category}
                             </p>
                           </button>
@@ -1202,25 +1129,19 @@ export default function SupportCenterPage() {
                           <button
                             key={t._id}
                             onClick={() => handleSelectTicket(t._id, t)}
-                            className="w-full text-left rounded-2xl p-3 border transition-all hover:-translate-y-0.5"
-                            style={{
-                              borderColor:
-                                selectedId === t._id
-                                  ? "rgba(93,112,82,0.36)"
-                                  : "color-mix(in srgb, var(--color-border) 80%, transparent)",
-                              background:
-                                selectedId === t._id
-                                  ? "rgba(93,112,82,0.1)"
-                                  : "color-mix(in srgb, var(--color-bg-soft) 28%, transparent)",
-                            }}
+                            className={
+                              selectedId === t._id
+                                ? "w-full text-left bg-teal-50/70 dark:bg-teal-950/40 border-2 border-teal-500 rounded-xl p-4 mb-2 shadow-xs cursor-pointer"
+                                : "w-full text-left bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 mb-2 hover:border-teal-400 cursor-pointer transition-colors"
+                            }
                           >
                             <div className="flex items-center justify-between gap-2">
-                              <p className="text-sm font-semibold text-[var(--color-text-primary)] line-clamp-1">
+                              <p className="text-sm font-bold text-slate-900 dark:text-white line-clamp-1">
                                 {t.title}
                               </p>
                               <StatusChip status={t.status} />
                             </div>
-                            <p className="text-xs mt-1 text-[var(--color-text-secondary)] line-clamp-1">
+                            <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 mt-1 line-clamp-1">
                               {t.category}
                             </p>
                           </button>
@@ -1235,19 +1156,10 @@ export default function SupportCenterPage() {
         ) : null}
 
         {showChatPane ? (
-          <section
-            className="xl:col-span-8 h-[calc(100vh-9rem)] overflow-hidden rounded-[2rem] border p-4 flex flex-col"
-            style={organicCardStyle}
-          >
+          <section className="xl:col-span-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden flex flex-col h-[650px]">
             {!selectedId ? (
-              <div className="m-auto text-center">
-                <div
-                  className="mx-auto mb-3 h-14 w-14 rounded-2xl flex items-center justify-center"
-                  style={{
-                    background: "rgba(93,112,82,0.12)",
-                    color: organicTheme.colors.primary,
-                  }}
-                >
+              <div className="text-slate-500 dark:text-slate-400 font-bold text-base flex flex-col items-center justify-center h-full">
+                <div className="mx-auto mb-3 h-14 w-14 rounded-2xl flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500">
                   <CircleHelp size={24} />
                 </div>
                 {isMobileView ? (
@@ -1260,9 +1172,7 @@ export default function SupportCenterPage() {
                     Back
                   </button>
                 ) : null}
-                <p className="text-sm text-[var(--color-text-secondary)]">
-                  Select an issue to open the chat.
-                </p>
+                <p>Select an issue to open the chat.</p>
               </div>
             ) : (
               <>
@@ -1291,13 +1201,7 @@ export default function SupportCenterPage() {
                     <div className="h-6 w-16 rounded-full bg-[var(--color-text-secondary)]/20"></div>
                   </div>
                 ) : (
-                  <div
-                    className="flex items-start justify-between gap-3 border-b pb-3"
-                    style={{
-                      borderColor:
-                        "color-mix(in srgb, var(--color-border) 80%, transparent)",
-                    }}
-                  >
+                  <div className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700 p-4 flex items-center justify-between">
                     <div>
                       {isMobileView ? (
                         <button
@@ -1309,13 +1213,10 @@ export default function SupportCenterPage() {
                           Back
                         </button>
                       ) : null}
-                      <h3
-                        className="text-lg font-bold text-[var(--color-text-primary)]"
-                        style={{ fontFamily: "Fraunces" }}
-                      >
+                      <h3 className="text-base font-bold text-slate-900 dark:text-white">
                         {selectedTicket?.title}
                       </h3>
-                      <p className="text-xs text-[var(--color-text-secondary)] mt-1 inline-flex items-center gap-1.5">
+                      <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 mt-1 inline-flex items-center gap-1.5">
                         <MessageCircle size={12} /> {selectedTicket?.category}
                       </p>
                     </div>
@@ -1324,11 +1225,7 @@ export default function SupportCenterPage() {
                       {canReopen && (
                         <button
                           onClick={reopenIssue}
-                          className="rounded-full px-3 py-1.5 text-xs font-semibold border inline-flex items-center gap-1"
-                          style={{
-                            borderColor: "rgba(93,112,82,0.35)",
-                            color: organicTheme.colors.primary,
-                          }}
+                          className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs px-3 py-1.5 rounded-xl hover:border-teal-500 inline-flex items-center gap-1"
                         >
                           <RefreshCw size={12} />
                           Reopen
@@ -1368,18 +1265,29 @@ export default function SupportCenterPage() {
                           className={`flex ${m.senderRole === "doctor" ? "justify-end" : "justify-start"}`}
                         >
                           <div
-                            className="max-w-[82%] rounded-[1.1rem] px-3 py-2 border"
-                            style={
+                            className={
                               m.senderRole === "doctor"
-                                ? sentBubbleStyle
-                                : receivedBubbleStyle
+                                ? "bg-teal-600 text-white rounded-2xl rounded-tr-none p-3.5 max-w-[75%] shadow-xs"
+                                : "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-2xl rounded-tl-none p-3.5 max-w-[75%] shadow-xs"
                             }
                           >
-                            <p className="text-[11px] font-semibold mb-0.5 text-[var(--color-text-secondary)]">
+                            <p
+                              className={
+                                m.senderRole === "doctor"
+                                  ? "text-[11px] font-semibold mb-0.5 text-teal-100"
+                                  : "text-[11px] font-semibold mb-0.5 text-slate-500 dark:text-slate-400"
+                              }
+                            >
                               {m.senderName}
                             </p>
                             {m.text ? (
-                              <p className="text-sm text-[var(--color-text-primary)] whitespace-pre-wrap">
+                              <p
+                                className={
+                                  m.senderRole === "doctor"
+                                    ? "text-sm font-medium leading-relaxed text-white whitespace-pre-wrap"
+                                    : "text-sm font-medium leading-relaxed text-slate-900 dark:text-white whitespace-pre-wrap"
+                                }
+                              >
                                 {m.text}
                               </p>
                             ) : null}
@@ -1437,7 +1345,13 @@ export default function SupportCenterPage() {
                               </div>
                             ) : null}
                             {shouldShowTimestamp(messages, index) ? (
-                              <p className="mt-1 flex items-center justify-end gap-1 text-[10px] text-[var(--color-text-secondary)]">
+                              <p
+                                className={
+                                  m.senderRole === "doctor"
+                                    ? "text-[10px] text-teal-100 font-semibold mt-1 text-right block"
+                                    : "text-[10px] text-slate-500 dark:text-slate-400 font-semibold mt-1 block"
+                                }
+                              >
                                 <span>
                                   {m.createdAt
                                     ? new Date(m.createdAt).toLocaleTimeString(
@@ -1453,7 +1367,13 @@ export default function SupportCenterPage() {
                                 ) : null}
                               </p>
                             ) : (
-                              <p className="mt-1 flex items-center justify-end gap-1 text-[10px] text-[var(--color-text-secondary)]">
+                              <p
+                                className={
+                                  m.senderRole === "doctor"
+                                    ? "text-[10px] text-teal-100 font-semibold mt-1 text-right block"
+                                    : "text-[10px] text-slate-500 dark:text-slate-400 font-semibold mt-1 block"
+                                }
+                              >
                                 {m.senderRole === currentRole ? (
                                   <MessageStatusTicks
                                     status={m.status || "sent"}
@@ -1484,13 +1404,7 @@ export default function SupportCenterPage() {
                   ) : null}
                 </div>
 
-                <div
-                  className="pt-2 border-t"
-                  style={{
-                    borderColor:
-                      "color-mix(in srgb, var(--color-border) 80%, transparent)",
-                  }}
-                >
+                <div className="bg-slate-50 dark:bg-slate-800/60 border-t border-slate-200 dark:border-slate-700 p-3">
                   {isRecording ? (
                     <div
                       className="mb-4 flex flex-col gap-3 rounded-2xl border px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:rounded-full"
@@ -1630,11 +1544,11 @@ export default function SupportCenterPage() {
                     </div>
                   ) : null}
 
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="rounded-full bg-[var(--color-primary)]/10 p-2.5 text-[var(--color-primary)] transition hover:bg-[var(--color-primary)]/20 sm:p-3"
+                      className="p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
                     >
                       <Plus className="h-5 w-5" />
                     </button>
@@ -1658,8 +1572,7 @@ export default function SupportCenterPage() {
                       onKeyDown={handleMessageKeyDown}
                       placeholder="Write message..."
                       rows={1}
-                      className="max-h-32 min-h-[44px] flex-1 resize-none rounded-2xl px-4 py-2.5 border text-sm outline-none focus:ring-2 focus:ring-[var(--color-primary)]/30"
-                      style={organicInputStyle}
+                      className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl px-4 py-2.5 focus:border-teal-500 focus:outline-none flex-1 placeholder:text-slate-400 max-h-32 min-h-[44px] resize-none"
                     />
                     {isRecording ||
                     messageText.trim() ||
@@ -1689,15 +1602,11 @@ export default function SupportCenterPage() {
                         onClick={
                           isRecording ? stopVoiceRecording : startVoiceRecording
                         }
-                        className="rounded-full p-2.5 transition sm:p-3"
-                        style={{
-                          background: isRecording
-                            ? "rgba(239,68,68,0.1)"
-                            : "transparent",
-                          color: isRecording
-                            ? "rgb(239,68,68)"
-                            : "var(--color-primary)",
-                        }}
+                        className={
+                          isRecording
+                            ? "bg-rose-600 text-white animate-pulse p-2.5 rounded-xl shadow-md"
+                            : "p-2.5 rounded-xl text-teal-600 dark:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-950"
+                        }
                       >
                         <Mic className="h-5 w-5" />
                       </button>

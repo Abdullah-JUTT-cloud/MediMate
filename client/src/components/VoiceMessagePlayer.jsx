@@ -167,11 +167,9 @@ export default function VoiceMessagePlayer({
         <button
           type="button"
           onClick={togglePlayback}
-          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-[1.03] active:scale-95"
+          className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center text-white shrink-0 transition-transform hover:scale-[1.03] active:scale-95"
           style={{
-            color: "#fff",
             background: `linear-gradient(135deg, ${resolvedTheme.accent}, color-mix(in srgb, ${resolvedTheme.accent} 70%, black 30%))`,
-            boxShadow: `0 10px 20px -14px ${resolvedTheme.accent}`,
           }}
           aria-label={isPlaying ? "Pause voice message" : "Play voice message"}
         >
