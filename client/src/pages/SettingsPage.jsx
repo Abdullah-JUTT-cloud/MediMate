@@ -1,12 +1,23 @@
 import { useState, useEffect } from "react";
-import { Upload, Trash2 } from "lucide-react";
+import {
+  Upload,
+  Trash2,
+  Save,
+  User,
+  GraduationCap,
+  ClipboardList,
+  MapPin,
+  Clock,
+  Plus,
+  AlertTriangle,
+  UserCog,
+  FileCheck2,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import useAuthStore from "../store/authStore";
 import { ProfileHeaderSkeleton, FormFieldSkeleton } from "../components/SkeletonLoaders";
 import VerifiedBadge from "../components/VerifiedBadge";
-import blackLogo from "../assets/black.png";
-import whiteLogo from "../assets/white.png";
 
 const getSubscriptionCountdownText = (expiresAt, status = "TRIAL") => {
   if (!expiresAt) return "";
@@ -18,28 +29,37 @@ const getSubscriptionCountdownText = (expiresAt, status = "TRIAL") => {
   return `${totalDays} day${totalDays === 1 ? "" : "s"} remaining on your ${label}. Pay to move forward securely.`;
 };
 
-// ─── Design Tokens ────────────────────────────────────────────────────────────
-const tokens = {
-  colors: {
-    background: "var(--color-bg)",
-    foreground: "var(--color-text-primary)",
-    primary: "var(--color-primary)",
-    primaryForeground: "var(--color-on-primary)",
-    secondary: "var(--color-secondary)",
-    secondary_foreground: "var(--color-on-primary)",
-    accent: "var(--color-accent)",
-    accentForeground: "var(--color-text-primary)",
-    muted: "var(--color-bg-soft)",
-    mutedForeground: "var(--color-text-secondary)",
-    border: "var(--color-border)",
-    destructive: "var(--color-danger)",
-  },
-  shadows: {
-    soft: "0 4px 20px -2px rgba(93, 112, 82, 0.15)",
-    float: "0 10px 40px -10px rgba(193, 140, 93, 0.2)",
-    deepHover: "0 6px 24px -4px rgba(93, 112, 82, 0.25)",
-  },
-};
+// ─── High-Contrast Design Tokens (WCAG AA — light + dark themes) ───────────────
+const CARD = "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm";
+
+const FIELD_LABEL =
+  "text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2 block";
+
+const FIELD_INPUT =
+  "bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl p-3.5 focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 w-full shadow-xs placeholder:text-slate-500 dark:placeholder:text-slate-400 transition-colors";
+
+// Selection pills (Gender / Professional Title)
+const PILL_SELECTED =
+  "bg-teal-600 text-white font-bold shadow-xs border border-teal-600 py-3 px-6 rounded-xl text-xs flex-1 text-center transition-colors";
+const PILL_UNSELECTED =
+  "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 hover:border-teal-400 font-semibold py-3 px-6 rounded-xl text-xs flex-1 text-center transition-colors";
+
+// Compact chips (slot duration)
+const CHIP_SELECTED =
+  "bg-teal-600 text-white font-bold shadow-xs border border-teal-600 py-2.5 px-5 rounded-xl text-xs transition-colors";
+const CHIP_UNSELECTED =
+  "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 hover:border-teal-400 font-semibold py-2.5 px-5 rounded-xl text-xs transition-colors";
+
+// Session timetable controls (day dropdowns / time pickers)
+const SESSION_CONTROL =
+  "bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold rounded-xl px-3 py-2.5 shadow-xs focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 w-full transition-colors";
+
+// Degree / training tags
+const TAG_CHIP =
+  "bg-teal-50 dark:bg-teal-950/60 text-teal-900 dark:text-teal-200 border border-teal-300 dark:border-teal-700 text-xs font-bold px-3 py-1.5 rounded-lg inline-flex items-center gap-1.5 mr-2 mb-2";
+
+const SAVE_BUTTON =
+  "bg-teal-600 hover:bg-teal-500 text-white font-bold py-3.5 px-8 rounded-xl shadow-md transition-all text-sm uppercase tracking-wider flex items-center justify-center gap-2 ml-auto mt-6 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-teal-600";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const TITLES = ["Dr.", "Prof.", "Consultant"];
@@ -72,25 +92,18 @@ const SPECIALIZATION_SUGGESTIONS = [
   "Radiologist", "Anesthesiologist", "Pathologist", "Physical Therapist",
 ];
 
-// ─── Input Styling ────────────────────────────────────────────────────────────
-const inputCls = "w-full px-5 py-3 rounded-full text-sm outline-none transition-all bg-[var(--color-card)] border border-[var(--color-border)] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)]/50 focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:shadow-[0_0_0_0.5px_rgba(93,112,82,0.1)]";
+// ─── Shared Field Components ──────────────────────────────────────────────────
 
-function SectionLabel({ text }) {
+function FieldLabel({ text, optional, htmlFor }) {
   return (
-    <p className="text-xs font-bold uppercase tracking-widest mb-4 text-[var(--color-text-secondary)]">
-      {text}
-    </p>
-  );
-}
-
-function FieldLabel({ text, optional }) {
-  return (
-    <label className="block text-sm font-medium mb-2.5 text-[var(--color-text-primary)]">
+    <label htmlFor={htmlFor} className={FIELD_LABEL}>
       {text}{" "}
       {optional ? (
-        <span className="opacity-50 text-[var(--color-text-secondary)]">(optional)</span>
+        <span className="font-semibold normal-case tracking-normal text-slate-500 dark:text-slate-400">
+          (optional)
+        </span>
       ) : (
-        <span style={{ color: tokens.colors.primary }}>*</span>
+        <span className="text-rose-600 dark:text-rose-400">*</span>
       )}
     </label>
   );
@@ -98,23 +111,16 @@ function FieldLabel({ text, optional }) {
 
 function SaveButton({ onClick, isLoading, label = "Save Changes" }) {
   return (
-    <div className="flex justify-end pt-4">
-      <button
-        onClick={onClick}
-        disabled={isLoading}
-        className="px-8 py-3 rounded-full text-sm font-bold text-white transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-        style={{
-          background: tokens.colors.primary,
-          boxShadow: tokens.shadows.soft,
-        }}
-      >
+    <div className="flex">
+      <button type="button" onClick={onClick} disabled={isLoading} className={SAVE_BUTTON}>
+        <Save size={16} aria-hidden="true" />
         {isLoading ? "Saving..." : label}
       </button>
     </div>
   );
 }
 
-// ─── Searchable Input  ────────────────────────────────────────────────────────
+// ─── Searchable Input ─────────────────────────────────────────────────────────
 
 function SuggestInput({ value, onChange, suggestions, placeholder }) {
   const [open, setOpen] = useState(false);
@@ -132,24 +138,15 @@ function SuggestInput({ value, onChange, suggestions, placeholder }) {
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
         placeholder={placeholder}
-        className={inputCls}
+        className={FIELD_INPUT}
       />
       {open && value && filtered.length > 0 && (
-        <div
-          className="absolute z-50 w-full mt-2 rounded-2xl overflow-hidden border"
-          style={{
-            background: tokens.colors.background,
-            border: `1px solid ${tokens.colors.border}`,
-            boxShadow: tokens.shadows.float,
-            maxHeight: "200px",
-            overflowY: "auto",
-          }}
-        >
+        <div className="absolute z-50 w-full mt-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg overflow-y-auto max-h-52">
           {filtered.map((s) => (
             <button
               key={s}
               type="button"
-              className="w-full text-left px-5 py-3 text-sm transition-all hover:bg-[var(--color-primary)]/10 text-[var(--color-text-primary)] border-b border-[var(--color-border)]/30 last:border-b-0"
+              className="w-full text-left px-4 py-2.5 text-sm font-semibold text-slate-800 dark:text-slate-100 hover:bg-teal-50 dark:hover:bg-teal-950/60 border-b border-slate-100 dark:border-slate-700 last:border-b-0 transition-colors"
               onMouseDown={() => {
                 onChange(s);
                 setOpen(false);
@@ -164,7 +161,7 @@ function SuggestInput({ value, onChange, suggestions, placeholder }) {
   );
 }
 
-// ─── Tag List Input  ──────────────────────────────────────────────────────────
+// ─── Tag List Input ───────────────────────────────────────────────────────────
 
 function TagListInput({ items, onAdd, onRemove, placeholder, suggestions = [] }) {
   const [input, setInput] = useState("");
@@ -200,34 +197,22 @@ function TagListInput({ items, onAdd, onRemove, placeholder, suggestions = [] })
             }
           }}
           placeholder={placeholder}
-          className={inputCls}
+          className={FIELD_INPUT}
         />
         <button
           type="button"
           onClick={add}
-          className="px-5 py-3 rounded-full text-sm font-semibold transition-all hover:opacity-90"
-          style={{
-            background: `${tokens.colors.primary}15`,
-            color: tokens.colors.primary,
-            border: `1.5px solid ${tokens.colors.primary}30`,
-          }}
+          className="bg-teal-600 hover:bg-teal-500 text-white font-bold px-5 rounded-xl text-sm shadow-xs transition-colors shrink-0"
         >
           + Add
         </button>
         {open && input && filtered.length > 0 && (
-          <div
-            className="absolute z-50 top-full left-0 right-20 mt-2 rounded-2xl overflow-hidden border"
-            style={{
-              background: tokens.colors.background,
-              border: `1px solid ${tokens.colors.border}`,
-              boxShadow: tokens.shadows.float,
-            }}
-          >
+          <div className="absolute z-50 top-full left-0 right-24 mt-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg overflow-y-auto max-h-52">
             {filtered.map((s) => (
               <button
                 key={s}
                 type="button"
-                className="w-full text-left px-5 py-3 text-sm transition-all hover:bg-[var(--color-primary)]/10 text-[var(--color-text-primary)] border-b border-[var(--color-border)]/30 last:border-b-0"
+                className="w-full text-left px-4 py-2.5 text-sm font-semibold text-slate-800 dark:text-slate-100 hover:bg-teal-50 dark:hover:bg-teal-950/60 border-b border-slate-100 dark:border-slate-700 last:border-b-0 transition-colors"
                 onMouseDown={() => {
                   onAdd(s);
                   setInput("");
@@ -241,23 +226,15 @@ function TagListInput({ items, onAdd, onRemove, placeholder, suggestions = [] })
         )}
       </div>
       {items.length > 0 && (
-        <div className="flex flex-wrap gap-2 mt-3">
+        <div className="flex flex-wrap mt-3">
           {items.map((item, i) => (
-            <span
-              key={i}
-              className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium transition-all duration-200"
-              style={{
-                background: `${tokens.colors.primary}15`,
-                border: `1px solid ${tokens.colors.primary}30`,
-                color: tokens.colors.primary,
-              }}
-            >
+            <span key={i} className={TAG_CHIP}>
               {item}
               <button
                 type="button"
                 onClick={() => onRemove(i)}
-                className="opacity-70 hover:opacity-100 text-[var(--color-danger)]"
-                style={{ fontSize: "12px" }}
+                aria-label={`Remove ${item}`}
+                className="text-teal-900 dark:text-teal-200 hover:text-rose-600 dark:hover:text-rose-300 font-bold leading-none transition-colors"
               >
                 ✕
               </button>
@@ -292,7 +269,7 @@ function isOverlapping(day, start, end, occupied) {
   });
 }
 
-// ─── Location Card ────────────────────────────────────────────────────────────
+// ─── Location Card (Clinic / Hospital Facility) ───────────────────────────────
 
 function LocationCard({ location, index, type, allClinics, allHospitals, onChange, onRemove }) {
   const occupied = getOccupiedSlots(allClinics, allHospitals, index, type);
@@ -323,36 +300,32 @@ function LocationCard({ location, index, type, allClinics, allHospitals, onChang
       sessions: location.sessions.filter((_, i) => i !== si),
     });
 
+  const facilityEmoji = type === "clinic" ? "🏥" : "🏨";
+  const facilityLabel = type === "clinic" ? "Clinic" : "Hospital";
+
   return (
-    <div
-      className="rounded-3xl p-6 transition-all duration-300 hover:shadow-lg"
-      style={{
-        background: tokens.colors.background,
-        border: `1px solid ${tokens.colors.border}`,
-        boxShadow: tokens.shadows.soft,
-      }}
-    >
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-sm font-bold text-[var(--color-text-primary)] flex items-center gap-2">
-          {type === "clinic" ? "🏥" : "🏨"}{" "}
-          {type === "clinic" ? "Clinic" : "Hospital"} #{index + 1}
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 mb-6 shadow-sm relative">
+      {/* Facility header — title + remove */}
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <span className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          {facilityEmoji} {facilityLabel} #{index + 1}
         </span>
         <button
+          type="button"
           onClick={onRemove}
-          className="px-3 py-1.5 rounded-lg transition-all text-[var(--color-danger)] border"
-          style={{
-            borderColor: `${tokens.colors.destructive}30`,
-            background: `${tokens.colors.destructive}10`,
-          }}
+          className="text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950 border border-rose-200 dark:border-rose-800 font-bold px-3 py-1.5 rounded-xl text-xs transition-colors inline-flex items-center gap-1.5 shrink-0"
         >
-          <Trash2 size={16} className="inline mr-1" />
-          Remove
+          <Trash2 size={14} aria-hidden="true" />
+          Remove Facility
         </button>
       </div>
+
+      {/* Name & address */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
         <div>
-          <FieldLabel text="Name" />
+          <FieldLabel text="Name" htmlFor={`${type}-name-${location.id}`} />
           <input
+            id={`${type}-name-${location.id}`}
             value={location.name}
             onChange={(e) => onChange({ ...location, name: e.target.value })}
             placeholder={
@@ -360,121 +333,122 @@ function LocationCard({ location, index, type, allClinics, allHospitals, onChang
                 ? "e.g. Doctors Hospital"
                 : "e.g. Services Hospital"
             }
-            className={inputCls}
+            className={FIELD_INPUT}
           />
         </div>
         <div>
-          <FieldLabel text="Address" />
+          <FieldLabel text="Address" htmlFor={`${type}-address-${location.id}`} />
           <input
+            id={`${type}-address-${location.id}`}
             value={location.address}
             onChange={(e) => onChange({ ...location, address: e.target.value })}
             placeholder="e.g. Gulberg, Lahore"
-            className={inputCls}
+            className={FIELD_INPUT}
           />
         </div>
       </div>
 
-      <SectionLabel text="Sessions" />
-      {location.sessions.length === 0 && (
-        <p className="text-xs mb-3 text-[var(--color-text-secondary)]">No sessions added yet</p>
-      )}
-      <div className="space-y-2 mb-3">
-        {location.sessions.map((session, si) => {
-          const overlap = isOverlapping(
-            session.day,
-            session.startTime,
-            session.endTime,
-            occupied
-          );
-          return (
-            <div
-              key={session.id ?? si}
-              className="grid grid-cols-1 sm:grid-cols-4 gap-2 p-3 rounded-2xl items-end border transition-all"
-              style={{
-                background: overlap
-                  ? `${tokens.colors.destructive}10`
-                  : `${tokens.colors.muted}20`,
-                borderColor: overlap
-                  ? `${tokens.colors.destructive}30`
-                  : tokens.colors.border,
-              }}
-            >
-              <div>
-                <label className="block text-xs mb-1.5 text-[var(--color-text-secondary)] font-medium">
-                  Day
-                </label>
-                <select
-                  value={session.day}
-                  onChange={(e) =>
-                    updateSession(si, "day", e.target.value)
-                  }
-                  className={`${inputCls} ${overlap ? "opacity-60" : ""}`}
-                >
-                  {DAYS.map((d) => (
-                    <option key={d} value={d}>
-                      {d}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs mb-1.5 text-[var(--color-text-secondary)] font-medium">
-                  Start
-                </label>
-                <input
-                  type="time"
-                  value={session.startTime}
-                  onChange={(e) =>
-                    updateSession(si, "startTime", e.target.value)
-                  }
-                  className={`${inputCls} ${overlap ? "opacity-60" : ""}`}
-                />
-              </div>
-              <div>
-                <label className="block text-xs mb-1.5 text-[var(--color-text-secondary)] font-medium">
-                  End
-                </label>
-                <input
-                  type="time"
-                  value={session.endTime}
-                  onChange={(e) =>
-                    updateSession(si, "endTime", e.target.value)
-                  }
-                  className={`${inputCls} ${overlap ? "opacity-60" : ""}`}
-                />
-              </div>
-              <div className="flex items-end gap-2">
+      {/* Sessions timetable */}
+      <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 p-4 rounded-xl mb-4">
+        <p className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-3">
+          Sessions
+        </p>
+        {location.sessions.length === 0 && (
+          <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-3">
+            No sessions added yet.
+          </p>
+        )}
+        <div className="space-y-2">
+          {location.sessions.map((session, si) => {
+            const overlap = isOverlapping(
+              session.day,
+              session.startTime,
+              session.endTime,
+              occupied
+            );
+            return (
+              <div
+                key={session.id ?? si}
+                className={`grid grid-cols-2 sm:grid-cols-[1.4fr_1fr_1fr_auto] gap-2 items-end p-3 rounded-xl border transition-colors ${
+                  overlap
+                    ? "border-rose-300 dark:border-rose-700 bg-rose-50 dark:bg-rose-950/30"
+                    : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
+                }`}
+              >
                 {overlap && (
-                  <span className="text-xs px-3 py-1.5 rounded-lg flex-1 text-center bg-[var(--color-danger)]/10 text-[var(--color-danger)] font-medium">
-                    ⚠ Overlap
-                  </span>
+                  <p className="col-span-full flex items-center gap-1.5 text-xs font-bold text-rose-700 dark:text-rose-200 bg-rose-100 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 rounded-lg px-3 py-1.5">
+                    <AlertTriangle size={13} aria-hidden="true" />
+                    This slot overlaps another session
+                  </p>
                 )}
-                <button
-                  onClick={() => removeSession(si)}
-                  className="w-10 h-10 rounded-xl flex items-center justify-center transition-all shrink-0 border text-[var(--color-danger)]"
-                  style={{
-                    borderColor: `${tokens.colors.destructive}30`,
-                    background: `${tokens.colors.destructive}10`,
-                  }}
-                >
-                  <Trash2 size={18} />
-                </button>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">
+                    Day
+                  </label>
+                  <select
+                    value={session.day}
+                    onChange={(e) =>
+                      updateSession(si, "day", e.target.value)
+                    }
+                    className={SESSION_CONTROL}
+                  >
+                    {DAYS.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">
+                    Start
+                  </label>
+                  <input
+                    type="time"
+                    value={session.startTime}
+                    onChange={(e) =>
+                      updateSession(si, "startTime", e.target.value)
+                    }
+                    className={SESSION_CONTROL}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">
+                    End
+                  </label>
+                  <input
+                    type="time"
+                    value={session.endTime}
+                    onChange={(e) =>
+                      updateSession(si, "endTime", e.target.value)
+                    }
+                    className={SESSION_CONTROL}
+                  />
+                </div>
+                <div className="flex items-end justify-end">
+                  <button
+                    type="button"
+                    onClick={() => removeSession(si)}
+                    aria-label={`Delete ${facilityLabel.toLowerCase()} session row`}
+                    title="Delete session"
+                    className="text-rose-600 p-2 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950 transition-colors"
+                  >
+                    <Trash2 size={18} aria-hidden="true" />
+                  </button>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
+        <button
+          type="button"
+          onClick={addSession}
+          className="border border-dashed border-teal-400 text-teal-700 dark:text-teal-300 font-bold py-2 px-4 rounded-xl text-xs hover:bg-teal-50 dark:hover:bg-teal-950 w-full text-center transition-colors mt-3 inline-flex items-center justify-center gap-1.5"
+        >
+          <Plus size={14} aria-hidden="true" />
+          Add Session
+        </button>
       </div>
-      <button
-        onClick={addSession}
-        className="w-full py-3 rounded-full text-sm font-semibold transition-all hover:opacity-90 border border-dashed"
-        style={{
-          borderColor: `${tokens.colors.primary}30`,
-          color: tokens.colors.primary,
-          background: `${tokens.colors.primary}05`,
-        }}
-      >
-        + Add Session
-      </button>
     </div>
   );
 }
@@ -504,6 +478,7 @@ export default function SettingsPage() {
   const [hospitals, setHospitals] = useState([]);
   const [pmdcCertificate, setPmdcCertificate] = useState("");
   const [isUploadingPmdc, setIsUploadingPmdc] = useState(false);
+  const [isDragOverPmdc, setIsDragOverPmdc] = useState(false);
   const [trialMessage, setTrialMessage] = useState("");
 
   // ── Load profile on mount
@@ -622,31 +597,43 @@ export default function SettingsPage() {
   };
 
   const TABS = [
-    { key: "personal", label: "Personal", icon: "👤" },
-    { key: "professional", label: "Professional", icon: "🎓" },
-    { key: "licensing", label: "Licensing", icon: "📋" },
-    { key: "locations", label: "Locations", icon: "🏥" },
+    { key: "personal", label: "Personal", icon: User },
+    { key: "professional", label: "Professional", icon: GraduationCap },
+    { key: "licensing", label: "Licensing", icon: ClipboardList },
+    { key: "locations", label: "Locations", icon: MapPin },
   ];
 
+  const licenseStatusPillCls = (s) => {
+    const selected = licensing.licenseStatus === s;
+    if (selected && s === "Active") {
+      return "bg-emerald-600 text-white font-bold shadow-xs border border-emerald-600 py-2.5 px-5 rounded-xl text-xs flex-1 text-center transition-colors";
+    }
+    if (selected) {
+      return "bg-slate-700 dark:bg-slate-600 text-white font-bold shadow-xs border border-slate-700 dark:border-slate-600 py-2.5 px-5 rounded-xl text-xs flex-1 text-center transition-colors";
+    }
+    return "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 hover:border-teal-400 py-2.5 px-5 rounded-xl text-xs font-semibold flex-1 text-center transition-colors";
+  };
+
+  const addClinic = () =>
+    setClinics((p) => [...p, { id: Date.now(), name: "", address: "", sessions: [] }]);
+
+  const addHospital = () =>
+    setHospitals((p) => [...p, { id: Date.now(), name: "", address: "", sessions: [] }]);
 
   if (isLoading) {
     return (
-      <div className="max-w-3xl mx-auto space-y-6">
-        <div className="mb-6">
-          <h1 className="text-4xl md:text-5xl font-bold text-[var(--color-text-primary)] mb-2" style={{ fontFamily: "Fraunces" }}>
-            Settings
-          </h1>
-          <p className="text-base text-[var(--color-text-secondary)]">
-            Manage your profile and practice information
-          </p>
+      <div className="max-w-3xl mx-auto">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <UserCog size={24} className="text-teal-600 dark:text-teal-400" aria-hidden="true" />
+          Settings
+        </h1>
+        <p className="text-sm font-medium text-slate-600 dark:text-slate-300 mt-1">
+          Manage your profile and practice information
+        </p>
+        <div className="mt-6">
+          <ProfileHeaderSkeleton />
         </div>
-        <ProfileHeaderSkeleton />
-        <div className="rounded-3xl p-6 space-y-6 border"
-          style={{
-            background: tokens.colors.background,
-            border: `1px solid ${tokens.colors.border}`,
-            boxShadow: tokens.shadows.soft,
-          }}>
+        <div className={`${CARD} p-6 sm:p-8 mt-6`}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <FormFieldSkeleton />
             <FormFieldSkeleton />
@@ -660,71 +647,58 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-4xl md:text-5xl font-bold text-[var(--color-text-primary)] mb-2" style={{ fontFamily: "Fraunces" }}>
-            Settings
-          </h1>
-          <p className="text-base text-[var(--color-text-secondary)]">
-            Manage your profile and practice information
-          </p>
-        </div>
-        <img
-          src={document.documentElement.getAttribute("data-theme") === "dark" ? whiteLogo : blackLogo}
-          alt="MedAlerto logo"
-          className="hidden h-10 w-auto object-contain md:block"
-        />
+      {/* ── Page header ── */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <UserCog size={24} className="text-teal-600 dark:text-teal-400" aria-hidden="true" />
+          Settings
+        </h1>
+        <p className="text-sm font-medium text-slate-600 dark:text-slate-300 mt-1">
+          Manage your profile and practice information
+        </p>
       </div>
 
+      {/* ── Trial / subscription status banner ── */}
       {trialMessage && (
-        <div className="mb-6 rounded-2xl border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/10 px-4 py-3 text-sm font-medium text-[var(--color-text-primary)]">
-          {trialMessage}
+        <div className="bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 p-4 rounded-2xl flex items-center justify-between mb-6 shadow-xs gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <Clock size={18} className="text-teal-700 dark:text-teal-300 shrink-0" aria-hidden="true" />
+            <p className="text-sm font-bold text-teal-900 dark:text-teal-200">
+              {trialMessage}
+            </p>
+          </div>
         </div>
       )}
 
-      {/* Profile Picture Section */}
-      <div
-        className="flex items-center gap-4 p-6 rounded-3xl mb-6 border transition-all hover:shadow-lg"
-        style={{
-          background: tokens.colors.background,
-          border: `1px solid ${tokens.colors.border}`,
-          boxShadow: tokens.shadows.soft,
-        }}
-      >
-        <div
-          className="w-20 h-20 rounded-3xl flex items-center justify-center text-3xl font-bold text-white shrink-0"
-          style={{ background: tokens.colors.primary }}
-        >
-          {doctor?.profilePicture ? (
-            <img
-              src={doctor.profilePicture || doctor.profilePicUrl}
-              alt="Profile"
-              className="w-full h-full object-cover rounded-3xl"
-            />
-          ) : (
-            doctor?.fullName?.charAt(0) || "D"
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <p
-              className="text-lg font-bold text-[var(--color-text-primary)]"
-              style={{ fontFamily: "Fraunces" }}
-            >
-              {doctor?.fullName || "Doctor"}
-            </p>
-            <VerifiedBadge
-              isVerified={["Verified", "Approved"].includes(
-                doctor?.profileVerificationStatus
-              )}
-            />
+      {/* ── Doctor avatar & profile spotlight card ── */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm mb-6 flex flex-col sm:flex-row items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-4 min-w-0 w-full sm:w-auto">
+          <div className="w-16 h-16 rounded-2xl bg-teal-600 border border-teal-700 dark:border-teal-500 text-white flex items-center justify-center text-2xl font-bold shrink-0 overflow-hidden shadow-xs">
+            {doctor?.profilePicture ? (
+              <img
+                src={doctor.profilePicture || doctor.profilePicUrl}
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              doctor?.fullName?.charAt(0) || "D"
+            )}
           </div>
-          <p
-            className="text-sm font-medium"
-            style={{ color: tokens.colors.primary }}
-          >
-            {doctor?.specialization || "Specialist"}
-          </p>
+          <div className="min-w-0">
+            <p className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
+              <span className="truncate">{doctor?.fullName || "Doctor"}</span>
+              <VerifiedBadge
+                isVerified={["Verified", "Approved"].includes(
+                  doctor?.profileVerificationStatus
+                )}
+              />
+            </p>
+            <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 mt-0.5">
+              {[doctor?.title, doctor?.specialization || "Specialist"]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          </div>
         </div>
         <input
           type="file"
@@ -758,92 +732,68 @@ export default function SettingsPage() {
         />
         <label
           htmlFor="profilePicUpload"
-          className="px-5 py-2.5 rounded-full text-xs font-semibold cursor-pointer transition-all hover:opacity-85"
-          style={{
-            background: `${tokens.colors.primary}15`,
-            color: tokens.colors.primary,
-            border: `1.5px solid ${tokens.colors.primary}30`,
-          }}
+          className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-600 font-bold px-4 py-2 rounded-xl text-xs transition-colors cursor-pointer inline-flex items-center gap-2 shrink-0"
         >
-          <Upload size={16} className="inline mr-1" />
+          <Upload size={14} aria-hidden="true" />
           Upload Photo
         </label>
       </div>
 
-      {/* Tabs */}
-      <div
-        className="flex gap-2 mb-6 p-2 rounded-full overflow-x-auto border"
-        style={{
-          background: `${tokens.colors.muted}30`,
-          border: `1px solid ${tokens.colors.border}`,
-        }}
-      >
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all whitespace-nowrap border"
-            style={{
-              background:
-                activeTab === tab.key
-                  ? tokens.colors.primary
-                  : "transparent",
-              color:
-                activeTab === tab.key
-                  ? tokens.colors.primaryForeground
-                  : tokens.colors.mutedForeground,
-              borderColor:
-                activeTab === tab.key
-                  ? tokens.colors.primary
-                  : "transparent",
-              boxShadow:
-                activeTab === tab.key ? tokens.shadows.soft : "none",
-            }}
-          >
-            <span>{tab.icon}</span>
-            <span className="hidden sm:inline">{tab.label}</span>
-          </button>
-        ))}
+      {/* ── High-contrast tab navigation ── */}
+      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3 mb-6 overflow-x-auto">
+        {TABS.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActiveTab(tab.key)}
+              aria-pressed={isActive}
+              className={
+                isActive
+                  ? "bg-teal-600 text-white font-bold shadow-xs px-5 py-2.5 rounded-xl text-xs flex items-center gap-2 whitespace-nowrap transition-colors"
+                  : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-teal-500 font-semibold px-5 py-2.5 rounded-xl text-xs flex items-center gap-2 whitespace-nowrap transition-colors"
+              }
+            >
+              <Icon size={14} aria-hidden="true" />
+              {tab.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* ── PERSONAL TAB ── */}
       {activeTab === "personal" && (
-        <div
-          className="rounded-3xl p-6 sm:p-8 space-y-6 border transition-all hover:shadow-lg"
-          style={{
-            background: tokens.colors.background,
-            border: `1px solid ${tokens.colors.border}`,
-            boxShadow: tokens.shadows.soft,
-          }}
-        >
-          <h2
-            className="text-2xl font-bold text-[var(--color-text-primary)]"
-            style={{ fontFamily: "Fraunces" }}
-          >
+        <div className={`${CARD} p-6 sm:p-8`}>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-6">
+            <User size={18} className="text-teal-600 dark:text-teal-400" aria-hidden="true" />
             Personal Information
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
-              <FieldLabel text="First Name" />
+              <FieldLabel text="First Name" htmlFor="firstName" />
               <input
+                id="firstName"
                 value={personal.firstName}
                 onChange={(e) =>
                   setPersonal((p) => ({ ...p, firstName: e.target.value }))
                 }
                 placeholder="Ahmed"
-                className={inputCls}
+                className={FIELD_INPUT}
               />
             </div>
             <div>
-              <FieldLabel text="Last Name" />
+              <FieldLabel text="Last Name" htmlFor="lastName" />
               <input
+                id="lastName"
                 value={personal.lastName}
                 onChange={(e) =>
                   setPersonal((p) => ({ ...p, lastName: e.target.value }))
                 }
                 placeholder="Raza"
-                className={inputCls}
+                className={FIELD_INPUT}
               />
             </div>
             <div className="sm:col-span-2">
@@ -852,24 +802,14 @@ export default function SettingsPage() {
                 {GENDERS.map((g) => (
                   <button
                     key={g}
+                    type="button"
+                    aria-pressed={personal.gender === g}
                     onClick={() =>
                       setPersonal((p) => ({ ...p, gender: g }))
                     }
-                    className="flex-1 py-3 rounded-full text-sm font-semibold transition-all border"
-                    style={{
-                      background:
-                        personal.gender === g
-                          ? tokens.colors.primary
-                          : `${tokens.colors.muted}20`,
-                      borderColor:
-                        personal.gender === g
-                          ? tokens.colors.primary
-                          : tokens.colors.border,
-                      color:
-                        personal.gender === g
-                          ? tokens.colors.primaryForeground
-                          : tokens.colors.foreground,
-                    }}
+                    className={
+                      personal.gender === g ? PILL_SELECTED : PILL_UNSELECTED
+                    }
                   >
                     {g}
                   </button>
@@ -877,65 +817,44 @@ export default function SettingsPage() {
               </div>
             </div>
             <div className="sm:col-span-2">
-              <FieldLabel text="Phone" />
+              <FieldLabel text="Phone" htmlFor="phone" />
               <input
+                id="phone"
                 value={personal.phone}
                 onChange={(e) =>
                   setPersonal((p) => ({ ...p, phone: e.target.value }))
                 }
                 placeholder="03001234567"
-                className={inputCls}
+                className={FIELD_INPUT}
               />
             </div>
           </div>
-          <SaveButton
-            onClick={savePersonal}
-            isLoading={isSaving}
-          />
+          <SaveButton onClick={savePersonal} isLoading={isSaving} />
         </div>
       )}
 
       {/* ── PROFESSIONAL TAB ── */}
       {activeTab === "professional" && (
-        <div
-          className="rounded-3xl p-6 sm:p-8 space-y-6 border transition-all hover:shadow-lg"
-          style={{
-            background: tokens.colors.background,
-            border: `1px solid ${tokens.colors.border}`,
-            boxShadow: tokens.shadows.soft,
-          }}
-        >
-          <h2
-            className="text-2xl font-bold text-[var(--color-text-primary)]"
-            style={{ fontFamily: "Fraunces" }}
-          >
+        <div className={`${CARD} p-6 sm:p-8`}>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-6">
+            <GraduationCap size={18} className="text-teal-600 dark:text-teal-400" aria-hidden="true" />
             Professional Information
           </h2>
 
-          <div>
+          <div className="mb-6">
             <FieldLabel text="Professional Title" />
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               {TITLES.map((t) => (
                 <button
                   key={t}
+                  type="button"
+                  aria-pressed={professional.title === t}
                   onClick={() =>
                     setProfessional((p) => ({ ...p, title: t }))
                   }
-                  className="flex-1 py-3 rounded-full text-sm font-semibold transition-all border"
-                  style={{
-                    background:
-                      professional.title === t
-                        ? tokens.colors.primary
-                        : `${tokens.colors.muted}20`,
-                    borderColor:
-                      professional.title === t
-                        ? tokens.colors.primary
-                        : tokens.colors.border,
-                    color:
-                      professional.title === t
-                        ? tokens.colors.primaryForeground
-                        : tokens.colors.foreground,
-                  }}
+                  className={
+                    professional.title === t ? PILL_SELECTED : PILL_UNSELECTED
+                  }
                 >
                   {t}
                 </button>
@@ -989,8 +908,9 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <FieldLabel text="Medical University" />
+              <FieldLabel text="Medical University" htmlFor="university" />
               <input
+                id="university"
                 value={professional.university}
                 onChange={(e) =>
                   setProfessional((p) => ({
@@ -999,12 +919,13 @@ export default function SettingsPage() {
                   }))
                 }
                 placeholder="e.g. King Edward Medical University"
-                className={inputCls}
+                className={FIELD_INPUT}
               />
             </div>
             <div>
-              <FieldLabel text="Graduation Year" />
+              <FieldLabel text="Graduation Year" htmlFor="graduationYear" />
               <input
+                id="graduationYear"
                 type="number"
                 value={professional.graduationYear}
                 onChange={(e) =>
@@ -1016,7 +937,7 @@ export default function SettingsPage() {
                 placeholder="e.g. 2015"
                 min="1970"
                 max={new Date().getFullYear()}
-                className={inputCls}
+                className={FIELD_INPUT}
               />
             </div>
             <div className="sm:col-span-2">
@@ -1044,8 +965,9 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <FieldLabel text="Years of Experience" />
+              <FieldLabel text="Years of Experience" htmlFor="yearsOfExperience" />
               <input
+                id="yearsOfExperience"
                 type="number"
                 value={professional.yearsOfExperience}
                 onChange={(e) =>
@@ -1056,36 +978,28 @@ export default function SettingsPage() {
                 }
                 placeholder="e.g. 8"
                 min="0"
-                className={inputCls}
+                className={FIELD_INPUT}
               />
             </div>
             <div className="sm:col-span-2">
               <FieldLabel text="Appointment Slot Duration (min)" />
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex flex-wrap gap-2">
                 {[10, 15, 20, 30, 45, 60].map((d) => (
                   <button
                     key={d}
+                    type="button"
+                    aria-pressed={professional.slotDuration === d}
                     onClick={() =>
                       setProfessional((p) => ({
                         ...p,
                         slotDuration: d,
                       }))
                     }
-                    className="px-5 py-2.5 rounded-full text-sm font-semibold transition-all border"
-                    style={{
-                      background:
-                        professional.slotDuration === d
-                          ? tokens.colors.primary
-                          : `${tokens.colors.muted}20`,
-                      borderColor:
-                        professional.slotDuration === d
-                          ? tokens.colors.primary
-                          : tokens.colors.border,
-                      color:
-                        professional.slotDuration === d
-                          ? tokens.colors.primaryForeground
-                          : tokens.colors.foreground,
-                    }}
+                    className={
+                      professional.slotDuration === d
+                        ? CHIP_SELECTED
+                        : CHIP_UNSELECTED
+                    }
                   >
                     {d} min
                   </button>
@@ -1093,34 +1007,23 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
-          <SaveButton
-            onClick={saveProfessional}
-            isLoading={isSaving}
-          />
+          <SaveButton onClick={saveProfessional} isLoading={isSaving} />
         </div>
       )}
 
       {/* ── LICENSING TAB ── */}
       {activeTab === "licensing" && (
-        <div
-          className="rounded-3xl p-6 sm:p-8 space-y-6 border transition-all hover:shadow-lg"
-          style={{
-            background: tokens.colors.background,
-            border: `1px solid ${tokens.colors.border}`,
-            boxShadow: tokens.shadows.soft,
-          }}
-        >
-          <h2
-            className="text-2xl font-bold text-[var(--color-text-primary)]"
-            style={{ fontFamily: "Fraunces" }}
-          >
-            Licensing Information
+        <div className={`${CARD} p-6 sm:p-8`}>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-6">
+            <ClipboardList size={18} className="text-teal-600 dark:text-teal-400" aria-hidden="true" />
+            Licensing & PMDC Verification
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div className="sm:col-span-2">
-              <FieldLabel text="PMDC Registration Number" />
+              <FieldLabel text="PMDC Registration Number" htmlFor="pmdcNumber" />
               <input
+                id="pmdcNumber"
                 value={licensing.pmdcNumber}
                 onChange={(e) =>
                   setLicensing((p) => ({
@@ -1129,36 +1032,24 @@ export default function SettingsPage() {
                   }))
                 }
                 placeholder="e.g. PMDC-12345"
-                className={inputCls}
+                className={`${FIELD_INPUT} font-bold tracking-wide`}
               />
             </div>
             <div className="sm:col-span-2">
               <FieldLabel text="License Status" />
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3">
                 {LICENSE_STATUSES.map((s) => (
                   <button
                     key={s}
+                    type="button"
+                    aria-pressed={licensing.licenseStatus === s}
                     onClick={() =>
                       setLicensing((p) => ({
                         ...p,
                         licenseStatus: s,
                       }))
                     }
-                    className="flex-1 py-3 rounded-full text-sm font-semibold transition-all border"
-                    style={{
-                      background:
-                        licensing.licenseStatus === s
-                          ? tokens.colors.primary
-                          : `${tokens.colors.muted}20`,
-                      borderColor:
-                        licensing.licenseStatus === s
-                          ? tokens.colors.primary
-                          : tokens.colors.border,
-                      color:
-                        licensing.licenseStatus === s
-                          ? tokens.colors.primaryForeground
-                          : tokens.colors.foreground,
-                    }}
+                    className={licenseStatusPillCls(s)}
                   >
                     {s}
                   </button>
@@ -1166,8 +1057,9 @@ export default function SettingsPage() {
               </div>
             </div>
             <div>
-              <FieldLabel text="License Issue Date" />
+              <FieldLabel text="License Issue Date" htmlFor="licenseIssueDate" />
               <input
+                id="licenseIssueDate"
                 type="date"
                 value={licensing.licenseIssueDate}
                 onChange={(e) =>
@@ -1176,12 +1068,13 @@ export default function SettingsPage() {
                     licenseIssueDate: e.target.value,
                   }))
                 }
-                className={inputCls}
+                className={FIELD_INPUT}
               />
             </div>
             <div>
-              <FieldLabel text="License Expiry Date" optional />
+              <FieldLabel text="License Expiry Date" optional htmlFor="licenseExpiryDate" />
               <input
+                id="licenseExpiryDate"
                 type="date"
                 value={licensing.licenseExpiryDate}
                 onChange={(e) =>
@@ -1190,7 +1083,7 @@ export default function SettingsPage() {
                     licenseExpiryDate: e.target.value,
                   }))
                 }
-                className={inputCls}
+                className={FIELD_INPUT}
               />
             </div>
             <div className="sm:col-span-2">
@@ -1206,219 +1099,159 @@ export default function SettingsPage() {
                 }}
               />
               {pmdcCertificate ? (
-                <div
-                  className="flex items-center gap-3 px-5 py-3 rounded-2xl border"
-                  style={{
-                    background: `${tokens.colors.primary}10`,
-                    borderColor: `${tokens.colors.primary}30`,
-                  }}
-                >
-                  <span style={{ color: tokens.colors.primary }}>📎</span>
-                  <span
-                    className="text-sm flex-1 font-medium"
-                    style={{ color: tokens.colors.primary }}
-                  >
-                    Certificate uploaded
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-teal-50 dark:bg-teal-950/60 border border-teal-300 dark:border-teal-700 rounded-2xl px-4 py-3">
+                  <span className="flex items-center gap-2 text-sm font-bold text-teal-900 dark:text-teal-200 min-w-0">
+                    <FileCheck2 size={18} className="shrink-0" aria-hidden="true" />
+                    <span className="truncate">Certificate uploaded</span>
                   </span>
-                  <a
-                    href={pmdcCertificate}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-xs px-3 py-1.5 rounded-lg font-semibold"
-                    style={{
-                      background: `${tokens.colors.primary}15`,
-                      color: tokens.colors.primary,
-                    }}
-                  >
-                    View
-                  </a>
-                  <label
-                    htmlFor="pmdcUpload"
-                    className="text-xs px-3 py-1.5 rounded-lg font-semibold cursor-pointer"
-                    style={{
-                      background: `${tokens.colors.muted}40`,
-                      color: tokens.colors.mutedForeground,
-                    }}
-                  >
-                    {isUploadingPmdc ? "Uploading..." : "Replace"}
-                  </label>
+                  <span className="flex items-center gap-2 shrink-0">
+                    <a
+                      href={pmdcCertificate}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs font-bold text-teal-900 dark:text-teal-200 border border-teal-300 dark:border-teal-700 rounded-lg px-3 py-1.5 hover:bg-teal-100 dark:hover:bg-teal-900 transition-colors"
+                    >
+                      View
+                    </a>
+                    <label
+                      htmlFor="pmdcUpload"
+                      className="text-xs font-bold cursor-pointer text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-1.5 transition-colors"
+                    >
+                      {isUploadingPmdc ? "Uploading..." : "Replace"}
+                    </label>
+                  </span>
                 </div>
               ) : (
                 <label
                   htmlFor="pmdcUpload"
-                  className="w-full px-5 py-3 rounded-2xl text-sm flex items-center gap-2 cursor-pointer transition-all hover:opacity-90 border border-dashed"
-                  style={{
-                    borderColor: `${tokens.colors.primary}30`,
-                    color: tokens.colors.primary,
-                    background: `${tokens.colors.primary}05`,
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragOverPmdc(true);
                   }}
+                  onDragLeave={() => setIsDragOverPmdc(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragOverPmdc(false);
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) handlePmdcUpload(file);
+                  }}
+                  className={`block border-2 border-dashed border-teal-400 dark:border-teal-700 bg-teal-50/40 dark:bg-teal-950/20 p-6 rounded-2xl text-center cursor-pointer hover:bg-teal-50 dark:hover:bg-teal-950/40 transition-colors ${
+                    isDragOverPmdc ? "ring-2 ring-teal-500/40 bg-teal-50 dark:bg-teal-950/40" : ""
+                  }`}
                 >
-                  {isUploadingPmdc ? (
-                    "⏳ Uploading..."
-                  ) : (
-                    <>
-                      📎 Upload PMDC Certificate (PDF or Image)
-                    </>
-                  )}
+                  <Upload
+                    size={28}
+                    className="mx-auto mb-2 text-teal-700 dark:text-teal-300"
+                    aria-hidden="true"
+                  />
+                  <p className="text-teal-700 dark:text-teal-300 font-bold text-sm">
+                    {isUploadingPmdc
+                      ? "⏳ Uploading..."
+                      : "Drag & drop your PMDC certificate here"}
+                  </p>
+                  <p className="text-xs font-semibold text-teal-700 dark:text-teal-300 mt-1.5">
+                    PDF or image — or click to browse files
+                  </p>
                 </label>
               )}
             </div>
           </div>
-          <SaveButton
-            onClick={saveLicensing}
-            isLoading={isSaving}
-          />
+          <SaveButton onClick={saveLicensing} isLoading={isSaving} />
         </div>
       )}
 
       {/* ── LOCATIONS TAB ── */}
       {activeTab === "locations" && (
-        <div className="space-y-6">
+        <div>
           {/* Clinics */}
-          <div
-            className="rounded-3xl p-6 sm:p-8 border transition-all hover:shadow-lg"
-            style={{
-              background: tokens.colors.background,
-              border: `1px solid ${tokens.colors.border}`,
-              boxShadow: tokens.shadows.soft,
-            }}
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h3
-                className="text-lg font-bold text-[var(--color-text-primary)]"
-                style={{ fontFamily: "Fraunces" }}
-              >
-                🏥 Clinics
-              </h3>
-              <button
-                onClick={() =>
-                  setClinics((p) => [
-                    ...p,
-                    {
-                      id: Date.now(),
-                      name: "",
-                      address: "",
-                      sessions: [],
-                    },
-                  ])
-                }
-                className="px-5 py-2.5 rounded-full text-xs font-semibold transition-all hover:opacity-90"
-                style={{
-                  background: `${tokens.colors.primary}15`,
-                  color: tokens.colors.primary,
-                  border: `1.5px solid ${tokens.colors.primary}30`,
-                }}
-              >
-                + Add Clinic
-              </button>
-            </div>
-            {clinics.length === 0 && (
-              <div
-                className="text-center py-8 rounded-2xl border border-dashed"
-                style={{
-                  borderColor: tokens.colors.border,
-                  background: `${tokens.colors.muted}20`,
-                }}
-              >
-                <p className="text-sm text-[var(--color-text-secondary)]">No clinics added yet</p>
-              </div>
-            )}
-            <div className="space-y-4">
-              {clinics.map((clinic, i) => (
-                <LocationCard
-                  key={clinic.id}
-                  location={clinic}
-                  index={i}
-                  type="clinic"
-                  allClinics={clinics}
-                  allHospitals={hospitals}
-                  onChange={(data) =>
-                    setClinics((p) =>
-                      p.map((c, idx) => (idx === i ? data : c))
-                    )
-                  }
-                  onRemove={() =>
-                    setClinics((p) =>
-                      p.filter((_, idx) => idx !== i)
-                    )
-                  }
-                />
-              ))}
-            </div>
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              🏥 Clinics
+            </h3>
+            <button
+              type="button"
+              onClick={addClinic}
+              className="bg-teal-600 hover:bg-teal-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-xs transition-colors inline-flex items-center gap-1.5 shrink-0"
+            >
+              <Plus size={14} aria-hidden="true" />
+              Add Clinic
+            </button>
           </div>
+          {clinics.length === 0 && (
+            <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 rounded-2xl p-8 text-center mb-6">
+              <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                No clinics added yet
+              </p>
+              <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mt-1">
+                Add your first practice location to start building your timetable.
+              </p>
+            </div>
+          )}
+          {clinics.map((clinic, i) => (
+            <LocationCard
+              key={clinic.id}
+              location={clinic}
+              index={i}
+              type="clinic"
+              allClinics={clinics}
+              allHospitals={hospitals}
+              onChange={(data) =>
+                setClinics((p) =>
+                  p.map((c, idx) => (idx === i ? data : c))
+                )
+              }
+              onRemove={() =>
+                setClinics((p) =>
+                  p.filter((_, idx) => idx !== i)
+                )
+              }
+            />
+          ))}
 
           {/* Hospitals */}
-          <div
-            className="rounded-3xl p-6 sm:p-8 border transition-all hover:shadow-lg"
-            style={{
-              background: tokens.colors.background,
-              border: `1px solid ${tokens.colors.border}`,
-              boxShadow: tokens.shadows.soft,
-            }}
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h3
-                className="text-lg font-bold text-[var(--color-text-primary)]"
-                style={{ fontFamily: "Fraunces" }}
-              >
-                🏨 Hospitals
-              </h3>
-              <button
-                onClick={() =>
-                  setHospitals((p) => [
-                    ...p,
-                    {
-                      id: Date.now(),
-                      name: "",
-                      address: "",
-                      sessions: [],
-                    },
-                  ])
-                }
-                className="px-5 py-2.5 rounded-full text-xs font-semibold transition-all hover:opacity-90"
-                style={{
-                  background: `${tokens.colors.primary}15`,
-                  color: tokens.colors.primary,
-                  border: `1.5px solid ${tokens.colors.primary}30`,
-                }}
-              >
-                + Add Hospital
-              </button>
-            </div>
-            {hospitals.length === 0 && (
-              <div
-                className="text-center py-8 rounded-2xl border border-dashed"
-                style={{
-                  borderColor: tokens.colors.border,
-                  background: `${tokens.colors.muted}20`,
-                }}
-              >
-                <p className="text-sm text-[var(--color-text-secondary)]">No hospitals added yet</p>
-              </div>
-            )}
-            <div className="space-y-4">
-              {hospitals.map((hospital, i) => (
-                <LocationCard
-                  key={hospital.id}
-                  location={hospital}
-                  index={i}
-                  type="hospital"
-                  allClinics={clinics}
-                  allHospitals={hospitals}
-                  onChange={(data) =>
-                    setHospitals((p) =>
-                      p.map((h, idx) => (idx === i ? data : h))
-                    )
-                  }
-                  onRemove={() =>
-                    setHospitals((p) =>
-                      p.filter((_, idx) => idx !== i)
-                    )
-                  }
-                />
-              ))}
-            </div>
+          <div className="flex items-center justify-between gap-3 mb-4 mt-8">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              🏨 Hospitals
+            </h3>
+            <button
+              type="button"
+              onClick={addHospital}
+              className="bg-teal-600 hover:bg-teal-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-xs transition-colors inline-flex items-center gap-1.5 shrink-0"
+            >
+              <Plus size={14} aria-hidden="true" />
+              Add Hospital
+            </button>
           </div>
+          {hospitals.length === 0 && (
+            <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 rounded-2xl p-8 text-center mb-6">
+              <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                No hospitals added yet
+              </p>
+              <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mt-1">
+                Add a hospital affiliation to expand your practice schedule.
+              </p>
+            </div>
+          )}
+          {hospitals.map((hospital, i) => (
+            <LocationCard
+              key={hospital.id}
+              location={hospital}
+              index={i}
+              type="hospital"
+              allClinics={clinics}
+              allHospitals={hospitals}
+              onChange={(data) =>
+                setHospitals((p) =>
+                  p.map((h, idx) => (idx === i ? data : h))
+                )
+              }
+              onRemove={() =>
+                setHospitals((p) =>
+                  p.filter((_, idx) => idx !== i)
+                )
+              }
+            />
+          ))}
 
           <SaveButton
             onClick={saveLocations}
