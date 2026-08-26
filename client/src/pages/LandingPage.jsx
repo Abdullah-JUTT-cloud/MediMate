@@ -1,1142 +1,831 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState, useRef } from "react";
+import { useState } from "react";
+import {
+  Zap,
+  ArrowRight,
+  PlayCircle,
+  CheckCircle2,
+  ShieldCheck,
+  MessageCircle,
+  FileText,
+  TrendingUp,
+  Lock,
+  Cloud,
+  BadgeCheck,
+  Star,
+  ChevronRight,
+  Send,
+  Receipt,
+  Percent,
+  FlaskConical,
+  Bell,
+  PhoneCall,
+  Download,
+  CheckCheck,
+  XCircle,
+  Check,
+  ArrowUpRight,
+  UserPlus,
+  ClipboardList,
+  CalendarCheck,
+  Gauge,
+  Server,
+} from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import doc from "../assets/doc-hero.webp";
 import useThemedLogo from "../hooks/useThemedLogo";
 
-const features = [
+/* ---------------------------------------------------------------------- */
+/* Static content                                                          */
+/* ---------------------------------------------------------------------- */
+
+const TRUST_INDICATORS = [
+  "No Credit Card Required",
+  "5-Minute Setup",
+  "Meta Cloud API Verified",
+];
+
+const AUTHORITY_METRICS = [
   {
-    number: "01",
-    title: "Digital Prescriptions",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
-      />
-    ),
-    description:
-      "Create and send prescriptions instantly as PDFs via WhatsApp. No more lost or damaged paper prescriptions.",
-    tag: "Core workflow",
-    impact: "Faster handoff",
+    value: "< 2 Seconds",
+    label: "Average WhatsApp PDF Delivery Time",
+    icon: Zap,
   },
   {
-    number: "02",
-    title: "Medicine Alternatives",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"
-      />
-    ),
-    description:
-      "Find alternative medicines by the same salt composition when your prescribed brand is unavailable.",
-    tag: "Clinical continuity",
-    impact: "Fewer treatment delays",
+    value: "100%",
+    label: "Net Revenue & Discount Audit Accuracy",
+    icon: Percent,
   },
   {
-    number: "03",
-    title: "Smart Appointments",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"
-      />
-    ),
-    description:
-      "Schedule follow-ups with automatic WhatsApp confirmations. Reduce no-shows with intelligent reminders.",
-    tag: "Daily operations",
-    impact: "Better attendance",
+    value: "0%",
+    label: "Storage Egress Fees (Cloudflare R2 Powered)",
+    icon: Cloud,
   },
   {
-    number: "04",
-    title: "Patient History",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
-      />
-    ),
-    description:
-      "Access complete patient records and visit history instantly. Make informed decisions every time.",
-    tag: "Record quality",
-    impact: "Safer decisions",
-  },
-  {
-    number: "05",
-    title: "Emergency Management",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M11.412 15.655L9.75 21.75l3.745-4.012M9.257 13.5H3.75l2.659-2.849m2.048-2.195L14.25 2.25l-2.25 7.5h5.25l-4.507 4.83"
-      />
-    ),
-    description:
-      "Cancel a range of appointments with one click in emergencies. Patients are notified automatically.",
-    tag: "Important feature",
-    impact: "Rapid patient updates",
-  },
-  {
-    number: "06",
-    title: "Practice Insights",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75c0 .621-.504 1.125-1.125 1.125h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"
-      />
-    ),
-    description:
-      "Track monthly earnings, patient activity, and clinic performance without any extra effort.",
-    tag: "Growth visibility",
-    impact: "Clearer planning",
+    value: "50,000+",
+    label: "Prescriptions Safely Dispatched",
+    icon: FileText,
   },
 ];
 
-const audioGuideBarHeights = [35, 70, 50, 85];
-
-const trustSignals = [
-  "Independent doctors",
-  "Specialist clinics",
-  "Role-based access",
-  "WhatsApp notifications",
-  "Emergency bulk cancel",
-  "Audit-friendly records",
-  "Clinic-hour support",
+const QUEUE_STAGES = [
+  {
+    key: "WAITING",
+    color: "bg-slate-200 text-slate-600",
+    dot: "bg-slate-400",
+  },
+  {
+    key: "IN_CONSULTATION",
+    color: "bg-amber-100 text-amber-700",
+    dot: "bg-amber-500",
+  },
+  {
+    key: "COMPLETED",
+    color: "bg-teal-100 text-teal-700",
+    dot: "bg-teal-500",
+  },
 ];
 
-const flowSteps = [
+const COMPARISON_ROWS = [
+  {
+    feature: "Prescription Delivery Speed",
+    traditional: "Manual handoff — 10 to 15 minutes",
+    medalerto: "< 2 seconds via native WhatsApp dispatch",
+  },
+  {
+    feature: "WhatsApp Integration",
+    traditional: "None. Reception forwards photos manually",
+    medalerto: "Meta Cloud API — automated PDF delivery",
+  },
+  {
+    feature: "Patient Queueing",
+    traditional: "Paper tokens, first-come chaos",
+    medalerto: "Live queue state machine, zero front-desk guesswork",
+  },
+  {
+    feature: "Discount & Fee Accounting",
+    traditional: "Manual ledger entries, error-prone",
+    medalerto: "100% automated net revenue audit trail",
+  },
+];
+
+const WORKFLOW_STEPS = [
   {
     step: "01",
-    title: "Morning setup",
-    text: "Open the day with a clear appointment queue and active follow-up list.",
+    title: "Reception Arrival & Upfront Billing",
+    text: "Registers the patient, logs the queue slot, and collects the consultation fee in a single reception action — no separate billing pass.",
+    icon: UserPlus,
+    chips: ["Slot #014 Assigned", "Fee Collected: Rs. 1,800", "Status: WAITING"],
   },
   {
     step: "02",
-    title: "Consultation workflow",
-    text: "Capture notes, generate prescriptions, and send patient-ready instructions instantly.",
+    title: "Chronological Consultation & Medical History",
+    text: "The doctor opens the queue item, reviews a full chronological history drawer, and writes a spacious, structured prescription without leaving the flow.",
+    icon: ClipboardList,
+    chips: ["History: 6 Prior Visits", "Vitals Logged", "Status: IN_CONSULTATION"],
   },
   {
     step: "03",
-    title: "Patient communication",
-    text: "Use WhatsApp delivery and reminders to keep post-visit communication organized.",
-  },
-  {
-    step: "04",
-    title: "Operational control",
-    text: "Track outcomes, monitor load, and handle emergency schedule changes in one place.",
+    title: "Automated Dispatch & Follow-Up",
+    text: "Generates the R2-hosted prescription PDF, fires the WhatsApp message instantly, and schedules the next follow-up date automatically.",
+    icon: CalendarCheck,
+    chips: ["PDF Sent 🟢", "R2 Object Stored", "Follow-up: +14 Days"],
   },
 ];
 
-const testimonials = [
+const TESTIMONIALS = [
   {
     quote:
-      "We reduced front-desk follow-up calls significantly because reminders and prescription delivery are now consistent.",
-    author: "Dr. Hina A.",
+      "Cut patient waiting times by 40% and eliminated paper prescriptions completely within our first week.",
+    author: "Dr. Hina Anwar",
     role: "Dermatology Clinic, Lahore",
-    metric: "-42% manual follow-up calls",
+    metric: "-40% patient wait time",
   },
   {
     quote:
-      "The emergency bulk cancel button saved us during an unplanned closure. Patients were informed quickly without chaos.",
-    author: "Dr. Faraz K.",
+      "The discount engine alone paid for the subscription — we finally have a 100% accurate audit trail on every net fee.",
+    author: "Dr. Faraz Khan",
     role: "General Practice, Karachi",
-    metric: "120+ appointments updated in minutes",
+    metric: "100% billing audit accuracy",
   },
   {
     quote:
-      "We finally have one reliable view of patient history, prescriptions, and visit records. Decision-making is much faster now.",
-    author: "Dr. Sana M.",
+      "WhatsApp dispatch is instant. Patients receive their prescription before they've even left the consultation room.",
+    author: "Dr. Sana Malik",
     role: "Internal Medicine, Islamabad",
-    metric: "10x faster record retrieval",
-  },
-  {
-    quote:
-      "Our reception team now handles scheduling changes without confusion, and patients get updates immediately.",
-    author: "Dr. Kamran T.",
-    role: "Family Clinic, Faisalabad",
-    metric: "-35% front-desk call volume",
-  },
-  {
-    quote:
-      "Prescription turnaround is much faster now. We complete visits without asking patients to wait for paperwork.",
-    author: "Dr. Ayesha R.",
-    role: "General Practice, Multan",
-    metric: "3x faster prescription handoff",
-  },
-  {
-    quote:
-      "The reminders improved follow-up attendance in just a few weeks and reduced missed continuity visits.",
-    author: "Dr. Bilal N.",
-    role: "Cardiac Clinic, Rawalpindi",
-    metric: "+28% follow-up attendance",
-  },
-  {
-    quote:
-      "Automated WhatsApp delivery helped us reduce unclear post-visit instructions and avoid repeat clarification calls.",
-    author: "Dr. Mahnoor S.",
-    role: "Pediatrics, Lahore",
-    metric: "-31% post-visit clarification calls",
-  },
-  {
-    quote:
-      "We no longer depend on scattered notes. Every visit detail is available when the patient returns.",
-    author: "Dr. Waqas H.",
-    role: "Orthopedic Practice, Karachi",
-    metric: "Consistent records across visits",
-  },
-  {
-    quote:
-      "The dashboard makes daily load obvious. We plan staff shifts better and avoid peak-hour bottlenecks.",
-    author: "Dr. Nadia F.",
-    role: "Multi-Doctor Clinic, Islamabad",
-    metric: "Smoother daily throughput",
+    metric: "< 2s prescription delivery",
   },
 ];
+
+/* ---------------------------------------------------------------------- */
+/* Small reusable UI atoms                                                 */
+/* ---------------------------------------------------------------------- */
+
+function GlassCard({ className = "", children }) {
+  return (
+    <div
+      className={`rounded-2xl border border-slate-200/80 bg-white/90 shadow-xl backdrop-blur-md ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+function SectionEyebrow({ children }) {
+  return (
+    <div className="inline-flex items-center gap-2 rounded-full border border-teal-600/20 bg-teal-50 px-3.5 py-1.5">
+      <span className="h-1.5 w-1.5 rounded-full bg-teal-600" />
+      <span className="font-mono text-[10px] font-bold uppercase tracking-[0.28em] text-teal-700">
+        {children}
+      </span>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/* Page                                                                     */
+/* ---------------------------------------------------------------------- */
 
 export default function LandingPage() {
   const navigate = useNavigate();
   const logoCompact = useThemedLogo();
-  const videoRef = useRef(null);
-  const [activeView, setActiveView] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
+  const [activeStep, setActiveStep] = useState(0);
+  const [email, setEmail] = useState("");
+  const [subscribed, setSubscribed] = useState(false);
 
-  // Auto-cycle views
-  useEffect(() => {
-    if (isPaused) return;
-    const timer = setInterval(() => {
-      setActiveView((prev) => (prev + 1) % 4);
-    }, 8000); // 8 seconds per view to allow narration to finish naturally
-    return () => clearInterval(timer);
-  }, [isPaused]);
-
-  // AI Voiceover Guide
-  useEffect(() => {
-    if (isMuted) return;
-
-    // Cancel any ongoing speech immediately when switching views
-    window.speechSynthesis.cancel();
-
-    if (isPaused) return;
-
-    const narrations = [
-      "Welcome to MedAlerto. Our central dashboard provides a high-fidelity overview of your clinic's operational health, tracking vital metrics and patient flow in real-time.",
-      "The comprehensive Patient Directory ensures your clinical records are organized and accessible, featuring rapid search capabilities and detailed patient history management.",
-      "Our Clinical Calendar is engineered for precision scheduling, allowing your team to visualize complex surgical windows and daily appointments with zero friction.",
-      "Smart Prescriptions streamline the medication lifecycle, enhancing patient safety through automated dosage tracking and treatment compliance monitoring.",
-    ];
-
-    // Add a small delay for a smoother transition between voiceovers
-    const speechTimeout = setTimeout(() => {
-      const utterance = new SpeechSynthesisUtterance(narrations[activeView]);
-      utterance.rate = 0.88;
-      utterance.pitch = 1.05;
-
-      const voices = window.speechSynthesis.getVoices();
-      const premiumVoice = voices.find(
-        (v) =>
-          v.name.includes("Google US English") ||
-          v.name.includes("Samantha") ||
-          v.name.includes("Premium") ||
-          v.name.includes("Natural"),
-      );
-      if (premiumVoice) utterance.voice = premiumVoice;
-
-      window.speechSynthesis.speak(utterance);
-    }, 500);
-
-    return () => {
-      clearTimeout(speechTimeout);
-      window.speechSynthesis.cancel();
-    };
-  }, [activeView, isMuted, isPaused]);
-
-  useEffect(() => {
-    if (videoRef.current) {
-      const playPromise = videoRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(() => {
-          // Fallback if autoplay is blocked
-          console.log("Autoplay blocked, user interaction required");
-        });
-      }
-    }
-  }, []);
+  const handleClosingSubmit = (event) => {
+    event.preventDefault();
+    if (!email) return;
+    setSubscribed(true);
+  };
 
   return (
-    <div className="landing-page min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)]">
+    <div className="landing-page min-h-screen bg-white text-slate-900">
       <Navbar />
 
       <main>
-        <section className="relative isolate overflow-hidden bg-[var(--color-bg)] pt-28 sm:pt-32">
+        {/* ============================================================ */}
+        {/* SECTION 2 — HIGH-IMPACT HERO                                   */}
+        {/* ============================================================ */}
+        <section className="relative isolate overflow-hidden bg-white pt-16 sm:pt-20">
           <div
             aria-hidden="true"
-            className="absolute -left-24 top-8 h-80 w-80 rounded-[60%_40%_30%_70%/60%_30%_70%_40%] bg-[var(--color-primary)]/15 blur-3xl"
+            className="absolute -left-32 top-0 h-[28rem] w-[28rem] rounded-full bg-teal-500/10 blur-3xl"
           />
           <div
             aria-hidden="true"
-            className="absolute -right-24 top-16 h-96 w-96 rounded-[58%_42%_56%_44%/44%_58%_42%_56%] bg-[var(--color-secondary)]/18 blur-3xl"
+            className="absolute -right-24 top-24 h-[26rem] w-[26rem] rounded-full bg-slate-900/5 blur-3xl"
           />
           <div
             aria-hidden="true"
-            className="absolute inset-x-6 top-10 h-px bg-[var(--color-border)]/50"
+            className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"
           />
 
-          <div className="relative mx-auto grid max-w-7xl grid-cols-12 gap-8 px-4 pb-16 sm:px-6 lg:px-8 xl:pb-24">
+          <div className="relative mx-auto grid max-w-7xl grid-cols-12 gap-y-16 gap-x-8 px-4 pb-20 pt-14 sm:px-6 lg:px-8 xl:pt-20">
             <div className="col-span-12 flex flex-col justify-center xl:col-span-6">
-              <div className="flex items-center gap-4">
-                <span className="h-px w-12 bg-[var(--color-secondary)]" />
-                <p className="font-mono text-[9px] uppercase tracking-[0.35em] text-[var(--color-text-secondary)] sm:text-[10px]">
-                  Premium Clinic Workflow
-                </p>
+              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-teal-600/25 bg-teal-50 px-4 py-1.5 shadow-sm">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal-500 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-teal-600" />
+                </span>
+                <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-teal-700">
+                  ⚡ Engineered for Modern Clinics &amp; Independent Doctors
+                </span>
               </div>
 
-              <h1 className="mt-8 max-w-[15ch] text-[2.75rem] font-heading font-extrabold leading-[0.9] tracking-[-0.04em] text-balance sm:max-w-3xl sm:text-6xl sm:tracking-tight lg:text-7xl xl:text-[5.5rem]">
-                <span className="block">Clinic workflow,</span>
-                <span className="block text-[var(--color-primary)]">
-                  mastered with
-                </span>
-                <span className="block italic text-[var(--color-secondary)]">
-                  quiet precision.
-                </span>
+              <h1 className="mt-7 max-w-2xl text-[2.5rem] font-heading font-extrabold leading-[1.02] tracking-[-0.03em] text-slate-900 sm:text-5xl lg:text-[3.4rem]">
+                The Queue-Driven Operational Engine for{" "}
+                <span className="text-teal-600">High-Performance Clinics.</span>
               </h1>
 
-              <p className="mt-8 max-w-xl text-[1rem] leading-relaxed text-[var(--color-text-secondary)] sm:text-lg">
-                MedAlerto unifies prescriptions, scheduling, and patient history
-                into a single, intuitive interface designed for the modern
-                practice.
+              <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg">
+                Collapse patient arrival, upfront billing, digital
+                consultation, and instant WhatsApp prescription delivery into
+                a unified assembly line.
               </p>
 
-              <div className="mt-10 flex flex-col gap-4 sm:flex-row">
+              <div className="mt-9 flex flex-col gap-3.5 sm:flex-row">
                 <button
                   onClick={() => navigate("/signup")}
-                  className="group relative inline-flex h-14 items-center justify-center overflow-hidden rounded-full bg-[var(--color-primary)] px-10 font-body text-sm font-bold text-[var(--color-on-primary)] shadow-[0_20px_40px_-10px_rgba(26,155,140,0.3)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_25px_50px_-12px_rgba(26,155,140,0.4)]"
+                  className="group relative inline-flex h-14 items-center justify-center gap-2 overflow-hidden rounded-xl bg-slate-900 px-7 font-body text-sm font-bold text-white shadow-[0_16px_32px_-12px_rgba(15,23,42,0.5)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-12px_rgba(15,23,42,0.6)]"
                 >
-                  <span className="relative z-10">Start Free Trial</span>
-                  <div className="absolute inset-0 -translate-x-full bg-white/10 transition-transform duration-500 group-hover:translate-x-0" />
+                  <span className="relative z-10">Get Started Free</span>
+                  <ArrowRight className="relative z-10 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                  <div className="absolute inset-0 -translate-x-full bg-teal-600/20 transition-transform duration-500 group-hover:translate-x-0" />
                 </button>
                 <button
-                  onClick={() => navigate("/features")}
-                  className="see-platform-button inline-flex h-14 items-center justify-center rounded-full border border-[var(--color-border)] bg-white/50 px-10 font-body text-sm font-bold backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-xl"
+                  onClick={() => navigate("/how-it-works")}
+                  className="inline-flex h-14 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-7 font-body text-sm font-bold text-slate-700 transition-all duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg"
                 >
-                  See Platform
+                  <PlayCircle className="h-4 w-4 text-teal-600" />
+                  Watch 2-Min Demo
+                  <span aria-hidden="true">➔</span>
                 </button>
               </div>
 
-              {/* Fix the hero stat strip wrapping awkwardly on narrower widths by allowing the metrics to flow cleanly. */}
-              <div className="mt-12 flex flex-wrap items-center gap-8 border-t border-[var(--color-border)]/50 pt-10">
-                <div>
-                  <p className="text-2xl font-bold text-[var(--color-primary)]">
-                    5,000+
-                  </p>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-secondary)]/60">
-                    Active Doctors
-                  </p>
-                </div>
-                <div className="h-8 w-px bg-[var(--color-border)]/50" />
-                <div>
-                  <p className="text-2xl font-bold text-[var(--color-primary)]">
-                    1M+
-                  </p>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-secondary)]/60">
-                    Patients Served
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="col-span-12 xl:col-span-5 xl:col-start-8 relative">
-              <div className="group relative mx-auto w-full max-w-2xl">
-                <div className="relative overflow-hidden rounded-[2.5rem] border-8 border-white shadow-[0_32px_64px_-16px_rgba(0,0,0,0.12)]">
-                  <img
-                    src={doc}
-                    alt="Doctor"
-                    className="aspect-4/5 w-full object-cover object-center"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-primary)]/20 to-transparent" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Trusted By Marquee */}
-        <section
-          className="border-y border-[var(--color-border)]/40 bg-white/30 backdrop-blur-sm py-10 overflow-hidden"
-          role="region"
-          aria-label="Trusted by clinics and healthcare professionals"
-        >
-          <p className="text-center text-xs font-semibold uppercase tracking-widest text-[var(--color-text-muted)] mb-8 px-4">
-            Trusted by clinics and healthcare professionals
-          </p>
-          <div className="relative">
-            {/* Left fade */}
-            <div className="pointer-events-none absolute left-0 top-0 h-full w-24 z-10 bg-gradient-to-r from-white/80 to-transparent" />
-            {/* Right fade */}
-            <div className="pointer-events-none absolute right-0 top-0 h-full w-24 z-10 bg-gradient-to-l from-white/80 to-transparent" />
-            <div className="marquee-viewport">
-              {/* Primary track – announced by assistive tech */}
-              <ul className="marquee-track" role="list">
-                {[
-                  { initials: "HC", name: "HealthCore" },
-                  { initials: "CP", name: "CarePoint" },
-                  { initials: "ML", name: "MedLink" },
-                  { initials: "VT", name: "Vitalis" },
-                  { initials: "SR", name: "Serenity Rx" },
-                  { initials: "NX", name: "NexClinic" },
-                  { initials: "PM", name: "PulseMedia" },
-                  { initials: "OC", name: "OpenChart" },
-                ].map((item) => (
-                  <li key={item.name} className="marquee-item">
-                    <span className="marquee-avatar">{item.initials}</span>
-                    <span className="marquee-label">{item.name}</span>
-                  </li>
-                ))}
-              </ul>
-              {/* Duplicate track for seamless loop – hidden from assistive tech */}
-              <ul className="marquee-track" role="list" aria-hidden="true">
-                {[
-                  { initials: "HC", name: "HealthCore" },
-                  { initials: "CP", name: "CarePoint" },
-                  { initials: "ML", name: "MedLink" },
-                  { initials: "VT", name: "Vitalis" },
-                  { initials: "SR", name: "Serenity Rx" },
-                  { initials: "NX", name: "NexClinic" },
-                  { initials: "PM", name: "PulseMedia" },
-                  { initials: "OC", name: "OpenChart" },
-                ].map((item) => (
-                  <li key={item.name} className="marquee-item">
-                    <span className="marquee-avatar">{item.initials}</span>
-                    <span className="marquee-label">{item.name}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-          <style>{`
-            @keyframes marquee-scroll {
-              0%   { transform: translateX(0); }
-              100% { transform: translateX(-100%); }
-            }
-            .marquee-viewport {
-              display: flex;
-              overflow: hidden;
-            }
-            .marquee-viewport:hover .marquee-track {
-              animation-play-state: paused;
-            }
-            .marquee-track {
-              display: flex;
-              flex-shrink: 0;
-              list-style: none;
-              margin: 0;
-              padding: 0;
-              animation: marquee-scroll 40s linear infinite;
-              will-change: transform;
-            }
-            .marquee-item {
-              display: inline-flex;
-              align-items: center;
-              gap: 10px;
-              padding: 0 40px;
-              white-space: nowrap;
-              opacity: 0.55;
-            }
-            .marquee-avatar {
-              display: inline-flex;
-              align-items: center;
-              justify-content: center;
-              width: 32px;
-              height: 32px;
-              border-radius: 50%;
-              background: var(--color-primary);
-              color: #fff;
-              font-size: 0.688rem;
-              font-weight: 700;
-              letter-spacing: 0.03em;
-              flex-shrink: 0;
-            }
-            .marquee-label {
-              font-family: var(--font-heading, inherit);
-              font-size: 0.9rem;
-              font-weight: 650;
-              letter-spacing: 0.08em;
-              text-transform: uppercase;
-              color: var(--color-text-primary);
-              filter: grayscale(1);
-            }
-            @media (prefers-reduced-motion: reduce) {
-              .marquee-track {
-                animation: none;
-              }
-              .marquee-viewport {
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 8px;
-              }
-            }
-          `}</style>
-        </section>
-        {/* Dashboard Preview Section */}
-        <section className="py-24 bg-[var(--color-bg)]">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
-            <div className="inline-flex items-center gap-2 rounded-full bg-[var(--color-primary)]/10 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-[var(--color-primary)] mb-8">
-              <span className="h-2 w-2 rounded-full bg-[var(--color-primary)] animate-pulse" />
-              Live Platform Preview
-            </div>
-            <h2 className="text-4xl font-heading font-semibold mb-16">
-              The operational heart of your clinic.
-            </h2>
-
-            <div className="relative mx-auto max-w-5xl">
-              <div className="absolute -inset-4 rounded-[3rem] bg-gradient-to-tr from-[var(--color-primary)]/10 via-transparent to-[var(--color-secondary)]/10 blur-2xl" />
-              <div
-                role="button"
-                tabIndex={0}
-                aria-label={isPaused ? "Play demo preview" : "Pause demo preview"}
-                onClick={() => setIsPaused(!isPaused)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setIsPaused(!isPaused);
-                  }
-                }}
-                className="relative rounded-3xl border border-[var(--color-border)] bg-[var(--color-card)] shadow-2xl overflow-hidden aspect-[16/10] flex flex-col cursor-pointer transition-transform hover:scale-[1.005] active:scale-[0.995]"
-              >
-                <div className="h-12 w-full bg-[var(--color-card-elevated)] border-b border-[var(--color-border)]/60 flex items-center justify-between px-6">
-                  <div className="flex gap-2">
-                    <div className="h-3 w-3 rounded-full bg-red-400/80" />
-                    <div className="h-3 w-3 rounded-full bg-yellow-400/80" />
-                    <div className="h-3 w-3 rounded-full bg-green-400/80" />
-                  </div>
-                  <a
-                    href="https://medalerto.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(event) => event.stopPropagation()}
-                    className="inline-flex h-7 min-w-52 items-center justify-center rounded-md border border-[var(--color-border)] bg-[var(--color-bg-soft)] px-3 text-xs font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-primary)] transition-colors"
+              <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
+                {TRUST_INDICATORS.map((item) => (
+                  <span
+                    key={item}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500"
                   >
-                    https://medalerto.com
-                  </a>
+                    <CheckCircle2 className="h-3.5 w-3.5 text-teal-600" />
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </div>
 
-                  <div className="h-8 w-8 rounded-full bg-[var(--color-bg-soft)] border border-[var(--color-border)] flex items-center justify-center overflow-hidden">
-                    <img
-                      src={logoCompact}
-                      alt="MedAlerto"
-                      className="h-6 w-6 object-contain"
-                    />
-                  </div>
-                </div>
-                <div className="flex-1 flex overflow-hidden bg-[var(--color-bg-soft)]">
-                  {/* Internal Sidebar */}
-                  <div className="w-16 bg-[var(--color-card-elevated)] border-r border-[var(--color-border)]/60 p-4 flex flex-col gap-8">
-                    {[
-                      {
-                        icon: (
-                          <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                        ),
-                        id: 0,
-                      },
-                      {
-                        icon: (
-                          <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                        ),
-                        id: 1,
-                      },
-                      {
-                        icon: (
-                          <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        ),
-                        id: 2,
-                      },
-                      {
-                        icon: (
-                          <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-                        ),
-                        id: 3,
-                      },
-                    ].map((item, i) => (
-                      <svg
-                        key={i}
-                        className={`h-6 w-6 transition-all duration-500 ${activeView === item.id ? "text-[var(--color-primary)] scale-110" : "text-[var(--color-text-secondary)]/70"}`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      >
-                        {item.icon}
-                      </svg>
-                    ))}
+            {/* Hero Interactive UI Showcase */}
+            <div className="col-span-12 xl:col-span-6">
+              <div className="relative mx-auto w-full max-w-xl">
+                <div
+                  aria-hidden="true"
+                  className="absolute -inset-6 rounded-[2.5rem] bg-gradient-to-tr from-teal-500/15 via-transparent to-slate-900/10 blur-2xl"
+                />
+
+                {/* Floating browser frame */}
+                <div className="relative rounded-2xl border border-slate-200/80 bg-white shadow-2xl backdrop-blur-md overflow-hidden">
+                  <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-4 py-3">
+                    <div className="flex gap-1.5">
+                      <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-teal-400" />
+                    </div>
+                    <div className="rounded-md bg-white px-3 py-1 font-mono text-[10px] text-slate-400 border border-slate-100">
+                      app.medalerto.com/queue
+                    </div>
+                    <div className="h-5 w-5 rounded-full bg-slate-100 flex items-center justify-center overflow-hidden">
+                      <img src={logoCompact} alt="" className="h-3.5 w-3.5 object-contain" />
+                    </div>
                   </div>
 
-                  {/* Internal Main Content */}
-                  <div className="flex-1 flex flex-col p-8 overflow-hidden relative">
-                    <div
-                      className={`transition-all duration-700 absolute inset-0 p-8 flex flex-col ${activeView === 0 ? "opacity-100 translate-x-0" : "opacity-0 translate-x-8 pointer-events-none"}`}
-                    >
-                      {/* Header */}
-                      <div className="flex items-center justify-between mb-10">
-                        <div className="flex items-center gap-6">
-                          <h3 className="text-2xl font-heading font-bold text-[var(--color-text-primary)]">
-                            Daily Overview
-                          </h3>
-                          <div className="flex items-center gap-3 px-3 py-1.5 rounded-full bg-green-100 text-green-700 text-xs font-bold uppercase tracking-wider">
-                            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                            Live Sync
-                          </div>
-                        </div>
-                      </div>
+                  <div className="p-5">
+                    <div className="mb-4 flex items-center justify-between">
+                      <p className="font-heading text-sm font-bold text-slate-900">
+                        Today&apos;s Doctor Queue
+                      </p>
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-wider text-teal-700">
+                        <span className="h-1.5 w-1.5 rounded-full bg-teal-500 animate-pulse" />
+                        Live Sync
+                      </span>
+                    </div>
 
-                      {/* Stats Grid */}
-                      <div className="grid grid-cols-3 gap-6 mb-10">
-                        {[
-                          { label: "Appointments", value: "24", change: "+3" },
-                          { label: "Patients", value: "1,284", change: "+12" },
-                          {
-                            label: "Earnings",
-                            value: "$4,820",
-                            change: "+$210",
-                          },
-                        ].map((stat) => (
+                    <div className="space-y-2.5">
+                      {[
+                        {
+                          name: "Ayesha Raza",
+                          slot: "#012",
+                          status: "COMPLETED",
+                        },
+                        {
+                          name: "Bilal Tariq",
+                          slot: "#013",
+                          status: "IN_CONSULTATION",
+                        },
+                        {
+                          name: "Wajeeha Noor",
+                          slot: "#014",
+                          status: "WAITING",
+                        },
+                      ].map((row) => {
+                        const stage = QUEUE_STAGES.find(
+                          (s) => s.key === row.status,
+                        );
+                        return (
                           <div
-                            key={stat.label}
-                            className="bg-[var(--color-card)] rounded-[2rem] p-6 border border-[var(--color-border)]/40 shadow-sm"
+                            key={row.slot}
+                            className={`flex items-center justify-between rounded-xl border px-3.5 py-2.5 transition-all ${
+                              row.status === "IN_CONSULTATION"
+                                ? "border-teal-200 bg-teal-50/60"
+                                : "border-slate-100 bg-slate-50/60"
+                            }`}
                           >
-                            <p className="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-widest mb-2">
-                              {stat.label}
-                            </p>
-                            <div className="flex items-baseline gap-3">
-                              <span className="text-3xl font-black text-[var(--color-text-primary)]">
-                                {stat.value}
+                            <div className="flex items-center gap-2.5">
+                              <span className="font-mono text-[10px] font-bold text-slate-400">
+                                {row.slot}
                               </span>
-                              <span className="text-xs text-green-600 font-bold">
-                                {stat.change}
+                              <span className="text-xs font-bold text-slate-800">
+                                {row.name}
                               </span>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Table */}
-                      <div className="flex-1 bg-[var(--color-card)] rounded-[2rem] border border-[var(--color-border)]/40 shadow-sm p-6 overflow-hidden">
-                        <div className="flex items-center justify-between mb-6 border-b border-[var(--color-border)]/30 pb-4">
-                          <span className="text-xs font-black text-[var(--color-text-primary)] uppercase tracking-widest">
-                            Recent Patients
-                          </span>
-                          <span className="text-xs font-bold text-[var(--color-primary)]">
-                            Full Directory
-                          </span>
-                        </div>
-                        <div className="space-y-5">
-                          {[
-                            {
-                              name: "Sarah Jenkins",
-                              time: "09:30 AM",
-                              status: "In Clinic",
-                              color: "bg-green-100 text-green-700",
-                              img: "https://i.pravatar.cc/150?u=sarah",
-                            },
-                            {
-                              name: "Michael Ross",
-                              time: "10:15 AM",
-                              status: "Scheduled",
-                              color: "bg-blue-100 text-blue-700",
-                              img: "https://i.pravatar.cc/150?u=michael",
-                            },
-                            {
-                              name: "Emma Wilson",
-                              time: "11:00 AM",
-                              status: "Follow up",
-                              color: "bg-purple-100 text-purple-700",
-                              img: "https://i.pravatar.cc/150?u=emma",
-                            },
-                          ].map((patient) => (
-                            <div
-                              key={patient.name}
-                              className="flex items-center justify-between py-3 border-b border-[var(--color-border)]/30 last:border-0"
+                            <span
+                              className={`rounded-full px-2 py-0.5 font-mono text-[9px] font-black uppercase tracking-wide ${stage.color}`}
                             >
-                              <div className="flex items-center gap-5">
-                                <img
-                                  src={patient.img}
-                                  alt={patient.name}
-                                  className="h-12 w-12 rounded-full object-cover border border-slate-200"
-                                />
-                                <div>
-                                  <p className="text-sm font-bold text-[var(--color-text-primary)]">
-                                    {patient.name}
-                                  </p>
-                                  <p className="text-xs text-[var(--color-text-secondary)]">
-                                    {patient.time}
-                                  </p>
-                                </div>
-                              </div>
-                              <span
-                                className={`text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full ${patient.color}`}
-                              >
-                                {patient.status}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
+                              {row.status.replace("_", " ")}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
 
-                    <div
-                      className={`transition-all duration-700 absolute inset-0 p-8 flex flex-col ${activeView === 1 ? "opacity-100 translate-x-0" : "opacity-0 translate-x-8 pointer-events-none"}`}
-                    >
-                      <h3 className="text-2xl font-heading font-bold text-[var(--color-text-primary)] mb-10">
-                        Patient Directory
-                      </h3>
-                      <div className="flex-1 bg-[var(--color-card)] rounded-[2rem] border border-[var(--color-border)]/40 shadow-sm p-6">
-                        <div className="flex items-center justify-between mb-8">
-                          <div className="h-12 w-64 bg-[var(--color-bg-soft)] rounded-xl border border-[var(--color-border)] px-4 flex items-center text-sm text-[var(--color-text-secondary)]">
-                            Search patients...
-                          </div>
-                          <div className="h-12 w-32 bg-[var(--color-primary)] rounded-xl flex items-center justify-center text-xs text-white font-bold tracking-wide">
-                            Add Patient
-                          </div>
-                        </div>
-                        <div className="space-y-6">
-                          {[
-                            {
-                              name: "Amna Khan",
-                              id: "#P-9281",
-                              phone: "+92 301 228811",
-                              img: "https://i.pravatar.cc/150?u=amna",
-                            },
-                            {
-                              name: "Zeeshan Ahmed",
-                              id: "#P-8172",
-                              phone: "+92 321 445522",
-                              img: "https://i.pravatar.cc/150?u=zee",
-                            },
-                            {
-                              name: "Fatima Noor",
-                              id: "#P-7721",
-                              phone: "+92 333 991100",
-                              img: "https://i.pravatar.cc/150?u=fatima",
-                            },
-                          ].map((p, i) => (
-                            <div
-                              key={i}
-                              className="flex items-center gap-6 py-4 border-b border-[var(--color-border)]/30"
-                            >
-                              <img
-                                src={p.img}
-                                alt={p.name}
-                                className="h-14 w-14 rounded-full object-cover border border-slate-200 shrink-0"
-                              />
-                              <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-1">
-                                  <p className="text-base font-bold text-[var(--color-text-primary)]">
-                                    {p.name}
-                                  </p>
-                                  <span className="text-[10px] font-bold text-[var(--color-text-secondary)] uppercase">
-                                    {p.id}
-                                  </span>
-                                </div>
-                                <div className="text-xs text-[var(--color-text-secondary)]">
-                                  {p.phone}
-                                </div>
-                              </div>
-                              <div className="h-10 w-24 bg-[var(--color-bg-soft)] rounded-full flex items-center justify-center text-[10px] font-bold text-[var(--color-text-secondary)] uppercase tracking-widest border border-[var(--color-border)]">
-                                View File
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div
-                      className={`transition-all duration-700 absolute inset-0 p-8 flex flex-col ${activeView === 2 ? "opacity-100 translate-x-0" : "opacity-0 translate-x-8 pointer-events-none"}`}
-                    >
-                      <h3 className="text-2xl font-heading font-bold text-[var(--color-text-primary)] mb-10">
-                        Clinical Calendar
-                      </h3>
-                      <div className="flex-1 bg-[var(--color-card)] rounded-[2rem] border border-[var(--color-border)]/40 shadow-sm p-6 overflow-hidden">
-                        <div className="grid grid-cols-7 gap-2 h-full">
-                          {Array.from({ length: 21 }).map((_, i) => (
-                            <div
-                              key={i}
-                              className="border border-[var(--color-border)]/40 relative p-2 min-h-[80px]"
-                            >
-                              <span className="text-xs font-bold text-[var(--color-text-secondary)]">
-                                {i + 1}
-                              </span>
-                              {i % 7 === 2 && (
-                                <div className="absolute inset-x-2 top-8 h-4 bg-blue-100 rounded-md text-[10px] text-blue-700 px-2 flex items-center font-bold">
-                                  Surgery
-                                </div>
-                              )}
-                              {i % 7 === 4 && (
-                                <div className="absolute inset-x-2 top-8 h-4 bg-green-100 rounded-md text-[10px] text-green-700 px-2 flex items-center font-bold">
-                                  Review
-                                </div>
-                              )}
-                              {i % 7 === 0 && i > 0 && (
-                                <div className="absolute inset-x-2 top-8 h-4 bg-purple-100 rounded-md text-[10px] text-purple-700 px-2 flex items-center font-bold">
-                                  Follow-up
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div
-                      className={`transition-all duration-700 absolute inset-0 p-8 flex flex-col ${activeView === 3 ? "opacity-100 translate-x-0" : "opacity-0 translate-x-8 pointer-events-none"}`}
-                    >
-                      <h3 className="text-2xl font-heading font-bold text-[var(--color-text-primary)] mb-10">
-                        Smart Prescriptions
-                      </h3>
-                      <div className="flex-1 bg-[var(--color-card)] rounded-[2rem] border border-[var(--color-border)]/40 shadow-sm p-8">
-                        <div className="space-y-6">
-                          {[
-                            {
-                              drug: "Amoxicillin",
-                              dose: "500mg, 3x Daily",
-                              patient: "Liam Smith",
-                              date: "Oct 24",
-                            },
-                            {
-                              drug: "Lisinopril",
-                              dose: "10mg, 1x Daily",
-                              patient: "Sarah Jenkins",
-                              date: "Oct 23",
-                            },
-                            {
-                              drug: "Metformin",
-                              dose: "850mg, 2x Daily",
-                              patient: "David Miller",
-                              date: "Oct 23",
-                            },
-                          ].map((rx, i) => (
-                            <div
-                              key={i}
-                              className="p-6 border border-[var(--color-border)] rounded-3xl bg-[var(--color-bg-soft)] flex justify-between items-center"
-                            >
-                              <div>
-                                <div className="flex items-center gap-3 mb-2">
-                                  <span className="text-base font-bold text-[var(--color-text-primary)]">
-                                    {rx.drug}
-                                  </span>
-                                  <span className="text-xs font-medium text-[var(--color-text-secondary)] bg-[var(--color-card)] px-2 py-0.5 rounded border border-[var(--color-border)]">
-                                    {rx.dose}
-                                  </span>
-                                </div>
-                                <div className="text-sm text-[var(--color-primary)] font-bold">
-                                  Patient: {rx.patient}
-                                </div>
-                              </div>
-                              <div className="text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-tighter">
-                                {rx.date}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                    <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-3.5">
+                      <p className="mb-2 font-mono text-[9px] font-bold uppercase tracking-widest text-slate-400">
+                        Prescription Drawer — Bilal Tariq
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-bold text-amber-700">
+                          Status: In Consultation
+                        </span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-900 px-2.5 py-1 text-[10px] font-bold text-white">
+                          Net Fee: Rs. 1,800{" "}
+                          <span className="text-teal-300">(Rs. 200 Discount)</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-teal-100 px-2.5 py-1 text-[10px] font-bold text-teal-700">
+                          WhatsApp PDF Sent 🟢
+                        </span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Premium Overlay Layer */}
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0D2B3E]/60 via-transparent to-transparent pointer-events-none" />
-                <div className="absolute inset-0 bg-[var(--color-primary)]/5 mix-blend-overlay pointer-events-none" />
-
-                {/* Central Status Overlay */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div
-                    className={`h-24 w-24 rounded-full bg-[#0D2B3E]/40 backdrop-blur-xl border border-white/20 text-white flex items-center justify-center transition-all duration-500 shadow-2xl ${isPaused ? "opacity-100 scale-100" : "opacity-0 scale-90"}`}
-                  >
-                    {isPaused ? (
-                      <svg
-                        className="h-10 w-10 drop-shadow-md"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M8 5v14l11-7z" />
-                      </svg>
-                    ) : (
-                      <svg
-                        className="h-10 w-10 drop-shadow-md"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-                      </svg>
-                    )}
+                {/* Floating micro-badge */}
+                <div className="absolute -bottom-5 -left-5 hidden rounded-xl border border-slate-200/80 bg-white/95 px-4 py-3 shadow-xl backdrop-blur-md sm:block">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-600/10 text-teal-600">
+                      <MessageCircle className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="font-mono text-[9px] font-bold uppercase tracking-wide text-slate-400">
+                        Dispatch Time
+                      </p>
+                      <p className="text-sm font-black text-slate-900">1.4s avg</p>
+                    </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
-                {/* Floating Status & Mute Indicator */}
-                <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between">
-                  <div
-                    className="flex items-center gap-4 rounded-full bg-white/10 backdrop-blur-md px-5 py-2.5 border border-white/20 cursor-default"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <div
-                        className={`h-2 w-2 rounded-full bg-red-500 ${!isPaused && "animate-pulse"}`}
-                      />
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-white whitespace-nowrap">
-                        {isPaused ? "Demo Paused" : "Live Platform Demo"}
-                      </span>
-                    </div>
+        {/* ============================================================ */}
+        {/* SECTION 3 — AUTHORITY METRIC & SOCIAL PROOF STRIP              */}
+        {/* ============================================================ */}
+        <section
+          id="security"
+          className="border-y border-slate-200 bg-slate-900 py-14"
+        >
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-2 gap-8 lg:grid-cols-4">
+              {AUTHORITY_METRICS.map((metric) => (
+                <div
+                  key={metric.label}
+                  className="flex flex-col items-start gap-2 border-l border-white/10 pl-5"
+                >
+                  <metric.icon className="h-5 w-5 text-teal-400" />
+                  <p className="font-heading text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+                    {metric.value}
+                  </p>
+                  <p className="max-w-[18ch] text-xs font-medium leading-snug text-slate-400">
+                    {metric.label}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
 
-                    {!isMuted && !isPaused && (
-                      <div className="flex items-center gap-0.5 h-3">
-                        {[1, 2, 3, 4].map((i) => (
+        {/* ============================================================ */}
+        {/* SECTION 4 — MODERN BENTO GRID FEATURE SHOWCASE                 */}
+        {/* ============================================================ */}
+        <section id="features" className="bg-slate-50/70 py-24 sm:py-28">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="max-w-2xl">
+              <SectionEyebrow>Platform Capabilities</SectionEyebrow>
+              <h2 className="mt-5 text-4xl font-heading font-extrabold leading-[1.05] tracking-tight text-slate-900 sm:text-5xl">
+                Built like infrastructure,{" "}
+                <span className="text-teal-600">not a form builder.</span>
+              </h2>
+              <p className="mt-4 text-base leading-relaxed text-slate-600">
+                Every module is engineered around a single operational goal:
+                remove manual handoffs between reception, consultation, and
+                billing.
+              </p>
+            </div>
+
+            <div className="mt-14 grid grid-cols-1 gap-5 xl:grid-cols-4">
+              {/* Card 1 — Live Queue State Machine (large) */}
+              <div className="xl:col-span-2 rounded-3xl border border-slate-200/80 bg-white p-7 shadow-xl backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-600/10 text-teal-600">
+                    <Gauge className="h-5 w-5" />
+                  </div>
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                    Core Engine
+                  </span>
+                </div>
+                <h3 className="mt-6 text-xl font-heading font-bold text-slate-900">
+                  The Live Queue State Machine
+                </h3>
+                <p className="mt-2.5 text-sm leading-relaxed text-slate-600">
+                  Patient cards transition through deterministic states in
+                  real time — reception and doctor views stay perfectly
+                  synchronized, with zero manual refresh.
+                </p>
+
+                <div className="mt-6 flex items-center gap-2 overflow-x-auto rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+                  {["WAITING", "IN_CONSULTATION", "COMPLETED"].map(
+                    (stageKey, i) => {
+                      const stage = QUEUE_STAGES.find((s) => s.key === stageKey);
+                      return (
+                        <div key={stageKey} className="flex items-center gap-2">
                           <div
-                            key={i}
-                            className={`w-0.5 bg-[var(--color-primary)] rounded-full animate-bounce`}
-                            style={{
-                              animationDelay: `${i * 0.1}s`,
-                              height: `${audioGuideBarHeights[i - 1]}%`,
-                            }}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                            className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 font-mono text-[9px] font-black uppercase tracking-wider ${stage.color}`}
+                          >
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full ${stage.dot} ${i === 1 ? "animate-pulse" : ""}`}
+                            />
+                            {stageKey.replace("_", " ")}
+                          </div>
+                          {i < 2 && (
+                            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-300" />
+                          )}
+                        </div>
+                      );
+                    },
+                  )}
+                </div>
+              </div>
 
+              {/* Card 2 — WhatsApp Document Delivery */}
+              <div className="rounded-3xl border border-slate-200/80 bg-white p-7 shadow-xl backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-600/10 text-teal-600">
+                  <MessageCircle className="h-5 w-5" />
+                </div>
+                <h3 className="mt-6 text-lg font-heading font-bold text-slate-900">
+                  Native WhatsApp Document Delivery
+                </h3>
+                <p className="mt-2.5 text-sm leading-relaxed text-slate-600">
+                  Meta Cloud API dispatches the signed prescription PDF
+                  straight to the patient&apos;s chat — no manual export.
+                </p>
+
+                <div className="mt-6 rounded-2xl bg-[#e9edf0] p-3">
+                  <div className="ml-auto max-w-[85%] rounded-2xl rounded-tr-sm bg-[#d9fdd3] p-3 shadow-sm">
+                    <div className="flex items-center gap-2 rounded-lg bg-white/70 p-2">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-red-500 text-white">
+                        <FileText className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[11px] font-bold text-slate-800">
+                          Prescription.pdf
+                        </p>
+                        <p className="text-[9px] text-slate-500">148 KB</p>
+                      </div>
+                      <Download className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+                    </div>
+                    <p className="mt-1.5 flex items-center justify-end gap-1 text-[9px] text-slate-500">
+                      09:41
+                      <CheckCheck className="h-3 w-3 text-sky-500" />
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3 — Smart Discount & Ancillary Revenue Engine */}
+              <div className="rounded-3xl border border-slate-200/80 bg-white p-7 shadow-xl backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-600/10 text-teal-600">
+                  <Receipt className="h-5 w-5" />
+                </div>
+                <h3 className="mt-6 text-lg font-heading font-bold text-slate-900">
+                  Smart Discount &amp; Ancillary Revenue Engine
+                </h3>
+                <p className="mt-2.5 text-sm leading-relaxed text-slate-600">
+                  Upfront &amp; ancillary billing captured line-by-line, with
+                  automatic net-total reconciliation.
+                </p>
+
+                <div className="mt-6 rounded-2xl border border-slate-100 bg-slate-50/70 p-4 font-mono text-xs">
+                  <div className="flex justify-between text-slate-500">
+                    <span>Original Fee</span>
+                    <span>Rs. 2,000</span>
+                  </div>
+                  <div className="mt-1.5 flex justify-between text-rose-500">
+                    <span>Discount</span>
+                    <span>- Rs. 200</span>
+                  </div>
+                  <div className="mt-1.5 flex justify-between text-slate-500">
+                    <span className="flex items-center gap-1">
+                      <FlaskConical className="h-3 w-3" /> Lab Test — CBC
+                    </span>
+                    <span>+ Rs. 500</span>
+                  </div>
+                  <div className="mt-2.5 flex justify-between border-t border-dashed border-slate-300 pt-2.5 font-bold text-slate-900">
+                    <span>Net Total</span>
+                    <span className="text-teal-600">Rs. 2,300</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 4 — Cloudflare R2 Zero-Egress Storage */}
+              <div className="rounded-3xl border border-slate-200/80 bg-white p-7 shadow-xl backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-600/10 text-teal-600">
+                  <Lock className="h-5 w-5" />
+                </div>
+                <h3 className="mt-6 text-lg font-heading font-bold text-slate-900">
+                  Cloudflare R2 Zero-Egress Storage
+                </h3>
+                <p className="mt-2.5 text-sm leading-relaxed text-slate-600">
+                  Encrypted prescription archives streamed instantly, with
+                  zero storage egress fees at any scale.
+                </p>
+
+                <div className="mt-6 flex items-center gap-3 rounded-2xl border border-teal-100 bg-teal-50/60 p-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-teal-600 shadow-sm">
+                    <ShieldCheck className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-900">
+                      AES-256 · Encrypted at Rest
+                    </p>
+                    <p className="flex items-center gap-1 text-[10px] font-semibold text-teal-700">
+                      <span className="h-1.5 w-1.5 rounded-full bg-teal-500 animate-pulse" />
+                      R2 Streaming — 0ms Cold Start
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 5 — 1-Click Overdue Patient Alerts */}
+              <div className="rounded-3xl border border-slate-200/80 bg-white p-7 shadow-xl backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-600/10 text-teal-600">
+                  <Bell className="h-5 w-5" />
+                </div>
+                <h3 className="mt-6 text-lg font-heading font-bold text-slate-900">
+                  1-Click Overdue Patient Alerts
+                </h3>
+                <p className="mt-2.5 text-sm leading-relaxed text-slate-600">
+                  Flag lapsed follow-ups and dispatch a reminder in a single
+                  tap — no spreadsheet chasing.
+                </p>
+
+                <div className="mt-6 rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-bold text-slate-900">
+                        Zeeshan Ahmed
+                      </p>
+                      <p className="text-[10px] font-semibold text-rose-500">
+                        Follow-up overdue · 4 days
+                      </p>
+                    </div>
+                    <button className="inline-flex items-center gap-1.5 rounded-full bg-slate-900 px-3 py-1.5 text-[10px] font-bold text-white transition-colors hover:bg-teal-600">
+                      <PhoneCall className="h-3 w-3" />
+                      Send Late Reminder
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ============================================================ */}
+        {/* SECTION 5 — 3-STEP CLINIC ASSEMBLY LINE                        */}
+        {/* ============================================================ */}
+        <section id="workflow" className="bg-white py-24 sm:py-28">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="max-w-2xl">
+              <SectionEyebrow>The Assembly Line</SectionEyebrow>
+              <h2 className="mt-5 text-4xl font-heading font-extrabold leading-[1.05] tracking-tight text-slate-900 sm:text-5xl">
+                The 3-Step Clinic Assembly Line.
+              </h2>
+              <p className="mt-4 text-base leading-relaxed text-slate-600">
+                From arrival to follow-up, every step hands off cleanly into
+                the next — no lost paperwork, no duplicate data entry.
+              </p>
+            </div>
+
+            <div className="mt-14 grid grid-cols-1 gap-4 lg:grid-cols-3">
+              {WORKFLOW_STEPS.map((item, index) => {
+                const isActive = activeStep === index;
+                return (
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsMuted(!isMuted);
-                    }}
-                    className="rounded-full bg-white/10 backdrop-blur-md p-3 border border-white/20 hover:bg-white/20 transition-all text-white group relative"
-                    title={isMuted ? "Unmute Voiceover" : "Mute Voiceover"}
+                    key={item.step}
+                    onClick={() => setActiveStep(index)}
+                    className={`group relative flex flex-col items-start rounded-3xl border p-7 text-left transition-all duration-300 ${
+                      isActive
+                        ? "border-teal-600/40 bg-slate-900 shadow-2xl -translate-y-1"
+                        : "border-slate-200/80 bg-white shadow-xl hover:-translate-y-1 hover:shadow-2xl"
+                    }`}
                   >
-                    {isMuted && (
-                      <span className="absolute -top-12 right-0 bg-[var(--color-primary)] text-white text-[10px] font-bold py-1.5 px-3 rounded-lg whitespace-nowrap animate-bounce shadow-lg pointer-events-none">
-                        Enable Audio Guide
-                        <div className="absolute -bottom-1 right-4 w-2 h-2 bg-[var(--color-primary)] rotate-45" />
+                    <div className="flex w-full items-center justify-between">
+                      <span
+                        className={`font-mono text-[10px] font-black uppercase tracking-[0.3em] ${
+                          isActive ? "text-teal-400" : "text-slate-300"
+                        }`}
+                      >
+                        Step {item.step}
                       </span>
-                    )}
-                    {isMuted ? (
-                      <svg
-                        className="h-5 w-5 opacity-60 group-hover:opacity-100"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
+                      <div
+                        className={`flex h-9 w-9 items-center justify-center rounded-xl ${
+                          isActive
+                            ? "bg-teal-600 text-white"
+                            : "bg-teal-600/10 text-teal-600"
+                        }`}
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
-                        />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
-                        />
-                      </svg>
-                    ) : (
-                      <svg
-                        className="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
-                        />
-                      </svg>
+                        <item.icon className="h-4 w-4" />
+                      </div>
+                    </div>
+
+                    <h3
+                      className={`mt-6 text-lg font-heading font-bold leading-snug ${
+                        isActive ? "text-white" : "text-slate-900"
+                      }`}
+                    >
+                      {item.title}
+                    </h3>
+                    <p
+                      className={`mt-3 text-sm leading-relaxed ${
+                        isActive ? "text-slate-300" : "text-slate-600"
+                      }`}
+                    >
+                      {item.text}
+                    </p>
+
+                    <div className="mt-6 flex flex-wrap gap-1.5">
+                      {item.chips.map((chip) => (
+                        <span
+                          key={chip}
+                          className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                            isActive
+                              ? "bg-white/10 text-teal-300"
+                              : "bg-slate-100 text-slate-600"
+                          }`}
+                        >
+                          {chip}
+                        </span>
+                      ))}
+                    </div>
+
+                    {index < WORKFLOW_STEPS.length - 1 && (
+                      <ArrowRight
+                        className={`absolute -right-3.5 top-1/2 hidden h-7 w-7 -translate-y-1/2 rounded-full border bg-white p-1.5 shadow-md lg:block ${
+                          isActive
+                            ? "border-teal-600/40 text-teal-600"
+                            : "border-slate-200 text-slate-300"
+                        }`}
+                      />
                     )}
                   </button>
-                </div>
-              </div>
+                );
+              })}
             </div>
           </div>
         </section>
 
-        <section
-          id="features"
-          className="border-t border-[var(--color-border)]/60 bg-[var(--color-bg-soft)]/35 py-24 sm:py-28 xl:py-32"
-        >
-          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-12 gap-8">
-              <div className="col-span-12 xl:col-span-6 xl:col-start-2">
-                <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-[var(--color-text-secondary)]">
-                  What the platform handles
-                </p>
-                <h2 className="mt-6 max-w-3xl text-4xl font-heading font-semibold leading-[0.95] sm:text-5xl lg:text-6xl">
-                  Every critical workflow,{" "}
-                  <span className="italic text-[var(--color-secondary)]">
-                    shaped
-                  </span>{" "}
-                  with gentle clarity.
-                </h2>
-                <p className="mt-6 max-w-2xl text-lg leading-relaxed text-[var(--color-text-secondary)] first-letter:float-left first-letter:mr-3 first-letter:text-6xl first-letter:leading-[0.8] first-letter:font-heading first-letter:font-semibold first-letter:text-[var(--color-primary)]">
-                  MedAlerto reduces the manual noise around prescriptions,
-                  scheduling, and patient tracking. The result is a calmer
-                  workflow that still moves fast when the clinic needs it.
-                </p>
-                <div className="mt-6 inline-flex rounded-full border border-[var(--color-border)]/80 bg-[var(--color-card)] px-4 py-2">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-[var(--color-primary)]">
-                    {features.length} operational capabilities
+        {/* ============================================================ */}
+        {/* SECTION 6 — ROI COMPARISON TABLE                               */}
+        {/* ============================================================ */}
+        <section className="bg-slate-50/70 py-24 sm:py-28">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+            <div className="max-w-2xl">
+              <SectionEyebrow>Return on Investment</SectionEyebrow>
+              <h2 className="mt-5 text-4xl font-heading font-extrabold leading-[1.05] tracking-tight text-slate-900 sm:text-5xl">
+                Traditional Practice{" "}
+                <span className="text-slate-300">vs.</span>{" "}
+                <span className="text-teal-600">MedAlerto.</span>
+              </h2>
+            </div>
+
+            <div className="mt-12 overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-2xl backdrop-blur-md">
+              <div className="grid grid-cols-3 border-b border-slate-100 bg-slate-900">
+                <div className="p-5 sm:p-6">
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                    Capability
+                  </span>
+                </div>
+                <div className="p-5 sm:p-6">
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                    Legacy / Paper &amp; Fragmented Apps
+                  </span>
+                </div>
+                <div className="border-l border-white/10 bg-teal-600/10 p-5 sm:p-6">
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-teal-400">
+                    MedAlerto
                   </span>
                 </div>
               </div>
-            </div>
 
-            <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
-              {features.map(
-                ({ number, title, description, tag, impact, icon }, index) => (
-                  <article
-                    key={title}
-                    className={`group relative flex flex-col h-full rounded-[2.25rem] border border-[var(--color-border)]/60 bg-[var(--color-card)] p-8 shadow-[0_4px_20px_-2px_rgba(93,112,82,0.12)] transition duration-300 hover:-translate-y-1.5 hover:shadow-2xl motion-reduce:transition-none ${index === 0 ? "xl:col-span-2" : index === 5 ? "xl:col-span-3" : ""}`}
-                  >
-                    <div className="flex items-start justify-between gap-6">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-primary)]/10 text-[var(--color-primary)] transition-colors group-hover:bg-[var(--color-primary)] group-hover:text-white">
-                        <svg
-                          className="h-6 w-6"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        >
-                          {icon}
-                        </svg>
-                      </div>
-                      <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-[var(--color-text-muted)]">
-                        {number}
-                      </p>
-                    </div>
-                    <p className="mt-8 inline-flex self-start rounded-full border border-[var(--color-border)]/80 bg-[var(--color-bg-soft)]/55 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-secondary)]">
-                      {tag}
-                    </p>
-                    <h3 className="mt-8 text-2xl font-heading font-semibold leading-tight text-[var(--color-text-primary)]">
-                      {title}
-                    </h3>
-                    <p className="mt-4 flex-1 max-w-md text-sm leading-relaxed text-[var(--color-text-secondary)]">
-                      {description}
-                    </p>
-                    <div className="mt-8 flex items-center justify-between border-t border-[var(--color-border)]/70 pt-6">
-                      <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--color-primary)] font-bold">
-                        Impact: {impact}
-                      </p>
-                      <span className="text-xl text-[var(--color-primary)] font-bold transition-transform duration-300 group-hover:translate-x-1.5">
-                        ›
-                      </span>
-                    </div>
-                  </article>
-                ),
-              )}
-            </div>
-          </div>
-        </section>
-
-        <section className="border-t border-[var(--color-border)]/60 bg-[var(--color-bg)] py-16 sm:py-20">
-          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-5 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] sm:p-7">
-              <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-[var(--color-text-secondary)]">
-                Built for real clinic conditions
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2.5">
-                {trustSignals.map((signal) => (
-                  <span
-                    key={signal}
-                    className="rounded-full border border-[var(--color-border)]/80 bg-[var(--color-bg-soft)]/55 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.13em] text-[var(--color-text-secondary)]"
-                  >
-                    {signal}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="border-t border-[var(--color-border)]/60 bg-[var(--color-bg-soft)]/35 py-24 sm:py-28">
-          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-12 gap-8">
-              <div className="col-span-12 xl:col-span-5">
-                <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-[var(--color-text-secondary)]">
-                  How clinics use it daily
-                </p>
-                <h2 className="mt-6 max-w-xl text-4xl font-heading font-semibold leading-[0.95] sm:text-5xl">
-                  A calmer day from{" "}
-                  <span className="italic text-[var(--color-secondary)]">
-                    first patient
-                  </span>{" "}
-                  to close.
-                </h2>
-                <p className="mt-6 max-w-lg text-base leading-relaxed text-[var(--color-text-secondary)]">
-                  MedAlerto is designed to match real outpatient pace: fast
-                  consultations, reliable communication, and stronger
-                  operational control when unexpected situations appear.
-                </p>
-              </div>
-              <div className="col-span-12 xl:col-span-7">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  {flowSteps.map((item) => (
-                    <article
-                      key={item.step}
-                      className="rounded-3xl border border-[var(--color-border)]/70 bg-[var(--color-card)] p-5 shadow-[0_4px_20px_-2px_rgba(93,112,82,0.12)]"
-                    >
-                      <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-primary)]">
-                        {item.step}
-                      </p>
-                      <h3 className="mt-3 text-xl font-heading font-semibold">
-                        {item.title}
-                      </h3>
-                      <p className="mt-3 text-sm leading-relaxed text-[var(--color-text-secondary)]">
-                        {item.text}
-                      </p>
-                    </article>
-                  ))}
+              {COMPARISON_ROWS.map((row, idx) => (
+                <div
+                  key={row.feature}
+                  className={`grid grid-cols-3 ${
+                    idx !== COMPARISON_ROWS.length - 1
+                      ? "border-b border-slate-100"
+                      : ""
+                  }`}
+                >
+                  <div className="flex items-center p-5 sm:p-6">
+                    <span className="text-sm font-bold text-slate-900">
+                      {row.feature}
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2 p-5 sm:p-6">
+                    <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" />
+                    <span className="text-sm text-slate-500">
+                      {row.traditional}
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2 border-l border-slate-100 bg-teal-50/40 p-5 sm:p-6">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-teal-600" />
+                    <span className="text-sm font-semibold text-slate-800">
+                      {row.medalerto}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
           </div>
         </section>
 
-        <section className="border-t border-[var(--color-border)]/60 bg-[var(--color-bg)] py-24 sm:py-28">
-          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+        {/* ============================================================ */}
+        {/* SECTION 7 — VERIFIED PRACTITIONER TESTIMONIALS                 */}
+        {/* ============================================================ */}
+        <section className="bg-white py-24 sm:py-28">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-[var(--color-text-secondary)]">
-                  Clinic feedback
-                </p>
-                <h2 className="mt-4 max-w-2xl text-4xl font-heading font-semibold leading-[0.95] sm:text-5xl">
+              <div className="max-w-2xl">
+                <SectionEyebrow>Verified Practitioners</SectionEyebrow>
+                <h2 className="mt-5 text-4xl font-heading font-extrabold leading-[1.05] tracking-tight text-slate-900 sm:text-5xl">
                   Trusted by doctors who run high-pressure days.
                 </h2>
               </div>
               <button
                 onClick={() => navigate("/pricing")}
-                className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--color-secondary)] bg-[var(--color-card)] px-5 text-sm font-bold text-[var(--color-secondary)] transition duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-secondary)]/10"
+                className="inline-flex h-11 items-center justify-center gap-1.5 rounded-full border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 transition duration-300 hover:-translate-y-0.5 hover:border-teal-600/40 hover:text-teal-600 hover:shadow-md"
               >
                 View Pricing
+                <ArrowUpRight className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-3">
-              {testimonials.slice(0, 3).map((item, idx) => (
+            <div className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-3">
+              {TESTIMONIALS.map((item, idx) => (
                 <article
                   key={item.author}
-                  className="group rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
+                  className="group flex flex-col rounded-3xl border border-slate-200/80 bg-white p-7 shadow-xl backdrop-blur-md transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
                 >
-                  <div className="mb-6 flex items-center gap-4">
+                  <div className="flex items-center gap-0.5">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star
+                        key={i}
+                        className="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                      />
+                    ))}
+                  </div>
+                  <p className="mt-5 flex-1 text-sm leading-relaxed text-slate-700">
+                    &ldquo;{item.quote}&rdquo;
+                  </p>
+
+                  <div className="mt-6 flex items-center gap-3 border-t border-slate-100 pt-5">
                     <div
-                      className="h-12 w-12 rounded-full border-2 border-white shadow-md flex items-center justify-center text-white text-sm font-bold select-none"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
                       style={{
                         background: [
-                          "linear-gradient(135deg, #6B8F71, #4a7c59)",
-                          "linear-gradient(135deg, #5b7fa6, #3d6b99)",
-                          "linear-gradient(135deg, #a67c5b, #8a5c3a)",
+                          "linear-gradient(135deg, #0f766e, #0d9488)",
+                          "linear-gradient(135deg, #1e293b, #334155)",
+                          "linear-gradient(135deg, #0891b2, #0e7490)",
                         ][idx % 3],
                       }}
                       aria-hidden="true"
@@ -1148,60 +837,108 @@ export default function LandingPage() {
                         .map((n) => n[0])
                         .join("")}
                     </div>
-                    <div>
-                      <p className="text-sm font-bold text-[var(--color-text-primary)]">
-                        {item.author}
-                      </p>
-                      <p className="text-[10px] uppercase tracking-wider text-[var(--color-text-secondary)]">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <p className="truncate text-sm font-bold text-slate-900">
+                          {item.author}
+                        </p>
+                        <BadgeCheck
+                          className="h-3.5 w-3.5 shrink-0 text-teal-600"
+                          aria-label="PMDC Verified"
+                        />
+                      </div>
+                      <p className="truncate text-[11px] font-semibold text-slate-500">
                         {item.role}
                       </p>
                     </div>
                   </div>
-                  <p className="text-sm italic leading-relaxed text-[var(--color-text-secondary)]">
-                    “{item.quote}”
+
+                  <p className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full bg-teal-50 px-3 py-1.5 text-[11px] font-bold text-teal-700">
+                    <TrendingUp className="h-3 w-3" />
+                    {item.metric}
                   </p>
-                  <div className="mt-5 border-t border-[var(--color-border)]/80 pt-4">
-                    <p className="inline-flex rounded-full border border-[var(--color-primary)]/35 bg-[var(--color-primary)]/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-primary)]">
-                      {item.metric}
-                    </p>
-                  </div>
                 </article>
               ))}
             </div>
           </div>
         </section>
 
-        <section className="relative overflow-hidden border-t border-[var(--color-border)]/60 bg-[var(--color-primary)] py-24 text-[var(--color-on-primary)] sm:py-28 xl:py-32">
-          <div
-            aria-hidden="true"
-            className="absolute -left-16 top-8 h-72 w-72 rounded-[60%_40%_35%_65%/55%_35%_65%_45%] bg-[var(--color-accent)]/18 blur-3xl"
-          />
-          <div
-            aria-hidden="true"
-            className="absolute right-0 top-0 h-80 w-80 rounded-[48%_52%_39%_61%/48%_34%_66%_52%] bg-[var(--color-secondary)]/18 blur-3xl"
-          />
-          <div className="relative mx-auto grid w-full max-w-7xl grid-cols-12 gap-8 px-4 sm:px-6 lg:px-8">
-            <div className="col-span-12 xl:col-span-7 xl:col-start-2">
-              <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-[var(--color-accent)]">
-                Closing note
-              </p>
-              <h2 className="mt-6 max-w-4xl text-4xl font-heading font-semibold leading-[0.95] sm:text-5xl lg:text-6xl">
-                Ready to modernize the clinic with a softer kind of structure?
-              </h2>
-              <p className="mt-6 max-w-2xl text-lg leading-relaxed text-[var(--color-on-primary)]/80">
-                Join doctors using MedAlerto to save time, reduce mistakes, and
-                keep every patient record in one place.
-              </p>
-            </div>
+        {/* ============================================================ */}
+        {/* SECTION 8 — HIGH-CONVERTING CLOSING CTA                        */}
+        {/* ============================================================ */}
+        <section className="bg-white px-4 pb-24 sm:px-6 lg:px-8">
+          <div className="relative mx-auto max-w-6xl overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-teal-900 to-slate-900 px-8 py-16 shadow-2xl sm:px-14 sm:py-20">
+            <div
+              aria-hidden="true"
+              className="absolute -left-16 -top-16 h-72 w-72 rounded-full bg-teal-500/25 blur-3xl"
+            />
+            <div
+              aria-hidden="true"
+              className="absolute -right-10 bottom-0 h-64 w-64 rounded-full bg-teal-400/15 blur-3xl"
+            />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 opacity-[0.04] [background-image:linear-gradient(to_right,white_1px,transparent_1px),linear-gradient(to_bottom,white_1px,transparent_1px)] [background-size:32px_32px]"
+            />
 
-            <div className="col-span-12 flex items-end xl:col-span-3 xl:col-start-10">
-              <button
-                onClick={() => navigate("/signup")}
-                className="group relative inline-flex h-12 w-full items-center justify-center overflow-hidden rounded-full border border-[var(--color-on-primary)]/40 bg-[var(--color-on-primary)] px-8 font-body text-sm font-bold text-[var(--color-primary)] shadow-[0_4px_20px_-2px_rgba(243,244,241,0.18)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-bg-soft)] hover:shadow-[0_10px_28px_-14px_rgba(243,244,241,0.24)] active:translate-y-0 motion-reduce:transition-none"
-              >
-                <span className="absolute inset-0 bg-[var(--color-accent)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                <span className="relative z-10">Create Your Free Account</span>
-              </button>
+            <div className="relative mx-auto max-w-2xl text-center">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1.5 backdrop-blur-md">
+                <Server className="h-3.5 w-3.5 text-teal-300" />
+                <span className="font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-teal-200">
+                  Deploy in Under 5 Minutes
+                </span>
+              </div>
+
+              <h2 className="mt-6 font-heading text-3xl font-extrabold leading-[1.1] tracking-tight text-white sm:text-4xl lg:text-5xl">
+                Ready to run your clinic with engineered precision?
+              </h2>
+              <p className="mt-4 text-base leading-relaxed text-slate-300">
+                Join the doctors who replaced paper chaos with a queue-driven,
+                audit-accurate, WhatsApp-native operational engine.
+              </p>
+
+              {subscribed ? (
+                <div className="mx-auto mt-8 inline-flex items-center gap-2.5 rounded-full border border-teal-400/30 bg-teal-400/10 px-5 py-3.5">
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-teal-300" />
+                  <span className="text-sm font-bold text-teal-200">
+                    You&apos;re in — check your inbox to finish setup.
+                  </span>
+                </div>
+              ) : (
+                <form
+                  onSubmit={handleClosingSubmit}
+                  className="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row"
+                >
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@yourclinic.com"
+                    aria-label="Email address"
+                    className="h-14 w-full flex-1 rounded-xl border border-white/15 bg-white/10 px-4 font-body text-sm text-white placeholder:text-slate-400 backdrop-blur-md focus:border-teal-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/40"
+                  />
+                  <button
+                    type="submit"
+                    className="group relative inline-flex h-14 shrink-0 items-center justify-center gap-2 overflow-hidden rounded-xl bg-white px-6 font-body text-sm font-bold text-slate-900 shadow-[0_16px_32px_-12px_rgba(0,0,0,0.4)] transition-all duration-300 hover:-translate-y-0.5"
+                  >
+                    <span className="relative z-10">Get Started Free</span>
+                    <Send className="relative z-10 h-4 w-4 text-teal-600" />
+                  </button>
+                </form>
+              )}
+
+              <div className="mt-7 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+                {TRUST_INDICATORS.map((item) => (
+                  <span
+                    key={item}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5 text-teal-400" />
+                    {item}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         </section>
