@@ -296,16 +296,15 @@ export const forgotPassword = async (req, res) => {
     doctor.otpExpiry = otpExpiry;
     await doctor.save();
 
-    res.status(200).json({ success: true, message: "OTP sent successfully." });
+    res.status(200).json({ success: true, message: 'OTP dispatched' });
 
-    void sendEmail({
+    sendEmail({
       to: normalizedEmail,
       subject: "Reset your MedAlerto password",
       html: resetPasswordEmailTemplate(doctor.fullName, otp),
     }).catch((emailError) => {
       console.error("Password reset email failed:", emailError);
     });
-    return;
   } catch (error) {
     console.error("[forgotPassword]", error);
     res.status(500).json({ message: "Internal server error" });

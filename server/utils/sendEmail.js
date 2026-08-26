@@ -1,53 +1,17 @@
-import nodemailer from "nodemailer";
+import Brevo from '@getbrevo/brevo';
 
-// const createTransporter = () => {
-//   return nodemailer.createTransport({
-//     host: process.env.SMTP_HOST,
-//     port: parseInt(process.env.SMTP_PORT, 10),
-//     secure: parseInt(process.env.SMTP_PORT, 10) === 465, // true for 465, false for 587
-//     auth: {
-//       user: process.env.EMAIL_USER,
-//       pass: process.env.EMAIL_PASS,
-//     },
-//   });
-// };
-
-// const transporter = nodemailer.createTransport({
-//     service: "gmail",
-//     auth: {
-//       user: process.env.EMAIL_USER,
-//       pass: process.env.EMAIL_PASS,
-//     },
-//   });
-  
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  connectionTimeout: 10000,
-  greetingTimeout: 5000,
-  socketTimeout: 15000,
-});
+const apiInstance = new Brevo.TransactionalEmailsApi();
+apiInstance.setApiKey(Brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
 
 const sendEmail = async ({ to, subject, html }) => {
-  const mailOptions = {
-    from: `"MedAlerto" <${process.env.EMAIL_USER}>`,
-    to,
-    subject,
-    html,
-  }
-  try {
-    const info = await transporter.sendMail(mailOptions)
-    return info
-  } catch (error) {
-    console.error("Error sending email: ", error.message)
-    throw error;
-  }
-}
+  const sendSmtpEmail = new Brevo.SendSmtpEmail();
+  sendSmtpEmail.subject = subject;
+  sendSmtpEmail.htmlContent = html;
+  sendSmtpEmail.sender = { name: "MedAlerto", email: "ltxabdullah44@gmail.com" };
+  sendSmtpEmail.to = [{ email: to }];
+
+  return apiInstance.sendTransacEmail(sendSmtpEmail);
+};
 
 const verificationEmailTemplate = (fullName, otp) => {
   return `
@@ -120,7 +84,6 @@ const verificationEmailTemplate = (fullName, otp) => {
     </body>
     </html>
   `;
-
 };
 
 const resetPasswordEmailTemplate = (fullName, otp) => {
@@ -206,4 +169,4 @@ const resetPasswordEmailTemplate = (fullName, otp) => {
   `;
 };
 
-export { sendEmail, verificationEmailTemplate,resetPasswordEmailTemplate };
+export { sendEmail, verificationEmailTemplate, resetPasswordEmailTemplate };

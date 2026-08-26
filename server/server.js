@@ -38,6 +38,7 @@ import { initSocketServer } from "./realtime/socket.js";
 import { createUnsafeRequestOriginGuard } from "./utils/security.js";
 
 const app = express();
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 app.disable("x-powered-by");
 
