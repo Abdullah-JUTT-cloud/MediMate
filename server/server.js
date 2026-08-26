@@ -57,17 +57,11 @@ app.use(helmet());
 const PORT = process.env.PORT || 3000;
 
 const allowedOrigins = [
-  process.env.CLIENT_URL,
-  process.env.ALLOWED_ORIGINS,
   "https://medalerto.me",
+  "https://www.medalerto.me",
+  "https://medalerto.pages.dev",
   "http://localhost:5173",
-  "http://localhost:3000",
-  "http://127.0.0.1:5173",
-  "http://127.0.0.1:3000",
-]
-  .flatMap((origin) => (origin ? origin.split(",") : []))
-  .map((origin) => origin.trim().replace(/\/$/, ""))
-  .filter(Boolean);
+].map((origin) => origin.trim().replace(/\/$/, ""));
 
 app.use(
   cors({
@@ -87,7 +81,12 @@ app.use(
 app.use(createUnsafeRequestOriginGuard(allowedOrigins));
 app.use(express.json({ limit: "128kb" }));
 app.use(express.urlencoded({ extended: true, limit: "128kb" }));
-app.use(mongoSanitize());
+app.use((req, res, next) => {
+  if (req.body) mongoSanitize.sanitize(req.body);
+  if (req.params) mongoSanitize.sanitize(req.params);
+  if (req.query) mongoSanitize.sanitize(req.query);
+  next();
+});
 app.use(cookieParser());
 
 app.get("/",(req,res)=>{
