@@ -16,7 +16,7 @@ import InsightsPage from "./InsightsPage";
 import RevenueLabPage from "./RevenueLabPage";
 import SupportCenterPage from "./SupportCenterPage";
 import DoctorChatsPage from "./DoctorChatsPage";
-import QueuePage from "./QueuePage";
+import DoctorQueuePage from "./DoctorQueuePage";
 import VerifiedBadge from "../components/VerifiedBadge";
 import DashboardHome from "../components/dashboard/DashboardHome";
 import { getRealtimeSocketForRole } from "../realtime/socket";
@@ -513,7 +513,7 @@ export default function DashboardPage() {
           {!isAccessRestricted && (
             <>
           {activeNav === "settings" && <SettingsPage />}
-          {activeNav === "queue" && <QueuePage />}
+          {activeNav === "queue" && <DoctorQueuePage />}
           {activeNav === "patients" && <PatientsPage />}
           {activeNav === "payments" && <PaymentPage onBack={() => setActiveNav("dashboard")} />}
           {activeNav === "chats" && <DoctorChatsPage />}

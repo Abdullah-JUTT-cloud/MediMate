@@ -22,6 +22,7 @@ const PatientChatPage = lazy(() => import("./pages/PatientChatPage"));
 const AdminLoginPage = lazy(() => import("./pages/AdminLoginPage"));
 const AdminDashboardPage = lazy(() => import("./pages/AdminDashboardPage"));
 const PaymentPage = lazy(() => import("./pages/PaymentPage"));
+const DoctorQueuePage = lazy(() => import("./pages/DoctorQueuePage"));
 
 // Informational Pages
 const FeaturesPage = lazy(() => import("./pages/FeaturesPage"));
@@ -69,6 +70,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/queue"
+              element={
+                <ProtectedRoute>
+                  <DoctorQueuePage standalone />
                 </ProtectedRoute>
               }
             />
