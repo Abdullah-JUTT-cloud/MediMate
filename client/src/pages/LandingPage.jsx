@@ -5,133 +5,7 @@ import Footer from "../components/Footer";
 import doc from "../assets/doc-hero.webp";
 import useThemedLogo from "../hooks/useThemedLogo";
 
-const features = [
-  {
-    number: "01",
-    title: "Digital Prescriptions",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"
-      />
-    ),
-    description:
-      "Create and send prescriptions instantly as PDFs via WhatsApp. No more lost or damaged paper prescriptions.",
-    tag: "Core workflow",
-    impact: "Faster handoff",
-  },
-  {
-    number: "02",
-    title: "Medicine Alternatives",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"
-      />
-    ),
-    description:
-      "Find alternative medicines by the same salt composition when your prescribed brand is unavailable.",
-    tag: "Clinical continuity",
-    impact: "Fewer treatment delays",
-  },
-  {
-    number: "03",
-    title: "Smart Appointments",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"
-      />
-    ),
-    description:
-      "Schedule follow-ups with automatic WhatsApp confirmations. Reduce no-shows with intelligent reminders.",
-    tag: "Daily operations",
-    impact: "Better attendance",
-  },
-  {
-    number: "04",
-    title: "Patient History",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
-      />
-    ),
-    description:
-      "Access complete patient records and visit history instantly. Make informed decisions every time.",
-    tag: "Record quality",
-    impact: "Safer decisions",
-  },
-  {
-    number: "05",
-    title: "Emergency Management",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M11.412 15.655L9.75 21.75l3.745-4.012M9.257 13.5H3.75l2.659-2.849m2.048-2.195L14.25 2.25l-2.25 7.5h5.25l-4.507 4.83"
-      />
-    ),
-    description:
-      "Cancel a range of appointments with one click in emergencies. Patients are notified automatically.",
-    tag: "Important feature",
-    impact: "Rapid patient updates",
-  },
-  {
-    number: "06",
-    title: "Practice Insights",
-    icon: (
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75c0 .621-.504 1.125-1.125 1.125h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"
-      />
-    ),
-    description:
-      "Track monthly earnings, patient activity, and clinic performance without any extra effort.",
-    tag: "Growth visibility",
-    impact: "Clearer planning",
-  },
-];
-
 const audioGuideBarHeights = [35, 70, 50, 85];
-
-const trustSignals = [
-  "Independent doctors",
-  "Specialist clinics",
-  "Role-based access",
-  "WhatsApp notifications",
-  "Emergency bulk cancel",
-  "Audit-friendly records",
-  "Clinic-hour support",
-];
-
-const flowSteps = [
-  {
-    step: "01",
-    title: "Morning setup",
-    text: "Open the day with a clear appointment queue and active follow-up list.",
-  },
-  {
-    step: "02",
-    title: "Consultation workflow",
-    text: "Capture notes, generate prescriptions, and send patient-ready instructions instantly.",
-  },
-  {
-    step: "03",
-    title: "Patient communication",
-    text: "Use WhatsApp delivery and reminders to keep post-visit communication organized.",
-  },
-  {
-    step: "04",
-    title: "Operational control",
-    text: "Track outcomes, monitor load, and handle emergency schedule changes in one place.",
-  },
-];
 
 const testimonials = [
   {
@@ -1351,138 +1225,353 @@ export default function LandingPage() {
           className="border-t border-[var(--color-border)]/60 bg-[var(--color-bg-soft)]/35 py-24 sm:py-28 xl:py-32"
         >
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-12 gap-8">
-              <div className="col-span-12 xl:col-span-6 xl:col-start-2">
-                <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-[var(--color-text-secondary)]">
-                  What the platform handles
-                </p>
-                <h2 className="mt-6 max-w-3xl text-4xl font-heading font-semibold leading-[0.95] sm:text-5xl lg:text-6xl">
-                  Every critical workflow,{" "}
-                  <span className="italic text-[var(--color-secondary)]">
-                    shaped
-                  </span>{" "}
-                  with gentle clarity.
-                </h2>
-                <p className="mt-6 max-w-2xl text-lg leading-relaxed text-[var(--color-text-secondary)] first-letter:float-left first-letter:mr-3 first-letter:text-6xl first-letter:leading-[0.8] first-letter:font-heading first-letter:font-semibold first-letter:text-[var(--color-primary)]">
-                  MedAlerto reduces the manual noise around prescriptions,
-                  scheduling, and patient tracking. The result is a calmer
-                  workflow that still moves fast when the clinic needs it.
-                </p>
-                <div className="mt-6 inline-flex rounded-full border border-[var(--color-border)]/80 bg-[var(--color-card)] px-4 py-2">
-                  <span className="font-mono text-[10px] uppercase tracking-[0.24em] text-[var(--color-primary)]">
-                    {features.length} operational capabilities
-                  </span>
-                </div>
+            {/* Section Header */}
+            <div className="max-w-3xl mb-16">
+              <div className="inline-flex items-center gap-2.5 rounded-full border border-[var(--color-border)] bg-[var(--color-card)]/80 py-2 pl-3.5 pr-4 shadow-sm backdrop-blur-md mb-6">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full rounded-full bg-[var(--color-primary)] opacity-75 animate-ping" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--color-primary)]" />
+                </span>
+                <span className="font-mono text-[10px] font-bold uppercase tracking-[0.3em] text-[var(--color-text-secondary)]">
+                  ENGINEERED CLINIC CAPABILITIES
+                </span>
               </div>
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-heading font-extrabold tracking-tight text-[var(--color-text-primary)] leading-[1.08]">
+                Built for rapid consultations, zero revenue leak, and instant patient delivery.
+              </h2>
+              <p className="mt-4 text-base sm:text-lg text-[var(--color-text-secondary)] leading-relaxed">
+                Replace manual paperwork and fragmented tools with a single queue-driven engine designed for actual clinic pace.
+              </p>
             </div>
 
-            <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-3">
-              {features.map(
-                ({ number, title, description, tag, impact, icon }, index) => (
-                  <article
-                    key={title}
-                    className={`group relative flex flex-col h-full rounded-[2.25rem] border border-[var(--color-border)]/60 bg-[var(--color-card)] p-8 shadow-[0_4px_20px_-2px_rgba(93,112,82,0.12)] transition duration-300 hover:-translate-y-1.5 hover:shadow-2xl motion-reduce:transition-none ${index === 0 ? "xl:col-span-2" : index === 5 ? "xl:col-span-3" : ""}`}
-                  >
-                    <div className="flex items-start justify-between gap-6">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--color-primary)]/10 text-[var(--color-primary)] transition-colors group-hover:bg-[var(--color-primary)] group-hover:text-white">
-                        <svg
-                          className="h-6 w-6"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                        >
-                          {icon}
-                        </svg>
+            {/* Bento Grid Container */}
+            <div className="grid grid-cols-12 gap-6">
+
+              {/* Card 1: Queue-Driven Patient State Machine (Col-Span 12 lg:Col-Span 8) */}
+              <div className="col-span-12 lg:col-span-8 bg-[var(--color-card)] border border-[var(--color-border)]/80 rounded-3xl p-6 sm:p-8 shadow-[var(--shadow-float)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-[var(--color-primary)]/30 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-[var(--color-primary)]">
+                      01 / Workflow State Engine
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] text-[10px] font-bold uppercase tracking-wider">
+                      <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-primary)] animate-pulse" />
+                      Auto-Sorting Queue
+                    </span>
+                  </div>
+                  <h3 className="text-2xl font-heading font-bold text-[var(--color-text-primary)] mb-3">
+                    Live Queue & Auto-Consultation
+                  </h3>
+                  <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed mb-6">
+                    Today&apos;s appointments auto-sort by time. Selecting a card transitions patient state to In Consultation and mounts their historical records automatically.
+                  </p>
+                </div>
+
+                {/* Micro-UI Mockup for Card 1 */}
+                <div className="rounded-2xl border border-[var(--color-border)]/70 bg-[var(--color-bg-soft)]/60 p-4 sm:p-5">
+                  <div className="flex items-center justify-between mb-3 text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">
+                    <span>Today&apos;s Active Queue</span>
+                    <span className="text-[var(--color-primary)]">Live Sync Active</span>
+                  </div>
+                  <div className="space-y-3">
+                    {/* Waiting card */}
+                    <div className="flex items-center justify-between p-3 rounded-xl border border-[var(--color-border)]/60 bg-[var(--color-card)] text-xs">
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono font-bold text-[var(--color-text-secondary)]">7:00 PM</span>
+                        <div>
+                          <p className="font-bold text-[var(--color-text-primary)]">Sarah Jenkins <span className="text-[var(--color-text-secondary)] font-normal">· Follow-up</span></p>
+                          <p className="text-[10px] text-[var(--color-text-secondary)]">Net Fee: Rs. 1,800</p>
+                        </div>
                       </div>
-                      <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-[var(--color-text-muted)]">
-                        {number}
-                      </p>
-                    </div>
-                    <p className="mt-8 inline-flex self-start rounded-full border border-[var(--color-border)]/80 bg-[var(--color-bg-soft)]/55 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-text-secondary)]">
-                      {tag}
-                    </p>
-                    <h3 className="mt-8 text-2xl font-heading font-semibold leading-tight text-[var(--color-text-primary)]">
-                      {title}
-                    </h3>
-                    <p className="mt-4 flex-1 max-w-md text-sm leading-relaxed text-[var(--color-text-secondary)]">
-                      {description}
-                    </p>
-                    <div className="mt-8 flex items-center justify-between border-t border-[var(--color-border)]/70 pt-6">
-                      <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--color-primary)] font-bold">
-                        Impact: {impact}
-                      </p>
-                      <span className="text-xl text-[var(--color-primary)] font-bold transition-transform duration-300 group-hover:translate-x-1.5">
-                        ›
+                      <span className="px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-600 font-bold text-[10px] uppercase tracking-wider">
+                        WAITING
                       </span>
                     </div>
-                  </article>
-                ),
-              )}
-            </div>
-          </div>
-        </section>
 
-        <section className="border-t border-[var(--color-border)]/60 bg-[var(--color-bg)] py-16 sm:py-20">
-          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-5 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] sm:p-7">
-              <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-[var(--color-text-secondary)]">
-                Built for real clinic conditions
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2.5">
-                {trustSignals.map((signal) => (
-                  <span
-                    key={signal}
-                    className="rounded-full border border-[var(--color-border)]/80 bg-[var(--color-bg-soft)]/55 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.13em] text-[var(--color-text-secondary)]"
-                  >
-                    {signal}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
+                    {/* In Consultation card (highlighted) */}
+                    <div className="flex items-center justify-between p-3 rounded-xl border-2 border-[var(--color-primary)] bg-[var(--color-card)] text-xs shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono font-bold text-[var(--color-primary)]">7:15 PM</span>
+                        <div>
+                          <p className="font-bold text-[var(--color-text-primary)]">Ahmed Khan <span className="text-[var(--color-text-secondary)] font-normal">· New Consultation</span></p>
+                          <p className="text-[10px] text-[var(--color-text-secondary)]">Net Fee: Rs. 2,000</p>
+                        </div>
+                      </div>
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-primary)] text-white font-bold text-[10px] uppercase tracking-wider shadow-sm">
+                        <span className="h-1.5 w-1.5 rounded-full bg-white animate-ping" />
+                        IN_CONSULTATION
+                      </span>
+                    </div>
 
-        <section className="border-t border-[var(--color-border)]/60 bg-[var(--color-bg-soft)]/35 py-24 sm:py-28">
-          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-12 gap-8">
-              <div className="col-span-12 xl:col-span-5">
-                <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-[var(--color-text-secondary)]">
-                  How clinics use it daily
-                </p>
-                <h2 className="mt-6 max-w-xl text-4xl font-heading font-semibold leading-[0.95] sm:text-5xl">
-                  A calmer day from{" "}
-                  <span className="italic text-[var(--color-secondary)]">
-                    first patient
-                  </span>{" "}
-                  to close.
-                </h2>
-                <p className="mt-6 max-w-lg text-base leading-relaxed text-[var(--color-text-secondary)]">
-                  MedAlerto is designed to match real outpatient pace: fast
-                  consultations, reliable communication, and stronger
-                  operational control when unexpected situations appear.
-                </p>
-              </div>
-              <div className="col-span-12 xl:col-span-7">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  {flowSteps.map((item) => (
-                    <article
-                      key={item.step}
-                      className="rounded-3xl border border-[var(--color-border)]/70 bg-[var(--color-card)] p-5 shadow-[0_4px_20px_-2px_rgba(93,112,82,0.12)]"
-                    >
-                      <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-primary)]">
-                        {item.step}
-                      </p>
-                      <h3 className="mt-3 text-xl font-heading font-semibold">
-                        {item.title}
-                      </h3>
-                      <p className="mt-3 text-sm leading-relaxed text-[var(--color-text-secondary)]">
-                        {item.text}
-                      </p>
-                    </article>
-                  ))}
+                    {/* Completed card */}
+                    <div className="flex items-center justify-between p-3 rounded-xl border border-[var(--color-border)]/60 bg-[var(--color-card)] text-xs opacity-75">
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono font-bold text-[var(--color-text-secondary)]">7:30 PM</span>
+                        <div>
+                          <p className="font-bold text-[var(--color-text-primary)]">Zainab Bibi <span className="text-[var(--color-text-secondary)] font-normal">· Checkup</span></p>
+                          <p className="text-[10px] text-[var(--color-text-secondary)]">Net Fee: Rs. 1,500</p>
+                        </div>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-600 font-bold text-[10px] uppercase tracking-wider">
+                        COMPLETED
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
+
+              {/* Card 2: Native WhatsApp PDF Dispatch (Col-Span 12 lg:Col-Span 4) */}
+              <div className="col-span-12 lg:col-span-4 bg-[var(--color-card)] border border-[var(--color-border)]/80 rounded-3xl p-6 sm:p-8 shadow-[var(--shadow-float)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-[var(--color-primary)]/30 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-[var(--color-primary)]">
+                      02 / Meta Cloud API
+                    </span>
+                    <span className="text-xs font-bold text-emerald-600 bg-emerald-500/10 px-2.5 py-1 rounded-full">
+                      Verified ⚡
+                    </span>
+                  </div>
+                  <h3 className="text-2xl font-heading font-bold text-[var(--color-text-primary)] mb-3">
+                    Instant WhatsApp PDF Delivery
+                  </h3>
+                  <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed mb-6">
+                    No web links or third-party friction. Meta Cloud API streams downloadable PDF attachments directly inside the patient&apos;s chat.
+                  </p>
+                </div>
+
+                {/* Micro-UI Mockup for Card 2 */}
+                <div className="rounded-2xl border border-[var(--color-border)]/70 bg-[var(--color-bg-soft)]/60 p-4">
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-2.5">
+                      <div className="h-7 w-7 rounded-full bg-[var(--color-primary)] text-white flex items-center justify-center text-xs font-bold shrink-0">
+                        Dr
+                      </div>
+                      <div className="flex-1 rounded-2xl rounded-tl-none bg-[var(--color-card)] border border-[var(--color-border)] p-3 text-xs shadow-sm">
+                        <p className="font-bold text-[var(--color-text-primary)] mb-1">Prescription Dispatched</p>
+                        {/* Attachment badge */}
+                        <div className="mt-2 flex items-center gap-3 p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:text-emerald-300">
+                          <svg className="h-6 w-6 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-bold truncate text-[11px]">Prescription_KDN.pdf</p>
+                            <p className="text-[9px] text-[var(--color-text-secondary)]">142 KB · PDF Document</p>
+                          </div>
+                          <span className="text-[10px] font-bold text-emerald-600 bg-white dark:bg-black/40 px-2 py-1 rounded shadow-xs">
+                            Download
+                          </span>
+                        </div>
+                        <div className="mt-2 flex items-center justify-end gap-1 text-[9px] text-[var(--color-text-secondary)]">
+                          <span>7:16 PM</span>
+                          <span className="text-blue-500 font-bold">✓✓ Delivered</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: Net Revenue & Discount Audit (Col-Span 12 sm:Col-Span 6 lg:Col-Span 4) */}
+              <div className="col-span-12 sm:col-span-6 lg:col-span-4 bg-[var(--color-card)] border border-[var(--color-border)]/80 rounded-3xl p-6 sm:p-8 shadow-[var(--shadow-float)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-[var(--color-primary)]/30 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-[var(--color-primary)]">
+                      03 / Financial Accuracy
+                    </span>
+                    <span className="text-xs font-bold text-emerald-600 bg-emerald-500/10 px-2.5 py-1 rounded-full">
+                      100% Audit Ready
+                    </span>
+                  </div>
+                  <h3 className="text-xl font-heading font-bold text-[var(--color-text-primary)] mb-2">
+                    Net Pricing & Ancillary Billing
+                  </h3>
+                  <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed mb-6">
+                    Track original fees, custom discounts, and lab test additions in real time with 100% financial accuracy.
+                  </p>
+                </div>
+
+                {/* Micro-UI Mockup for Card 3 */}
+                <div className="rounded-2xl border border-[var(--color-border)]/70 bg-[var(--color-bg-soft)]/60 p-4 text-xs">
+                  <div className="space-y-2 font-mono">
+                    <div className="flex justify-between text-[var(--color-text-secondary)]">
+                      <span>Consultation:</span>
+                      <span className="font-bold text-[var(--color-text-primary)]">Rs. 2,000</span>
+                    </div>
+                    <div className="flex justify-between text-amber-600">
+                      <span>Discount (Custom):</span>
+                      <span>-Rs. 200</span>
+                    </div>
+                    <div className="flex justify-between text-blue-600">
+                      <span>+ Lab Test Fee:</span>
+                      <span>+ Rs. 500</span>
+                    </div>
+                    <div className="border-t border-[var(--color-border)] pt-2 flex justify-between font-bold text-[var(--color-text-primary)] text-sm">
+                      <span>Net Paid:</span>
+                      <span className="text-[var(--color-primary)]">Rs. 2,300</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 4: Zero-Egress Cloudflare R2 Vault (Col-Span 12 sm:Col-Span 6 lg:Col-Span 4) */}
+              <div className="col-span-12 sm:col-span-6 lg:col-span-4 bg-[var(--color-card)] border border-[var(--color-border)]/80 rounded-3xl p-6 sm:p-8 shadow-[var(--shadow-float)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-[var(--color-primary)]/30 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-[var(--color-primary)]">
+                      04 / Object Storage
+                    </span>
+                    <span className="text-xs font-bold text-[var(--color-primary)] bg-[var(--color-primary)]/10 px-2.5 py-1 rounded-full">
+                      Zero Egress
+                    </span>
+                  </div>
+                  <h3 className="text-xl font-heading font-bold text-[var(--color-text-primary)] mb-2">
+                    Encrypted R2 PDF Storage
+                  </h3>
+                  <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed mb-6">
+                    High-availability object storage for digital prescriptions with zero bandwidth egress costs.
+                  </p>
+                </div>
+
+                {/* Micro-UI Mockup for Card 4 */}
+                <div className="rounded-2xl border border-[var(--color-border)]/70 bg-[var(--color-bg-soft)]/60 p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-6 w-6 rounded-lg bg-orange-500/15 text-orange-600 flex items-center justify-center font-bold text-xs">
+                        S3
+                      </div>
+                      <span className="text-xs font-bold text-[var(--color-text-primary)]">Cloudflare R2 Vault</span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 font-mono text-[10px] font-bold">
+                      &lt; 150ms latency
+                    </span>
+                  </div>
+                  <div className="space-y-1.5 text-[11px] text-[var(--color-text-secondary)] font-mono">
+                    <div className="flex justify-between">
+                      <span>Encryption:</span>
+                      <span className="text-[var(--color-text-primary)]">AES-256 Bit</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Bandwidth Cost:</span>
+                      <span className="text-emerald-600 font-bold">$0.00 / GB</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 5: 1-Click Overdue Patient Alerts (Col-Span 12 sm:Col-Span 12 lg:Col-Span 4) */}
+              <div className="col-span-12 sm:col-span-12 lg:col-span-4 bg-[var(--color-card)] border border-[var(--color-border)]/80 rounded-3xl p-6 sm:p-8 shadow-[var(--shadow-float)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-[var(--color-primary)]/30 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-[var(--color-primary)]">
+                      05 / Retention & Alerts
+                    </span>
+                    <span className="text-xs font-bold text-rose-600 bg-rose-500/10 px-2.5 py-1 rounded-full">
+                      1-Click Trigger
+                    </span>
+                  </div>
+                  <h3 className="text-xl font-heading font-bold text-[var(--color-text-primary)] mb-2">
+                    No-Show & Late Arrival Management
+                  </h3>
+                  <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed mb-6">
+                    Trigger automated WhatsApp arrival reminders with a single click when a patient misses their slot time.
+                  </p>
+                </div>
+
+                {/* Micro-UI Mockup for Card 5 */}
+                <div className="rounded-2xl border border-[var(--color-border)]/70 bg-[var(--color-bg-soft)]/60 p-4">
+                  <div className="flex items-center justify-between mb-3 text-xs">
+                    <div>
+                      <p className="font-bold text-[var(--color-text-primary)]">Slot 6:45 PM · Overdue</p>
+                      <p className="text-[10px] text-rose-600 font-bold mt-0.5">18 mins past appointment time</p>
+                    </div>
+                    <span className="h-2 w-2 rounded-full bg-rose-500 animate-ping" />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.currentTarget.textContent = "⚡ Late Alert Dispatched ✓";
+                      e.currentTarget.classList.add("bg-emerald-600", "text-white");
+                      e.currentTarget.classList.remove("bg-[var(--color-primary)]", "text-[var(--color-on-primary)]");
+                    }}
+                    className="w-full py-2.5 px-4 rounded-xl bg-[var(--color-primary)] text-[var(--color-on-primary)] text-xs font-bold tracking-wide transition-all shadow-md hover:opacity-95 flex items-center justify-center gap-2"
+                  >
+                    <span>⚡ Send WhatsApp Late Alert</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Card 6: Unified Patient History & Analytics (Col-Span 12 Bottom Wide Card) */}
+              <div className="col-span-12 bg-[var(--color-card)] border border-[var(--color-border)]/80 rounded-3xl p-6 sm:p-8 shadow-[var(--shadow-float)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-[var(--color-primary)]/30 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="font-mono text-[10px] font-bold uppercase tracking-[0.25em] text-[var(--color-primary)]">
+                      06 / Unified Clinical & Business Intelligence
+                    </span>
+                    <span className="text-xs font-bold text-purple-600 bg-purple-500/10 px-2.5 py-1 rounded-full">
+                      Zero Context Switch
+                    </span>
+                  </div>
+                  <h3 className="text-2xl font-heading font-bold text-[var(--color-text-primary)] mb-3">
+                    Complete Clinical & Practice Insights
+                  </h3>
+                  <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed mb-6 max-w-3xl">
+                    Access historical medical checkups, past prescriptions, and monthly revenue trends without leaving the consultation view.
+                  </p>
+                </div>
+
+                {/* Split Micro-Mockup for Card 6 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Left panel: Historical checkup timeline */}
+                  <div className="rounded-2xl border border-[var(--color-border)]/70 bg-[var(--color-bg-soft)]/60 p-4">
+                    <div className="flex items-center justify-between mb-3 text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">
+                      <span>Patient Checkup Timeline</span>
+                      <span className="text-[var(--color-primary)]">Search History</span>
+                    </div>
+                    <div className="space-y-3 text-xs">
+                      <div className="p-2.5 rounded-xl bg-[var(--color-card)] border border-[var(--color-border)]/60">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="font-bold text-[var(--color-text-primary)]">Aug 12 - Hypertension Followup</span>
+                          <span className="text-[10px] text-[var(--color-text-secondary)] font-mono">Prescription #4921</span>
+                        </div>
+                        <p className="text-[11px] text-[var(--color-text-secondary)] truncate">BP 130/85 mmHg · Continued Lisinopril 10mg</p>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-[var(--color-card)] border border-[var(--color-border)]/60">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="font-bold text-[var(--color-text-primary)]">Jul 04 - Routine Lab Panel</span>
+                          <span className="text-[10px] text-[var(--color-text-secondary)] font-mono">Report #3812</span>
+                        </div>
+                        <p className="text-[11px] text-[var(--color-text-secondary)] truncate">HbA1c 5.8% · Lipid profile within normal bounds</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right panel: Monthly earnings trend bar chart */}
+                  <div className="rounded-2xl border border-[var(--color-border)]/70 bg-[var(--color-bg-soft)]/60 p-4 flex flex-col justify-between">
+                    <div className="flex items-center justify-between mb-3 text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">
+                      <span>Monthly Revenue Trend</span>
+                      <span className="text-emerald-600">+24.5% MoM</span>
+                    </div>
+                    <div className="flex items-end justify-between gap-4 h-28 pt-4 px-2">
+                      <div className="flex-1 flex flex-col items-center gap-2">
+                        <span className="text-[10px] font-mono font-bold text-[var(--color-text-secondary)]">Rs. 420k</span>
+                        <div className="w-full bg-[var(--color-primary)]/30 rounded-t-lg h-16" />
+                        <span className="text-[10px] uppercase font-bold text-[var(--color-text-secondary)]">June</span>
+                      </div>
+                      <div className="flex-1 flex flex-col items-center gap-2">
+                        <span className="text-[10px] font-mono font-bold text-[var(--color-text-secondary)]">Rs. 510k</span>
+                        <div className="w-full bg-[var(--color-primary)]/60 rounded-t-lg h-20" />
+                        <span className="text-[10px] uppercase font-bold text-[var(--color-text-secondary)]">July</span>
+                      </div>
+                      <div className="flex-1 flex flex-col items-center gap-2">
+                        <span className="text-[10px] font-mono font-bold text-[var(--color-text-secondary)]">Rs. 640k</span>
+                        <div className="w-full bg-[var(--color-primary)] rounded-t-lg h-28 shadow-sm" />
+                        <span className="text-[10px] uppercase font-bold text-[var(--color-text-primary)]">August</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
         </section>
