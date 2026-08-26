@@ -36,6 +36,11 @@
   --color-border: var(--border-color);
   --color-border-strong: #cbd5e1;
 
+  /* Status colours (badges, alerts) — light theme */
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+
   --color-secondary: var(
     --color-primary
   ); /* Instead of ultra-light accent, use primary for readability */
@@ -84,6 +89,11 @@
 
   --color-border: var(--border-color);
   --color-border-strong: #475569;
+
+  /* Status colours (badges, alerts) — dark theme */
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-danger: #ef4444;
 
   --color-secondary: var(
     --color-primary
