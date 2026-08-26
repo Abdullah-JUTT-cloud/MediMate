@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowDownRight, ArrowRight, ArrowUpRight, BarChart3, CalendarDays, Coins, Wallet } from "lucide-react";
+import {
+  ArrowDownRight,
+  ArrowRight,
+  ArrowUpRight,
+  BarChart3,
+  CalendarDays,
+  Coins,
+  Download,
+  Wallet,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import {
@@ -14,57 +23,57 @@ import {
   Bar,
   Legend,
 } from "recharts";
-import { CardSkeleton, ChartSkeleton } from "../components/SkeletonLoaders";
-import { organicCardStyle, organicTheme } from "../styles/organicTheme";
-
-const S = {
-  card: organicCardStyle,
-  strongCard: {
-    background: "linear-gradient(145deg, rgba(93,112,82,0.12), var(--color-card))",
-    border: "1px solid rgba(93,112,82,0.28)",
-    boxShadow: organicTheme.shadows.soft,
-  },
-};
 
 const fmtMoney = (n) => `PKR ${Math.round(Number(n || 0)).toLocaleString()}`;
 
 const trendLabel = (n) => {
-  const v = Number(n || 0);
-  if (v > 0) return { text: `+${v.toFixed(1)}%`, tone: "var(--color-primary)", icon: ArrowUpRight };
-  if (v < 0) return { text: `${v.toFixed(1)}%`, tone: "var(--color-danger)", icon: ArrowDownRight };
-  return { text: "0.0%", tone: "var(--color-text-secondary)", icon: ArrowRight };
+  const value = Number(n || 0);
+  if (value > 0) return { text: `+${value.toFixed(1)}%`, icon: ArrowUpRight };
+  if (value < 0) return { text: `${value.toFixed(1)}%`, icon: ArrowDownRight };
+  return { text: "0.0%", icon: ArrowRight };
 };
 
 const RevenueTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
+
+  const earnings = payload.find((item) => item.dataKey === "earnings")?.value ?? payload[0].value;
+  const projected = payload.find((item) => item.dataKey === "projected")?.value;
+
   return (
-    <div className="px-3 py-2 rounded-xl text-sm" style={S.card}>
-      <p className="font-semibold" style={{ color: organicTheme.colors.primary }}>{label}</p>
-      <p>{fmtMoney(payload[0].value)}</p>
+    <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-lg dark:border-slate-700 dark:bg-slate-900">
+      <p className="font-bold text-slate-900 dark:text-white">{label}: {fmtMoney(earnings)}</p>
+      {projected !== undefined && (
+        <p className="mt-0.5 text-xs font-semibold text-slate-600 dark:text-slate-300">
+          Projection: {fmtMoney(projected)}
+        </p>
+      )}
     </div>
   );
 };
 
 const PeakTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
-  const appointments = payload.find((p) => p.dataKey === "appointments")?.value || 0;
-  const checkups = payload.find((p) => p.dataKey === "checkups")?.value || 0;
+  const appointments = payload.find((item) => item.dataKey === "appointments")?.value || 0;
+  const checkups = payload.find((item) => item.dataKey === "checkups")?.value || 0;
+
   return (
-    <div className="px-3 py-2 rounded-xl text-sm" style={S.card}>
-      <p className="font-semibold" style={{ color: organicTheme.colors.primary }}>{label}</p>
-      <p>Appointments: {appointments}</p>
-      <p>Checkups: {checkups}</p>
+    <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-lg dark:border-slate-700 dark:bg-slate-900">
+      <p className="font-bold text-slate-900 dark:text-white">{label}</p>
+      <p className="font-semibold text-slate-700 dark:text-slate-300">Appointments: {appointments}</p>
+      <p className="font-semibold text-slate-700 dark:text-slate-300">Checkups: {checkups}</p>
     </div>
   );
 };
 
 const toInputDate = (date) => {
-  const d = new Date(date);
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
+  const value = new Date(date);
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
+
+const skeletonCard = "rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900";
 
 export default function RevenueLabPage() {
   const [data, setData] = useState(null);
@@ -84,17 +93,18 @@ export default function RevenueLabPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axiosInstance.get("/insights/revenue-lab", {
+        const response = await axiosInstance.get("/insights/revenue-lab", {
           params: { startDate, endDate },
         });
-        setData(res.data);
-        setBillingLog(res.data?.billingLog || []);
+        setData(response.data);
+        setBillingLog(response.data?.billingLog || []);
       } catch {
         toast.error("Failed to load Revenue Lab data");
       } finally {
         setIsLoading(false);
       }
     };
+
     fetchData();
   }, [startDate, endDate]);
 
@@ -102,13 +112,17 @@ export default function RevenueLabPage() {
   const trends = revenue?.trends || {};
   const missed = data?.missedRevenue || {};
   const reasonBreakdown = missed?.byReason || {};
-  const peak = data?.peakDays || { series: [], best: { day: "N/A", appointments: 0, checkups: 0 } };
+  const peak = data?.peakDays || {
+    series: [],
+    best: { day: "N/A", appointments: 0, checkups: 0 },
+  };
 
   const projectionSeries = useMemo(() => {
     const monthly = revenue?.monthlySeries || [];
     const monthlyRunRate = Number(revenue?.projectedYearly || 0) / 12;
-    return monthly.map((m) => ({
-      ...m,
+
+    return monthly.map((month) => ({
+      ...month,
       projected: monthlyRunRate,
     }));
   }, [revenue?.monthlySeries, revenue?.projectedYearly]);
@@ -125,18 +139,18 @@ export default function RevenueLabPage() {
 
     setIsDownloadingRevenueDetails(true);
     try {
-      const res = await axiosInstance.get("/reports/revenue-details", {
+      const response = await axiosInstance.get("/reports/revenue-details", {
         params: { startDate, endDate },
         responseType: "blob",
       });
-      const blob = new Blob([res.data], { type: "application/pdf" });
+      const blob = new Blob([response.data], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `revenue-details-${startDate}-to-${endDate}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `revenue-details-${startDate}-to-${endDate}.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
       URL.revokeObjectURL(url);
       toast.success("Revenue details downloaded");
     } catch {
@@ -149,8 +163,9 @@ export default function RevenueLabPage() {
   const fetchBillingLog = useCallback(async () => {
     if (!startDate || !endDate) return;
     setBillingLoading(true);
+
     try {
-      const res = await axiosInstance.get("/billing/log", {
+      const response = await axiosInstance.get("/billing/log", {
         params: {
           status: billingStatusFilter,
           startDate,
@@ -159,7 +174,7 @@ export default function RevenueLabPage() {
           limit: 100,
         },
       });
-      setBillingLog(res.data?.billingLog || []);
+      setBillingLog(response.data?.billingLog || []);
     } catch {
       toast.error("Failed to load billing log");
     } finally {
@@ -173,11 +188,17 @@ export default function RevenueLabPage() {
 
   const handleToggleBillingStatus = async (row) => {
     setBillingUpdatingId(row.id);
+
     try {
-      const nextPaid = !row.isPaid;
+      const currentPaid = row.status === "Paid" || row.isPaid;
+      const nextPaid = !currentPaid;
       await axiosInstance.patch(`/billing/${row.id}/status`, { isPaid: nextPaid });
-      setBillingLog((prev) =>
-        prev.map((x) => (x.id === row.id ? { ...x, isPaid: nextPaid, status: nextPaid ? "Paid" : "Unpaid" } : x))
+      setBillingLog((previous) =>
+        previous.map((item) =>
+          item.id === row.id
+            ? { ...item, isPaid: nextPaid, status: nextPaid ? "Paid" : "Unpaid" }
+            : item
+        )
       );
       toast.success(`Marked as ${nextPaid ? "Paid" : "Unpaid"}`);
     } catch {
@@ -191,252 +212,340 @@ export default function RevenueLabPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-4xl font-bold text-[var(--color-text-primary)]" style={{ fontFamily: "Fraunces" }}>Revenue Lab</h2>
-          <p className="text-sm mt-1 text-[var(--color-text-secondary)]">Money intelligence for your practice</p>
+          <h2 className="flex items-center gap-2 text-2xl font-bold text-slate-900 dark:text-white">Revenue Lab</h2>
+          <p className="mt-1 text-sm font-medium text-slate-600 dark:text-slate-300">
+            Money intelligence for your practice
+          </p>
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[1, 2, 3, 4].map((i) => <CardSkeleton key={i} />)}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[1, 2, 3, 4].map((item) => (
+            <div key={item} className={`${skeletonCard} animate-pulse`}>
+              <div className="mb-4 h-3 w-28 rounded bg-slate-200 dark:bg-slate-700" />
+              <div className="mb-2 h-8 w-36 rounded bg-slate-200 dark:bg-slate-700" />
+              <div className="h-3 w-20 rounded bg-slate-200 dark:bg-slate-700" />
+            </div>
+          ))}
         </div>
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          <div className="xl:col-span-2"><ChartSkeleton height={280} /></div>
-          <CardSkeleton />
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+          <div className={`${skeletonCard} h-[340px] animate-pulse xl:col-span-2`} />
+          <div className={`${skeletonCard} h-[340px] animate-pulse`} />
         </div>
       </div>
     );
   }
 
+  const metrics = [
+    { label: "Daily Income", value: fmtMoney(revenue.daily), trend: trendLabel(trends.dailyPct), Icon: Coins },
+    { label: "Weekly Income", value: fmtMoney(revenue.weekly), trend: trendLabel(trends.weeklyPct), Icon: CalendarDays },
+    { label: "Monthly Income", value: fmtMoney(revenue.monthly), trend: trendLabel(trends.monthlyPct), Icon: Wallet },
+    { label: "Year Projection", value: fmtMoney(revenue.projectedYearly), trend: { text: "Run-rate model", icon: ArrowRight }, Icon: BarChart3 },
+  ];
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap gap-3 items-end justify-between">
+    <div className="space-y-6 pb-8">
+      <header className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <h2 className="text-4xl font-bold text-[var(--color-text-primary)]" style={{ fontFamily: "Fraunces" }}>Revenue Lab</h2>
-          <p className="text-sm mt-1 text-[var(--color-text-secondary)]">If you keep going like this, here is what you will make this year.</p>
+          <h2 className="flex items-center gap-2 text-2xl font-bold text-slate-900 dark:text-white">
+            Revenue Lab
+          </h2>
+          <p className="mt-1 text-sm font-medium text-slate-600 dark:text-slate-300">
+            If you keep going like this, here is what you will make this year.
+          </p>
         </div>
-        <div className="flex flex-wrap gap-2 items-end">
-          <div className="flex items-center gap-2">
-            <div>
-              <label className="text-[10px] uppercase tracking-wider text-[var(--color-text-secondary)]">From</label>
+
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="flex items-end gap-2">
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              <span className="mb-1 block">From</span>
               <input
                 type="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="block mt-1 px-3 py-2 rounded-full text-xs outline-none"
-                style={{ background: "color-mix(in srgb, var(--color-card) 78%, transparent)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)" }}
+                onChange={(event) => setStartDate(event.target.value)}
+                className="block rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-900 shadow-xs outline-none transition-all focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               />
-            </div>
-            <div>
-              <label className="text-[10px] uppercase tracking-wider text-[var(--color-text-secondary)]">To</label>
+            </label>
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+              <span className="mb-1 block">To</span>
               <input
                 type="date"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="block mt-1 px-3 py-2 rounded-full text-xs outline-none"
-                style={{ background: "color-mix(in srgb, var(--color-card) 78%, transparent)", border: "1px solid var(--color-border)", color: "var(--color-text-primary)" }}
+                onChange={(event) => setEndDate(event.target.value)}
+                className="block rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-900 shadow-xs outline-none transition-all focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               />
-            </div>
+            </label>
           </div>
           <button
+            type="button"
             onClick={handleDownloadRevenueDetails}
             disabled={isDownloadingRevenueDetails}
-            className="px-4 py-2.5 rounded-full text-xs font-semibold inline-flex items-center gap-1"
-            style={{ background: "rgba(93,112,82,0.12)", color: "var(--color-primary)", border: "1px solid rgba(93,112,82,0.28)" }}
+            className="flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white shadow-sm transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-teal-600 dark:hover:bg-teal-500"
           >
+            <Download size={15} strokeWidth={2.5} />
             {isDownloadingRevenueDetails ? "Downloading..." : "Download Revenue Details"}
           </button>
         </div>
-      </div>
+      </header>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          { label: "Daily Income", value: fmtMoney(revenue.daily), trend: trendLabel(trends.dailyPct), Icon: Coins },
-          { label: "Weekly Income", value: fmtMoney(revenue.weekly), trend: trendLabel(trends.weeklyPct), Icon: CalendarDays },
-          { label: "Monthly Income", value: fmtMoney(revenue.monthly), trend: trendLabel(trends.monthlyPct), Icon: Wallet },
-          { label: "Year Projection", value: fmtMoney(revenue.projectedYearly), trend: { text: "Run-rate model", tone: "var(--color-secondary)", icon: ArrowRight }, Icon: BarChart3 },
-        ].map((card) => (
-          <div key={card.label} className="rounded-[2rem] p-4" style={card.label === "Year Projection" ? S.strongCard : S.card}>
-            <div className="flex items-start justify-between mb-2">
-              <span className="h-10 w-10 rounded-2xl flex items-center justify-center" style={{ background: "rgba(93,112,82,0.12)", color: "var(--color-primary)" }}><card.Icon size={18} /></span>
-              <span className="text-xs font-semibold" style={{ color: card.trend.tone }}>
-                <span className="inline-flex items-center gap-1"><card.trend.icon size={14} /> {card.trend.text}</span>
+      <section aria-label="Revenue metrics" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {metrics.map(({ label, value, trend, Icon }) => {
+          const TrendIcon = trend.icon;
+          return (
+            <article
+              key={label}
+              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:border-teal-500/40 dark:border-slate-800 dark:bg-slate-900"
+            >
+              <div className="mb-5 flex items-start justify-between gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-300">
+                  <Icon size={18} strokeWidth={2.25} />
+                </span>
+                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                  <TrendIcon size={13} strokeWidth={2.5} />
+                  {trend.text}
+                </span>
+              </div>
+              <span className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                {label}
               </span>
-            </div>
-            <p className="text-base sm:text-lg font-extrabold text-[var(--color-text-primary)]">{card.value}</p>
-            <p className="text-xs text-[var(--color-text-secondary)]">{card.label}</p>
-          </div>
-        ))}
-      </div>
+              <p className="mb-1 text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-3xl">
+                {value}
+              </p>
+              <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">Compared with prior period</p>
+            </article>
+          );
+        })}
+      </section>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <div className="xl:col-span-2 rounded-2xl p-4 sm:p-6" style={S.card}>
-          <div className="flex items-center justify-between mb-4">
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-3" aria-label="Financial charts">
+        <article className="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 xl:col-span-2">
+          <div className="mb-1 flex items-start justify-between gap-4">
             <div>
-              <h3 className="text-sm sm:text-base font-bold text-[var(--color-text-primary)]">Monthly Revenue + Projection</h3>
-              <p className="text-xs text-[var(--color-text-secondary)]">Actual earnings versus run-rate line</p>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Monthly Revenue + Projection</h3>
+              <p className="mt-1 text-xs font-medium text-slate-600 dark:text-slate-300">
+                Actual earnings versus run-rate line
+              </p>
             </div>
-            <span className="text-xs px-2 py-1 rounded-lg bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
+            <span className="shrink-0 rounded-full bg-teal-100 px-3 py-1 text-xs font-bold text-teal-900 dark:bg-teal-950 dark:text-teal-300">
               {fmtMoney(revenue.yearly)} YTD
             </span>
           </div>
-          <ResponsiveContainer width="100%" height={240}>
-            <AreaChart data={projectionSeries} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-              <defs>
-                <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.28} />
-                  <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-              <XAxis dataKey="month" tick={{ fill: "var(--color-text-secondary)", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "var(--color-text-secondary)", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => (v >= 1000 ? `${Math.round(v / 1000)}k` : v)} />
-              <Tooltip content={<RevenueTooltip />} />
-              <Area type="monotone" dataKey="earnings" stroke="var(--color-primary)" strokeWidth={2} fill="url(#revGrad)" />
-              <Area type="monotone" dataKey="projected" stroke="var(--color-warning)" strokeWidth={2} fillOpacity={0} strokeDasharray="5 4" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+          <div className="mt-5" aria-label="Monthly revenue chart">
+            <ResponsiveContainer width="100%" height={260}>
+              <AreaChart data={projectionSeries} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="revenueLabGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                <XAxis
+                  dataKey="month"
+                  tick={{ fill: "var(--color-text-primary)", fontSize: 11, fontWeight: 700 }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickMargin={10}
+                />
+                <YAxis
+                  tick={{ fill: "var(--color-text-primary)", fontSize: 10, fontWeight: 700 }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickMargin={8}
+                  tickFormatter={(value) => (value >= 1000 ? `${Math.round(value / 1000)}k` : value)}
+                />
+                <Tooltip content={<RevenueTooltip />} cursor={{ stroke: "var(--color-border-strong)" }} />
+                <Area
+                  type="monotone"
+                  dataKey="earnings"
+                  name="Revenue"
+                  stroke="var(--color-primary)"
+                  strokeWidth={3}
+                  fill="url(#revenueLabGradient)"
+                  activeDot={{ r: 5, strokeWidth: 2, stroke: "var(--color-card)", fill: "var(--color-primary)" }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="projected"
+                  name="Projection"
+                  stroke="var(--color-warning)"
+                  strokeWidth={2}
+                  fillOpacity={0}
+                  strokeDasharray="6 5"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </article>
 
-        <div className="rounded-2xl p-4 sm:p-5" style={S.card}>
-          <h3 className="text-sm sm:text-base font-bold text-[var(--color-text-primary)] mb-1">Peak Patient Days</h3>
-          <p className="text-xs mb-3 text-[var(--color-text-secondary)]">
-            Best day: {peak.best?.day} ({peak.best?.appointments || 0} appointments, {peak.best?.checkups || 0} checkups)
+        <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">Peak Patient Days</h3>
+          <p className="mt-1 text-xs font-medium text-slate-600 dark:text-slate-300">
+            Best day: <span className="font-bold text-slate-900 dark:text-white">{peak.best?.day}</span> ({peak.best?.appointments || 0} appointments, {peak.best?.checkups || 0} checkups)
           </p>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={peak.series || []} margin={{ top: 5, right: 0, left: -22, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-              <XAxis dataKey="day" tick={{ fill: "var(--color-text-secondary)", fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "var(--color-text-secondary)", fontSize: 10 }} axisLine={false} tickLine={false} />
-              <Tooltip content={<PeakTooltip />} />
-              <Legend wrapperStyle={{ fontSize: "11px" }} />
-              <Bar dataKey="appointments" name="Appointments" fill="var(--color-primary)" radius={[8, 8, 0, 0]} />
-              <Bar dataKey="checkups" name="Checkups" fill="var(--color-success)" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+          <div className="mt-5" aria-label="Peak patient days chart">
+            <ResponsiveContainer width="100%" height={244}>
+              <BarChart data={peak.series || []} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
+                <XAxis
+                  dataKey="day"
+                  tick={{ fill: "var(--color-text-primary)", fontSize: 11, fontWeight: 700 }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickMargin={10}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fill: "var(--color-text-primary)", fontSize: 10, fontWeight: 700 }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickMargin={8}
+                />
+                <Tooltip content={<PeakTooltip />} cursor={{ fill: "var(--color-bg-soft)", opacity: 0.6 }} />
+                <Legend
+                  wrapperStyle={{ color: "var(--color-text-primary)", fontSize: "11px", fontWeight: 700, paddingTop: "10px" }}
+                />
+                <Bar dataKey="appointments" name="Appointments" fill="var(--color-primary)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="checkups" name="Checkups" fill="var(--color-success)" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </article>
+      </section>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <div className="xl:col-span-1 rounded-2xl p-4 sm:p-5" style={S.strongCard}>
-          <h3 className="text-sm sm:text-base font-bold text-[var(--color-text-primary)] mb-2">Missed Revenue Detector</h3>
-          <p className="text-xs text-[var(--color-text-secondary)] mb-4">Psychological metric: potential earnings leakage this month</p>
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-3" aria-label="Revenue leakage and billing log">
+        <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <h3 className="mb-1 text-base font-bold text-slate-900 dark:text-white">Missed Revenue Detector</h3>
+          <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
+            Psychological metric: potential earnings leakage this month
+          </p>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-[var(--color-text-secondary)]">Missed appointments</span>
-              <strong className="text-[var(--color-text-primary)]">{missed.missedAppointments || 0}</strong>
+          <div className="mt-4">
+            <div className="mb-2.5 flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3.5 dark:border-slate-700 dark:bg-slate-800/60">
+              <div>
+                <span className="block text-xs font-bold text-slate-700 dark:text-slate-300">Missed appointments</span>
+                <span className="mt-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                  No-show: {reasonBreakdown?.["No-show"]?.count || 0} · Patient cancel: {reasonBreakdown?.Patient?.count || 0} · Emergency: {reasonBreakdown?.Emergency?.count || 0}
+                </span>
+              </div>
+              <strong className="text-sm font-extrabold text-slate-900 dark:text-white">{missed.missedAppointments || 0}</strong>
             </div>
-            <div className="text-xs text-[var(--color-text-secondary)]">
-              No-show: {reasonBreakdown?.["No-show"]?.count || 0} | Patient cancel: {reasonBreakdown?.Patient?.count || 0} | Emergency: {reasonBreakdown?.Emergency?.count || 0}
+            <div className="mb-2.5 flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3.5 dark:border-slate-700 dark:bg-slate-800/60">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Patients not returning (90d)</span>
+              <strong className="text-sm font-extrabold text-slate-900 dark:text-white">{missed.nonReturningPatients || 0}</strong>
             </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-[var(--color-text-secondary)]">Patients not returning (90d)</span>
-              <strong className="text-[var(--color-text-primary)]">{missed.nonReturningPatients || 0}</strong>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-[var(--color-text-secondary)]">Estimated avg fee</span>
-              <strong className="text-[var(--color-text-primary)]">{fmtMoney(missed.estimatedAvgFee)}</strong>
+            <div className="mb-2.5 flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3.5 dark:border-slate-700 dark:bg-slate-800/60">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Estimated average fee</span>
+              <strong className="text-sm font-extrabold text-slate-900 dark:text-white">{fmtMoney(missed.estimatedAvgFee)}</strong>
             </div>
           </div>
 
-          <div className="mt-4 p-3 rounded-xl" style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.35)" }}>
-            <p className="text-xs uppercase tracking-widest text-red-300 mb-1">Potentially lost this month</p>
-            <p className="text-xl font-extrabold text-red-400">{fmtMoney(missed.totalPotentialLoss)}</p>
-            <p className="text-xs text-red-200 mt-1">
+          <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-4 dark:border-rose-900 dark:bg-rose-950/40">
+            <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-rose-800 dark:text-rose-300">
+              Potentially Lost This Month
+            </span>
+            <p className="text-2xl font-extrabold text-rose-700 dark:text-rose-400">{fmtMoney(missed.totalPotentialLoss)}</p>
+            <p className="mt-1 text-xs font-semibold text-rose-800 dark:text-rose-300">
               From missed appointments: {fmtMoney(missed.missedAppointmentsRevenue)}
             </p>
           </div>
-        </div>
+        </article>
 
-        <div className="xl:col-span-2 rounded-2xl p-4 sm:p-5" style={S.card}>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-sm sm:text-base font-bold text-[var(--color-text-primary)]">Simple Billing Log</h3>
-              <p className="text-xs text-[var(--color-text-secondary)]">Patient, fee, paid/unpaid. Kept intentionally lightweight.</p>
-            </div>
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900 xl:col-span-2" aria-labelledby="billing-log-title">
+          <div className="p-6 pb-5">
+            <h3 id="billing-log-title" className="text-base font-bold text-slate-900 dark:text-white">Simple Billing Log</h3>
+            <p className="mt-1 text-xs font-medium text-slate-600 dark:text-slate-300">
+              Patient, fee, paid/unpaid. Kept intentionally lightweight.
+            </p>
           </div>
 
-          <div className="flex flex-wrap gap-2 mb-3">
-            {[
-              { label: "All", value: "all" },
-              { label: "Paid", value: "paid" },
-              { label: "Unpaid", value: "unpaid" },
-            ].map((f) => (
-              <button
-                key={f.value}
-                onClick={() => setBillingStatusFilter(f.value)}
-                className="px-2.5 py-1.5 rounded-lg text-xs font-semibold"
-                style={{
-                  background: billingStatusFilter === f.value ? "color-mix(in srgb, var(--color-primary) 14%, transparent)" : "var(--color-bg)",
-                  color: billingStatusFilter === f.value ? "var(--color-primary)" : "var(--color-text-secondary)",
-                  border: `1px solid ${billingStatusFilter === f.value ? "color-mix(in srgb, var(--color-primary) 30%, transparent)" : "var(--color-border)"}`,
-                }}
-              >
-                {f.label}
-              </button>
-            ))}
-            <input
-              value={billingSearch}
-              onChange={(e) => setBillingSearch(e.target.value)}
-              placeholder="Search patient"
-              className="px-2.5 py-1.5 rounded-lg text-xs outline-none"
-              style={{ background: "var(--color-bg)", color: "var(--color-text-primary)", border: "1px solid var(--color-border)" }}
-            />
+          <div className="flex flex-col gap-3 border-b border-slate-200 px-6 pb-5 dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Billing status filter">
+              {[
+                { label: "All", value: "all" },
+                { label: "Paid", value: "paid" },
+                { label: "Unpaid", value: "unpaid" },
+              ].map((filter) => {
+                const isActive = billingStatusFilter === filter.value;
+                return (
+                  <button
+                    key={filter.value}
+                    type="button"
+                    onClick={() => setBillingStatusFilter(filter.value)}
+                    className={isActive
+                      ? "rounded-full bg-teal-600 px-4 py-1.5 text-xs font-bold text-white shadow-xs"
+                      : "rounded-full border border-slate-200 bg-slate-100 px-4 py-1.5 text-xs font-semibold text-slate-700 hover:border-teal-400 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"}
+                  >
+                    {filter.label}
+                  </button>
+                );
+              })}
+            </div>
+            <label className="relative block">
+              <span className="sr-only">Search patient</span>
+              <input
+                value={billingSearch}
+                onChange={(event) => setBillingSearch(event.target.value)}
+                placeholder="Search patient"
+                className="w-48 rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-900 shadow-xs outline-none transition-all placeholder:text-slate-500 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-400"
+              />
+            </label>
           </div>
 
           {billingLoading ? (
-            <div className="py-12 text-center text-sm text-[var(--color-text-secondary)]">Loading billing log...</div>
+            <div className="px-6 py-12 text-center text-sm font-semibold text-slate-600 dark:text-slate-300">Loading billing log...</div>
           ) : billingLog.length === 0 ? (
-            <div className="py-12 text-center text-sm text-[var(--color-text-secondary)]">No billing data yet</div>
+            <div className="px-6 py-12 text-center text-sm font-semibold text-slate-600 dark:text-slate-300">No billing data yet</div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs uppercase tracking-wide text-[var(--color-text-secondary)]">
-                    <th className="pb-2">Patient</th>
-                    <th className="pb-2">Date</th>
-                    <th className="pb-2">Fee</th>
-                    <th className="pb-2">Status</th>
-                    <th className="pb-2">Action</th>
+              <table className="w-full min-w-[680px] text-left">
+                <thead className="border-b border-slate-200 bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-700 dark:border-slate-700 dark:bg-slate-800/60 dark:text-slate-300">
+                  <tr>
+                    <th scope="col" className="p-4">Patient</th>
+                    <th scope="col" className="p-4">Date</th>
+                    <th scope="col" className="p-4">Fee</th>
+                    <th scope="col" className="p-4">Status</th>
+                    <th scope="col" className="p-4">Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {billingLog.map((row) => (
-                    <tr key={row.id} className="border-t border-[var(--color-border)]">
-                      <td className="py-2 font-medium text-[var(--color-text-primary)]">{row.patientName}</td>
-                      <td className="py-2 text-[var(--color-text-secondary)]">{new Date(row.date).toLocaleDateString("en-PK")}</td>
-                      <td className="py-2 text-[var(--color-text-primary)]">{fmtMoney(row.fee)}</td>
-                      <td className="py-2">
-                        <span
-                          className="text-xs px-2 py-0.5 rounded-full font-semibold"
-                          style={{
-                            background: row.status === "Paid" ? "rgba(34,197,94,0.15)" : "rgba(245,158,11,0.15)",
-                            color: row.status === "Paid" ? "var(--color-success)" : "var(--color-warning)",
-                          }}
-                        >
-                          {row.status}
-                        </span>
-                      </td>
-                      <td className="py-2">
-                        <button
-                          onClick={() => handleToggleBillingStatus(row)}
-                          disabled={billingUpdatingId === row.id}
-                          className="text-xs px-2 py-1 rounded-lg font-semibold"
-                          style={{
-                            background: row.isPaid ? "rgba(245,158,11,0.14)" : "rgba(34,197,94,0.14)",
-                            color: row.isPaid ? "var(--color-warning)" : "var(--color-success)",
-                            border: `1px solid ${row.isPaid ? "rgba(245,158,11,0.35)" : "rgba(34,197,94,0.35)"}`,
-                          }}
-                        >
-                          {billingUpdatingId === row.id ? "Saving..." : row.isPaid ? "Mark Unpaid" : "Mark Paid"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {billingLog.map((row) => {
+                    const isPaid = row.status === "Paid" || row.isPaid;
+                    return (
+                      <tr
+                        key={row.id}
+                        className="border-b border-slate-100 hover:bg-slate-50/50 dark:border-slate-800/60 dark:hover:bg-slate-800/40"
+                      >
+                        <td className="p-4 text-sm font-bold text-slate-900 dark:text-white">{row.patientName}</td>
+                        <td className="p-4 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          {new Date(row.date).toLocaleDateString("en-PK")}
+                        </td>
+                        <td className="p-4 text-sm font-extrabold text-slate-900 dark:text-white">{fmtMoney(row.fee)}</td>
+                        <td className="p-4">
+                          <span className={isPaid
+                            ? "inline-flex rounded-full border border-emerald-300 bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                            : "inline-flex rounded-full border border-amber-300 bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300"}
+                          >
+                            {isPaid ? "Paid" : "Unpaid"}
+                          </span>
+                        </td>
+                        <td className="p-4">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleBillingStatus(row)}
+                            disabled={billingUpdatingId === row.id}
+                            className="rounded-xl border border-slate-300 bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-800 transition-colors hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                          >
+                            {billingUpdatingId === row.id ? "Saving..." : isPaid ? "Mark Unpaid" : "Mark Paid"}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           )}
-        </div>
-      </div>
+        </section>
+      </section>
     </div>
   );
 }
