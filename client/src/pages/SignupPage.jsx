@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import useThemedLogo from "../hooks/useThemedLogo";
@@ -651,6 +651,7 @@ function LocationCard({
 
 export default function SignupPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const logo = useThemedLogo();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -658,11 +659,13 @@ export default function SignupPage() {
   const [showConfirm, setShowConfirm] = useState(false);
 
   // ── Step 1 state
+  // The landing-page CTA can hand off an email so the doctor never types it
+  // twice.
   const [personal, setPersonal] = useState({
     firstName: "",
     lastName: "",
     gender: "",
-    email: "",
+    email: location.state?.email ?? "",
     phone: "",
     password: "",
     confirmPassword: "",
