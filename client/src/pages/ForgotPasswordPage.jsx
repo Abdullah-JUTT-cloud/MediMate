@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
+import EmailSpamNotice from "../components/EmailSpamNotice";
 import useThemedLogo from "../hooks/useThemedLogo";
 
 export default function ForgotPasswordPage() {
@@ -75,6 +76,8 @@ export default function ForgotPasswordPage() {
               No worries. Enter your email and we&apos;ll send you a reset OTP.
             </p>
           </header>
+
+          <EmailSpamNotice />
 
           <div className="rounded-3xl border border-[var(--color-border)]/70 bg-[var(--color-bg-soft)]/45 p-4 sm:p-6">
             <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)] sm:text-sm">

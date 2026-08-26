@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
+import EmailSpamNotice from "../components/EmailSpamNotice";
 import useThemedLogo from "../hooks/useThemedLogo";
 
 export default function VerifyResetOtpPage() {
@@ -122,6 +123,8 @@ export default function VerifyResetOtpPage() {
             <p className="mb-1 text-sm text-[var(--color-text-secondary)] sm:text-base">Enter the 6-digit OTP sent to</p>
             <p className="break-all text-sm font-semibold text-[var(--color-primary)] sm:text-base">{email}</p>
           </header>
+
+          <EmailSpamNotice />
 
           <div className="rounded-3xl border border-[var(--color-border)]/70 bg-[var(--color-bg-soft)]/45 p-4 sm:p-6">
             <p className="mb-6 text-center text-xs text-[var(--color-text-secondary)] sm:text-sm">
