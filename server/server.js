@@ -40,6 +40,14 @@ import { createUnsafeRequestOriginGuard } from "./utils/security.js";
 const app=express();
 const server = http.createServer(app);
 app.disable("x-powered-by");
+
+// ─── Public health check (uptime monitoring) ─────────────────────────────────
+// Registered BEFORE auth, rate-limiting, and other middleware so it stays
+// lightweight and always reachable, with no external dependencies.
+app.get("/api/health", (req, res) => {
+  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
 app.use(helmet());
 
 const PORT=process.env.PORT || 3000;
