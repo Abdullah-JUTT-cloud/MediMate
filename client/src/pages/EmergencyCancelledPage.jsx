@@ -1,9 +1,42 @@
 import { useEffect, useState } from "react";
-import { RefreshCcw, Clock3, CalendarDays, UserRound } from "lucide-react";
+import {
+  CalendarClock,
+  CalendarX2,
+  CircleAlert,
+  CircleCheck,
+  LoaderCircle,
+  MessageSquareOff,
+  RefreshCcw,
+  ShieldCheck,
+  Siren,
+  UserRound,
+} from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import ConfirmDialog from "../components/ConfirmDialog";
 import useConfirmDialog from "../hooks/useConfirmDialog";
+
+/**
+ * Emergency Cancelled Appointments — clinical safety control panel.
+ *
+ * Pure Tailwind palette tokens (slate neutrals, rose for the destructive
+ * control surface, teal for recovery actions) with explicit `dark:`
+ * counterparts, so both themes stay above WCAG AA contrast. No inline
+ * `style` objects and no opacity-diluted text.
+ */
+
+const TABLE_COLUMNS = [
+  "Patient",
+  "Original Slot",
+  "Cancelled On",
+  "Reason",
+  "WhatsApp Alert Status",
+  "Action",
+];
+
+const SKELETON_ROWS = [0, 1, 2, 3];
+
+// ─── Formatting helpers ──────────────────────────────────────────────────────
 
 const formatDateTime = (value) => {
   if (!value) return "—";
@@ -18,18 +51,180 @@ const formatDateTime = (value) => {
   });
 };
 
-const formatAppointmentTime = (date, slot) => {
-  if (!date && !slot) return "—";
-  const appointmentDate = date ? new Date(date) : null;
-  const formattedDate = appointmentDate && !Number.isNaN(appointmentDate.getTime())
-    ? appointmentDate.toLocaleDateString("en-PK", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    })
-    : "—";
-  return `${formattedDate} at ${slot || "—"}`;
+const formatShortDate = (value) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("en-PK", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 };
+
+// ─── Status tokens ───────────────────────────────────────────────────────────
+
+/**
+ * WhatsApp alert state is derived from the appointment record: the bulk
+ * cancel write sets `reminderSent: true` when the alert is dispatched, and a
+ * patient without a phone number can never be reached.
+ */
+const WHATSAPP_ALERT_STATE = {
+  sent: {
+    label: "Alert sent",
+    Icon: CircleCheck,
+    hint: "Cancellation alert dispatched to this patient's WhatsApp number.",
+    className:
+      "inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 dark:border-emerald-900/70 dark:bg-emerald-950/40 dark:text-emerald-300",
+  },
+  pending: {
+    label: "Not dispatched",
+    Icon: CircleAlert,
+    hint: "No dispatch confirmation on this record — resend before rescheduling.",
+    className:
+      "inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800 dark:border-amber-900/70 dark:bg-amber-950/40 dark:text-amber-300",
+  },
+  unreachable: {
+    label: "No WhatsApp number",
+    Icon: MessageSquareOff,
+    hint: "This patient has no WhatsApp number — call them before rescheduling.",
+    className:
+      "inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-800 dark:border-rose-900/70 dark:bg-rose-950/40 dark:text-rose-300",
+  },
+};
+
+const getWhatsAppAlertState = (appointment) => {
+  if (!String(appointment?.patient?.phone || "").trim()) return "unreachable";
+  return appointment?.reminderSent ? "sent" : "pending";
+};
+
+const getReasonLabel = (appointment) =>
+  appointment?.cancellationReason || "Emergency";
+
+const REASON_CLASS = {
+  emergency:
+    "inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-bold text-rose-800 dark:border-rose-900/70 dark:bg-rose-950/40 dark:text-rose-300",
+  other:
+    "inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300",
+};
+
+// ─── Sub components ──────────────────────────────────────────────────────────
+
+const DateTimeField = ({ id, label, type, value, onChange }) => (
+  <div>
+    <label
+      htmlFor={id}
+      className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5 block"
+    >
+      {label}
+    </label>
+    <input
+      id={id}
+      type={type}
+      value={value}
+      onChange={onChange}
+      className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl p-3 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 outline-none w-full shadow-xs [color-scheme:light] dark:[color-scheme:dark]"
+    />
+  </div>
+);
+
+const RescheduleButton = ({ appointment, onReschedule, className = "" }) => (
+  <button
+    type="button"
+    onClick={() => onReschedule?.(appointment)}
+    className={`text-teal-700 dark:text-teal-400 font-bold hover:underline inline-flex items-center gap-1.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 ${className}`.trim()}
+  >
+    <RefreshCcw size={14} aria-hidden="true" />
+    Reschedule Slot
+  </button>
+);
+
+const WhatsAppAlertBadge = ({ appointment }) => {
+  const state = WHATSAPP_ALERT_STATE[getWhatsAppAlertState(appointment)];
+  const { Icon, label, hint, className } = state;
+  return (
+    <span className={className} title={hint}>
+      <Icon size={14} aria-hidden="true" />
+      {label}
+    </span>
+  );
+};
+
+const ReasonBadge = ({ appointment }) => {
+  const reason = getReasonLabel(appointment);
+  const isEmergency = reason === "Emergency";
+  return (
+    <span
+      className={isEmergency ? REASON_CLASS.emergency : REASON_CLASS.other}
+      title={`Cancellation reason: ${reason}`}
+    >
+      {isEmergency ? <Siren size={14} aria-hidden="true" /> : null}
+      {reason}
+    </span>
+  );
+};
+
+const CounterBadge = ({ isLoading, count }) => {
+  if (isLoading) {
+    return (
+      <div className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700 font-semibold px-4 py-2 rounded-xl text-xs flex items-center gap-2">
+        <LoaderCircle size={14} className="animate-spin" aria-hidden="true" />
+        Checking records
+      </div>
+    );
+  }
+
+  if (count === 0) {
+    return (
+      <div className="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700 font-semibold px-4 py-2 rounded-xl text-xs">
+        0 active reschedules
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow-xs">
+      <Siren size={14} aria-hidden="true" />
+      <span className="tabular-nums">{count}</span> active reschedules
+    </div>
+  );
+};
+
+const DirectorySkeleton = () => (
+  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+    <div className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700 p-4">
+      <div className="h-3 w-40 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+    </div>
+    <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+      {SKELETON_ROWS.map((row) => (
+        <li key={row} className="flex items-center gap-4 p-4">
+          <div className="h-10 w-10 shrink-0 animate-pulse rounded-xl bg-slate-200 dark:bg-slate-700" />
+          <div className="w-full space-y-2">
+            <div className="h-3 w-1/3 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+            <div className="h-3 w-1/5 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+          </div>
+          <div className="hidden h-6 w-28 shrink-0 animate-pulse rounded-lg bg-slate-200 dark:bg-slate-700 sm:block" />
+        </li>
+      ))}
+    </ul>
+  </div>
+);
+
+const DirectoryEmptyState = () => (
+  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-12 text-center shadow-sm">
+    <ShieldCheck className="h-12 w-12 text-slate-400 mx-auto mb-3" aria-hidden="true" />
+    <h3 className="text-base font-bold text-slate-900 dark:text-white mb-1">
+      No emergency cancellations on record
+    </h3>
+    <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+      Every booked slot is intact. Use the control above to cancel a full time
+      window — patients are alerted on WhatsApp and land here until each one is
+      rescheduled.
+    </p>
+  </div>
+);
+
+// ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function EmergencyCancelledPage({ onReschedule }) {
   const { confirm, dialogProps } = useConfirmDialog();
@@ -48,24 +243,32 @@ export default function EmergencyCancelledPage({ onReschedule }) {
     setEmergencyEndTime("");
   };
 
-  const fetchCancelledAppointments = async () => {
-    setIsLoading(true);
-    try {
-      const res = await axiosInstance.get("/appointments?status=Cancelled&limit=500");
-      const emergency = Array.isArray(res.data?.appointments)
-        ? res.data.appointments.filter((appointment) => appointment.emergencyCancelled === true)
-        : [];
-      setAppointments(emergency);
-    } catch {
-      setAppointments([]);
-      toast.error("Failed to load emergency cancellations");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  // `isLoading` starts true, so the effect only has to resolve the request —
+  // no synchronous setState on mount, and no writes after unmount.
   useEffect(() => {
-    fetchCancelledAppointments();
+    let cancelled = false;
+
+    const loadCancelledAppointments = async () => {
+      try {
+        const res = await axiosInstance.get("/appointments?status=Cancelled&limit=500");
+        const emergency = Array.isArray(res.data?.appointments)
+          ? res.data.appointments.filter((appointment) => appointment.emergencyCancelled === true)
+          : [];
+        if (!cancelled) setAppointments(emergency);
+      } catch {
+        if (cancelled) return;
+        setAppointments([]);
+        toast.error("Failed to load emergency cancellations");
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+
+    loadCancelledAppointments();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleEmergencyCancel = async () => {
@@ -110,138 +313,261 @@ export default function EmergencyCancelledPage({ onReschedule }) {
   };
 
   return (
-    <div className="rounded-4xl border border-(--color-border)/80 bg-(--color-card)/95 p-4 sm:p-6 shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)]">
-      <div className="flex flex-col gap-2 border-b border-(--color-border)/80 pb-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="text-lg font-bold text-(--color-text-primary) sm:text-xl">🚨 Emergency Cancelled Appointments</h2>
-          <p className="mt-1 text-sm text-(--color-text-secondary)">
-            Cancel appointments in a time range and track the patients that need rescheduling.
+    <div>
+      {/* ── Header & status counter ───────────────────────────────────── */}
+      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <Siren className="h-6 w-6 shrink-0 text-rose-600 dark:text-rose-400" aria-hidden="true" />
+            Emergency Cancelled Appointments
+          </h2>
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-300 mt-1">
+            Cancel every booked slot inside a time window, then track the
+            patients waiting to be rescheduled.
           </p>
         </div>
-        <div className="inline-flex items-center gap-2 rounded-full border border-(--color-danger)/25 bg-(--color-danger)/10 px-3 py-1.5 text-xs font-semibold text-(--color-danger)">
-          <Clock3 size={14} />
-          {appointments.length} pending reschedules
+        <div aria-live="polite" className="shrink-0">
+          <CounterBadge isLoading={isLoading} count={appointments.length} />
         </div>
-      </div>
+      </header>
 
-      <div className="mt-4 rounded-3xl border border-[rgba(168,84,72,0.2)] bg-[rgba(168,84,72,0.06)] p-4 sm:p-5">
-        <p className="mb-4 text-sm font-bold text-(--color-danger)">🚨 Emergency Cancel Appointments</p>
-        <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-(--color-text-secondary)">Start Date & Time</label>
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                type="date"
-                value={emergencyStartDate}
-                onChange={(e) => setEmergencyStartDate(e.target.value)}
-                className="w-full rounded-full border border-(--color-danger)/35 bg-(--color-card)/90 px-4 py-3 text-sm text-(--color-text-primary) outline-none focus-visible:ring-2 focus-visible:ring-(--color-danger)/25"
-              />
-              <input
-                type="time"
-                value={emergencyStartTime}
-                onChange={(e) => setEmergencyStartTime(e.target.value)}
-                className="w-full rounded-full border border-(--color-danger)/35 bg-(--color-card)/90 px-4 py-3 text-sm text-(--color-text-primary) outline-none focus-visible:ring-2 focus-visible:ring-(--color-danger)/25"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-(--color-text-secondary)">End Date & Time</label>
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                type="date"
-                value={emergencyEndDate}
-                onChange={(e) => setEmergencyEndDate(e.target.value)}
-                className="w-full rounded-full border border-(--color-danger)/35 bg-(--color-card)/90 px-4 py-3 text-sm text-(--color-text-primary) outline-none focus-visible:ring-2 focus-visible:ring-(--color-danger)/25"
-              />
-              <input
-                type="time"
-                value={emergencyEndTime}
-                onChange={(e) => setEmergencyEndTime(e.target.value)}
-                className="w-full rounded-full border border-(--color-danger)/35 bg-(--color-card)/90 px-4 py-3 text-sm text-(--color-text-primary) outline-none focus-visible:ring-2 focus-visible:ring-(--color-danger)/25"
-              />
-            </div>
-          </div>
+      {/* ── Bulk emergency cancellation control ───────────────────────── */}
+      <section
+        aria-labelledby="emergency-cancel-control-title"
+        className="bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/50 rounded-2xl p-6 shadow-sm mb-6 relative overflow-hidden before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-rose-500"
+      >
+        <h3
+          id="emergency-cancel-control-title"
+          className="text-base font-bold text-rose-700 dark:text-rose-400 flex items-center gap-2 mb-4"
+        >
+          <Siren size={18} aria-hidden="true" />
+          Bulk Emergency Cancellation
+        </h3>
+        <p className="text-sm font-medium text-slate-600 dark:text-slate-300 mb-4">
+          Set the full window you are unavailable for. Every active appointment
+          inside it is cancelled in one action and patients with a WhatsApp
+          number are alerted right away. Each one then appears in the directory
+          below until its slot is rescheduled.
+        </p>
+
+        <div className="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <DateTimeField
+            id="emergency-start-date"
+            label="Start Date"
+            type="date"
+            value={emergencyStartDate}
+            onChange={(e) => setEmergencyStartDate(e.target.value)}
+          />
+          <DateTimeField
+            id="emergency-start-time"
+            label="Start Time"
+            type="time"
+            value={emergencyStartTime}
+            onChange={(e) => setEmergencyStartTime(e.target.value)}
+          />
+          <DateTimeField
+            id="emergency-end-date"
+            label="End Date"
+            type="date"
+            value={emergencyEndDate}
+            onChange={(e) => setEmergencyEndDate(e.target.value)}
+          />
+          <DateTimeField
+            id="emergency-end-time"
+            label="End Time"
+            type="time"
+            value={emergencyEndTime}
+            onChange={(e) => setEmergencyEndTime(e.target.value)}
+          />
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <button
+            type="button"
             onClick={handleEmergencyCancel}
             disabled={isCancelling}
-            className="rounded-full px-5 py-2.5 text-sm font-bold transition-all hover:-translate-y-0.5 hover:opacity-95 disabled:opacity-50"
-            style={{ background: "color-mix(in srgb, var(--color-danger) 15%, transparent)", border: "1px solid color-mix(in srgb, var(--color-danger) 30%, transparent)", color: "var(--color-danger)" }}
+            className="bg-rose-600 hover:bg-rose-500 text-white font-bold px-6 py-3 rounded-xl shadow-md transition-all text-sm flex items-center gap-2 justify-center disabled:cursor-not-allowed disabled:bg-rose-600/50 disabled:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
           >
-            {isCancelling ? "Cancelling..." : "Cancel All Appointments"}
+            {isCancelling ? (
+              <>
+                <LoaderCircle size={16} className="animate-spin" aria-hidden="true" />
+                Cancelling Appointments…
+              </>
+            ) : (
+              <>
+                <CalendarX2 size={16} aria-hidden="true" />
+                Cancel All Appointments in Range
+              </>
+            )}
           </button>
           <button
+            type="button"
             onClick={clearForm}
-            className="rounded-full px-5 py-2.5 text-sm font-semibold text-(--color-text-secondary) transition-all hover:opacity-80"
-            style={{ background: "var(--color-card)", border: "1px solid var(--color-border)" }}
+            className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold px-4 py-3 rounded-xl text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:focus-visible:ring-slate-500"
           >
-            Clear
+            Clear Inputs
           </button>
         </div>
-      </div>
+      </section>
 
-      <div className="mt-4 space-y-3">
+      {/* ── Cancelled appointments directory ──────────────────────────── */}
+      <section aria-labelledby="cancelled-directory-title">
+        <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+          <h3
+            id="cancelled-directory-title"
+            className="text-base font-bold text-slate-900 dark:text-white"
+          >
+            Cancelled Appointments Directory
+          </h3>
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            {isLoading ? "Loading records" : `${appointments.length} awaiting reschedule`}
+          </p>
+        </div>
+
         {isLoading ? (
-          <div className="rounded-3xl border border-dashed border-(--color-border) px-4 py-10 text-center text-sm text-(--color-text-secondary)">
-            Loading emergency cancellations...
-          </div>
+          <DirectorySkeleton />
         ) : appointments.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-(--color-border) px-4 py-10 text-center text-sm text-(--color-text-secondary)">
-            No emergency-cancelled appointments found.
-          </div>
+          <DirectoryEmptyState />
         ) : (
-          appointments.map((appointment) => (
-            <div
-              key={appointment._id}
-              className="flex flex-col gap-4 rounded-3xl border border-[rgba(168,84,72,0.18)] bg-[rgba(168,84,72,0.05)] p-4 lg:flex-row lg:items-center lg:justify-between"
-            >
-              <div className="flex items-start gap-3 min-w-0">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,var(--color-danger),color-mix(in_srgb,var(--color-danger)_82%,black))] text-sm font-bold text-white">
-                  <UserRound size={18} />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="truncate text-sm font-bold text-(--color-text-primary)">
-                      {appointment.patient?.name || "Unknown patient"}
-                    </p>
-                    <span className="rounded-full border border-(--color-danger)/20 bg-(--color-danger)/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-(--color-danger)">
-                      Emergency
-                    </span>
-                  </div>
-                  <div className="mt-2 grid gap-2 text-xs text-(--color-text-secondary) sm:grid-cols-2 lg:grid-cols-4">
-                    <p className="inline-flex items-center gap-2">
-                      <CalendarDays size={13} />
-                      {formatAppointmentTime(appointment.date, appointment.slot)}
-                    </p>
-                    <p className="inline-flex items-center gap-2">
-                      <Clock3 size={13} />
-                      Cancelled: {formatDateTime(appointment.cancelledAt || appointment.updatedAt)}
-                    </p>
-                    <p className="inline-flex items-center gap-2">
-                      <RefreshCcw size={13} />
-                      {appointment.type || "Appointment"}
-                    </p>
-                    <p className="inline-flex items-center gap-2">
-                      Status: {appointment.status || "Cancelled"}
-                    </p>
-                  </div>
-                </div>
-              </div>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+            {/* Desktop / tablet table */}
+            <table className="hidden w-full sm:table">
+              <caption className="sr-only">
+                Emergency-cancelled appointments that still need to be rescheduled
+              </caption>
+              <thead>
+                <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700 text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 p-4">
+                  {TABLE_COLUMNS.map((column) => (
+                    <th
+                      key={column}
+                      scope="col"
+                      className={`p-4 ${column === "Action" ? "text-right" : "text-left"}`}
+                    >
+                      {column}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {appointments.map((appointment) => (
+                  <tr
+                    key={appointment._id}
+                    className="align-top transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                  >
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                          <UserRound size={18} aria-hidden="true" />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold text-slate-900 dark:text-white">
+                            {appointment.patient?.name || "Unknown patient"}
+                          </p>
+                          <p className="truncate text-xs font-semibold tabular-nums text-slate-500 dark:text-slate-400">
+                            {appointment.patient?.phone || "—"}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <p className="text-sm font-bold tabular-nums text-slate-800 dark:text-slate-100">
+                        {formatShortDate(appointment.date)}
+                      </p>
+                      <p className="text-xs font-semibold tabular-nums text-slate-500 dark:text-slate-400">
+                        {appointment.slot || "—"} · {appointment.type || "Appointment"}
+                      </p>
+                    </td>
+                    <td className="p-4 text-sm font-medium tabular-nums text-slate-700 dark:text-slate-300">
+                      {formatDateTime(appointment.cancelledAt || appointment.updatedAt)}
+                    </td>
+                    <td className="p-4">
+                      <ReasonBadge appointment={appointment} />
+                    </td>
+                    <td className="p-4">
+                      <WhatsAppAlertBadge appointment={appointment} />
+                    </td>
+                    <td className="p-4 text-right">
+                      <RescheduleButton appointment={appointment} onReschedule={onReschedule} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
 
-              <div className="flex shrink-0 gap-2">
-                <button
-                  onClick={() => onReschedule?.(appointment)}
-                  className="rounded-full border border-(--color-primary)/25 bg-(--color-primary)/10 px-4 py-2 text-xs font-bold text-(--color-primary) transition hover:-translate-y-0.5 hover:opacity-95"
-                >
-                  Reschedule
-                </button>
-              </div>
-            </div>
-          ))
+            {/* Mobile cards */}
+            <ul className="divide-y divide-slate-100 sm:hidden dark:divide-slate-800">
+              {appointments.map((appointment) => (
+                <li key={appointment._id} className="p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                      <UserRound size={18} aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-slate-900 dark:text-white">
+                        {appointment.patient?.name || "Unknown patient"}
+                      </p>
+                      <p className="truncate text-xs font-semibold tabular-nums text-slate-500 dark:text-slate-400">
+                        {appointment.patient?.phone || "—"}
+                      </p>
+                    </div>
+                  </div>
+
+                  <dl className="mt-3 space-y-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <dt className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        Original Slot
+                      </dt>
+                      <dd className="text-right text-sm font-bold tabular-nums text-slate-800 dark:text-slate-100">
+                        {formatShortDate(appointment.date)}
+                        <span className="block text-xs font-semibold tabular-nums text-slate-500 dark:text-slate-400">
+                          {appointment.slot || "—"} · {appointment.type || "Appointment"}
+                        </span>
+                      </dd>
+                    </div>
+                    <div className="flex items-start justify-between gap-3">
+                      <dt className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        Cancelled On
+                      </dt>
+                      <dd className="text-right text-sm font-medium tabular-nums text-slate-700 dark:text-slate-300">
+                        {formatDateTime(appointment.cancelledAt || appointment.updatedAt)}
+                      </dd>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <dt className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        Reason
+                      </dt>
+                      <dd>
+                        <ReasonBadge appointment={appointment} />
+                      </dd>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <dt className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                        WhatsApp Alert
+                      </dt>
+                      <dd>
+                        <WhatsAppAlertBadge appointment={appointment} />
+                      </dd>
+                    </div>
+                  </dl>
+
+                  <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      <CalendarClock size={14} aria-hidden="true" />
+                      {appointment.status || "Cancelled"}
+                    </span>
+                    <RescheduleButton
+                      appointment={appointment}
+                      onReschedule={onReschedule}
+                      className="text-sm"
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
-      </div>
+      </section>
+
       <ConfirmDialog {...dialogProps} />
     </div>
   );
