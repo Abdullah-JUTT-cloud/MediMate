@@ -2,76 +2,12 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import TestimonialsSection from "../components/home/TestimonialsSection";
+import CtaSection from "../components/home/CtaSection";
 import doc from "../assets/doc-hero.webp";
 import useThemedLogo from "../hooks/useThemedLogo";
 
 const audioGuideBarHeights = [35, 70, 50, 85];
-
-const testimonials = [
-  {
-    quote:
-      "We reduced front-desk follow-up calls significantly because reminders and prescription delivery are now consistent.",
-    author: "Dr. Hina A.",
-    role: "Dermatology Clinic, Lahore",
-    metric: "-42% manual follow-up calls",
-  },
-  {
-    quote:
-      "The emergency bulk cancel button saved us during an unplanned closure. Patients were informed quickly without chaos.",
-    author: "Dr. Faraz K.",
-    role: "General Practice, Karachi",
-    metric: "120+ appointments updated in minutes",
-  },
-  {
-    quote:
-      "We finally have one reliable view of patient history, prescriptions, and visit records. Decision-making is much faster now.",
-    author: "Dr. Sana M.",
-    role: "Internal Medicine, Islamabad",
-    metric: "10x faster record retrieval",
-  },
-  {
-    quote:
-      "Our reception team now handles scheduling changes without confusion, and patients get updates immediately.",
-    author: "Dr. Kamran T.",
-    role: "Family Clinic, Faisalabad",
-    metric: "-35% front-desk call volume",
-  },
-  {
-    quote:
-      "Prescription turnaround is much faster now. We complete visits without asking patients to wait for paperwork.",
-    author: "Dr. Ayesha R.",
-    role: "General Practice, Multan",
-    metric: "3x faster prescription handoff",
-  },
-  {
-    quote:
-      "The reminders improved follow-up attendance in just a few weeks and reduced missed continuity visits.",
-    author: "Dr. Bilal N.",
-    role: "Cardiac Clinic, Rawalpindi",
-    metric: "+28% follow-up attendance",
-  },
-  {
-    quote:
-      "Automated WhatsApp delivery helped us reduce unclear post-visit instructions and avoid repeat clarification calls.",
-    author: "Dr. Mahnoor S.",
-    role: "Pediatrics, Lahore",
-    metric: "-31% post-visit clarification calls",
-  },
-  {
-    quote:
-      "We no longer depend on scattered notes. Every visit detail is available when the patient returns.",
-    author: "Dr. Waqas H.",
-    role: "Orthopedic Practice, Karachi",
-    metric: "Consistent records across visits",
-  },
-  {
-    quote:
-      "The dashboard makes daily load obvious. We plan staff shifts better and avoid peak-hour bottlenecks.",
-    author: "Dr. Nadia F.",
-    role: "Multi-Doctor Clinic, Islamabad",
-    metric: "Smoother daily throughput",
-  },
-];
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -1576,107 +1512,11 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="border-t border-[var(--color-border)]/60 bg-[var(--color-bg)] py-24 sm:py-28">
-          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-[var(--color-text-secondary)]">
-                  Clinic feedback
-                </p>
-                <h2 className="mt-4 max-w-2xl text-4xl font-heading font-semibold leading-[0.95] sm:text-5xl">
-                  Trusted by doctors who run high-pressure days.
-                </h2>
-              </div>
-              <button
-                onClick={() => navigate("/pricing")}
-                className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--color-secondary)] bg-[var(--color-card)] px-5 text-sm font-bold text-[var(--color-secondary)] transition duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-secondary)]/10"
-              >
-                View Pricing
-              </button>
-            </div>
+        {/* Practitioner testimonials — verified clinical impact */}
+        <TestimonialsSection />
 
-            <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-3">
-              {testimonials.slice(0, 3).map((item, idx) => (
-                <article
-                  key={item.author}
-                  className="group rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
-                >
-                  <div className="mb-6 flex items-center gap-4">
-                    <div
-                      className="h-12 w-12 rounded-full border-2 border-white shadow-md flex items-center justify-center text-white text-sm font-bold select-none"
-                      style={{
-                        background: [
-                          "linear-gradient(135deg, #6B8F71, #4a7c59)",
-                          "linear-gradient(135deg, #5b7fa6, #3d6b99)",
-                          "linear-gradient(135deg, #a67c5b, #8a5c3a)",
-                        ][idx % 3],
-                      }}
-                      aria-hidden="true"
-                    >
-                      {item.author
-                        .split(" ")
-                        .filter((n) => n.length > 0)
-                        .slice(0, 2)
-                        .map((n) => n[0])
-                        .join("")}
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-[var(--color-text-primary)]">
-                        {item.author}
-                      </p>
-                      <p className="text-[10px] uppercase tracking-wider text-[var(--color-text-secondary)]">
-                        {item.role}
-                      </p>
-                    </div>
-                  </div>
-                  <p className="text-sm italic leading-relaxed text-[var(--color-text-secondary)]">
-                    “{item.quote}”
-                  </p>
-                  <div className="mt-5 border-t border-[var(--color-border)]/80 pt-4">
-                    <p className="inline-flex rounded-full border border-[var(--color-primary)]/35 bg-[var(--color-primary)]/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--color-primary)]">
-                      {item.metric}
-                    </p>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="relative overflow-hidden border-t border-[var(--color-border)]/60 bg-[var(--color-primary)] py-24 text-[var(--color-on-primary)] sm:py-28 xl:py-32">
-          <div
-            aria-hidden="true"
-            className="absolute -left-16 top-8 h-72 w-72 rounded-[60%_40%_35%_65%/55%_35%_65%_45%] bg-[var(--color-accent)]/18 blur-3xl"
-          />
-          <div
-            aria-hidden="true"
-            className="absolute right-0 top-0 h-80 w-80 rounded-[48%_52%_39%_61%/48%_34%_66%_52%] bg-[var(--color-secondary)]/18 blur-3xl"
-          />
-          <div className="relative mx-auto grid w-full max-w-7xl grid-cols-12 gap-8 px-4 sm:px-6 lg:px-8">
-            <div className="col-span-12 xl:col-span-7 xl:col-start-2">
-              <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-[var(--color-accent)]">
-                Closing note
-              </p>
-              <h2 className="mt-6 max-w-4xl text-4xl font-heading font-semibold leading-[0.95] sm:text-5xl lg:text-6xl">
-                Ready to modernize the clinic with a softer kind of structure?
-              </h2>
-              <p className="mt-6 max-w-2xl text-lg leading-relaxed text-[var(--color-on-primary)]/80">
-                Join doctors using MedAlerto to save time, reduce mistakes, and
-                keep every patient record in one place.
-              </p>
-            </div>
-
-            <div className="col-span-12 flex items-end xl:col-span-3 xl:col-start-10">
-              <button
-                onClick={() => navigate("/signup")}
-                className="group relative inline-flex h-12 w-full items-center justify-center overflow-hidden rounded-full border border-[var(--color-on-primary)]/40 bg-[var(--color-on-primary)] px-8 font-body text-sm font-bold text-[var(--color-primary)] shadow-[0_4px_20px_-2px_rgba(243,244,241,0.18)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-bg-soft)] hover:shadow-[0_10px_28px_-14px_rgba(243,244,241,0.24)] active:translate-y-0 motion-reduce:transition-none"
-              >
-                <span className="absolute inset-0 bg-[var(--color-accent)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                <span className="relative z-10">Create Your Free Account</span>
-              </button>
-            </div>
-          </div>
-        </section>
+        {/* Closing CTA — trial registration banner */}
+        <CtaSection />
       </main>
 
       <Footer />
