@@ -88,12 +88,6 @@ app.use(createUnsafeRequestOriginGuard(allowedOrigins));
 app.use(express.json({ limit: "128kb" }));
 app.use(express.urlencoded({ extended: true, limit: "128kb" }));
 app.use(mongoSanitize());
-app.use((req, res, next) => {
-  if (req.body && typeof req.body === "object") req.body = mongoSanitize.sanitize(req.body);
-  if (req.params && typeof req.params === "object") req.params = mongoSanitize.sanitize(req.params);
-  if (req.query && typeof req.query === "object") req.query = mongoSanitize.sanitize(req.query);
-  next();
-});
 app.use(cookieParser());
 
 app.get("/",(req,res)=>{
