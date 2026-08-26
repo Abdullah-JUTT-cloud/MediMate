@@ -181,8 +181,38 @@ input[type="date"] {
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator {
-  opacity: 0.95;
-  cursor: pointer;
+  /* Hide native indicator visually so our custom icon remains visible
+     across themes. Keep it non-interactive so clicks go to the input. */
+  opacity: 0;
+  pointer-events: none;
+  -webkit-appearance: none;
+}
+input[type="time"]::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  pointer-events: none;
+  -webkit-appearance: none;
+}
+
+/* Add a visible calendar icon as a background image (theme-aware) so the
+   picker affordance remains obvious in both light and dark modes. The
+   native picker indicator is hidden above, but clicks still open the
+   native UI when the input is focused. */
+input[type="date"], input[type="time"] {
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 18px 18px;
+  padding-right: 3rem; /* leave space for the visible icon */
+}
+
+/* Light theme calendar icon (slate color) */
+input[type="date"], input[type="time"] {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='5' width='18' height='16' rx='2'/><line x1='16' y1='3' x2='16' y2='7'/><line x1='8' y1='3' x2='8' y2='7'/><line x1='3' y1='11' x2='21' y2='11'/></svg>");
+}
+
+/* Dark theme: brighter icon */
+[data-theme="dark"] input[type="date"],
+[data-theme="dark"] input[type="time"] {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FFFFFF' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='5' width='18' height='16' rx='2'/><line x1='16' y1='3' x2='16' y2='7'/><line x1='8' y1='3' x2='8' y2='7'/><line x1='3' y1='11' x2='21' y2='11'/></svg>");
 }
 
 /* Premium Animations */
