@@ -452,6 +452,14 @@ input[type="date"], input[type="time"] {
   }
 }
 
+/* Keep the privacy document readable on the tablet/laptop full-width layout. */
+@media (min-width: 768px) and (max-width: 1440px) {
+  .privacy-policy-frame {
+    max-width: 56rem !important;
+    width: 100% !important;
+  }
+}
+
 /* ✅ TABLET: Optimize for medium screens */
 @media (min-width: 768px) and (max-width: 1024px) {
   .container-responsive {
