@@ -47,7 +47,10 @@ function App() {
         <Toaster position="top-right" />
         <Suspense fallback={<RouteSkeleton />}>
           <Routes>
-            <Route path="/" element={<LandingPage />} />
+            {/* The queue is the primary workspace in the demo shell. The public marketing
+                page remains available at /home for existing links and campaigns. */}
+            <Route path="/" element={<DoctorQueuePage standalone demo />} />
+            <Route path="/home" element={<LandingPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/login" element={<LoginPage />} />
