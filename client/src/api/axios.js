@@ -1,14 +1,10 @@
 import axios from "axios";
 import useAuthStore from "../store/authStore";
 
-export function getApiBaseUrl() {
-    const envBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
-    if (envBaseUrl) {
-        return envBaseUrl.replace(/\/$/, "");
-    }
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:5000/api").trim().replace(/\/$/, "");
 
-    // Use local API in development and same-origin API in production by default.
-    return import.meta.env.DEV ? "http://localhost:3000/api" : "/api";
+export function getApiBaseUrl() {
+    return API_BASE_URL;
 }
 
 export function getRealtimeBaseUrl() {

@@ -7,11 +7,8 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
-  server: {
-    host: true,
-    allowedHosts: ['.e2b.app'],
-  },
   build: {
+    outDir: 'dist',
     rollupOptions: {
       output: {
         manualChunks(id) {
@@ -25,5 +22,9 @@ export default defineConfig({
         },
       },
     },
+  },
+  server: {
+    host: true,
+    allowedHosts: ['.e2b.app'],
   },
 })

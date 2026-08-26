@@ -56,17 +56,23 @@ app.use(helmet());
 
 const PORT = process.env.PORT || 3000;
 
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || (process.env.NODE_ENV === "production" ? "" : "http://localhost:5173,http://127.0.0.1:5173")).split(",").map((origin) => origin.trim()).filter(Boolean);
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  process.env.ALLOWED_ORIGINS,
+  "https://medalerto.me",
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:3000",
+]
+  .flatMap((origin) => (origin ? origin.split(",") : []))
+  .map((origin) => origin.trim().replace(/\/$/, ""))
+  .filter(Boolean);
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || ALLOWED_ORIGINS.includes(origin)) {
-        callback(null, true);
-        return;
-      }
-
-      if (process.env.NODE_ENV !== "production") {
+      if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
         return;
       }
@@ -78,7 +84,7 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   }),
 );
-app.use(createUnsafeRequestOriginGuard(ALLOWED_ORIGINS));
+app.use(createUnsafeRequestOriginGuard(allowedOrigins));
 app.use(express.json({ limit: "128kb" }));
 app.use(express.urlencoded({ extended: true, limit: "128kb" }));
 app.use(mongoSanitize());
@@ -136,7 +142,7 @@ app.use("/api/insights", dataLimiter, insightsRoutes);
 
 connectDB()
   .then(() => {
-    initSocketServer(server, ALLOWED_ORIGINS);
+    initSocketServer(server, allowedOrigins);
     server.listen(PORT, () => {
       // Operational startup log intentionally omitted to avoid leaking runtime details in production logs.
     });
