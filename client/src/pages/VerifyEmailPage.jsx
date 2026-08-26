@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
+import EmailSpamNotice from "../components/EmailSpamNotice";
 import useThemedLogo from "../hooks/useThemedLogo";
 
 export default function VerifyEmailPage() {
@@ -142,6 +143,8 @@ export default function VerifyEmailPage() {
               {email}
             </p>
           </header>
+
+          <EmailSpamNotice />
 
           <div className="rounded-3xl border border-[var(--color-border)]/70 bg-[var(--color-bg-soft)]/45 p-4 sm:p-6">
             <p className="mb-6 text-center text-xs text-[var(--color-text-secondary)] sm:text-sm">
