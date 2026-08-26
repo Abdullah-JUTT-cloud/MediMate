@@ -1,96 +1,143 @@
+import {
+  ArrowUpRight,
+  Check,
+  Clock3,
+  Mail,
+  MessageCircle,
+  Phone,
+} from "lucide-react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
 const channels = [
   {
     title: "General inquiries",
-    description: "Product questions, demos, and onboarding requests.",
-    contactLabel: "hello@medalerto.com",
-    contactHref: "mailto:hello@medalerto.com",
-    meta: "Response target: within 1 business day",
+    description: "Product questions, clinic demos, and onboarding requests.",
+    label: "hello@medalerto.me",
+    href: "mailto:hello@medalerto.me",
+    icon: Mail,
+    actionIcon: ArrowUpRight,
+    actionClass:
+      "bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-200 border border-teal-200 dark:border-teal-800 font-bold px-4 py-2 rounded-xl text-xs hover:underline inline-flex items-center gap-1.5",
   },
   {
-    title: "Support and technical help",
-    description: "Account, usage, billing, and operational issues.",
-    contactLabel: "support@medalerto.com",
-    contactHref: "mailto:support@medalerto.com",
-    meta: "Response target: same business day",
+    title: "Support & technical help",
+    description: "Account, usage, billing, and technical assistance.",
+    label: "support@medalerto.me",
+    href: "mailto:support@medalerto.me",
+    icon: Mail,
+    actionIcon: ArrowUpRight,
+    actionClass:
+      "bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-200 border border-teal-200 dark:border-teal-800 font-bold px-4 py-2 rounded-xl text-xs hover:underline inline-flex items-center gap-1.5",
   },
   {
-    title: "Phone",
-    description: "For urgent clinic-side operational concerns during business hours.",
-    contactLabel: "+92 319 5490028",
-    contactHref: "tel:+923195490028",
-    meta: "Mon-Fri, 9:00 AM - 6:00 PM (PKT)",
+    title: "Direct phone calls",
+    description: "Call us for urgent clinic-side operational concerns.",
+    label: "+92 321 4194045",
+    href: "tel:+923214194045",
+    icon: Phone,
+    actionIcon: Phone,
+    actionClass:
+      "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 font-bold px-4 py-2 rounded-xl text-xs hover:border-teal-500 inline-flex items-center gap-1.5",
   },
   {
-    title: "WhatsApp",
-    description: "Quick setup and usage guidance from the support team.",
-    contactLabel: "Open WhatsApp",
-    contactHref: "https://wa.me/923195490028?text=Hello%20MedAlerto%20team%2C%20I%20need%20help%20with%20...",
-    meta: "Fast responses in business hours",
+    title: "WhatsApp support",
+    description: "Chat with our team for quick setup and usage guidance.",
+    label: "+92 321 4194045",
+    href: "https://wa.me/923214194045",
+    icon: MessageCircle,
+    actionIcon: MessageCircle,
+    actionClass:
+      "bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-5 py-2.5 rounded-xl text-xs shadow-md inline-flex items-center gap-2 transition-all",
+    external: true,
   },
 ];
 
 const notes = [
-  "Include clinic name and registered email in your message",
+  "Include clinic name and registered email",
   "Share screenshots for faster troubleshooting",
-  "Mention urgency if your consultation workflow is blocked",
 ];
 
 export default function ContactUsPage() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[var(--color-bg)] text-[var(--color-text-primary)]">
-      <div aria-hidden="true" className="pointer-events-none absolute -left-20 top-24 h-80 w-80 rounded-[60%_40%_35%_65%/55%_35%_65%_45%] bg-[var(--color-accent)]/60 blur-3xl" />
-      <div aria-hidden="true" className="pointer-events-none absolute -right-24 top-56 h-96 w-96 rounded-[48%_52%_39%_61%/48%_34%_66%_52%] bg-[var(--color-primary)]/10 blur-3xl" />
+    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
       <Navbar />
 
-      <main className="relative z-10 px-4 pb-20 pt-28 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-6xl">
-          <section className="rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-7 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] sm:p-10">
-            <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--color-primary)]">Contact</p>
-            <h1 className="mt-4 max-w-4xl font-heading text-4xl font-semibold leading-tight sm:text-5xl">Talk to the MedAlerto team.</h1>
-            <p className="mt-5 max-w-3xl text-lg leading-relaxed text-[var(--color-text-secondary)]">
-              If you need product guidance, support, or policy clarification, we respond with direct and practical help.
+      <main className="px-4 pb-20 pt-28 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-5xl">
+          <header className="max-w-3xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-teal-200 bg-teal-50 px-3 py-1.5 text-[11px] font-bold tracking-[0.16em] text-teal-800 dark:border-teal-800 dark:bg-teal-950/60 dark:text-teal-200">
+              <span className="relative flex h-2 w-2" aria-hidden="true">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-teal-500 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-teal-600 dark:bg-teal-400" />
+              </span>
+              DIRECT CLINIC SUPPORT
+            </div>
+            <h1 className="mt-5 text-3xl font-bold text-slate-900 dark:text-white sm:text-4xl">
+              Talk to the MedAlerto team.
+            </h1>
+            <p className="mt-4 max-w-2xl text-base font-medium leading-7 text-slate-700 dark:text-slate-300">
+              If you need product guidance, clinic onboarding, or technical assistance, we respond with direct help.
             </p>
-          </section>
+          </header>
 
-          <section className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-2">
-            {channels.map((channel) => (
-              <article key={channel.title} className="rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(93,112,82,0.12)] sm:p-7">
-                <h2 className="font-heading text-2xl font-semibold">{channel.title}</h2>
-                <p className="mt-3 text-sm leading-relaxed text-[var(--color-text-secondary)]">{channel.description}</p>
-                <a
-                  href={channel.contactHref}
-                  target={channel.contactHref.startsWith("https") ? "_blank" : undefined}
-                  rel={channel.contactHref.startsWith("https") ? "noopener noreferrer" : undefined}
-                  className="mt-5 inline-flex rounded-full border border-[var(--color-primary)]/40 bg-[var(--color-primary)]/10 px-4 py-2 text-sm font-bold text-[var(--color-primary)] hover:bg-[var(--color-primary)]/15"
+          <section aria-label="Contact channels" className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-2">
+            {channels.map((channel) => {
+              const Icon = channel.icon;
+              const ActionIcon = channel.actionIcon;
+              return (
+                <article
+                  key={channel.title}
+                  className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:border-teal-500/40 dark:border-slate-800 dark:bg-slate-900"
                 >
-                  {channel.contactLabel}
-                </a>
-                <p className="mt-3 text-xs text-[var(--color-text-secondary)]">{channel.meta}</p>
-              </article>
-            ))}
+                  <h2 className="mb-1 flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">
+                    <Icon className="h-5 w-5 text-teal-700 dark:text-teal-300" aria-hidden="true" />
+                    {channel.title}
+                  </h2>
+                  <p className="mb-4 text-xs font-medium leading-5 text-slate-600 dark:text-slate-300">
+                    {channel.description}
+                  </p>
+                  <a
+                    href={channel.href}
+                    target={channel.external ? "_blank" : undefined}
+                    rel={channel.external ? "noopener noreferrer" : undefined}
+                    className={channel.actionClass}
+                    aria-label={`${channel.title}: ${channel.label}`}
+                  >
+                    <ActionIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                    {channel.label}
+                  </a>
+                </article>
+              );
+            })}
           </section>
 
-          <section className="mt-12 grid gap-5 lg:grid-cols-12">
-            <article className="rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)]/95 p-6 shadow-[0_10px_40px_-10px_rgba(193,140,93,0.16)] sm:p-8 lg:col-span-7">
-              <h2 className="font-heading text-2xl font-semibold">Before you reach out</h2>
-              <ul className="mt-4 space-y-3">
+          <section className="mt-8 grid gap-5 md:grid-cols-2">
+            <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+              <h2 className="mb-3 text-base font-bold text-slate-900 dark:text-white">Before you reach out</h2>
+              <ul className="space-y-3">
                 {notes.map((item) => (
-                  <li key={item} className="flex items-start gap-3 text-sm leading-relaxed text-[var(--color-text-secondary)]">
-                    <span className="mt-1.5 h-2 w-2 rounded-full bg-[var(--color-secondary)]" />
-                    <span>{item}</span>
+                  <li key={item} className="flex items-start gap-2 text-xs font-semibold leading-5 text-slate-700 dark:text-slate-300">
+                    <span className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" aria-hidden="true">
+                      <Check className="h-3 w-3" strokeWidth={3} />
+                    </span>
+                    {item}
                   </li>
                 ))}
               </ul>
             </article>
 
-            <article className="rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-primary)] p-6 text-[var(--color-on-primary)] shadow-[0_12px_34px_-16px_rgba(93,112,82,0.5)] sm:p-8 lg:col-span-5">
-              <h2 className="font-heading text-2xl font-semibold">Business hours</h2>
-              <p className="mt-3 text-sm leading-relaxed text-[var(--color-on-primary)]/85">Monday to Friday: 9:00 AM - 6:00 PM (PKT)</p>
-              <p className="mt-3 text-sm leading-relaxed text-[var(--color-on-primary)]/85">Saturday: 10:00 AM - 3:00 PM (PKT)</p>
-              <p className="mt-5 text-sm leading-relaxed text-[var(--color-on-primary)]/85">We prioritize clinic-impacting issues first and keep communication transparent until resolved.</p>
+            <article className="rounded-2xl border border-slate-700/60 bg-gradient-to-br from-slate-900 to-teal-950 p-6 text-white shadow-md">
+              <h2 className="mb-3 flex items-center gap-2 text-base font-bold text-white">
+                <Clock3 className="h-5 w-5 text-teal-300" aria-hidden="true" />
+                Business hours
+              </h2>
+              <span className="mb-1 block text-xs font-semibold text-slate-200">
+                Monday – Friday: 9:00 AM – 6:00 PM (PKT)
+              </span>
+              <span className="block text-xs font-semibold text-slate-200">
+                Saturday: 10:00 AM – 3:00 PM (PKT)
+              </span>
             </article>
           </section>
         </div>
