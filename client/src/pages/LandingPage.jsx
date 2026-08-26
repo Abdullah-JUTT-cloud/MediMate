@@ -274,96 +274,479 @@ export default function LandingPage() {
       <Navbar />
 
       <main>
-        <section className="relative isolate overflow-hidden bg-[var(--color-bg)] pt-28 sm:pt-32">
+        {/* ───────────────────────────────────────────────────────────────
+            HERO
+            Left: proof-first copy stack (badge → headline → CTAs →
+            social proof → metrics). Right: portrait card with floating
+            glass product chips that narrate the workflow. All decorative
+            layers are aria-hidden and every animation is disabled for
+            prefers-reduced-motion (scoped guard at the end of section).
+           ─────────────────────────────────────────────────────────────── */}
+        <section className="hero-section relative isolate overflow-hidden bg-[var(--color-bg)] pt-28 sm:pt-32">
+          {/* Ambient aurora wash */}
           <div
             aria-hidden="true"
-            className="absolute -left-24 top-8 h-80 w-80 rounded-[60%_40%_30%_70%/60%_30%_70%_40%] bg-[var(--color-primary)]/15 blur-3xl"
+            className="hero-aurora-a absolute -left-24 top-8 h-80 w-80 rounded-[60%_40%_30%_70%/60%_30%_70%_40%] bg-[var(--color-primary)]/15 blur-3xl"
           />
           <div
             aria-hidden="true"
-            className="absolute -right-24 top-16 h-96 w-96 rounded-[58%_42%_56%_44%/44%_58%_42%_56%] bg-[var(--color-secondary)]/18 blur-3xl"
+            className="hero-aurora-b absolute -right-24 top-16 h-96 w-96 rounded-[58%_42%_56%_44%/44%_58%_42%_56%] bg-[var(--color-secondary)]/18 blur-3xl"
           />
+          {/* Medical plus-grid motif, fading out radially */}
+          <div aria-hidden="true" className="hero-grid-pattern absolute inset-y-0 right-0 w-full sm:w-3/5" />
           <div
             aria-hidden="true"
-            className="absolute inset-x-6 top-10 h-px bg-[var(--color-border)]/50"
+            className="absolute inset-x-6 top-10 h-px bg-gradient-to-r from-transparent via-[var(--color-border)] to-transparent"
           />
 
           <div className="relative mx-auto grid max-w-7xl grid-cols-12 gap-8 px-4 pb-16 sm:px-6 lg:px-8 xl:pb-24">
+            {/* ——— Copy column ——— */}
             <div className="col-span-12 flex flex-col justify-center xl:col-span-6">
-              <div className="flex items-center gap-4">
-                <span className="h-px w-12 bg-[var(--color-secondary)]" />
-                <p className="font-mono text-[9px] uppercase tracking-[0.35em] text-[var(--color-text-secondary)] sm:text-[10px]">
-                  Premium Clinic Workflow
-                </p>
+              {/* Eyebrow badge */}
+              <div className="hero-rise" style={{ "--d": "0ms" }}>
+                <span className="inline-flex items-center gap-2.5 rounded-full border border-[var(--color-border)] bg-[var(--color-card)]/70 py-2 pl-3.5 pr-4 shadow-[0_10px_30px_-16px_rgb(var(--color-primary-rgb)/0.55)] backdrop-blur-md">
+                  <span className="relative flex h-2 w-2">
+                    <span className="hero-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-primary)]" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--color-primary)]" />
+                  </span>
+                  <span className="font-mono text-[9px] font-bold uppercase tracking-[0.3em] text-[var(--color-text-secondary)] sm:text-[10px]">
+                    Premium Clinic Workflow
+                  </span>
+                </span>
               </div>
 
-              <h1 className="mt-8 max-w-[15ch] text-[2.75rem] font-heading font-extrabold leading-[0.9] tracking-[-0.04em] text-balance sm:max-w-3xl sm:text-6xl sm:tracking-tight lg:text-7xl xl:text-[5.5rem]">
+              <h1
+                className="hero-rise mt-7 max-w-[15ch] text-[2.75rem] font-heading font-extrabold leading-[0.96] tracking-[-0.035em] text-balance sm:max-w-3xl sm:text-6xl lg:text-7xl xl:text-[5.25rem]"
+                style={{ "--d": "90ms" }}
+              >
                 <span className="block">Clinic workflow,</span>
-                <span className="block text-[var(--color-primary)]">
+                <span className="relative inline-block pb-2 text-[var(--color-primary)]">
                   mastered with
+                  <svg
+                    className="hero-underline absolute -bottom-0.5 left-0 h-[10px] w-full"
+                    viewBox="0 0 220 14"
+                    fill="none"
+                    preserveAspectRatio="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M4 11C60 5 150 3 216 7"
+                      stroke="#f59e0b"
+                      strokeOpacity="0.9"
+                      strokeWidth="5"
+                      strokeLinecap="round"
+                    />
+                  </svg>
                 </span>
                 <span className="block italic text-[var(--color-secondary)]">
                   quiet precision.
                 </span>
               </h1>
 
-              <p className="mt-8 max-w-xl text-[1rem] leading-relaxed text-[var(--color-text-secondary)] sm:text-lg">
+              <p
+                className="hero-rise mt-6 max-w-xl text-[1rem] leading-relaxed text-[var(--color-text-secondary)] sm:text-lg"
+                style={{ "--d": "180ms" }}
+              >
                 MedAlerto unifies prescriptions, scheduling, and patient history
                 into a single, intuitive interface designed for the modern
                 practice.
               </p>
 
-              <div className="mt-10 flex flex-col gap-4 sm:flex-row">
+              {/* CTAs */}
+              <div
+                className="hero-rise mt-9 flex flex-col gap-4 sm:flex-row sm:items-center"
+                style={{ "--d": "270ms" }}
+              >
                 <button
                   onClick={() => navigate("/signup")}
-                  className="group relative inline-flex h-14 items-center justify-center overflow-hidden rounded-full bg-[var(--color-primary)] px-10 font-body text-sm font-bold text-[var(--color-on-primary)] shadow-[0_20px_40px_-10px_rgba(26,155,140,0.3)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_25px_50px_-12px_rgba(26,155,140,0.4)]"
+                  className="hero-cta-primary group relative inline-flex h-14 items-center justify-center gap-2.5 overflow-hidden rounded-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)] px-9 font-body text-sm font-bold text-[var(--color-on-primary)] transition-all duration-300 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-primary)]"
                 >
                   <span className="relative z-10">Start Free Trial</span>
+                  <svg
+                    className="relative z-10 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M5 12h14" />
+                    <path d="m13 6 6 6-6 6" />
+                  </svg>
                   <div className="absolute inset-0 -translate-x-full bg-white/10 transition-transform duration-500 group-hover:translate-x-0" />
                 </button>
                 <button
                   onClick={() => navigate("/features")}
-                  className="see-platform-button inline-flex h-14 items-center justify-center rounded-full border border-[var(--color-border)] bg-white/50 px-10 font-body text-sm font-bold backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:bg-white hover:shadow-xl"
+                  className="see-platform-button group inline-flex h-14 items-center justify-center gap-3 rounded-full border border-[var(--color-border)] bg-[var(--color-card)]/60 px-7 font-body text-sm font-bold backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-primary)]"
                 >
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-primary)]/12 text-[var(--color-primary)] transition-transform duration-300 group-hover:scale-110">
+                    <svg
+                      className="ml-0.5 h-3 w-3"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      aria-hidden="true"
+                    >
+                      <path d="M8 5.14v14l11-7-11-7Z" />
+                    </svg>
+                  </span>
                   See Platform
                 </button>
               </div>
 
-              {/* Fix the hero stat strip wrapping awkwardly on narrower widths by allowing the metrics to flow cleanly. */}
-              <div className="mt-12 flex flex-wrap items-center gap-8 border-t border-[var(--color-border)]/50 pt-10">
+              {/* Social proof */}
+              <div
+                className="hero-rise mt-10 flex flex-wrap items-center gap-x-6 gap-y-4"
+                style={{ "--d": "360ms" }}
+              >
+                <div className="flex -space-x-2.5">
+                  {[
+                    { initials: "HA", bg: "#0d9488" },
+                    { initials: "FK", bg: "#0f766e" },
+                    { initials: "SM", bg: "#14b8a6" },
+                  ].map((a) => (
+                    <span
+                      key={a.initials}
+                      className="flex h-9 w-9 items-center justify-center rounded-full text-[10px] font-extrabold text-white ring-2 ring-[var(--color-bg)]"
+                      style={{ background: a.bg }}
+                    >
+                      {a.initials}
+                    </span>
+                  ))}
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-card)] text-[10px] font-extrabold text-[var(--color-text-secondary)] ring-2 ring-[var(--color-bg)]">
+                    +2k
+                  </span>
+                </div>
                 <div>
-                  <p className="text-2xl font-bold text-[var(--color-primary)]">
+                  <div
+                    className="flex items-center gap-0.5 text-amber-400"
+                    role="img"
+                    aria-label="Rated 4.9 out of 5"
+                  >
+                    {[...Array(5)].map((_, i) => (
+                      <svg
+                        key={i}
+                        className="h-4 w-4"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27Z" />
+                      </svg>
+                    ))}
+                  </div>
+                  <p className="mt-1.5 text-xs font-bold text-[var(--color-text-secondary)]">
+                    4.9/5 from 2,300+ doctors
+                  </p>
+                </div>
+              </div>
+
+              {/* Metrics */}
+              <div
+                className="hero-rise mt-10 flex flex-wrap items-center gap-8 border-t border-[var(--color-border)]/50 pt-8"
+                style={{ "--d": "450ms" }}
+              >
+                <div>
+                  <p className="text-[1.7rem] font-heading font-extrabold leading-none text-[var(--color-primary)]">
                     5,000+
                   </p>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-secondary)]/60">
+                  <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-secondary)]/60">
                     Active Doctors
                   </p>
                 </div>
-                <div className="h-8 w-px bg-[var(--color-border)]/50" />
+                <div className="h-9 w-px bg-gradient-to-b from-transparent via-[var(--color-border)] to-transparent" />
                 <div>
-                  <p className="text-2xl font-bold text-[var(--color-primary)]">
+                  <p className="text-[1.7rem] font-heading font-extrabold leading-none text-[var(--color-primary)]">
                     1M+
                   </p>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-secondary)]/60">
+                  <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-[var(--color-text-secondary)]/60">
                     Patients Served
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="col-span-12 xl:col-span-5 xl:col-start-8 relative">
-              <div className="group relative mx-auto w-full max-w-2xl">
-                <div className="relative overflow-hidden rounded-[2.5rem] border-8 border-white shadow-[0_32px_64px_-16px_rgba(0,0,0,0.12)]">
-                  <img
-                    src={doc}
-                    alt="Doctor"
-                    className="aspect-4/5 w-full object-cover object-center"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[var(--color-primary)]/20 to-transparent" />
+            {/* ——— Portrait column ——— */}
+            <div className="col-span-12 mt-14 xl:col-span-5 xl:col-start-8 xl:mt-0">
+              <div className="relative mx-auto w-full max-w-2xl">
+                {/* Halo + rotating ring */}
+                <div
+                  aria-hidden="true"
+                  className="hero-glow absolute inset-6 rounded-[3rem] bg-[var(--color-primary)]/20 blur-3xl"
+                />
+                <div
+                  aria-hidden="true"
+                  className="hero-ring pointer-events-none absolute left-1/2 top-1/2 aspect-square w-[115%] max-w-none -translate-x-1/2 -translate-y-1/2 rounded-full"
+                />
+
+                <div
+                  className="hero-rise relative mx-auto w-full max-w-md"
+                  style={{ "--d": "200ms" }}
+                >
+                  {/* Gradient-ring portrait card */}
+                  <div className="hero-portrait relative overflow-hidden rounded-[2.5rem] p-[6px]">
+                    <div className="relative overflow-hidden rounded-[2.35rem]">
+                      <img
+                        src={doc}
+                        alt="Smiling doctor in scrubs with a stethoscope"
+                        className="aspect-4/5 w-full object-cover object-center"
+                        loading="eager"
+                        decoding="async"
+                      />
+                      <div
+                        aria-hidden="true"
+                        className="absolute inset-0 bg-gradient-to-t from-[#06251f]/70 via-transparent to-transparent"
+                      />
+                      {/* Practitioner caption */}
+                      <div className="absolute bottom-5 left-5 right-5 flex items-center gap-3 rounded-2xl border border-white/20 bg-black/35 px-4 py-2.5 backdrop-blur-md">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-primary)] text-[11px] font-extrabold text-white">
+                          AR
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-bold leading-none text-white">
+                            Dr. Ayesha R.
+                          </p>
+                          <p className="mt-1.5 truncate text-[10px] font-semibold text-white/70">
+                            General Practice · Multan
+                          </p>
+                        </div>
+                        <span
+                          className="ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-400/20 text-emerald-300"
+                          title="Verified practitioner"
+                        >
+                          <svg
+                            className="h-3 w-3"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M20 6 9 17l-5-5" />
+                          </svg>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Floating chip — prescription story */}
+                  <div className="hero-float hero-float-a absolute -left-3 top-12 sm:-left-12">
+                    <div className="hero-chip flex items-center gap-3 rounded-2xl px-4 py-3">
+                      <span
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-white"
+                        style={{
+                          background:
+                            "linear-gradient(135deg, var(--color-primary), var(--color-primary-hover))",
+                        }}
+                      >
+                        <svg
+                          className="h-4 w-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="m22 2-7 20-4-9-9-4Z" />
+                          <path d="M22 2 11 13" />
+                        </svg>
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-xs font-extrabold leading-none text-[var(--color-text-primary)]">
+                          Prescription sent
+                        </p>
+                        <p className="mt-1.5 text-[10px] font-bold text-[var(--color-text-secondary)]">
+                          via WhatsApp · just now
+                        </p>
+                      </div>
+                      <span className="ml-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-500">
+                        <svg
+                          className="h-3 w-3"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Floating chip — scheduling story */}
+                  <div className="hero-float hero-float-b absolute -right-3 bottom-16 sm:-right-10">
+                    <div className="hero-chip flex items-center gap-3 rounded-2xl px-4 py-3">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-primary)]/12 text-[var(--color-primary)]">
+                        <svg
+                          className="h-4 w-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <rect x="3" y="4" width="18" height="18" rx="2" />
+                          <path d="M16 2v4M8 2v4M3 10h18" />
+                        </svg>
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-xs font-extrabold leading-none text-[var(--color-text-primary)]">
+                          Next appointment
+                        </p>
+                        <p className="mt-1.5 text-[10px] font-bold text-[var(--color-text-secondary)]">
+                          Today · 4:30 PM
+                        </p>
+                      </div>
+                      <span className="ml-1 shrink-0 rounded-full bg-emerald-500/15 px-2 py-1 text-[9px] font-extrabold uppercase tracking-wide text-emerald-500">
+                        Confirmed
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Floating chip — growth signal (hidden on small screens) */}
+                  <div className="hero-float hero-float-c absolute -top-5 right-8 hidden sm:-right-4 sm:block">
+                    <div className="hero-chip flex items-center gap-2.5 rounded-full py-2 pl-3.5 pr-4">
+                      <span className="flex h-4 items-end gap-[3px]">
+                        <span className="h-1.5 w-1 rounded-full bg-[var(--color-primary)]/40" />
+                        <span className="h-3 w-1 rounded-full bg-[var(--color-primary)]/70" />
+                        <span className="h-4 w-1 rounded-full bg-[var(--color-primary)]" />
+                      </span>
+                      <span className="text-xs font-extrabold text-[var(--color-text-primary)]">
+                        +28%
+                      </span>
+                      <span className="text-[10px] font-bold text-[var(--color-text-secondary)]">
+                        follow-ups
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+
+          <style>{`
+            /* Entrance choreography */
+            .hero-rise {
+              opacity: 0;
+              transform: translateY(22px);
+              animation: heroRise 0.9s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+              animation-delay: var(--d, 0ms);
+            }
+            @keyframes heroRise {
+              to { opacity: 1; transform: translateY(0); }
+            }
+
+            /* Badge pulse */
+            .hero-ping {
+              animation: heroPing 2.2s cubic-bezier(0, 0, 0.2, 1) infinite;
+            }
+            @keyframes heroPing {
+              0% { transform: scale(1); opacity: 0.7; }
+              75%, 100% { transform: scale(2.6); opacity: 0; }
+            }
+
+            /* Hand-drawn underline draws itself in */
+            .hero-underline path {
+              stroke-dasharray: 240;
+              stroke-dashoffset: 240;
+              animation: heroDraw 1s ease 1.1s forwards;
+            }
+            @keyframes heroDraw {
+              to { stroke-dashoffset: 0; }
+            }
+
+            /* Aurora drift */
+            .hero-aurora-a { animation: heroDrift 14s ease-in-out infinite; }
+            .hero-aurora-b { animation: heroDrift 19s ease-in-out infinite reverse; }
+            @keyframes heroDrift {
+              0%, 100% { transform: translate(0, 0) scale(1); }
+              50% { transform: translate(28px, -20px) scale(1.07); }
+            }
+
+            /* Plus-grid motif (radial fade, theme-aware tint) */
+            .hero-grid-pattern {
+              background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cpath d='M14 10v8M10 14h8' stroke='%230d9488' stroke-opacity='0.16' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+              background-size: 28px 28px;
+              -webkit-mask-image: radial-gradient(ellipse 65% 55% at 68% 32%, black, transparent 72%);
+              mask-image: radial-gradient(ellipse 65% 55% at 68% 32%, black, transparent 72%);
+            }
+
+            /* Portrait halo + dashed orbit ring */
+            .hero-glow { animation: heroGlow 9s ease-in-out infinite; }
+            @keyframes heroGlow {
+              0%, 100% { opacity: 0.5; transform: scale(1); }
+              50% { opacity: 0.85; transform: scale(1.05); }
+            }
+            .hero-ring {
+              border: 1.5px dashed rgb(var(--color-primary-rgb) / 0.35);
+              animation: heroSpin 48s linear infinite;
+            }
+            /* v4 note: centering comes from the CSS translate property
+               (via -translate-x/y-1/2), so keyframes only rotate. */
+            @keyframes heroSpin {
+              to { transform: rotate(360deg); }
+            }
+
+            /* Gradient ring frame for the portrait */
+            .hero-portrait {
+              background: conic-gradient(
+                from 220deg,
+                rgb(var(--color-primary-rgb) / 0.85),
+                rgb(var(--color-primary-rgb) / 0.08) 30%,
+                rgb(251 191 36 / 0.55) 62%,
+                rgb(var(--color-primary-rgb) / 0.85)
+              );
+              box-shadow: 0 44px 88px -28px rgb(15 23 42 / 0.4);
+            }
+
+            /* Floating glass chips */
+            .hero-chip {
+              background: var(--color-card);
+              background: color-mix(in srgb, var(--color-card) 84%, transparent);
+              border: 1px solid var(--color-border);
+              border-color: color-mix(in srgb, var(--color-border) 80%, transparent);
+              box-shadow: 0 24px 48px -20px rgb(15 23 42 / 0.28);
+              backdrop-filter: blur(14px);
+              -webkit-backdrop-filter: blur(14px);
+            }
+            .hero-float { animation: heroBob 7s ease-in-out infinite; }
+            .hero-float-b { animation-duration: 8.5s; animation-delay: -2.5s; }
+            .hero-float-c { animation-duration: 6.5s; animation-delay: -4s; }
+            @keyframes heroBob {
+              0%, 100% { transform: translateY(0); }
+              50% { transform: translateY(-10px); }
+            }
+
+            /* Primary CTA glow (theme-aware via --color-primary-rgb) */
+            .hero-cta-primary {
+              box-shadow: 0 20px 40px -12px rgb(var(--color-primary-rgb) / 0.4);
+            }
+            .hero-cta-primary:hover {
+              box-shadow: 0 28px 56px -16px rgb(var(--color-primary-rgb) / 0.5);
+            }
+
+            /* Accessibility: honour reduced-motion preference */
+            @media (prefers-reduced-motion: reduce) {
+              .hero-rise { animation: none; opacity: 1; transform: none; }
+              .hero-ping,
+              .hero-float,
+              .hero-aurora-a,
+              .hero-aurora-b,
+              .hero-glow,
+              .hero-ring { animation: none; }
+              .hero-underline path { animation: none; stroke-dashoffset: 0; }
+            }
+          `}</style>
         </section>
 
         {/* Trusted By Marquee */}
