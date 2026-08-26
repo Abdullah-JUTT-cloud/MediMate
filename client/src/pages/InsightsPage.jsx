@@ -3,38 +3,15 @@ import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import axiosInstance from "../api/axios";
 import { CardSkeleton } from "../components/SkeletonLoaders";
 
-// Design tokens for Organic/Natural system
-const tokens = {
-  colors: {
-    background: "var(--color-bg)",
-    foreground: "var(--color-text-primary)",
-    primary: "var(--color-primary)",
-    primaryForeground: "var(--color-on-primary)",
-    secondary: "var(--color-secondary)",
-    secondary_foreground: "var(--color-on-primary)",
-    accent: "var(--color-accent)",
-    accentForeground: "var(--color-text-primary)",
-    muted: "var(--color-bg-soft)",
-    mutedForeground: "var(--color-text-secondary)",
-    border: "var(--color-border)",
-    destructive: "var(--color-danger)",
-  },
-  shadows: {
-    soft: "0 4px 20px -2px rgba(93, 112, 82, 0.15)",
-    float: "0 10px 40px -10px rgba(193, 140, 93, 0.2)",
-    deepHover: "0 6px 24px -4px rgba(93, 112, 82, 0.25)",
-  },
-};
-
 const pct = (n) => `${Math.round(Number(n || 0))}%`;
 const safeNum = (n) => Number(n || 0);
 
 const trendText = (trend) => {
   if (trend === "up")
-    return { icon: TrendingUp, label: "Increasing", color: tokens.colors.destructive };
+    return { icon: TrendingUp, label: "Increasing", color: "rose" };
   if (trend === "down")
-    return { icon: TrendingDown, label: "Decreasing", color: tokens.colors.primary };
-  return { icon: Minus, label: "Stable", color: tokens.colors.mutedForeground };
+    return { icon: TrendingDown, label: "Decreasing", color: "teal" };
+  return { icon: Minus, label: "Stable", color: "slate" };
 };
 
 export default function InsightsPage() {
@@ -60,10 +37,10 @@ export default function InsightsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-3xl font-bold text-[var(--color-text-primary)]" style={{ fontFamily: "Fraunces" }}>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
             Insights
           </h2>
-          <p className="text-sm mt-2 text-[var(--color-text-secondary)]">
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-300 mt-1">
             Simple clinical and clinic operations summary
           </p>
         </div>
@@ -98,236 +75,209 @@ export default function InsightsPage() {
 
   const new30 = safeNum(flow?.newVsReturning?.days30?.new);
   const returning30 = safeNum(flow?.newVsReturning?.days30?.returning);
-  const dormant90 = safeNum(flow?.dormantBuckets?.d90Plus);
   const revisitDays = Number(flow?.revisitIntervalTrend?.currentAvgDays || 0).toFixed(1);
 
   const noShowRate = pct(ops?.noShowRate30d);
   const completionRate = pct(ops?.onTimeCompletionRate30d);
   const prescriptionCoverage = pct(continuity?.prescriptionCoverageRatio);
 
-  const topCancelReason = cancellationMix[0]?.reason || "No major issue";
   const peakDay = ops?.peakLoad?.bestWeekday?.day || "N/A";
   const peakHour = ops?.peakLoad?.bestHour?.hour || "N/A";
 
   return (
     <div className="space-y-8">
+      {/* HEADER & TITLE BLOCK */}
       <div>
-        <h1 className="text-4xl md:text-5xl font-bold text-[var(--color-text-primary)] mb-2" style={{ fontFamily: "Fraunces", fontWeight: 700 }}>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
           Insights
         </h1>
-        <p className="text-base text-[var(--color-text-secondary)]">
+        <p className="text-sm font-medium text-slate-600 dark:text-slate-300 mt-1">
           Simple clinical and clinic operations summary
         </p>
       </div>
 
+      {/* TOP KPI STRIP: "TODAY AT A GLANCE" */}
       <div>
-        <h3 className="text-xs font-bold uppercase tracking-widest mb-4 text-[var(--color-text-secondary)]">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-4 block">
           Today At A Glance
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { 
-              label: "Follow-ups This Week", 
-              value: followUpsDue, 
-              hint: "Patients due for review", 
-              color: tokens.colors.primary,
-              Icon: null
+            {
+              label: "Follow-ups This Week",
+              value: followUpsDue,
+              hint: "Patients due for review",
+              isDanger: false,
             },
-            { 
-              label: "Patients Needing Attention", 
-              value: needsAttention, 
-              hint: "Overdue + repeat complaints", 
-              color: tokens.colors.destructive,
-              Icon: null 
+            {
+              label: "Patients Needing Attention",
+              value: needsAttention,
+              hint: "Overdue + repeat complaints",
+              isDanger: true,
             },
-            { 
-              label: "No-show Rate", 
-              value: noShowRate, 
-              hint: "Last 30 days", 
-              color: tokens.colors.secondary,
-              Icon: null 
+            {
+              label: "No-show Rate",
+              value: noShowRate,
+              hint: "Last 30 days",
+              isDanger: false,
             },
-            { 
-              label: "Prescription Coverage", 
-              value: prescriptionCoverage, 
-              hint: "Checkups with prescription", 
-              color: tokens.colors.primary,
-              Icon: null 
+            {
+              label: "Prescription Coverage",
+              value: prescriptionCoverage,
+              hint: "Checkups with prescription",
+              isDanger: false,
             },
           ].map((card) => (
             <div
               key={card.label}
-              className="rounded-3xl p-6 transition-all duration-300 hover:scale-105 hover:shadow-lg cursor-pointer group"
-              style={{
-                background: tokens.colors.background,
-                border: `1px solid ${tokens.colors.border}`,
-                boxShadow: tokens.shadows.soft,
-              }}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm transition-all hover:border-teal-500/40"
             >
-              <p className="text-4xl md:text-5xl font-bold text-[var(--color-text-primary)] leading-none mb-3">
-                {card.value}
-              </p>
-              <p className="text-sm font-semibold mb-1" style={{ color: card.color }}>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1 block">
                 {card.label}
               </p>
-              <p className="text-xs text-[var(--color-text-secondary)]">{card.hint}</p>
+              <p className="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-1">
+                {card.value}
+              </p>
+              {card.isDanger ? (
+                <span className="text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50 px-2 py-0.5 rounded-md inline-block">
+                  {card.hint}
+                </span>
+              ) : (
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  {card.hint}
+                </p>
+              )}
             </div>
           ))}
         </div>
       </div>
 
-      {/* Two-Column Layout */}
+      {/* ANALYTICS GRID: PATIENT FLOW & CLINIC RELIABILITY */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Patient Flow */}
-        <div
-          className="rounded-3xl p-6 transition-all duration-300 hover:shadow-lg"
-          style={{
-            background: tokens.colors.background,
-            border: `1px solid ${tokens.colors.border}`,
-            boxShadow: tokens.shadows.soft,
-          }}
-        >
-          <h3 className="text-lg md:text-xl font-bold text-[var(--color-text-primary)] mb-2" style={{ fontFamily: "Fraunces" }}>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm mb-6">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
             Patient Flow
           </h3>
-          <p className="text-sm text-[var(--color-text-secondary)] mb-4">
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4">
             How patients are moving through your clinic
           </p>
 
           <div className="space-y-3">
-            <div
-              className="rounded-2xl p-4"
-              style={{
-                background: `${tokens.colors.muted}20`,
-                border: `1px solid ${tokens.colors.border}`,
-              }}
-            >
-              <p className="text-xs text-[var(--color-text-secondary)] font-medium">New vs Returning (Last 30 Days)</p>
-              <p className="text-base font-semibold text-[var(--color-text-primary)] mt-1">
+            <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 p-4 rounded-xl mb-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400 mb-1.5 block">
+                New vs Returning (Last 30 Days)
+              </p>
+              <p className="text-base font-bold text-slate-900 dark:text-slate-100">
                 New: {new30} • Returning: {returning30}
               </p>
             </div>
-            <div
-              className="rounded-2xl p-4"
-              style={{
-                background: `${tokens.colors.muted}20`,
-                border: `1px solid ${tokens.colors.border}`,
-              }}
-            >
-              <p className="text-xs text-[var(--color-text-secondary)] font-medium">Average revisit interval</p>
-              <p className="text-base font-semibold text-[var(--color-text-primary)] mt-1">{revisitDays} days</p>
+            <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 p-4 rounded-xl mb-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400 mb-1.5 block">
+                Average Revisit Interval
+              </p>
+              <p className="text-base font-bold text-slate-900 dark:text-slate-100">
+                {revisitDays} days (Last 30 days)
+              </p>
             </div>
-            <div
-              className="rounded-2xl p-4"
-              style={{
-                background: `${tokens.colors.muted}20`,
-                border: `1px solid ${tokens.colors.border}`,
-              }}
-            >
-              <p className="text-xs text-[var(--color-text-secondary)] font-medium">Dormant patients (90+ days)</p>
-              <p className="text-base font-semibold text-[var(--color-text-primary)] mt-1">{dormant90}</p>
+            <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 p-4 rounded-xl mb-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400 mb-1.5 block">
+                Dormant Patients (90+ Days)
+              </p>
+              <p className="text-base font-bold text-slate-900 dark:text-slate-100">
+                {safeNum(flow?.dormantBuckets?.d90Plus)}
+              </p>
             </div>
           </div>
         </div>
 
         {/* Clinic Reliability */}
-        <div
-          className="rounded-3xl p-6 transition-all duration-300 hover:shadow-lg"
-          style={{
-            background: tokens.colors.background,
-            border: `1px solid ${tokens.colors.border}`,
-            boxShadow: tokens.shadows.soft,
-          }}
-        >
-          <h3 className="text-lg md:text-xl font-bold text-[var(--color-text-primary)] mb-2" style={{ fontFamily: "Fraunces" }}>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm mb-6">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
             Clinic Reliability
           </h3>
-          <p className="text-sm text-[var(--color-text-secondary)] mb-4">
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4">
             Appointment operations health
           </p>
 
           <div className="space-y-3">
-            <div
-              className="rounded-2xl p-4"
-              style={{
-                background: `${tokens.colors.muted}20`,
-                border: `1px solid ${tokens.colors.border}`,
-              }}
-            >
-              <p className="text-xs text-[var(--color-text-secondary)] font-medium">On-time completion rate</p>
-              <p className="text-base font-semibold text-[var(--color-text-primary)] mt-1">
+            <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 p-4 rounded-xl mb-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400 mb-1.5 block">
+                On-Time Completion Rate
+              </p>
+              <p className="text-base font-bold text-slate-900 dark:text-slate-100">
                 {completionRate} (Last 30 days)
               </p>
             </div>
-            <div
-              className="rounded-2xl p-4"
-              style={{
-                background: `${tokens.colors.muted}20`,
-                border: `1px solid ${tokens.colors.border}`,
-              }}
-            >
-              <p className="text-xs text-[var(--color-text-secondary)] font-medium">Peak clinic load</p>
-              <p className="text-base font-semibold text-[var(--color-text-primary)] mt-1">
+            <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 p-4 rounded-xl mb-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400 mb-1.5 block">
+                Peak Clinic Load
+              </p>
+              <p className="text-base font-bold text-slate-900 dark:text-slate-100">
                 {peakDay} at {peakHour}
               </p>
             </div>
-            <div
-              className="rounded-2xl p-4"
-              style={{
-                background: `${tokens.colors.muted}20`,
-                border: `1px solid ${tokens.colors.border}`,
-              }}
-            >
-              <p className="text-xs text-[var(--color-text-secondary)] font-medium">Most common cancellation reason</p>
-              <p className="text-base font-semibold text-[var(--color-text-primary)] mt-1">{topCancelReason}</p>
+            <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 p-4 rounded-xl mb-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400 mb-1.5 block">
+                Most Common Cancellation Reason
+              </p>
+              <p className="text-base font-bold text-slate-900 dark:text-slate-100">
+                {cancellationMix[0]?.reason || "No major issue"}
+              </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Bottom Row: Health Concerns & Quick Totals */}
+      {/* CLINICAL TRENDS & PRACTICE TOTALS */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* Top Health Concerns */}
-        <div
-          className="rounded-3xl p-6 transition-all duration-300 hover:shadow-lg"
-          style={{
-            background: tokens.colors.background,
-            border: `1px solid ${tokens.colors.border}`,
-            boxShadow: tokens.shadows.soft,
-          }}
-        >
-          <h3 className="text-lg md:text-xl font-bold text-[var(--color-text-primary)] mb-2" style={{ fontFamily: "Fraunces" }}>
+        {/* Top Health Concerns Card */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
             Top Health Concerns
           </h3>
-          <p className="text-sm text-[var(--color-text-secondary)] mb-4">
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4">
             Most frequent diagnoses and direction
           </p>
 
           <div className="space-y-2">
             {topDiagnosesMoM.length === 0 ? (
-              <p className="text-sm text-[var(--color-text-secondary)]">Not enough history yet</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Not enough history yet</p>
             ) : (
               topDiagnosesMoM.map((item) => {
                 const t = trendText(item.trend);
                 const IconComponent = t.icon;
+                const colorClass =
+                  t.color === "rose"
+                    ? "text-rose-800 dark:text-rose-300"
+                    : t.color === "teal"
+                    ? "text-teal-800 dark:text-teal-300"
+                    : "text-slate-600 dark:text-slate-300";
+                const bgColor =
+                  t.color === "rose"
+                    ? "bg-rose-100 dark:bg-rose-950 border-rose-300 dark:border-rose-800"
+                    : t.color === "teal"
+                    ? "bg-teal-100 dark:bg-teal-950 border-teal-300 dark:border-teal-800"
+                    : "bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700";
+
                 return (
                   <div
                     key={item.disease}
-                    className="rounded-2xl p-4 flex items-center justify-between transition-all duration-300 hover:shadow-md"
-                    style={{
-                      background: `${tokens.colors.muted}20`,
-                      border: `1px solid ${tokens.colors.border}`,
-                    }}
+                    className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-3.5 rounded-xl mb-2.5 flex items-center justify-between"
                   >
                     <div>
-                      <p className="text-sm font-semibold text-[var(--color-text-primary)]">{item.disease}</p>
-                      <p className="text-xs text-[var(--color-text-secondary)] mt-1">{item.currentCount} this month</p>
+                      <p className="text-sm font-bold text-slate-900 dark:text-white capitalize">
+                        {item.disease}
+                      </p>
+                      <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 mt-0.5">
+                        {item.currentCount} this month
+                      </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <IconComponent size={18} color={t.color} />
-                      <p className="text-xs font-semibold" style={{ color: t.color }}>
-                        {t.label}
-                      </p>
+                      <div className={`${bgColor} text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1 border`}>
+                        <IconComponent size={12} style={{ stroke: "currentColor" }} />
+                        <span className={colorClass}>{t.label}</span>
+                      </div>
                     </div>
                   </div>
                 );
@@ -336,22 +286,16 @@ export default function InsightsPage() {
           </div>
         </div>
 
-        {/* Quick Totals */}
-        <div
-          className="rounded-3xl p-6 transition-all duration-300 hover:shadow-lg"
-          style={{
-            background: tokens.colors.background,
-            border: `1px solid ${tokens.colors.border}`,
-            boxShadow: tokens.shadows.soft,
-          }}
-        >
-          <h3 className="text-lg md:text-xl font-bold text-[var(--color-text-primary)] mb-2" style={{ fontFamily: "Fraunces" }}>
+        {/* Quick Totals & Practice Highlights Card */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1 flex items-center gap-2">
             Quick Totals
           </h3>
-          <p className="text-sm text-[var(--color-text-secondary)] mb-4">
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-4">
             Current totals in your practice
           </p>
 
+          {/* Mini 4-Stat Grid */}
           <div className="grid grid-cols-2 gap-3 mb-4">
             {[
               { label: "Patients", value: counts.patients || 0 },
@@ -361,49 +305,45 @@ export default function InsightsPage() {
             ].map((item) => (
               <div
                 key={item.label}
-                className="rounded-2xl p-4 transition-all duration-300 hover:scale-105"
-                style={{
-                  background: `${tokens.colors.muted}20`,
-                  border: `1px solid ${tokens.colors.border}`,
-                }}
+                className="bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 p-4 rounded-xl text-center"
               >
-                <p className="text-xs text-[var(--color-text-secondary)] font-medium">{item.label}</p>
-                <p className="text-2xl font-bold text-[var(--color-text-primary)] mt-2">{item.value}</p>
+                <p className="text-2xl font-extrabold text-slate-900 dark:text-white">
+                  {item.value}
+                </p>
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mt-1">
+                  {item.label}
+                </p>
               </div>
             ))}
           </div>
 
-          <div
-            className="rounded-2xl p-4"
-            style={{
-              background: `${tokens.colors.muted}20`,
-              border: `1px solid ${tokens.colors.border}`,
-            }}
-          >
-            <p className="text-xs text-[var(--color-text-secondary)] font-medium mb-2">Top Medicines Given</p>
+          {/* Top Medicines */}
+          <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 p-4 rounded-xl mb-3">
+            <p className="text-xs font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400 mb-2 block">
+              Top Medicines Given
+            </p>
             {topMedicines.length === 0 ? (
-              <p className="text-sm text-[var(--color-text-secondary)]">Not enough history yet</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Not enough history yet</p>
             ) : (
-              <div className="space-y-2">
+              <div className="flex flex-wrap gap-2">
                 {topMedicines.slice(0, 3).map((item) => (
-                  <div key={`med-${item.medicine}`} className="flex justify-between text-sm">
-                    <span className="text-[var(--color-text-primary)]">{item.medicine}</span>
-                    <span className="font-semibold text-[var(--color-text-secondary)]">{item.count}</span>
-                  </div>
+                  <span
+                    key={`med-${item.medicine}`}
+                    className="bg-teal-50 dark:bg-teal-950/40 text-teal-800 dark:text-teal-200 border border-teal-200 dark:border-teal-800 px-3 py-1 rounded-lg text-xs font-bold inline-block mr-2 mb-2"
+                  >
+                    {item.medicine}
+                  </span>
                 ))}
               </div>
             )}
           </div>
 
-          <div
-            className="rounded-2xl p-4 mt-3"
-            style={{
-              background: `${tokens.colors.muted}20`,
-              border: `1px solid ${tokens.colors.border}`,
-            }}
-          >
-            <p className="text-xs text-[var(--color-text-secondary)] font-medium">Most common diseases (all time)</p>
-            <p className="text-sm text-[var(--color-text-primary)] mt-2">
+          {/* Most Common Diseases */}
+          <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 p-4 rounded-xl">
+            <p className="text-xs font-bold uppercase tracking-wider text-teal-700 dark:text-teal-400 mb-2 block">
+              Most Common Diseases (All Time)
+            </p>
+            <p className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-1">
               {topDiseases.slice(0, 2).map((d) => d.disease).join(" • ") || "Not enough history yet"}
             </p>
           </div>
