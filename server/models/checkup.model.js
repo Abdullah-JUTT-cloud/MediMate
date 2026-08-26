@@ -71,6 +71,12 @@ const checkupSchema = new mongoose.Schema(
     },
     payment: {
       amount: { type: Number, required: true, default: 0, min: 0, max: 1000000 },
+      originalFee: { type: Number, default: 0, min: 0, max: 1000000 },
+      discount: { type: Number, default: 0, min: 0, max: 1000000 },
+      discountAmount: { type: Number, default: 0, min: 0, max: 1000000 },
+      netAmount: { type: Number, default: 0, min: 0, max: 1000000 },
+      ancillaryFee: { type: Number, default: 0, min: 0, max: 1000000 },
+      description: { type: String, default: "Consultation", trim: true, maxlength: 200 },
       method: {
         type: String,
         enum: ["Cash", "Card", "Online Transfer"],

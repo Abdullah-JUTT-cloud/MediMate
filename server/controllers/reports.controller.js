@@ -39,17 +39,18 @@ const buildFinancialData = async (doctorId, startDate, endDate) => {
       {
         $group: {
           _id: null,
-          totalRevenue: { $sum: { $toDouble: "$payment.amount" } },
+          totalRevenue: { $sum: { $toDouble: "$payment.netAmount" } },
           paidRevenue: {
             $sum: {
-              $cond: ["$payment.isPaid", { $toDouble: "$payment.amount" }, 0],
+              $cond: ["$payment.isPaid", { $toDouble: "$payment.netAmount" }, 0],
             },
           },
           unpaidRevenue: {
             $sum: {
-              $cond: ["$payment.isPaid", 0, { $toDouble: "$payment.amount" }],
+              $cond: ["$payment.isPaid", 0, { $toDouble: "$payment.netAmount" }],
             },
           },
+          totalDiscounts: { $sum: { $toDouble: "$payment.discountAmount" } },
           checkups: { $sum: 1 },
           uniquePatients: { $addToSet: "$patient" },
         },
@@ -65,6 +66,7 @@ const buildFinancialData = async (doctorId, startDate, endDate) => {
     totalRevenue: 0,
     paidRevenue: 0,
     unpaidRevenue: 0,
+    totalDiscounts: 0,
     checkups: 0,
     uniquePatients: [],
   };
@@ -78,13 +80,16 @@ const buildFinancialData = async (doctorId, startDate, endDate) => {
       totalRevenue: Number(stats.totalRevenue || 0),
       paidRevenue: Number(stats.paidRevenue || 0),
       unpaidRevenue: Number(stats.unpaidRevenue || 0),
+      totalDiscounts: Number(stats.totalDiscounts || 0),
       patientCount,
       checkupCount: Number(stats.checkups || 0),
       avgEarningPerPatient,
     },
     billingLog: billingRows.map((row) => ({
       patientName: row.patient?.name || "Unknown",
-      fee: Number(row.payment?.amount || 0),
+      fee: Number(row.payment?.netAmount ?? (row.payment?.amount ?? 0)),
+      originalFee: Number(row.payment?.originalFee ?? (row.payment?.amount ?? 0)),
+      discountAmount: Number(row.payment?.discountAmount ?? (row.payment?.discount ?? 0)),
       status: row.payment?.isPaid ? "Paid" : "Unpaid",
       method: row.payment?.method || "Cash",
       date: row.createdAt,
@@ -128,6 +133,7 @@ const generatePdfBuffer = (report) =>
 
       const summaryRows = [
         ["Total Revenue", `PKR ${Math.round(report.summary.totalRevenue).toLocaleString()}`],
+        ["Total Discounts Given", `PKR ${Math.round(report.summary.totalDiscounts).toLocaleString()}`],
         ["Patient Count", String(report.summary.patientCount)],
         ["Average Earning / Patient", `PKR ${Math.round(report.summary.avgEarningPerPatient).toLocaleString()}`],
         ["Paid Revenue", `PKR ${Math.round(report.summary.paidRevenue).toLocaleString()}`],
@@ -187,6 +193,7 @@ const generateXlsxBuffer = (report) => {
     { Metric: "From", Value: new Date(report.range.startDate).toLocaleDateString("en-PK") },
     { Metric: "To", Value: new Date(report.range.endDate).toLocaleDateString("en-PK") },
     { Metric: "Total Revenue", Value: report.summary.totalRevenue },
+    { Metric: "Total Discounts Given", Value: report.summary.totalDiscounts },
     { Metric: "Patient Count", Value: report.summary.patientCount },
     { Metric: "Average Earning Per Patient", Value: report.summary.avgEarningPerPatient },
     { Metric: "Paid Revenue", Value: report.summary.paidRevenue },

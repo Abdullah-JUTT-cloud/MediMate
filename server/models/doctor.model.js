@@ -173,6 +173,24 @@ const doctorSchema = new Schema(
       type: String,
       default: "",
     },
+    profilePicUrl: {
+      type: String,
+      default: "",
+    },
+    verificationStatus: {
+      type: String,
+      enum: ["PENDING", "APPROVED", "REJECTED"],
+      default: "PENDING",
+    },
+    subscriptionStatus: {
+      type: String,
+      enum: ["TRIAL", "PENDING_VERIFICATION", "ACTIVE", "MONTHLY", "YEARLY", "BLOCKED", "INACTIVE"],
+      default: "TRIAL",
+    },
+    subscriptionExpiresAt: {
+      type: Date,
+      default: null,
+    },
     profileVerificationStatus: {
       type: String,
       enum: ["Pending", "In Review", "Needs Changes", "Verified", "Approved"],

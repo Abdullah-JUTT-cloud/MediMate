@@ -25,7 +25,7 @@ export const getProfile = async (req, res) => {
 export const getVerificationStatus = async (req, res) => {
   try {
     const doctor = await Doctor.findById(req.doctorId).select(
-      "profileVerificationStatus profileVerificationReviewedAt profileVerificationReviewedBy profileVerificationNotes"
+      "profileVerificationStatus profileVerificationReviewedAt profileVerificationReviewedBy profileVerificationNotes subscriptionStatus subscriptionExpiresAt"
     );
 
     if (!doctor) {
@@ -37,6 +37,8 @@ export const getVerificationStatus = async (req, res) => {
       profileVerificationReviewedAt: doctor.profileVerificationReviewedAt,
       profileVerificationReviewedBy: doctor.profileVerificationReviewedBy,
       profileVerificationNotes: doctor.profileVerificationNotes,
+      subscriptionStatus: doctor.subscriptionStatus,
+      subscriptionExpiresAt: doctor.subscriptionExpiresAt,
     });
   } catch (error) {
     console.error("[getVerificationStatus]", error);
@@ -115,7 +117,10 @@ export const updateProfile = async (req, res) => {
     if (typeof clinics !== "undefined") doctor.clinics = clinics;
     if (typeof hospitals !== "undefined") doctor.hospitals = hospitals;
     if (typeof slotDuration !== "undefined") doctor.slotDuration = Number(slotDuration);
-    if (typeof profilePicture !== "undefined") doctor.profilePicture = profilePicture;
+    if (typeof profilePicture !== "undefined") {
+      doctor.profilePicture = profilePicture;
+      doctor.profilePicUrl = profilePicture;
+    }
     if (typeof primaryDegree !== "undefined") doctor.primaryDegree = String(primaryDegree).trim();
     if (typeof gender !== "undefined") doctor.gender = gender;
     if (typeof title !== "undefined") doctor.title = title;
@@ -132,9 +137,13 @@ export const updateProfile = async (req, res) => {
     const updatedDoc = await Doctor.findById(req.doctorId).select(
       "-password -otp -otpExpiry -resetToken -resetTokenExpiry",
     );
+    const docObj = updatedDoc?.toObject ? updatedDoc.toObject() : updatedDoc;
+    if (docObj?.profilePicture) docObj.profilePicture = getFileUrl(docObj.profilePicture);
+    if (docObj?.profilePicUrl) docObj.profilePicUrl = getFileUrl(docObj.profilePicUrl);
+    if (docObj?.pmdcCertificate) docObj.pmdcCertificate = getFileUrl(docObj.pmdcCertificate);
     res
       .status(200)
-      .json({ message: "Profile updated successfully", doctor: updatedDoc });
+      .json({ message: "Profile updated successfully", doctor: docObj });
   } catch (error) {
     console.error("[updateProfile]", error);
     res.status(500).json({ message: "Internal server error" });
@@ -164,11 +173,13 @@ export const uploadProfilePicture = async (req, res) => {
     const { key, url } = await uploadToR2(req.file, "profiles");
 
     doctor.profilePicture = key;
+    doctor.profilePicUrl = key;
     await doctor.save();
 
     res.status(200).json({
       message: "Profile picture updated successfully",
       profilePicture: url,
+      profilePicUrl: url,
       key,
     });
   } catch (error) {

@@ -28,6 +28,8 @@ import issueTicketRoutes from "./routes/issueTicket.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
 import patientAuthRoutes from "./routes/patientAuth.routes.js";
 import patientChatRoutes from "./routes/patientChat.routes.js";
+import subscriptionRoutes from "./routes/subscription.routes.js";
+import { startSubscriptionExpiryJob } from "./utils/subscriptionJob.js";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import mongoSanitize from "express-mongo-sanitize";
@@ -105,6 +107,7 @@ app.use("/api/admin", dataLimiter, adminRoutes);
 app.use("/api/issues", dataLimiter, issueTicketRoutes);
 app.use("/api/notifications", dataLimiter, notificationRoutes);
 app.use("/api/patient-chats", dataLimiter, patientChatRoutes);
+app.use("/api/subscriptions", dataLimiter, subscriptionRoutes);
 
  app.use("/api/insights", dataLimiter, insightsRoutes)
 
@@ -115,6 +118,7 @@ connectDB()
         console.log(`Server is running on port ${PORT}`);
     })
     startReminderJob();
+    startSubscriptionExpiryJob();
 })
 .catch((error)=>{
     console.log("Error connecting to MongoDB: ",error.message);

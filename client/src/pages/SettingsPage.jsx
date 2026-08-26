@@ -5,6 +5,18 @@ import axiosInstance from "../api/axios";
 import useAuthStore from "../store/authStore";
 import { ProfileHeaderSkeleton, FormFieldSkeleton } from "../components/SkeletonLoaders";
 import VerifiedBadge from "../components/VerifiedBadge";
+import blackLogo from "../assets/black.png";
+import whiteLogo from "../assets/white.png";
+
+const getSubscriptionCountdownText = (expiresAt, status = "TRIAL") => {
+  if (!expiresAt) return "";
+  const diffMs = new Date(expiresAt).getTime() - Date.now();
+  if (diffMs <= 0) return "Your subscription has ended. Please pay to continue.";
+  const totalDays = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+  const safeStatus = String(status || "").toUpperCase();
+  const label = safeStatus === "MONTHLY" ? "monthly subscription" : safeStatus === "YEARLY" ? "yearly subscription" : safeStatus === "ACTIVE" ? "active subscription" : safeStatus === "TRIAL" ? "free trial" : "subscription";
+  return `${totalDays} day${totalDays === 1 ? "" : "s"} remaining on your ${label}. Pay to move forward securely.`;
+};
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 const tokens = {
@@ -492,6 +504,7 @@ export default function SettingsPage() {
   const [hospitals, setHospitals] = useState([]);
   const [pmdcCertificate, setPmdcCertificate] = useState("");
   const [isUploadingPmdc, setIsUploadingPmdc] = useState(false);
+  const [trialMessage, setTrialMessage] = useState("");
 
   // ── Load profile on mount
   useEffect(() => {
@@ -522,7 +535,7 @@ export default function SettingsPage() {
         setClinics((d.clinics || []).map((c, i) => ({ ...c, id: c.id || Date.now() + i })));
         setHospitals((d.hospitals || []).map((h, i) => ({ ...h, id: h.id || Date.now() + i })));
         setPmdcCertificate(d.pmdcCertificate || "");
-        
+        setTrialMessage(getSubscriptionCountdownText(d.subscriptionExpiresAt, d.subscriptionStatus));
       } catch {
         toast.error("Failed to load profile");
       } finally {
@@ -538,10 +551,12 @@ export default function SettingsPage() {
     try {
       const res = await axiosInstance.put("/doctor/update-profile", data);
       const d = res.data.doctor;
-      setDoctor({
+      const nextDoctor = {
         ...(doctor || {}),
         ...d,
-      });
+      };
+      setDoctor(nextDoctor);
+      setTrialMessage(getSubscriptionCountdownText(d.subscriptionExpiresAt || nextDoctor.subscriptionExpiresAt, d.subscriptionStatus || nextDoctor.subscriptionStatus));
       toast.success(successMsg);
     } catch {
       toast.error("Failed to save");
@@ -645,14 +660,27 @@ export default function SettingsPage() {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-4xl md:text-5xl font-bold text-[var(--color-text-primary)] mb-2" style={{ fontFamily: "Fraunces" }}>
-          Settings
-        </h1>
-        <p className="text-base text-[var(--color-text-secondary)]">
-          Manage your profile and practice information
-        </p>
+      <div className="mb-6 flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-4xl md:text-5xl font-bold text-[var(--color-text-primary)] mb-2" style={{ fontFamily: "Fraunces" }}>
+            Settings
+          </h1>
+          <p className="text-base text-[var(--color-text-secondary)]">
+            Manage your profile and practice information
+          </p>
+        </div>
+        <img
+          src={document.documentElement.getAttribute("data-theme") === "dark" ? whiteLogo : blackLogo}
+          alt="MedAlerto logo"
+          className="hidden h-10 w-auto object-contain md:block"
+        />
       </div>
+
+      {trialMessage && (
+        <div className="mb-6 rounded-2xl border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/10 px-4 py-3 text-sm font-medium text-[var(--color-text-primary)]">
+          {trialMessage}
+        </div>
+      )}
 
       {/* Profile Picture Section */}
       <div
@@ -669,7 +697,7 @@ export default function SettingsPage() {
         >
           {doctor?.profilePicture ? (
             <img
-              src={doctor.profilePicture}
+              src={doctor.profilePicture || doctor.profilePicUrl}
               alt="Profile"
               className="w-full h-full object-cover rounded-3xl"
             />
@@ -718,7 +746,8 @@ export default function SettingsPage() {
                   headers: { "Content-Type": "multipart/form-data" },
                 }
               );
-              setDoctor({ ...(doctor || {}), profilePicture: res.data.profilePicture });
+              const nextDoctor = { ...(doctor || {}), profilePicture: res.data.profilePicture, profilePicUrl: res.data.profilePicture };
+              setDoctor(nextDoctor);
               toast.success("Profile picture updated!");
             } catch {
               toast.error("Failed to upload picture");

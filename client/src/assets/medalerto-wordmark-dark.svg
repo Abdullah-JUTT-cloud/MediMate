@@ -1,0 +1,13 @@
+<svg width="520" height="140" viewBox="0 0 520 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="520" height="140" fill="transparent"/>
+  <g transform="translate(10 16)">
+    <rect x="0" y="0" width="108" height="108" rx="28" fill="#0F172A"/>
+    <path d="M24 77V30.5C24 27.4624 26.4624 25 29.5 25H36.5L54 60.5L71.5 25H78.5C81.5376 25 84 27.4624 84 30.5V77H72V42.6L58.7 68.3C57.3634 70.5267 54.6318 71.7834 52.0694 71.6403C49.507 71.4972 46.9286 69.9729 45.8 67.5L31.4 42.2V77H24Z" fill="#F8FAFC"/>
+    <path d="M18 83H90C91.6569 83 93 84.3431 93 86V91C93 92.6569 91.6569 94 90 94H18C16.3431 94 15 92.6569 15 91V86C15 84.3431 16.3431 83 18 83Z" fill="#0EA5E9"/>
+  </g>
+  <g transform="translate(140 34)">
+    <text x="0" y="42" fill="#0F172A" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="44" font-weight="700" letter-spacing="1.5">MEDALERTO</text>
+    <text x="2" y="72" fill="#475569" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="16" font-weight="600" letter-spacing="4">CLINIC SYSTEM</text>
+    <rect x="0" y="84" width="182" height="6" rx="3" fill="#0EA5E9" opacity="0.9"/>
+  </g>
+</svg>

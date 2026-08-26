@@ -24,12 +24,45 @@ const appointmentSchema = new mongoose.Schema({
         enum: ["Pending", "Confirmed", "Cancelled", "No-show", "Completed"],
         default: "Pending"
     },
+    queueStatus: {
+        type: String,
+        enum: ['WAITING', 'IN_CONSULTATION', 'COMPLETED', 'NO_SHOW'],
+        default: 'WAITING'
+    },
+    isWalkIn: {
+        type: Boolean,
+        default: false
+    },
+    checkInTime: {
+        type: Date,
+        default: Date.now
+    },
     cancellationReason: {
         type: String,
         enum: ["Doctor", "Patient", "Emergency", "No-show", null],
         default: null,
     },
     consultationFee: {
+        type: Number,
+        default: 0,
+        min: 0,
+    },
+    originalFee: {
+        type: Number,
+        default: 0,
+        min: 0,
+    },
+    discountAmount: {
+        type: Number,
+        default: 0,
+        min: 0,
+    },
+    netAmount: {
+        type: Number,
+        default: 0,
+        min: 0,
+    },
+    labFee: {
         type: Number,
         default: 0,
         min: 0,

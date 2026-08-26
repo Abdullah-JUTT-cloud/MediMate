@@ -65,6 +65,7 @@ const issueTicketSchema = new Schema(
         "General Feedback",
         "Technical Issue",
         "Billing/Subscription",
+        "Billing / Subscription Issue",
         "Verification/Profile",
         "Other",
       ],

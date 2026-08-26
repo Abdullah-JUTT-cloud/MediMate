@@ -1,6 +1,12 @@
 import mongoose from "mongoose";
 import Checkup from "../models/checkup.model.js";
 import Patient from "../models/patient.model.js";
+import Appointment from "../models/appointment.model.js";
+import Payment from "../models/payment.model.js";
+import { Doctor } from "../models/doctor.model.js";
+import { generatePrescriptionPdf } from "../utils/generatePrescriptionPdf.js";
+import { uploadToR2, getFileUrl } from "../services/storage.service.js";
+import { sendWhatsAppPdfDocument } from "../services/whatsapp.service.js";
 
 const PAYMENT_METHODS = new Set(["Cash", "Card", "Online Transfer"]);
 const MAX_PAYMENT_AMOUNT = 1000000;
@@ -172,10 +178,20 @@ const normalizePrescription = (prescription, { requireDiagnosis, requireMedicine
 
 const normalizePayment = (payment, fallback = {}) => {
   if (payment === undefined || payment === null) {
+    const fallbackAmount = Number(fallback.netAmount ?? fallback.amount ?? 0);
+    const fallbackOriginal = Number(fallback.originalFee ?? fallbackAmount + (fallback.discountAmount ?? fallback.discount ?? 0));
+    const fallbackDiscount = Number(fallback.discountAmount ?? fallback.discount ?? 0);
+
     return {
       valid: true,
       value: {
-        amount: Number(fallback.amount || 0),
+        amount: Math.max(0, Number(fallbackAmount || 0)),
+        originalFee: Math.max(0, Number(fallbackOriginal || 0)),
+        discount: Math.max(0, Number(fallbackDiscount || 0)),
+        discountAmount: Math.max(0, Number(fallbackDiscount || 0)),
+        netAmount: Math.max(0, Number(fallbackAmount || 0)),
+        ancillaryFee: Number(fallback.ancillaryFee || 0),
+        description: cleanText(fallback.description || "Consultation", 200),
         method: fallback.method || "Cash",
         isPaid: Boolean(fallback.isPaid),
       },
@@ -186,20 +202,44 @@ const normalizePayment = (payment, fallback = {}) => {
     return { valid: false, message: "Invalid payment payload" };
   }
 
-  const amount = Number(payment.amount ?? fallback.amount ?? 0);
-  if (!Number.isFinite(amount) || amount < 0 || amount > MAX_PAYMENT_AMOUNT) {
+  const fallbackOriginal = Number(fallback.originalFee ?? fallback.amount ?? 0);
+  const fallbackDiscount = Number(fallback.discountAmount ?? fallback.discount ?? 0);
+  const fallbackNet = Number(fallback.netAmount ?? fallback.amount ?? 0);
+
+  const rawAmount = Number(payment.amount ?? payment.netAmount ?? fallbackNet ?? 0);
+  const rawOriginal = Number(payment.originalFee ?? payment.amount ?? fallbackOriginal ?? rawAmount + fallbackDiscount ?? 0);
+  const rawDiscount = Number(payment.discountAmount ?? payment.discount ?? fallbackDiscount ?? 0);
+  const rawNet = Number(payment.netAmount ?? Math.max(0, rawOriginal - rawDiscount) ?? rawAmount ?? 0);
+
+  const amount = Number.isFinite(rawAmount) ? Math.max(0, rawAmount) : 0;
+  const originalFee = Number.isFinite(rawOriginal) ? Math.max(0, rawOriginal) : 0;
+  const discountAmount = Number.isFinite(rawDiscount) ? Math.max(0, rawDiscount) : 0;
+  const netAmount = Number.isFinite(rawNet) ? Math.max(0, rawNet) : 0;
+
+  if (amount < 0 || amount > MAX_PAYMENT_AMOUNT || originalFee < 0 || originalFee > MAX_PAYMENT_AMOUNT || discountAmount < 0 || discountAmount > MAX_PAYMENT_AMOUNT || netAmount < 0 || netAmount > MAX_PAYMENT_AMOUNT) {
     return { valid: false, message: "Payment amount is invalid" };
   }
 
+  const description = cleanText(payment.description ?? fallback.description ?? "Consultation", 200);
   const method = cleanText(payment.method ?? fallback.method ?? "Cash", 40);
   if (!PAYMENT_METHODS.has(method)) {
     return { valid: false, message: "Payment method is invalid" };
   }
 
+  const finalOriginalFee = originalFee > 0 ? originalFee : Math.max(0, amount + discountAmount);
+  const finalDiscountAmount = discountAmount > 0 ? discountAmount : Math.max(0, finalOriginalFee - netAmount);
+  const finalNetAmount = Math.max(0, netAmount || amount || Math.max(0, finalOriginalFee - finalDiscountAmount));
+
   return {
     valid: true,
     value: {
-      amount,
+      amount: finalNetAmount,
+      originalFee: finalOriginalFee,
+      discount: finalDiscountAmount,
+      discountAmount: finalDiscountAmount,
+      netAmount: finalNetAmount,
+      ancillaryFee: Number(payment.ancillaryFee ?? fallback.ancillaryFee ?? 0),
+      description,
       method,
       isPaid:
         typeof payment.isPaid === "boolean"
@@ -449,5 +489,188 @@ export const updateCheckup = async (req, res) => {
   } catch (error) {
     console.error("updateCheckup error:", error);
     sendModelError(res, error);
+  }
+};
+
+export const completeCheckup = async (req, res) => {
+  try {
+    const { appointmentId, patientId, diseases, notes, prescription, payment, labFee, visitedFacility } = req.body;
+
+    if (!mongoose.isValidObjectId(appointmentId)) {
+      return res.status(400).json({ message: "Invalid appointment ID" });
+    }
+    if (!mongoose.isValidObjectId(patientId)) {
+      return res.status(400).json({ message: "Invalid patient ID" });
+    }
+
+    const patientExists = await Patient.exists({ _id: patientId, doctor: req.doctorId });
+    if (!patientExists) {
+      return res.status(404).json({ message: "Patient not found" });
+    }
+
+    const appointment = await Appointment.findOne({ _id: appointmentId, doctor: req.doctorId });
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    const prescriptionValidation = normalizePrescription(prescription, {
+      requireDiagnosis: true,
+      requireMedicines: true,
+    });
+    if (!prescriptionValidation.valid) {
+      return res.status(400).json({ message: prescriptionValidation.message });
+    }
+
+    const paymentValidation = normalizePayment(payment);
+    if (!paymentValidation.valid) {
+      return res.status(400).json({ message: paymentValidation.message });
+    }
+
+    const facilityValidation = normalizeVisitedFacility(visitedFacility);
+    if (!facilityValidation.valid) {
+      return res.status(400).json({ message: facilityValidation.message });
+    }
+
+    const normalizedDiseases = normalizeDiseasesWithDiagnosis(
+      diseases,
+      prescriptionValidation.value.diagnosis,
+    );
+
+    // Create Checkup document
+    const checkup = new Checkup({
+      patient: patientId,
+      doctor: req.doctorId,
+      diseases: normalizedDiseases,
+      notes: cleanText(notes, 5000),
+      prescription: prescriptionValidation.value,
+      payment: paymentValidation.value,
+      visitedFacility: facilityValidation.value === undefined ? null : facilityValidation.value,
+    });
+
+    await checkup.save();
+
+    if (labFee && Number(labFee) > 0) {
+      const serializedLabFee = Number(labFee);
+      await Payment.create({
+        patientId,
+        appointmentId,
+        doctorId: req.doctorId,
+        category: 'LAB',
+        status: 'PAID',
+        amount: serializedLabFee,
+        originalFee: serializedLabFee,
+        discount: 0,
+        discountAmount: 0,
+        netAmount: serializedLabFee,
+        ancillaryFee: serializedLabFee,
+        method: paymentValidation.value.method || 'Cash',
+        description: 'Lab / Test fee',
+      });
+    }
+
+    const nextFollowUpDate = prescriptionValidation.value.nextAppointment;
+    if (nextFollowUpDate) {
+      const futureAppointment = new Appointment({
+        doctor: req.doctorId,
+        patient: patientId,
+        date: new Date(nextFollowUpDate),
+        slot: "Follow-up",
+        type: "Follow-up",
+        status: "Pending",
+        queueStatus: "WAITING",
+        isWalkIn: false,
+        checkInTime: new Date(nextFollowUpDate),
+        consultationFee: paymentValidation.value.netAmount || paymentValidation.value.amount || 0,
+        originalFee: paymentValidation.value.originalFee || paymentValidation.value.amount || 0,
+        discountAmount: paymentValidation.value.discountAmount || paymentValidation.value.discount || 0,
+        netAmount: paymentValidation.value.netAmount || paymentValidation.value.amount || 0,
+      });
+
+      await futureAppointment.save();
+
+      if (patientExists && paymentValidation.value.method) {
+        try {
+          const patient = await Patient.findById(patientId);
+          if (patient?.phone) {
+            const followUpMessage = `Dear ${patient.name || "Patient"},\n\nYour next follow-up has been scheduled for ${new Date(nextFollowUpDate).toLocaleDateString("en-PK", { day: "numeric", month: "long", year: "numeric" })}.\nPlease arrive on time.\n\nMedAlerto`;
+            await import("../services/whatsapp.service.js").then(({ sendWhatsAppTextMessage }) => sendWhatsAppTextMessage(patient.phone, followUpMessage));
+          }
+        } catch (followUpError) {
+          console.error("Follow-up WhatsApp dispatch failed:", followUpError);
+        }
+      }
+    }
+
+    // Render PDF and upload to Cloudflare R2, then dispatch to WhatsApp
+    let publicPdfUrl = "";
+    try {
+      const checkupPopulated = await Checkup.findById(checkup._id)
+        .populate("patient")
+        .populate("doctor");
+
+      const pdfBuffer = await generatePrescriptionPdf(
+        checkupPopulated.doctor,
+        checkupPopulated.patient,
+        checkupPopulated
+      );
+
+      const fileObj = {
+        buffer: pdfBuffer,
+        originalname: `prescription_${checkup._id}.pdf`,
+        mimetype: "application/pdf",
+      };
+
+      const { key } = await uploadToR2(fileObj, "prescriptions");
+
+      checkup.prescription.pdfUrl = key;
+      await checkup.save();
+
+      publicPdfUrl = getFileUrl(key);
+
+      if (checkupPopulated.patient?.phone) {
+        const locations = Array.isArray(checkupPopulated.patient.locations) ? checkupPopulated.patient.locations : [];
+        let facilityName = "";
+        let facilityType = "";
+        if (locations.length > 0) {
+          const location = locations[0];
+          facilityName = location.locationName || "";
+          facilityType = location.locationType || "";
+          if (facilityType === "Clinic" && !facilityName) {
+            facilityName = checkupPopulated.doctor?.clinics?.[0]?.name || "";
+          } else if (facilityType === "Hospital" && !facilityName) {
+            facilityName = checkupPopulated.doctor?.hospitals?.[0]?.name || "";
+          }
+        }
+
+        const facilityInfo = facilityName ? `\nFrom: ${facilityType} - ${facilityName}` : "";
+        const patientName = checkupPopulated.patient.name || "Patient";
+        const doctorName = checkupPopulated.doctor.fullName || "Doctor";
+        const caption = `Dear ${patientName},\n\nYour prescription from Dr. ${doctorName} is ready.${facilityInfo}\n\nPlease find the PDF attached.\n\nGenerated by MedAlerto 🏥`;
+        const fileName = `prescription_${patientName.replace(/\s+/g, "_")}.pdf`;
+
+        await sendWhatsAppPdfDocument(
+          checkupPopulated.patient.phone,
+          publicPdfUrl,
+          fileName,
+          caption
+        );
+      }
+    } catch (pdfError) {
+      console.error("PDF Generation or WhatsApp dispatch failed:", pdfError);
+    }
+
+    // Update appointment queueStatus and status to COMPLETED
+    appointment.queueStatus = 'COMPLETED';
+    appointment.status = 'Completed';
+    await appointment.save();
+
+    res.status(201).json({
+      message: "Checkup completed, secondary payments processed, and PDF prescription dispatched",
+      checkup,
+      pdfUrl: publicPdfUrl
+    });
+  } catch (error) {
+    console.error("completeCheckup error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 };

@@ -297,6 +297,11 @@ function BookAppointmentForm({
   const [type, setType] = useState("");
   const [notes, setNotes] = useState("");
   const [slots, setSlots] = useState([]);
+  const [isWalkIn, setIsWalkIn] = useState(true);
+  const [billingAmount, setBillingAmount] = useState("");
+  const [billingDiscount, setBillingDiscount] = useState("0");
+  const [billingDescription, setBillingDescription] = useState("Consultation");
+  const [paymentMethod, setPaymentMethod] = useState("Cash");
   const [bookedSlots, setBookedSlots] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -432,6 +437,19 @@ function BookAppointmentForm({
     if (!selectedSlot) { toast.error("Select a time slot"); return; }
     if (!type) { toast.error("Select appointment type"); return; }
 
+    const parsedAmount = Number(billingAmount);
+    const parsedDiscount = Number(billingDiscount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount < 0) {
+      toast.error("Enter a valid consultation amount");
+      return;
+    }
+    if (!Number.isFinite(parsedDiscount) || parsedDiscount < 0) {
+      toast.error("Enter a valid discount amount");
+      return;
+    }
+
+    const chargeAmount = Math.max(0, parsedAmount - parsedDiscount);
+
     setIsLoading(true);
     try {
       const res = await axiosInstance.post("/appointments", {
@@ -440,6 +458,12 @@ function BookAppointmentForm({
         slot: selectedSlot,
         type,
         notes,
+        isWalkIn,
+        consultationFee: chargeAmount,
+        amount: parsedAmount,
+        discount: parsedDiscount,
+        description: billingDescription.trim() || "Consultation",
+        paymentMethod,
       });
       if (rescheduleCancelledAppointmentId && onEmergencyRescheduleComplete) {
         await onEmergencyRescheduleComplete(rescheduleCancelledAppointmentId);
@@ -551,6 +575,95 @@ function BookAppointmentForm({
                 ))}
               </div>
             </div>
+          </div>
+
+          <div className="border-t border-[var(--color-border)]/50 pt-4 mt-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm font-semibold text-[var(--color-text-primary)]">Walk-In Patient</p>
+              <p className="text-xs text-[var(--color-text-secondary)]">Flag this patient as a walk-in for the queue</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsWalkIn(!isWalkIn)}
+              className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
+              style={{ background: isWalkIn ? "var(--color-primary)" : "var(--color-border)" }}
+            >
+              <span
+                className="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                style={{ transform: isWalkIn ? "translateX(20px)" : "translateX(0px)" }}
+              />
+            </button>
+          </div>
+          <div className="border-t border-[var(--color-border)]/50 pt-4 mt-4 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <SectionLabel text="Price / Amount (PKR)" />
+                <input
+                  type="number"
+                  min="0"
+                  step="50"
+                  value={billingAmount}
+                  onChange={(e) => setBillingAmount(e.target.value)}
+                  className={inputCls}
+                  style={S.input}
+                  onFocus={focusInput}
+                  onBlur={blurInput}
+                />
+              </div>
+              <div>
+                <SectionLabel text="Discount (PKR)" />
+                <input
+                  type="number"
+                  min="0"
+                  step="50"
+                  value={billingDiscount}
+                  onChange={(e) => setBillingDiscount(e.target.value)}
+                  className={inputCls}
+                  style={S.input}
+                  onFocus={focusInput}
+                  onBlur={blurInput}
+                />
+              </div>
+            </div>
+
+            <div>
+              <SectionLabel text="Payment Description" />
+              <input
+                type="text"
+                value={billingDescription}
+                onChange={(e) => setBillingDescription(e.target.value)}
+                placeholder="Consultation"
+                className={inputCls}
+                style={S.input}
+                onFocus={focusInput}
+                onBlur={blurInput}
+              />
+            </div>
+
+            <div>
+              <SectionLabel text="Payment Method" />
+              <div className="grid grid-cols-3 gap-2">
+                {['Cash', 'Card', 'Online Transfer'].map((method) => (
+                  <button
+                    key={method}
+                    type="button"
+                    onClick={() => setPaymentMethod(method)}
+                    className="py-2.5 px-3 rounded-xl text-xs font-semibold transition-all"
+                    style={{
+                      background: paymentMethod === method ? "color-mix(in srgb, var(--color-primary) 15%, transparent)" : "var(--color-bg)",
+                      border: paymentMethod === method ? "1px solid var(--color-primary)" : "1px solid var(--color-border)",
+                      color: paymentMethod === method ? "var(--color-primary)" : "var(--color-text-secondary)",
+                    }}
+                  >
+                    {method}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <p className="text-xs text-[var(--color-text-secondary)]">
+              ℹ️ Final consultation charge will be <strong>{Math.max(0, Number(billingAmount || 0) - Number(billingDiscount || 0)).toLocaleString()} PKR</strong> after discount.
+            </p>
           </div>
         </div>
 

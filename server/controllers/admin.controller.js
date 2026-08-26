@@ -1,13 +1,36 @@
 import jwt from "jsonwebtoken";
 import { Doctor } from "../models/doctor.model.js";
 import Notification from "../models/notification.model.js";
+import {
+  getTrialExpiryDate,
+  refreshDoctorSubscriptionStatus,
+  SUBSCRIPTION_STATUSES,
+} from "../utils/subscription.js";
 
 const ADMIN_COOKIE = "admin_token";
-const PROFILE_STATUSES = ["Pending", "In Review", "Needs Changes", "Verified", "Approved"];
+const PROFILE_STATUSES = ["Pending", "In Review", "Needs Changes", "Verified", "Approved", "APPROVED", "REJECTED", "PENDING"];
 
 const normalizeProfileStatus = (status) => {
+  if (status === "APPROVED") return "Verified";
+  if (status === "REJECTED") return "Needs Changes";
+  if (status === "PENDING") return "Pending";
   if (status === "Approved") return "Verified";
   return status;
+};
+
+const normalizeVerificationStatus = (status) => {
+  if (status === "APPROVED" || status === "Approved" || status === "Verified") return "APPROVED";
+  if (status === "REJECTED" || status === "Rejected" || status === "Needs Changes") return "REJECTED";
+  return "PENDING";
+};
+
+const getSubscriptionExpiryForStatus = (status) => {
+  const value = String(status || "").toUpperCase();
+  if (value === "TRIAL") return getTrialExpiryDate();
+  if (value === "ACTIVE") return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  if (value === "MONTHLY") return new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  if (value === "YEARLY") return new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+  return null;
 };
 
 const buildAdminToken = () => {
@@ -112,11 +135,13 @@ export const listDoctorsForVerification = async (req, res) => {
     const [total, doctors] = await Promise.all([
       Doctor.countDocuments(query),
       Doctor.find(query)
-        .select("fullName email specialization pmdcNumber licenseStatus profilePicture profileVerificationStatus profileVerificationReviewedAt profileVerificationReviewedBy")
+        .select("fullName email specialization pmdcNumber licenseStatus profilePicture profilePicUrl verificationStatus subscriptionStatus subscriptionExpiresAt profileVerificationStatus profileVerificationReviewedAt profileVerificationReviewedBy")
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit),
     ]);
+
+    await Promise.all(doctors.map((doctor) => refreshDoctorSubscriptionStatus(doctor)));
 
     return res.status(200).json({
       doctors,
@@ -141,6 +166,8 @@ export const getDoctorVerificationDetail = async (req, res) => {
       return res.status(404).json({ message: "Doctor not found" });
     }
 
+    await refreshDoctorSubscriptionStatus(doctor);
+
     return res.status(200).json({ doctor });
   } catch (error) {
     console.error("[getDoctorVerificationDetail]", error);
@@ -164,6 +191,7 @@ export const updateDoctorVerificationStatus = async (req, res) => {
     }
 
     doctor.profileVerificationStatus = normalizedStatus;
+    doctor.verificationStatus = normalizeVerificationStatus(status);
     doctor.profileVerificationReviewedAt = new Date();
     doctor.profileVerificationReviewedBy = req.admin?.email || process.env.ADMIN_EMAIL || "admin";
     doctor.profileVerificationNotes = (notes || "").trim();
@@ -194,6 +222,49 @@ export const updateDoctorVerificationStatus = async (req, res) => {
     });
   } catch (error) {
     console.error("[updateDoctorVerificationStatus]", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const updateDoctorSubscriptionStatus = async (req, res) => {
+  try {
+    const status = String(req.body.status || "").trim().toUpperCase();
+
+    if (!SUBSCRIPTION_STATUSES.includes(status)) {
+      return res.status(400).json({ message: "Invalid subscription status" });
+    }
+
+    const doctor = await Doctor.findById(req.params.id);
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    doctor.subscriptionStatus = status;
+    doctor.subscriptionExpiresAt = getSubscriptionExpiryForStatus(status);
+    await doctor.save();
+
+    await Notification.create({
+      doctor: doctor._id,
+      type: "subscription-status",
+      title: "Subscription status updated",
+      message: `Admin changed your subscription status to ${status}.`,
+      metadata: {
+        status,
+        subscriptionExpiresAt: doctor.subscriptionExpiresAt,
+      },
+    });
+
+    return res.status(200).json({
+      message: "Subscription status updated successfully",
+      doctor: {
+        _id: doctor._id,
+        fullName: doctor.fullName,
+        subscriptionStatus: doctor.subscriptionStatus,
+        subscriptionExpiresAt: doctor.subscriptionExpiresAt,
+      },
+    });
+  } catch (error) {
+    console.error("[updateDoctorSubscriptionStatus]", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };

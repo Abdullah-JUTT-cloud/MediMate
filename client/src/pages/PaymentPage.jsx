@@ -97,6 +97,11 @@ function PaymentWorkspace({ patient, onBack }) {
   const [method, setMethod] = useState("Cash");
   const [isPaid, setIsPaid] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [extraPaymentEnabled, setExtraPaymentEnabled] = useState(false);
+  const [extraPaymentAmount, setExtraPaymentAmount] = useState("");
+  const [extraPaymentDescription, setExtraPaymentDescription] = useState("Laboratory Test");
+  const [extraPaymentMethod, setExtraPaymentMethod] = useState("Cash");
+  const [isAddingExtra, setIsAddingExtra] = useState(false);
 
   const selectedCheckup = useMemo(
     () => checkups.find((c) => c._id === selectedCheckupId) || null,
@@ -105,12 +110,16 @@ function PaymentWorkspace({ patient, onBack }) {
 
   const hydratePaymentForm = (checkup) => {
     if (!checkup) return;
-    const existingAmount = Number(checkup.payment?.amount ?? 0);
+    const existingAmount = Number(checkup.payment?.netAmount ?? checkup.payment?.amount ?? 0);
     const existingMethod = checkup.payment?.method || "Cash";
     const existingIsPaid = Boolean(checkup.payment?.isPaid);
     setAmount(String(existingAmount));
     setMethod(existingMethod);
     setIsPaid(existingIsPaid);
+    setExtraPaymentEnabled(false);
+    setExtraPaymentAmount("");
+    setExtraPaymentDescription("Laboratory Test");
+    setExtraPaymentMethod("Cash");
   };
 
   const loadCheckups = async () => {
@@ -194,11 +203,46 @@ function PaymentWorkspace({ patient, onBack }) {
     }
   };
 
+  const addExtraPayment = async () => {
+    if (!selectedCheckup) {
+      toast.error("Select a checkup first");
+      return;
+    }
+
+    const parsedExtraAmount = Number(extraPaymentAmount);
+    if (!extraPaymentEnabled || !Number.isFinite(parsedExtraAmount) || parsedExtraAmount <= 0) {
+      toast.error("Enter a valid extra payment amount");
+      return;
+    }
+
+    setIsAddingExtra(true);
+    try {
+      await axiosInstance.post("/billing/extra-payment", {
+        checkupId: selectedCheckup._id,
+        patientId: patient._id,
+        amount: parsedExtraAmount,
+        description: extraPaymentDescription.trim() || "Laboratory Test",
+        method: extraPaymentMethod,
+      });
+
+      setExtraPaymentEnabled(false);
+      setExtraPaymentAmount("");
+      setExtraPaymentDescription("Laboratory Test");
+      setExtraPaymentMethod("Cash");
+      await loadCheckups();
+      toast.success("Extra payment recorded successfully");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to add extra payment");
+    } finally {
+      setIsAddingExtra(false);
+    }
+  };
+
   const totalPaid = useMemo(
     () =>
       checkups.reduce(
         (sum, c) =>
-          c.payment?.isPaid ? sum + Number(c.payment?.amount || 0) : sum,
+          c.payment?.isPaid ? sum + Number(c.payment?.amount || c.payment?.netAmount || 0) : sum,
         0,
       ),
     [checkups],
@@ -208,11 +252,23 @@ function PaymentWorkspace({ patient, onBack }) {
     () =>
       checkups.reduce(
         (sum, c) =>
-          !c.payment?.isPaid ? sum + Number(c.payment?.amount || 0) : sum,
+          !c.payment?.isPaid ? sum + Number(c.payment?.amount || c.payment?.netAmount || 0) : sum,
         0,
       ),
     [checkups],
   );
+
+  const selectedConsultationFee = useMemo(() => {
+    if (!selectedCheckup) return 0;
+    const base = Number(selectedCheckup.payment?.netAmount ?? selectedCheckup.payment?.amount ?? 0);
+    const extra = Number(selectedCheckup.payment?.ancillaryFee || 0);
+    return Math.max(0, base - extra);
+  }, [selectedCheckup]);
+
+  const selectedExtraFee = useMemo(() => {
+    if (!selectedCheckup) return 0;
+    return Number(selectedCheckup.payment?.ancillaryFee || 0);
+  }, [selectedCheckup]);
 
   return (
     <div className="max-w-6xl mx-auto px-1">
@@ -426,6 +482,20 @@ function PaymentWorkspace({ patient, onBack }) {
                   Diagnosis:{" "}
                   {selectedCheckup.prescription?.diagnosis || "No diagnosis"}
                 </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3">
+                  <div className="rounded-xl p-2.5" style={{ background: "rgba(93, 112, 82, 0.08)", border: "1px solid rgba(93, 112, 82, 0.2)" }}>
+                    <p className="text-[10px] uppercase tracking-wide" style={{ color: ORGANIC.mutedFg }}>Consultation</p>
+                    <p className="text-sm font-bold" style={{ color: ORGANIC.fg }}>PKR {selectedConsultationFee.toLocaleString()}</p>
+                  </div>
+                  <div className="rounded-xl p-2.5" style={{ background: "rgba(193, 140, 93, 0.08)", border: "1px solid rgba(193, 140, 93, 0.2)" }}>
+                    <p className="text-[10px] uppercase tracking-wide" style={{ color: ORGANIC.mutedFg }}>Lab / Extra</p>
+                    <p className="text-sm font-bold" style={{ color: ORGANIC.fg }}>PKR {selectedExtraFee.toLocaleString()}</p>
+                  </div>
+                  <div className="rounded-xl p-2.5" style={{ background: "rgba(93, 112, 82, 0.12)", border: "1px solid rgba(93, 112, 82, 0.2)" }}>
+                    <p className="text-[10px] uppercase tracking-wide" style={{ color: ORGANIC.mutedFg }}>Total Paid</p>
+                    <p className="text-sm font-bold" style={{ color: ORGANIC.fg }}>PKR {Number(selectedCheckup.payment?.amount || selectedCheckup.payment?.netAmount || 0).toLocaleString()}</p>
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -501,6 +571,101 @@ function PaymentWorkspace({ patient, onBack }) {
                   >
                     {isPaid ? "Paid" : "Unpaid"}
                   </button>
+                </div>
+
+                <div className="rounded-2xl p-4" style={S.section}>
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <div>
+                      <p className="text-sm font-semibold" style={{ color: ORGANIC.fg }}>
+                        Add extra payment
+                      </p>
+                      <p className="text-xs" style={{ color: ORGANIC.mutedFg }}>
+                        Optional: lab tests, procedure add-ons, or other charges.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setExtraPaymentEnabled((prev) => !prev)}
+                      className="px-3 py-2 rounded-full text-xs font-semibold border"
+                      style={{
+                        background: extraPaymentEnabled ? "rgba(93, 112, 82, 0.14)" : "rgba(193, 140, 93, 0.14)",
+                        color: extraPaymentEnabled ? ORGANIC.primary : ORGANIC.secondary,
+                        borderColor: extraPaymentEnabled ? "rgba(93, 112, 82, 0.32)" : "rgba(193, 140, 93, 0.32)",
+                      }}
+                    >
+                      {extraPaymentEnabled ? "On" : "Off"}
+                    </button>
+                  </div>
+
+                  {extraPaymentEnabled && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-xs font-semibold block mb-2" style={{ color: ORGANIC.mutedFg }}>
+                          Extra Payment Amount (PKR)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={extraPaymentAmount}
+                          onChange={(e) => setExtraPaymentAmount(e.target.value)}
+                          placeholder="1500"
+                          className="w-full px-5 py-3 rounded-full text-sm outline-none transition-all"
+                          style={S.input}
+                          onFocus={focusInput}
+                          onBlur={blurInput}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-semibold block mb-2" style={{ color: ORGANIC.mutedFg }}>
+                          Description
+                        </label>
+                        <input
+                          type="text"
+                          value={extraPaymentDescription}
+                          onChange={(e) => setExtraPaymentDescription(e.target.value)}
+                          className="w-full px-5 py-3 rounded-full text-sm outline-none transition-all"
+                          style={S.input}
+                          onFocus={focusInput}
+                          onBlur={blurInput}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-xs font-semibold block mb-2" style={{ color: ORGANIC.mutedFg }}>
+                          Payment Method
+                        </label>
+                        <select
+                          value={extraPaymentMethod}
+                          onChange={(e) => setExtraPaymentMethod(e.target.value)}
+                          className="w-full px-5 py-3 rounded-full text-sm outline-none transition-all"
+                          style={S.input}
+                          onFocus={focusInput}
+                          onBlur={blurInput}
+                        >
+                          {PAYMENT_METHODS.map((m) => (
+                            <option key={m} value={m}>
+                              {m}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={addExtraPayment}
+                        disabled={isAddingExtra}
+                        className="w-full px-6 py-3 rounded-full text-sm font-bold border transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
+                        style={{
+                          borderColor: "var(--color-border)",
+                          color: ORGANIC.primary,
+                          background: "rgba(93, 112, 82, 0.10)",
+                        }}
+                      >
+                        {isAddingExtra ? "Recording..." : "Create Extra Payment Record"}
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <button
@@ -645,8 +810,16 @@ function PaymentWorkspace({ patient, onBack }) {
                       Payment Details
                     </p>
                     <p className="text-sm mb-1" style={{ color: ORGANIC.fg }}>
-                      <span className="font-semibold">Amount:</span> PKR{" "}
-                      {Number(checkup.payment?.amount || 0).toLocaleString()}
+                      <span className="font-semibold">Consultation Fee:</span> PKR{" "}
+                      {Math.max(0, Number(checkup.payment?.netAmount ?? checkup.payment?.amount ?? 0) - Number(checkup.payment?.ancillaryFee || 0)).toLocaleString()}
+                    </p>
+                    <p className="text-sm mb-1" style={{ color: ORGANIC.fg }}>
+                      <span className="font-semibold">Lab / Extra Payment:</span> PKR{" "}
+                      {Number(checkup.payment?.ancillaryFee || 0).toLocaleString()}
+                    </p>
+                    <p className="text-sm mb-1" style={{ color: ORGANIC.fg }}>
+                      <span className="font-semibold">Total Paid:</span> PKR{" "}
+                      {Number(checkup.payment?.amount || checkup.payment?.netAmount || 0).toLocaleString()}
                     </p>
                     <p
                       className="text-xs mb-1"

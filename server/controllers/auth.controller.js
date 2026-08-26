@@ -9,6 +9,8 @@ import {
 import { generateToken } from "../utils/generateToken.js";
 import crypto from "crypto";
 import { getClearCookieOptions, getCookieOptions } from "../utils/security.js";
+import { getTrialExpiryDate, refreshDoctorSubscriptionStatus } from "../utils/subscription.js";
+import { getFileUrl } from "../services/storage.service.js";
 
 const isStrongPassword = (password) => {
   if (typeof password !== "string") return false;
@@ -21,6 +23,33 @@ const isStrongPassword = (password) => {
 };
 
 const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
+
+const buildDoctorSessionPayload = (doctor) => ({
+  firstName: doctor.firstName,
+  lastName: doctor.lastName,
+  fullName: doctor.fullName,
+  email: doctor.email,
+  gender: doctor.gender,
+  title: doctor.title,
+  specialization: doctor.specialization,
+  primaryDegree: doctor.primaryDegree,
+  additionalDegrees: doctor.additionalDegrees,
+  university: doctor.university,
+  yearsOfExperience: doctor.yearsOfExperience,
+  pmdcNumber: doctor.pmdcNumber,
+  licenseStatus: doctor.licenseStatus,
+  clinics: doctor.clinics,
+  hospitals: doctor.hospitals,
+  slotDuration: doctor.slotDuration,
+  profilePicture: doctor.profilePicture ? getFileUrl(doctor.profilePicture) : "",
+  profilePicUrl: doctor.profilePicUrl ? getFileUrl(doctor.profilePicUrl) : "",
+  subscriptionStatus: doctor.subscriptionStatus,
+  subscriptionExpiresAt: doctor.subscriptionExpiresAt,
+  profileVerificationStatus: doctor.profileVerificationStatus,
+  profileVerificationReviewedAt: doctor.profileVerificationReviewedAt,
+  profileVerificationReviewedBy: doctor.profileVerificationReviewedBy,
+  profileVerificationNotes: doctor.profileVerificationNotes,
+});
 
 const secureOtpMatches = (storedOtp, submittedOtp) => {
   const stored = String(storedOtp || "");
@@ -156,6 +185,8 @@ export const registerDoctor = async (req, res) => {
       otp,
       otpExpiry,
       gender,
+      subscriptionStatus: "TRIAL",
+      subscriptionExpiresAt: getTrialExpiryDate(),
     });
     await doctor.save();
 
@@ -223,31 +254,13 @@ export const login = async (req, res) => {
     if (!doctor.isVerified) {
       return res.status(400).json({ message: "Email not verified" });
     }
+    await refreshDoctorSubscriptionStatus(doctor);
+
     const token = generateToken(doctor._id);
     res.cookie("token", token, getCookieOptions());
     res.status(200).json({
       message: "Login successful",
-      firstName: doctor.firstName,
-      lastName: doctor.lastName,
-      fullName: doctor.fullName,
-      email: doctor.email,
-      gender: doctor.gender,
-      title: doctor.title,
-      specialization: doctor.specialization,
-      primaryDegree: doctor.primaryDegree,
-      additionalDegrees: doctor.additionalDegrees,
-      university: doctor.university,
-      yearsOfExperience: doctor.yearsOfExperience,
-      pmdcNumber: doctor.pmdcNumber,
-      licenseStatus: doctor.licenseStatus,
-      clinics: doctor.clinics,
-      hospitals: doctor.hospitals,
-      slotDuration: doctor.slotDuration,
-      profilePicture: doctor.profilePicture,
-      profileVerificationStatus: doctor.profileVerificationStatus,
-      profileVerificationReviewedAt: doctor.profileVerificationReviewedAt,
-      profileVerificationReviewedBy: doctor.profileVerificationReviewedBy,
-      profileVerificationNotes: doctor.profileVerificationNotes,
+      ...buildDoctorSessionPayload(doctor),
     });
   } catch (error) {
     console.error("[login]", error);

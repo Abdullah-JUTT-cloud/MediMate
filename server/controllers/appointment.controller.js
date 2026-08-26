@@ -3,6 +3,8 @@ import Appointment from "../models/appointment.model.js";
 import Patient from "../models/patient.model.js";
 import { Doctor } from "../models/doctor.model.js";
 import { sendWhatsAppTextMessage } from "../services/whatsapp.service.js";
+import Payment from "../models/payment.model.js";
+import Checkup from "../models/checkup.model.js";
 
 const MAX_APPOINTMENTS_PER_SLOT = 3;
 const INACTIVE_STATUSES = ["Cancelled", "No-show", "Completed"];
@@ -145,6 +147,18 @@ export const createAppointment = async (req, res) => {
       return res.status(400).json({ message: "Type is required" });
     }
 
+    const parsedAmount = Number(req.body.consultationFee ?? req.body.amount ?? 0);
+    const parsedDiscount = Number(req.body.discount ?? 0);
+    const paymentDescription = String(req.body.description ?? "Consultation").trim() || "Consultation";
+    const paymentMethod = req.body.paymentMethod || "Cash";
+
+    if (!Number.isFinite(parsedAmount) || parsedAmount < 0) {
+      return res.status(400).json({ message: "Consultation amount must be valid" });
+    }
+    if (!Number.isFinite(parsedDiscount) || parsedDiscount < 0) {
+      return res.status(400).json({ message: "Discount must be valid" });
+    }
+
     const patient = await Patient.findOne({
       doctor: req.doctorId,
       _id: patientId,
@@ -169,6 +183,18 @@ export const createAppointment = async (req, res) => {
         });
     }
 
+    const isToday = (dateInput) => {
+      const d = new Date(dateInput);
+      const today = new Date();
+      return (
+        d.getFullYear() === today.getFullYear() &&
+        d.getMonth() === today.getMonth() &&
+        d.getDate() === today.getDate()
+      );
+    };
+
+    const finalConsultationFee = Math.max(0, parsedAmount - parsedDiscount);
+
     const appointment = new Appointment({
       patient: patientId,
       doctor: req.doctorId,
@@ -176,8 +202,31 @@ export const createAppointment = async (req, res) => {
       slot,
       type,
       notes,
+      isWalkIn: req.body.isWalkIn ?? true,
+      queueStatus: req.body.queueStatus || 'WAITING',
+      checkInTime: req.body.checkInTime || Date.now(),
+      consultationFee: finalConsultationFee,
+      originalFee: parsedAmount,
+      discountAmount: parsedDiscount,
+      netAmount: finalConsultationFee,
     });
     await appointment.save();
+
+    // Create consultation payment record simultaneously
+    await Payment.create({
+      patientId: patientId,
+      appointmentId: appointment._id,
+      doctorId: req.doctorId,
+      category: 'CONSULTATION',
+      status: 'PAID',
+      amount: finalConsultationFee,
+      originalFee: parsedAmount,
+      discount: parsedDiscount,
+      discountAmount: parsedDiscount,
+      netAmount: finalConsultationFee,
+      description: paymentDescription,
+      method: paymentMethod
+    });
 
     const doctor = await Doctor.findById(req.doctorId);
     const { facilityName, facilityType } = resolveFacilityForPatient(
@@ -186,16 +235,25 @@ export const createAppointment = async (req, res) => {
     );
 
     const populated = await appointment.populate("patient", "name phone age");
-    const msg = formatAppointmentMessage(
-      patient.name,
-      date,
-      slot,
-      type,
-      doctor?.fullName || "Doctor",
-      facilityName,
-      facilityType,
-    );
-    await sendAppointmentWhatsApp(patient, appointment, msg);
+
+    // WhatsApp Suppression Check: DO NOT trigger message if appointment is for today.
+    // Trigger confirmation ONLY if appointmentDate is set for a future date.
+    const apptDate = new Date(date);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    if (apptDate > todayEnd && !isToday(date)) {
+      const msg = formatAppointmentMessage(
+        patient.name,
+        date,
+        slot,
+        type,
+        doctor?.fullName || "Doctor",
+        facilityName,
+        facilityType,
+      );
+      await sendAppointmentWhatsApp(patient, appointment, msg);
+    }
 
     res.status(201).json({
       message: "Appointment created successfully",
@@ -502,6 +560,119 @@ export const sendRescheduleWhatsApp = async (req, res) => {
     res.status(200).json({ message: "Reschedule WhatsApp sent successfully" });
   } catch (error) {
     console.error("[sendRescheduleWhatsApp]", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getTodayQueue = async (req, res) => {
+  try {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const startOfPreviousDay = new Date(startOfToday);
+    startOfPreviousDay.setDate(startOfPreviousDay.getDate() - 1);
+
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+
+    const query = {
+      doctor: req.doctorId,
+      date: { $gte: startOfPreviousDay, $lte: endOfToday }
+    };
+
+    const appointments = await Appointment.find(query)
+      .populate("patient")
+      .sort({ slot: 1, checkInTime: 1 });
+
+    const appointmentIds = appointments.map((a) => a._id);
+    const payments = await Payment.find({ appointmentId: { $in: appointmentIds } });
+
+    const appointmentsWithPayments = appointments.map((appt) => {
+      const apptObj = appt.toObject();
+      const apptPayment = payments.find(
+        (p) => p.appointmentId && p.appointmentId.toString() === appt._id.toString()
+      );
+      apptObj.paymentStatus = apptPayment ? apptPayment.status : "PENDING";
+      apptObj.paymentAmount = apptPayment ? Number(apptPayment.netAmount ?? apptPayment.amount ?? 0) : 0;
+      apptObj.originalFee = apptPayment ? Number(apptPayment.originalFee ?? apptPayment.amount ?? 0) : Number(apptObj.originalFee || apptObj.consultationFee || 0);
+      apptObj.discountAmount = apptPayment ? Number(apptPayment.discountAmount ?? apptPayment.discount ?? 0) : Number(apptObj.discountAmount || 0);
+      apptObj.netAmount = apptPayment ? Number(apptPayment.netAmount ?? apptPayment.amount ?? 0) : Number(apptObj.netAmount || apptObj.consultationFee || 0);
+      return apptObj;
+    });
+
+    res.status(200).json({ appointments: appointmentsWithPayments });
+  } catch (error) {
+    console.error("[getTodayQueue]", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const startConsultation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ message: "Invalid appointment ID" });
+    }
+
+    const appointment = await Appointment.findOne({
+      _id: id,
+      doctor: req.doctorId,
+    }).populate("patient");
+
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    appointment.queueStatus = "IN_CONSULTATION";
+    await appointment.save();
+
+    // Query prior checkups matching patient ID
+    const history = await Checkup.find({
+      patient: appointment.patient._id,
+      doctor: req.doctorId
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      message: "Consultation started successfully",
+      appointment,
+      history
+    });
+  } catch (error) {
+    console.error("[startConsultation]", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const sendOverdueReminder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ message: "Invalid appointment ID" });
+    }
+
+    const appointment = await Appointment.findOne({
+      _id: id,
+      doctor: req.doctorId,
+    }).populate("patient");
+
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    if (!appointment.patient?.phone) {
+      return res.status(400).json({ message: "Patient phone number is missing" });
+    }
+
+    // Trigger Meta Cloud API text dispatch
+    const doctor = await Doctor.findById(req.doctorId);
+    const doctorName = doctor?.fullName || "Abdullah";
+    const msg = `Dear ${appointment.patient.name}, your appointment with Dr. ${doctorName} was scheduled for ${appointment.slot}. Please arrive at the clinic as soon as possible to keep your slot.`;
+    
+    await sendWhatsAppTextMessage(appointment.patient.phone, msg);
+
+    res.status(200).json({ message: "Overdue reminder sent successfully" });
+  } catch (error) {
+    console.error("[sendOverdueReminder]", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

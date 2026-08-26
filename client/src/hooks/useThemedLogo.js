@@ -3,9 +3,7 @@ import blackLogo from "../assets/black.png";
 import whiteLogo from "../assets/white.png";
 
 /**
- * Returns the correct logo based on the current theme.
- * - Light theme → black.png
- * - Dark theme  → white.png
+ * Returns the correct MedAlerto logo based on the active theme.
  */
 export default function useThemedLogo() {
   const [logo, setLogo] = useState(() => {
@@ -23,7 +21,6 @@ export default function useThemedLogo() {
 
     observer.observe(root, { attributes: true, attributeFilter: ["data-theme"] });
 
-    // Sync on mount in case it changed between render and effect
     const theme = root.getAttribute("data-theme");
     setLogo(theme === "dark" ? whiteLogo : blackLogo);
 

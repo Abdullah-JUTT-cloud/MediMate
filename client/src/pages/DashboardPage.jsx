@@ -1,7 +1,7 @@
 import { createElement, useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, BarChart3, CalendarCheck2, CircleUserRound, CreditCard, FileText, LayoutDashboard, LifeBuoy, LogOut, MessagesSquare, MessageSquareWarning, UserPlus, Users, Wallet } from "lucide-react";
+import { AlertTriangle, BarChart3, CalendarCheck2, CircleUserRound, ClipboardList, CreditCard, FileText, LayoutDashboard, LifeBuoy, LogOut, MessagesSquare, MessageSquareWarning, UserPlus, Users, Wallet } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import useAuthStore from "../store/authStore";
@@ -16,6 +16,7 @@ import InsightsPage from "./InsightsPage";
 import RevenueLabPage from "./RevenueLabPage";
 import SupportCenterPage from "./SupportCenterPage";
 import DoctorChatsPage from "./DoctorChatsPage";
+import QueuePage from "./QueuePage";
 import VerifiedBadge from "../components/VerifiedBadge";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { CardSkeleton, RowSkeleton, AppointmentRowSkeleton, ChartSkeleton } from "../components/SkeletonLoaders";
@@ -24,6 +25,7 @@ import { getRealtimeSocketForRole } from "../realtime/socket";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", key: "dashboard" },
+  { icon: ClipboardList, label: "Doctor Queue", key: "queue" },
   { icon: Users, label: "Patients", key: "patients" },
   { icon: MessagesSquare, label: "Chats", key: "chats" },
   { icon: CalendarCheck2, label: "Appointments", key: "appointments" },
@@ -36,6 +38,7 @@ const navItems = [
 ];
 
 const LOCKED_PROFILE_STATUSES = ["Needs Changes", "Rejected"];
+const LOCKED_SUBSCRIPTION_STATUSES = ["BLOCKED", "INACTIVE", "PENDING_VERIFICATION"];
 const SUPPORT_SEEN_STORAGE_KEY = "support-ticket-seen-map-v2";
 
 const CustomTooltip = ({ active, payload, label }) => {
@@ -51,6 +54,11 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 const getInitials = (name) => name?.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "P";
+
+const isTrialExpired = (doctor) => {
+  if (doctor?.subscriptionStatus !== "TRIAL" || !doctor?.subscriptionExpiresAt) return false;
+  return new Date(doctor.subscriptionExpiresAt).getTime() <= Date.now();
+};
 
 function dashboardGlyph(Icon, className = "h-4 w-4") {
   return createElement(Icon, { className, strokeWidth: 2.2, "aria-hidden": true });
@@ -83,7 +91,10 @@ export default function DashboardPage() {
   const [notificationsPanelStyle, setNotificationsPanelStyle] = useState({ top: 0, left: 0, width: 320 });
 
   const isProfileRestricted = LOCKED_PROFILE_STATUSES.includes(doctor?.profileVerificationStatus);
-  const visibleNavItems = isProfileRestricted ? navItems.filter((item) => item.key === "support") : navItems;
+  const isSubscriptionRestricted =
+    LOCKED_SUBSCRIPTION_STATUSES.includes(doctor?.subscriptionStatus) || isTrialExpired(doctor);
+  const isAccessRestricted = isProfileRestricted || isSubscriptionRestricted;
+  const visibleNavItems = isAccessRestricted ? navItems.filter((item) => item.key === "support") : navItems;
 
   const loadUnreadCount = async () => {
     try {
@@ -245,10 +256,10 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
   }, [activeNav]);
 
   useEffect(() => {
-    if (isProfileRestricted && activeNav !== "support") {
+    if (isAccessRestricted && activeNav !== "support") {
       setActiveNav("support");
     }
-  }, [isProfileRestricted, activeNav]);
+  }, [isAccessRestricted, activeNav]);
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
@@ -486,7 +497,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
 
               <button
                 type="button"
-                onClick={() => setActiveNav(isProfileRestricted ? "support" : "settings")}
+                onClick={() => setActiveNav(isAccessRestricted ? "support" : "settings")}
                 className="flex cursor-pointer items-center gap-2 rounded-full border border-[var(--color-border)] px-2 py-1.5 transition-colors hover:bg-[var(--color-bg-soft)]"
               >
                 <div className="h-8 w-8 rounded-full text-xs font-bold text-[var(--color-on-primary)]" style={{ background: "linear-gradient(135deg, var(--color-primary), color-mix(in srgb, var(--color-primary) 80%, black))" }}>
@@ -552,7 +563,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
                                 setActiveNav("support");
                                 setNotificationsOpen(false);
                               } else if (note.type === "profile-status") {
-                                setActiveNav(isProfileRestricted ? "support" : "settings");
+                                setActiveNav(isAccessRestricted ? "support" : "settings");
                                 setNotificationsOpen(false);
                               }
                             }}
@@ -570,16 +581,20 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
         ) : null}
 
         <main className="flex-1 overflow-y-auto bg-transparent p-4 sm:p-6">
-          {isProfileRestricted && (
+          {isAccessRestricted && (
             <div className="mb-4 rounded-4xl border border-[var(--color-secondary)]/40 bg-[var(--color-secondary)]/12 p-4 shadow-[0_10px_40px_-10px_rgba(193,140,93,0.25)]">
-              <p className="text-sm font-bold text-[var(--color-danger)]">Profile access restricted</p>
+              <p className="text-sm font-bold text-[var(--color-danger)]">
+                {isSubscriptionRestricted ? "Subscription access restricted" : "Profile access restricted"}
+              </p>
               <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
-                Admin requested updates to your profile. Dashboard modules are locked until your profile is verified again. You can still use Support to contact admin.
+                {isSubscriptionRestricted
+                  ? "Your free trial has ended or your subscription is waiting for admin approval. Dashboard modules are locked, but Support remains available."
+                  : "Admin requested updates to your profile. Dashboard modules are locked until your profile is verified again. You can still use Support to contact admin."}
               </p>
             </div>
           )}
 
-          {isProfileRestricted && (
+          {isAccessRestricted && (
             <div className="mb-5 rounded-4xl border border-[var(--color-border)]/80 bg-[var(--color-card)]/95 p-4 shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)]">
               <div className="pointer-events-none opacity-70 blur-sm">
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -592,11 +607,12 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
             </div>
           )}
 
-          {isProfileRestricted && activeNav === "support" && <SupportCenterPage />}
+          {isAccessRestricted && activeNav === "support" && <SupportCenterPage />}
 
-          {!isProfileRestricted && (
+          {!isAccessRestricted && (
             <>
           {activeNav === "settings" && <SettingsPage />}
+          {activeNav === "queue" && <QueuePage />}
           {activeNav === "patients" && <PatientsPage />}
           {activeNav === "payments" && <PaymentPage onBack={() => setActiveNav("dashboard")} />}
           {activeNav === "chats" && <DoctorChatsPage />}
@@ -836,7 +852,7 @@ const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0"
           </>
           )}
 
-          {!isProfileRestricted && !["dashboard", "settings", "patients", "chats", "appointments", "emergency-cancelled", "insights", "revenue-lab", "payments", "support"].includes(activeNav) && (
+          {!isAccessRestricted && !["dashboard", "queue", "settings", "patients", "chats", "appointments", "emergency-cancelled", "insights", "revenue-lab", "payments", "support"].includes(activeNav) && (
             <div className="flex h-full items-center justify-center">
               <div className="rounded-4xl border border-[var(--color-border)] bg-[var(--color-card)]/95 px-10 py-16 text-center shadow-[0_10px_40px_-10px_rgba(93,112,82,0.18)]">
                 <div className="mb-4 text-5xl">🚧</div>

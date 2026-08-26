@@ -82,6 +82,71 @@ export const getBillingLog = async (req, res) => {
   }
 };
 
+export const createExtraPayment = async (req, res) => {
+  try {
+    const { checkupId, amount, description, method } = req.body;
+
+    if (!mongoose.isValidObjectId(checkupId)) {
+      return res.status(400).json({ message: "Invalid checkup ID" });
+    }
+
+    const parsedAmount = Number(amount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      return res.status(400).json({ message: "Extra payment amount must be greater than zero" });
+    }
+
+    const checkup = await Checkup.findOne({ _id: checkupId, doctor: req.doctorId }).populate("patient", "name");
+    if (!checkup) {
+      return res.status(404).json({ message: "Checkup not found" });
+    }
+
+    const paymentDescription = String(description || "Laboratory Test").trim() || "Laboratory Test";
+    const paymentMethod = ["Cash", "Card", "Online Transfer"].includes(method) ? method : "Cash";
+
+    const consultationBase = Number(checkup.payment?.netAmount ?? checkup.payment?.amount ?? 0) - Number(checkup.payment?.ancillaryFee || 0);
+    const nextAncillaryFee = Number(checkup.payment?.ancillaryFee || 0) + parsedAmount;
+    const nextTotal = Math.max(0, consultationBase + nextAncillaryFee);
+
+    checkup.payment = {
+      ...(checkup.payment || {}),
+      amount: nextTotal,
+      netAmount: nextTotal,
+      ancillaryFee: nextAncillaryFee,
+      isPaid: true,
+      method: paymentMethod,
+      description: checkup.payment?.description || "Consultation",
+    };
+    await checkup.save();
+
+    const paymentRecord = await import("../models/payment.model.js").then(({ default: PaymentModel }) =>
+      PaymentModel.create({
+        patientId: checkup.patient,
+        appointmentId: undefined,
+        doctorId: req.doctorId,
+        category: "LAB",
+        status: "PAID",
+        amount: parsedAmount,
+        originalFee: parsedAmount,
+        discount: 0,
+        discountAmount: 0,
+        netAmount: parsedAmount,
+        ancillaryFee: parsedAmount,
+        description: paymentDescription,
+        method: paymentMethod,
+      }),
+    );
+
+    return res.status(201).json({
+      message: "Extra payment recorded successfully",
+      payment: paymentRecord,
+      checkup,
+    });
+  } catch (error) {
+    console.error("createExtraPayment error:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 export const updateBillingStatus = async (req, res) => {
   try {
     const { id } = req.params;

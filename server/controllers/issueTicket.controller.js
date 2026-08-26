@@ -1,7 +1,8 @@
 import mongoose from "mongoose";
-import { uploadToR2, getFileUrl } from "../services/storage.service.js";
+import { uploadToR2 } from "../services/storage.service.js";
 import IssueTicket from "../models/issueTicket.model.js";
 import { Doctor } from "../models/doctor.model.js";
+import PaymentProof from "../models/PaymentProof.js";
 import Notification from "../models/notification.model.js";
 import { allowedImageMimeTypes } from "../middlewares/upload.middleware.js";
 import { emitIssueTicketUpdate } from "../realtime/socket.js";
@@ -10,6 +11,7 @@ const validCategories = [
   "General Feedback",
   "Technical Issue",
   "Billing/Subscription",
+  "Billing / Subscription Issue",
   "Verification/Profile",
   "Other",
 ];
@@ -18,8 +20,11 @@ const validStatuses = ["Open", "In Progress", "Resolved", "Reopened", "Closed"];
 
 const isAdminRequest = (req) => Boolean(req.admin?.role === "admin");
 
-const uploadAttachmentToR2 = async (file) => {
-  return await uploadToR2(file, "issue-chats");
+const isBillingCategory = (category = "") =>
+  ["Billing/Subscription", "Billing / Subscription Issue"].includes(category);
+
+const uploadAttachmentToR2 = async (file, folder = "issue-chats") => {
+  return await uploadToR2(file, folder);
 };
 
 const getMessageType = ({ text = "", attachments = [] }) => {
@@ -37,11 +42,11 @@ const getMessageType = ({ text = "", attachments = [] }) => {
   return "mixed";
 };
 
-const buildTicketMessagePayload = async ({ senderRole, senderName, text, files }) => {
+const buildTicketMessagePayload = async ({ senderRole, senderName, text, files, folder }) => {
   const attachments = [];
 
   for (const file of files || []) {
-    const uploadResult = await uploadAttachmentToR2(file);
+    const uploadResult = await uploadAttachmentToR2(file, folder);
     attachments.push({
       url: uploadResult.url,
       key: uploadResult.key,
@@ -192,7 +197,7 @@ export const addTicketMessage = async (req, res) => {
       return res.status(400).json({ message: "Message text or attachment is required" });
     }
 
-    const ticket = await IssueTicket.findById(req.params.id).populate("doctor", "fullName");
+    const ticket = await IssueTicket.findById(req.params.id).populate("doctor", "fullName email phone");
     if (!ticket) {
       return res.status(404).json({ message: "Issue not found" });
     }
@@ -211,6 +216,7 @@ export const addTicketMessage = async (req, res) => {
       senderName,
       text: messageText,
       files: req.files || [],
+      folder: isBillingCategory(ticket.category) ? "support-attachments" : "issue-chats",
     });
 
     ticket.messages.push(messagePayload);
@@ -221,6 +227,34 @@ export const addTicketMessage = async (req, res) => {
     }
 
     await ticket.save();
+
+    if (!adminRequest && isBillingCategory(ticket.category)) {
+      const imageAttachments = messagePayload.attachments.filter((attachment) =>
+        allowedImageMimeTypes.has(String(attachment.mimeType || "").toLowerCase())
+      );
+
+      for (const attachment of imageAttachments) {
+        await PaymentProof.create({
+          doctorId: ticket.doctor._id,
+          supportTicketId: ticket._id,
+          doctorName: ticket.doctor.fullName,
+          doctorEmail: ticket.doctor.email,
+          doctorPhone: ticket.doctor.phone,
+          screenshotUrl: attachment.url,
+          amount: 2499,
+          billingCycle: "monthly",
+          status: "PENDING",
+          rejectionReason: "",
+        });
+      }
+
+      if (imageAttachments.length > 0) {
+        await Doctor.findByIdAndUpdate(ticket.doctor._id, {
+          subscriptionStatus: "PENDING_VERIFICATION",
+        });
+      }
+    }
+
     await emitIssueTicketUpdate(ticket);
 
     if (adminRequest) {

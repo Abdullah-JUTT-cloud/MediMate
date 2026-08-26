@@ -18,6 +18,12 @@ const PLAN_FEATURES = [
   "Priority onboarding and clinic-hour support",
 ];
 
+const MONTHLY_PRICE = 2499;
+const ANNUAL_DISCOUNT = 0.2;
+const ANNUAL_PRICE = Math.round(MONTHLY_PRICE * 12 * (1 - ANNUAL_DISCOUNT));
+
+const formatPkr = (amount) => `Rs. ${amount.toLocaleString("en-PK")}`;
+
 const faqs = [
   {
     question: "Is there a setup fee?",
@@ -76,18 +82,68 @@ export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState("monthly");
   const [openFaqIndex, setOpenFaqIndex] = useState(0);
   const [showAllFeatures, setShowAllFeatures] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentForm, setPaymentForm] = useState({
+    doctorName: "",
+    doctorEmail: "",
+    doctorPhone: "",
+    screenshot: null,
+  });
+  const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
+
+  const handlePaymentSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!paymentForm.doctorName || !paymentForm.doctorEmail || !paymentForm.doctorPhone || !paymentForm.screenshot) {
+      alert("Please complete all fields and upload the payment receipt screenshot.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("doctorName", paymentForm.doctorName);
+    formData.append("doctorEmail", paymentForm.doctorEmail);
+    formData.append("doctorPhone", paymentForm.doctorPhone);
+    formData.append("amount", String(pricing.amount));
+    formData.append("billingCycle", billingCycle);
+    formData.append("screenshot", paymentForm.screenshot);
+
+    try {
+      setIsSubmittingPayment(true);
+      const response = await fetch("/api/subscriptions/submit-proof", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || "Payment submission failed");
+      }
+
+      alert("Payment submitted! Your subscription will be activated upon admin verification within 2 hours.");
+      setShowPaymentModal(false);
+      setPaymentForm({ doctorName: "", doctorEmail: "", doctorPhone: "", screenshot: null });
+      document.getElementById("payment-upload-input")?.value && (document.getElementById("payment-upload-input").value = "");
+    } catch (error) {
+      alert(error.message || "Submission failed. Please try again.");
+    } finally {
+      setIsSubmittingPayment(false);
+    }
+  };
 
   const pricing = useMemo(() => {
     if (billingCycle === "annual") {
       return {
-        price: "Rs. 49,999",
+        amount: ANNUAL_PRICE,
+        price: formatPkr(ANNUAL_PRICE),
         period: "/year",
-        helper: "Save over 2 months compared to monthly billing",
+        helper: "20% discount compared to monthly billing",
       };
     }
 
     return {
-      price: "Rs. 4,999",
+      amount: MONTHLY_PRICE,
+      price: formatPkr(MONTHLY_PRICE),
       period: "/month",
       helper: "One complete plan for independent doctors and small clinics",
     };
@@ -115,7 +171,7 @@ export default function PricingPage() {
             <p className="mb-2 text-sm font-medium text-[var(--color-primary)]">
               Simple pricing. No surprises.
             </p>
-            <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--color-primary)]/70">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--color-primary)]/70">
               Pricing
             </p>
             <h1 className="mt-3 font-heading text-4xl font-semibold leading-tight sm:text-5xl">
@@ -226,7 +282,11 @@ export default function PricingPage() {
             </div>
 
             <div className="mt-10">
-              <button className="group relative w-full rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)] py-4 text-sm font-bold text-[var(--color-on-primary)] shadow-[0_4px_20px_-2px_rgba(var(--color-primary-rgb),0.2)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_30px_-5px_rgba(var(--color-primary-rgb),0.4)]">
+              <button
+                type="button"
+                onClick={() => setShowPaymentModal(true)}
+                className="group relative w-full rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)] py-4 text-sm font-bold text-[var(--color-on-primary)] shadow-[0_4px_20px_-2px_rgba(var(--color-primary-rgb),0.2)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_30px_-5px_rgba(var(--color-primary-rgb),0.4)]"
+              >
                 Get Started Now →
               </button>
               <p className="mt-4 text-center text-xs text-[var(--color-text-secondary)]">
@@ -297,6 +357,84 @@ export default function PricingPage() {
           </section>
         </div>
       </main>
+
+      {showPaymentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-xl rounded-[2rem] border border-[var(--color-border)]/80 bg-[var(--color-card)] p-6 shadow-2xl">
+            <div className="mb-5 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--color-primary)]">Bank transfer</p>
+                <h3 className="mt-2 text-2xl font-bold text-[var(--color-text-primary)]">Payment instructions</h3>
+              </div>
+              <button type="button" onClick={() => setShowPaymentModal(false)} className="rounded-full border border-[var(--color-border)] px-3 py-1.5 text-sm text-[var(--color-text-secondary)]">Close</button>
+            </div>
+
+            <div className="mb-5 rounded-3xl border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/5 p-4 text-sm text-[var(--color-text-primary)]">
+              <p><strong>Bank Name:</strong> Raqami Islamic Digital Bank</p>
+              <p><strong>Account Title:</strong> MUHAMMAD ABDULLAH</p>
+              <p><strong>Account Number:</strong> 021017632079</p>
+              <p><strong>IBAN:</strong> PK20RQMI0000021017632079</p>
+              <p className="mt-2 font-bold text-[var(--color-primary)]">
+                Amount: {pricing.price} {pricing.period}
+              </p>
+            </div>
+
+            <form onSubmit={handlePaymentSubmit} className="space-y-4">
+              <div>
+                <label className="mb-1 block text-xs font-bold uppercase tracking-[0.12em] text-[var(--color-text-secondary)]">Doctor Name</label>
+                <input
+                  type="text"
+                  value={paymentForm.doctorName}
+                  onChange={(e) => setPaymentForm((prev) => ({ ...prev, doctorName: e.target.value }))}
+                  className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] px-4 py-3 text-sm outline-none focus:border-[var(--color-primary)]"
+                  placeholder="Dr. Ali Hassan"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-bold uppercase tracking-[0.12em] text-[var(--color-text-secondary)]">Email</label>
+                <input
+                  type="email"
+                  value={paymentForm.doctorEmail}
+                  onChange={(e) => setPaymentForm((prev) => ({ ...prev, doctorEmail: e.target.value }))}
+                  className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] px-4 py-3 text-sm outline-none focus:border-[var(--color-primary)]"
+                  placeholder="doctor@example.com"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-bold uppercase tracking-[0.12em] text-[var(--color-text-secondary)]">Phone Number</label>
+                <input
+                  type="tel"
+                  value={paymentForm.doctorPhone}
+                  onChange={(e) => setPaymentForm((prev) => ({ ...prev, doctorPhone: e.target.value }))}
+                  className="w-full rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-soft)] px-4 py-3 text-sm outline-none focus:border-[var(--color-primary)]"
+                  placeholder="03xx-xxxxxxx"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-bold uppercase tracking-[0.12em] text-[var(--color-text-secondary)]">Upload Receipt Screenshot</label>
+                <input
+                  id="payment-upload-input"
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setPaymentForm((prev) => ({ ...prev, screenshot: e.target.files?.[0] || null }))}
+                  className="w-full rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-bg-soft)] px-4 py-3 text-sm text-[var(--color-text-secondary)]"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmittingPayment}
+                className="w-full rounded-full bg-[var(--color-primary)] px-5 py-3 text-sm font-bold text-white disabled:opacity-60"
+              >
+                {isSubmittingPayment ? "Submitting..." : "Submit Payment Proof"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>

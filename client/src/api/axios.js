@@ -31,6 +31,18 @@ axiosInstance.interceptors.response.use(
             }
         }
 
+        if (error?.response?.status === 402) {
+            const { doctor, setDoctor } = useAuthStore.getState();
+            const { subscriptionStatus, subscriptionExpiresAt } = error.response.data || {};
+            if (doctor && subscriptionStatus) {
+                setDoctor({
+                    ...doctor,
+                    subscriptionStatus,
+                    subscriptionExpiresAt,
+                });
+            }
+        }
+
         return Promise.reject(error);
     }
 );

@@ -35,7 +35,7 @@ const SUPPORT_SEEN_STORAGE_KEY = "support-ticket-seen-map-v2";
 const CATEGORIES = [
   "General Feedback",
   "Technical Issue",
-  "Billing/Subscription",
+  "Billing / Subscription Issue",
   "Verification/Profile",
   "Other",
 ];
