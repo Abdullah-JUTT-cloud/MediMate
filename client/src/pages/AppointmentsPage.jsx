@@ -1,13 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { CalendarDays, ClipboardCheck, RefreshCcw, Search, Siren, Stethoscope, Trash2 } from "lucide-react";
+import { ClipboardCheck, RefreshCcw, Search, Siren, Stethoscope, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import useAuthStore from "../store/authStore";
-import { RowSkeleton, AppointmentRowSkeleton, FormFieldSkeleton } from "../components/SkeletonLoaders";
-import { Skeleton } from "@mui/material";
+import { RowSkeleton } from "../components/SkeletonLoaders";
 import ConfirmDialog from "../components/ConfirmDialog";
 import useConfirmDialog from "../hooks/useConfirmDialog";
-import { organicCardStyle, organicInputStyle, organicSectionStyle, organicTheme } from "../styles/organicTheme";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -15,17 +13,39 @@ const APPOINTMENT_TYPES = ["Consultation", "Follow-up", "Check-up", "Emergency"]
 const STATUSES = ["Pending", "Confirmed", "Completed", "Cancelled", "No-show"];
 const CANCELLATION_REASONS = ["Patient", "Doctor", "Emergency", "No-show"];
 
-const STATUS_STYLES = {
-  Pending: { bg: "rgba(193,140,93,0.12)", border: "rgba(193,140,93,0.28)", color: "var(--color-secondary)" },
-  Confirmed: {
-    bg: "rgba(93,112,82,0.12)",
-    border: "rgba(93,112,82,0.28)",
-    color: "var(--color-primary)",
-  },
-  Completed: { bg: "rgba(93,112,82,0.16)", border: "rgba(93,112,82,0.34)", color: "var(--color-primary)" },
-  Cancelled: { bg: "rgba(168,84,72,0.12)", border: "rgba(168,84,72,0.28)", color: "var(--color-danger)" },
-  "No-show": { bg: "rgba(168,84,72,0.15)", border: "rgba(168,84,72,0.34)", color: "var(--color-danger)" },
+// High-contrast (WCAG AA) status badge classes — light + dark themes.
+const BADGE_BASE = "inline-flex items-center whitespace-nowrap font-bold px-3 py-1 rounded-full text-xs border";
+
+const STATUS_BADGE_CLASSES = {
+  Completed:
+    "bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-100 dark:border-emerald-400/50",
+  Pending:
+    "bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-500/20 dark:text-amber-100 dark:border-amber-400/50",
+  Confirmed:
+    "bg-teal-100 text-teal-900 border-teal-300 dark:bg-teal-500/20 dark:text-teal-100 dark:border-teal-400/50",
+  Cancelled:
+    "bg-rose-100 text-rose-900 border-rose-300 dark:bg-rose-500/20 dark:text-rose-100 dark:border-rose-400/50",
+  "No-show":
+    "bg-rose-100 text-rose-900 border-rose-300 dark:bg-rose-500/20 dark:text-rose-100 dark:border-rose-400/50",
 };
+
+// Selectable (toggle) variants used by the status picker in the detail view.
+const STATUS_SELECT_CLASSES = {
+  Completed: "bg-emerald-600 text-white border-emerald-600",
+  Pending: "bg-amber-500 text-white border-amber-500",
+  Confirmed: "bg-teal-600 text-white border-teal-600",
+  Cancelled: "bg-rose-600 text-white border-rose-600",
+  "No-show": "bg-rose-600 text-white border-rose-600",
+};
+
+const UNSELECTED_CHIP =
+  "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 hover:border-teal-500 font-semibold";
+
+// Shared field primitives
+const FIELD_LABEL =
+  "text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2 block";
+const FIELD_INPUT =
+  "bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl p-3.5 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 focus:outline-none w-full shadow-xs placeholder:text-slate-400 transition-colors";
 
 const TYPE_ICONS = {
   Consultation: Stethoscope,
@@ -62,18 +82,6 @@ const generateSlots = (startTime, endTime, slotDuration) => {
   return slots;
 };
 
-// ─── Shared Styles ────────────────────────────────────────────────────────────
-
-const S = {
-  input: organicInputStyle,
-  card: organicCardStyle,
-  section: organicSectionStyle,
-};
-
-const focusInput = (e) => (e.target.style.border = `1px solid ${organicTheme.colors.primary}`);
-const blurInput = (e) => (e.target.style.border = `1px solid ${organicTheme.colors.border}`);
-const inputCls = "w-full px-4 py-3 rounded-full text-sm outline-none transition-all focus:ring-2 focus:ring-[var(--color-primary)]/30";
-
 const TypeIcon = ({ type, size = 18 }) => {
   const Icon = TYPE_ICONS[type] || Stethoscope;
   return <Icon size={size} strokeWidth={2} />;
@@ -81,25 +89,39 @@ const TypeIcon = ({ type, size = 18 }) => {
 
 function BackButton({ onClick, label = "Back" }) {
   return (
-    <button onClick={onClick}
-      className="flex items-center gap-2 text-sm font-semibold transition-all hover:opacity-80 mb-6"
-      style={{ color: organicTheme.colors.primary }}>
+    <button onClick={onClick} type="button"
+      className="flex items-center gap-2 text-sm font-bold text-teal-600 dark:text-teal-400 hover:underline mb-6">
       ← {label}
     </button>
   );
 }
 
 function SectionLabel({ text }) {
-  return <p className="text-xs font-bold uppercase tracking-widest mb-3 text-[var(--color-text-secondary)]">{text}</p>;
+  return <span className={FIELD_LABEL}>{text}</span>;
 }
 
 function StatusBadge({ status }) {
-  const s = STATUS_STYLES[status] || STATUS_STYLES.Pending;
+  const cls = STATUS_BADGE_CLASSES[status] || STATUS_BADGE_CLASSES.Pending;
+  return <span className={`${BADGE_BASE} ${cls}`}>{status}</span>;
+}
+
+function TypeBadge({ type }) {
   return (
-    <span className="text-xs px-2.5 py-1 rounded-full font-semibold"
-      style={{ background: s.bg, border: `1px solid ${s.border}`, color: s.color }}>
-      {status}
+    <span className="inline-flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 font-semibold px-3 py-1 rounded-lg text-xs">
+      <TypeIcon type={type} size={13} /> {type}
     </span>
+  );
+}
+
+const getInitials = (name) =>
+  name?.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "P";
+
+function Avatar({ name, size = "md" }) {
+  const dim = size === "sm" ? "w-9 h-9 text-xs" : "w-10 h-10 text-sm";
+  return (
+    <div className={`${dim} rounded-xl flex items-center justify-center font-bold text-white bg-teal-600 shrink-0`}>
+      {getInitials(name)}
+    </div>
   );
 }
 
@@ -165,19 +187,18 @@ function AppointmentDetailPage({ appointment, onBack, onUpdated, onDeleted, conf
   const patient = appointment.patient;
 
   return (
-    <div className="max-w-2xl mx-auto px-1">
+    <div className="max-w-3xl mx-auto px-1">
       <BackButton onClick={onBack} label="Back to Appointments" />
 
       {/* Header Card */}
-      <div className="rounded-2xl p-5 sm:p-6 mb-5" style={S.card}>
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm p-6 sm:p-8 mb-5">
         <div className="flex items-start gap-4 mb-5">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
-            style={{ background: "rgba(93,112,82,0.12)", color: organicTheme.colors.primary }}>
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-teal-600 text-white">
             <TypeIcon type={appointment.type} size={20} />
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-bold text-[var(--color-text-primary)]">{patient?.name || "Unknown Patient"}</h2>
-            <p className="text-sm mt-0.5 text-[var(--color-text-secondary)]">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">{patient?.name || "Unknown Patient"}</h2>
+            <p className="text-sm font-semibold mt-0.5 text-slate-700 dark:text-slate-300">
               {appointment.type} · {formatDate(appointment.date)} at {appointment.slot}
             </p>
           </div>
@@ -195,32 +216,26 @@ function AppointmentDetailPage({ appointment, onBack, onUpdated, onDeleted, conf
             { label: "Type", value: appointment.type },
             { label: "Reason", value: appointment.cancellationReason || "—" },
           ].map(({ label, value }) => (
-            <div key={label} className="p-3 rounded-xl" style={S.section}>
-              <p className="text-xs mb-1 text-[var(--color-text-secondary)]">{label}</p>
-              <p className="text-sm font-semibold text-[var(--color-text-primary)]">{value}</p>
+            <div key={label} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+              <p className="text-xs font-bold uppercase tracking-wider mb-1 text-slate-600 dark:text-slate-400">{label}</p>
+              <p className="text-sm font-bold text-slate-900 dark:text-white break-words">{value}</p>
             </div>
           ))}
         </div>
       </div>
 
       {/* Update Status */}
-      <div className="rounded-2xl p-5 mb-4" style={S.card}>
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm p-6 sm:p-8 mb-4">
         <SectionLabel text="Update Status" />
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
-          {STATUSES.map((s) => {
-            const style = STATUS_STYLES[s];
-            return (
-              <button key={s} onClick={() => setStatus(s)}
-                className="py-2.5 rounded-xl text-xs font-bold transition-all"
-                style={{
-                  background: status === s ? style.bg : "var(--color-bg)",
-                  border: status === s ? `1px solid ${style.border}` : "1px solid var(--color-border)",
-                  color: status === s ? style.color : "var(--color-text-secondary)",
-                }}>
-                {s}
-              </button>
-            );
-          })}
+          {STATUSES.map((s) => (
+            <button key={s} onClick={() => setStatus(s)} type="button"
+              className={`py-2.5 rounded-xl text-xs font-bold border transition-all ${
+                status === s ? `${STATUS_SELECT_CLASSES[s]} shadow-sm` : UNSELECTED_CHIP
+              }`}>
+              {s}
+            </button>
+          ))}
         </div>
 
         {(status === "Cancelled" || status === "No-show") && (
@@ -230,22 +245,13 @@ function AppointmentDetailPage({ appointment, onBack, onUpdated, onDeleted, conf
               {CANCELLATION_REASONS.map((r) => (
                 <button
                   key={r}
+                  type="button"
                   onClick={() => setCancellationReason(r)}
-                  className="py-2.5 rounded-xl text-xs font-bold transition-all"
-                  style={{
-                    background:
-                      cancellationReason === r
-                        ? "color-mix(in srgb, var(--color-danger) 12%, transparent)"
-                        : "var(--color-bg)",
-                    border:
-                      cancellationReason === r
-                        ? "1px solid color-mix(in srgb, var(--color-danger) 35%, transparent)"
-                        : "1px solid var(--color-border)",
-                    color:
-                      cancellationReason === r
-                        ? "var(--color-danger)"
-                        : "var(--color-text-secondary)",
-                  }}
+                  className={`py-2.5 rounded-xl text-xs font-bold border transition-all ${
+                    cancellationReason === r
+                      ? "bg-rose-600 text-white border-rose-600 shadow-sm"
+                      : UNSELECTED_CHIP
+                  }`}
                 >
                   {r}
                 </button>
@@ -257,19 +263,16 @@ function AppointmentDetailPage({ appointment, onBack, onUpdated, onDeleted, conf
         <SectionLabel text="Notes" />
         <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
           placeholder="Add notes about this appointment..."
-          rows={3} className="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none transition-all mb-4"
-          style={S.input} onFocus={focusInput} onBlur={blurInput} />
+          rows={3} className={`${FIELD_INPUT} resize-none mb-4`} />
 
         <div className="flex gap-3">
-          <button onClick={handleSave} disabled={isLoading}
-            className="flex-1 py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-50"
-            style={{ background: "linear-gradient(135deg,var(--color-primary),color-mix(in srgb, var(--color-primary) 80%, black))", boxShadow: "0 4px 15px color-mix(in srgb, var(--color-primary) 25%, transparent)" }}>
-            {isLoading ? "Saving..." : "Save Changes ✓"}
+          <button onClick={handleSave} disabled={isLoading} type="button"
+            className="flex-1 bg-teal-600 hover:bg-teal-500 text-white font-bold text-base py-3.5 px-6 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
+            {isLoading ? "Saving..." : "Save Changes"}
           </button>
-          <button onClick={handleDelete} disabled={isLoading}
-            className="px-4 py-3 rounded-xl text-sm font-bold transition-all hover-danger-soft"
-            style={{ color: "var(--color-danger)", border: "1px solid color-mix(in srgb, var(--color-danger) 30%, transparent)" }}>
-            🗑 Delete
+          <button onClick={handleDelete} disabled={isLoading} type="button"
+            className="px-4 py-3.5 rounded-xl text-sm font-bold text-rose-600 dark:text-rose-400 bg-white dark:bg-slate-800 border border-rose-300 dark:border-rose-500/50 hover:bg-rose-50 dark:hover:bg-rose-500/15 transition-colors flex items-center gap-2 disabled:opacity-60">
+            <Trash2 size={16} /> Delete
           </button>
         </div>
       </div>
@@ -477,25 +480,26 @@ function BookAppointmentForm({
     }
   };
 
-  const getInitials = (name) => name?.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "P";
+  const originalFee = Math.max(0, Number(billingAmount || 0));
+  const discountFee = Math.max(0, Number(billingDiscount || 0));
+  const netFee = Math.max(0, originalFee - discountFee);
 
   return (
-    <div className="max-w-2xl mx-auto px-1">
+    <div className="max-w-3xl mx-auto px-1">
       <BackButton onClick={onBack} label="Back to Appointments" />
 
       <div className="space-y-4">
 
         {/* Patient Search */}
-        <div className="rounded-2xl p-5" style={S.card}>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm">
           <SectionLabel text="Select Patient" />
           <div className="relative mb-3">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm" style={{ color: organicTheme.colors.mutedForeground }}>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 pointer-events-none">
               <Search size={16} />
             </span>
             <input value={search} onChange={(e) => { setSearch(e.target.value); setSelectedPatient(null); }}
               placeholder="Search patient by name or phone..."
-              className="w-full pl-10 pr-4 py-3 rounded-full text-sm outline-none transition-all"
-              style={S.input} onFocus={focusInput} onBlur={blurInput} />
+              className={`${FIELD_INPUT} pl-10`} />
           </div>
 
           {searchLoading && (
@@ -508,22 +512,15 @@ function BookAppointmentForm({
           {!searchLoading && patients.length > 0 && !selectedPatient && (
             <div className="space-y-2">
               {patients.map((p) => (
-                <button key={p._id} onClick={() => { setSelectedPatient(p); setSearch(p.name); setPatients([]); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all"
-                  style={S.section}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "color-mix(in srgb, var(--color-primary) 8%, var(--color-bg))")}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = S.section.background)}>
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white shrink-0"
-                    style={{ background: "linear-gradient(135deg,var(--color-primary),color-mix(in srgb, var(--color-primary) 80%, black))" }}>
-                    {getInitials(p.name)}
-                  </div>
+                <button key={p._id} type="button" onClick={() => { setSelectedPatient(p); setSearch(p.name); setPatients([]); }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-teal-500 transition-colors">
+                  <Avatar name={p.name} size="sm" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-[var(--color-text-primary)] truncate">{p.name}</p>
-                    <p className="text-xs text-[var(--color-text-secondary)]">{p.age} yrs · {p.phone}</p>
+                    <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{p.name}</p>
+                    <p className="text-xs font-medium text-slate-600 dark:text-slate-400">{p.age} yrs · {p.phone}</p>
                   </div>
                   {p.locations?.map((loc, i) => (
-                    <span key={i} className="text-xs px-2 py-1 rounded-full hidden sm:block"
-                      style={{ background: loc.locationType === "Clinic" ? "rgba(93,112,82,0.12)" : "rgba(193,140,93,0.14)", color: loc.locationType === "Clinic" ? organicTheme.colors.primary : organicTheme.colors.secondary }}>
+                    <span key={i} className="hidden sm:inline-flex text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-600">
                       {loc.locationType === "Clinic" ? "🏥" : "🏨"} {loc.locationName}
                     </span>
                   ))}
@@ -533,43 +530,37 @@ function BookAppointmentForm({
           )}
 
           {selectedPatient && (
-            <div className="flex items-center gap-3 px-4 py-3 rounded-xl"
-              style={{ background: "color-mix(in srgb, var(--color-primary) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--color-primary) 22%, transparent)" }}>
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white shrink-0"
-                style={{ background: "linear-gradient(135deg,var(--color-primary),color-mix(in srgb, var(--color-primary) 80%, black))" }}>
-                {getInitials(selectedPatient.name)}
-              </div>
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-teal-50/60 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800">
+              <Avatar name={selectedPatient.name} size="sm" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-[var(--color-text-primary)]">{selectedPatient.name}</p>
-                <p className="text-xs text-[var(--color-text-secondary)]">{selectedPatient.age} yrs · {selectedPatient.phone}</p>
+                <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{selectedPatient.name}</p>
+                <p className="text-xs font-medium text-slate-700 dark:text-slate-300">{selectedPatient.age} yrs · {selectedPatient.phone}</p>
               </div>
-              <button onClick={() => { setSelectedPatient(null); setSearch(""); setSlots([]); }}
-                className="text-xs px-2 py-1 rounded-lg text-[var(--color-text-secondary)]">✕</button>
+              <button type="button" onClick={() => { setSelectedPatient(null); setSearch(""); setSlots([]); }}
+                className="text-xs font-bold px-2.5 py-1.5 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-200/70 dark:hover:bg-slate-700">✕</button>
             </div>
           )}
         </div>
 
         {/* Date + Type */}
-        <div className="rounded-[2rem] p-5" style={S.card}>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div>
               <SectionLabel text="Date" />
               <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
                 min={formatDateInput(new Date())}
-                className={inputCls} style={{ ...S.input, colorScheme: "light" }}
-                onFocus={focusInput} onBlur={blurInput} />
+                className={FIELD_INPUT} />
             </div>
             <div>
               <SectionLabel text="Appointment Type" />
               <div className="grid grid-cols-2 gap-2">
                 {APPOINTMENT_TYPES.map((t) => (
-                  <button key={t} onClick={() => setType(t)}
-                    className="py-2.5 px-3 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5"
-                    style={{
-                      background: type === t ? "color-mix(in srgb, var(--color-primary) 15%, transparent)" : "var(--color-bg)",
-                      border: type === t ? "1px solid var(--color-primary)" : "1px solid var(--color-border)",
-                      color: type === t ? "var(--color-primary)" : "var(--color-text-secondary)",
-                    }}>
+                  <button key={t} type="button" onClick={() => setType(t)}
+                    className={`py-2.5 px-3 rounded-xl text-xs border transition-all flex items-center gap-1.5 ${
+                      type === t
+                        ? "bg-teal-600 text-white font-bold border-teal-600 shadow-sm"
+                        : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:border-teal-400 font-semibold"
+                    }`}>
                     <TypeIcon type={t} size={14} /> {t}
                   </button>
                 ))}
@@ -577,16 +568,20 @@ function BookAppointmentForm({
             </div>
           </div>
 
-          <div className="border-t border-[var(--color-border)]/50 pt-4 mt-4 flex items-center justify-between">
+          <div className="mt-6 bg-teal-50/60 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 p-4 rounded-xl mb-4 flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-[var(--color-text-primary)]">Walk-In Patient</p>
-              <p className="text-xs text-[var(--color-text-secondary)]">Flag this patient as a walk-in for the queue</p>
+              <p className="text-sm font-bold text-slate-900 dark:text-white">Walk-In Patient</p>
+              <p className="text-xs font-medium text-slate-700 dark:text-slate-300">Flag this patient as a walk-in for the queue</p>
             </div>
             <button
               type="button"
+              role="switch"
+              aria-checked={isWalkIn}
+              aria-label="Walk-in patient"
               onClick={() => setIsWalkIn(!isWalkIn)}
-              className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none"
-              style={{ background: isWalkIn ? "var(--color-primary)" : "var(--color-border)" }}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-teal-500/40 ${
+                isWalkIn ? "bg-teal-600" : "bg-slate-300 dark:bg-slate-600"
+              }`}
             >
               <span
                 className="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
@@ -594,7 +589,7 @@ function BookAppointmentForm({
               />
             </button>
           </div>
-          <div className="border-t border-[var(--color-border)]/50 pt-4 mt-4 space-y-4">
+          <div className="border-t border-slate-200 dark:border-slate-800 pt-6 mt-2 space-y-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <SectionLabel text="Price / Amount (PKR)" />
@@ -604,10 +599,8 @@ function BookAppointmentForm({
                   step="50"
                   value={billingAmount}
                   onChange={(e) => setBillingAmount(e.target.value)}
-                  className={inputCls}
-                  style={S.input}
-                  onFocus={focusInput}
-                  onBlur={blurInput}
+                  placeholder="2000"
+                  className={FIELD_INPUT}
                 />
               </div>
               <div>
@@ -618,10 +611,8 @@ function BookAppointmentForm({
                   step="50"
                   value={billingDiscount}
                   onChange={(e) => setBillingDiscount(e.target.value)}
-                  className={inputCls}
-                  style={S.input}
-                  onFocus={focusInput}
-                  onBlur={blurInput}
+                  placeholder="0"
+                  className={FIELD_INPUT}
                 />
               </div>
             </div>
@@ -633,10 +624,7 @@ function BookAppointmentForm({
                 value={billingDescription}
                 onChange={(e) => setBillingDescription(e.target.value)}
                 placeholder="Consultation"
-                className={inputCls}
-                style={S.input}
-                onFocus={focusInput}
-                onBlur={blurInput}
+                className={FIELD_INPUT}
               />
             </div>
 
@@ -648,12 +636,11 @@ function BookAppointmentForm({
                     key={method}
                     type="button"
                     onClick={() => setPaymentMethod(method)}
-                    className="py-2.5 px-3 rounded-xl text-xs font-semibold transition-all"
-                    style={{
-                      background: paymentMethod === method ? "color-mix(in srgb, var(--color-primary) 15%, transparent)" : "var(--color-bg)",
-                      border: paymentMethod === method ? "1px solid var(--color-primary)" : "1px solid var(--color-border)",
-                      color: paymentMethod === method ? "var(--color-primary)" : "var(--color-text-secondary)",
-                    }}
+                    className={`py-2.5 px-3 rounded-xl text-xs border transition-all ${
+                      paymentMethod === method
+                        ? "bg-teal-600 text-white font-bold border-teal-600 shadow-sm"
+                        : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:border-teal-400 font-semibold"
+                    }`}
                   >
                     {method}
                   </button>
@@ -661,29 +648,36 @@ function BookAppointmentForm({
               </div>
             </div>
 
-            <p className="text-xs text-[var(--color-text-secondary)]">
-              ℹ️ Final consultation charge will be <strong>{Math.max(0, Number(billingAmount || 0) - Number(billingDiscount || 0)).toLocaleString()} PKR</strong> after discount.
-            </p>
+            <div className="bg-teal-50/60 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 p-4 rounded-xl mb-4">
+              <p className="text-xs font-bold uppercase tracking-wider text-teal-800 dark:text-teal-200 mb-1">Fee Summary</p>
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                Original Fee: Rs. {originalFee.toLocaleString()}
+                <span className="mx-2 text-slate-400 dark:text-slate-500">|</span>
+                Discount: -Rs. {discountFee.toLocaleString()}
+                <span className="mx-2 text-slate-400 dark:text-slate-500">|</span>
+                <span className="font-bold text-teal-800 dark:text-teal-200">Net Charge: Rs. {netFee.toLocaleString()}</span>
+              </p>
+            </div>
           </div>
         </div>
 
         {/* Slots */}
         {selectedPatient && date && (
-          <div className="rounded-2xl p-5" style={S.card}>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm">
             <SectionLabel text={`Available Slots — ${getDayName(date)}, ${formatDate(date)}`} />
             {isHydratingSelectedPatient ? (
-              <div className="text-center py-8 rounded-xl" style={S.section}>
+              <div className="text-center py-8 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                 <div className="text-3xl mb-2">⏳</div>
-                <p className="text-sm font-semibold text-[var(--color-text-primary)] mb-1">Loading patient schedule...</p>
-                <p className="text-xs text-[var(--color-text-secondary)]">
+                <p className="text-sm font-bold text-slate-900 dark:text-white mb-1">Loading patient schedule...</p>
+                <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
                   Fetching complete location details to calculate slots
                 </p>
               </div>
             ) : slots.length === 0 ? (
-              <div className="text-center py-8 rounded-xl" style={S.section}>
+              <div className="text-center py-8 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                 <div className="text-3xl mb-2">📅</div>
-                <p className="text-sm font-semibold text-[var(--color-text-primary)] mb-1">No slots available</p>
-                <p className="text-xs text-[var(--color-text-secondary)]">
+                <p className="text-sm font-bold text-slate-900 dark:text-white mb-1">No slots available</p>
+                <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
                   {selectedPatient.name} has no sessions on {getDayName(date)}
                 </p>
               </div>
@@ -694,28 +688,20 @@ function BookAppointmentForm({
                   const isSelected = selectedSlot === slot.time;
                   const isFull = bookingCount >= 3;
                   return (
-                    <button key={slot.time} onClick={() => setSelectedSlot(slot.time)}
+                    <button key={slot.time} type="button" onClick={() => setSelectedSlot(slot.time)}
                       disabled={isFull}
-                      className="relative px-4 py-2.5 rounded-xl text-sm font-semibold transition-all"
-                      style={{
-                        background: isFull
-                          ? "color-mix(in srgb, var(--color-danger) 12%, transparent)"
+                      className={`relative px-4 py-2.5 rounded-xl text-sm border transition-all ${
+                        isFull
+                          ? "bg-rose-100 dark:bg-rose-500/15 text-rose-900 dark:text-rose-100 border-rose-300 dark:border-rose-400/50 font-bold cursor-not-allowed"
                           : isSelected
-                            ? "color-mix(in srgb, var(--color-primary) 15%, transparent)"
-                            : "var(--color-bg)",
-                        border: isFull
-                          ? "1px solid color-mix(in srgb, var(--color-danger) 35%, transparent)"
-                          : isSelected
-                            ? "1px solid var(--color-primary)"
-                            : "1px solid var(--color-border)",
-                        color: isFull ? "var(--color-danger)" : isSelected ? "var(--color-primary)" : "var(--color-text-primary)",
-                        opacity: isFull ? 0.85 : 1,
-                        cursor: isFull ? "not-allowed" : "pointer",
-                      }}>
+                            ? "bg-teal-600 text-white font-bold border-teal-600 shadow-sm"
+                            : "bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:border-teal-400 font-semibold"
+                      }`}>
                       {slot.time}
                       {bookingCount > 0 && (
-                        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-xs flex items-center justify-center font-bold"
-                          style={{ background: bookingCount >= 3 ? "var(--color-danger)" : "var(--color-warning)", color: "var(--color-on-primary)", fontSize: "9px" }}>
+                        <span className={`absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[9px] flex items-center justify-center font-bold text-white ${
+                          bookingCount >= 3 ? "bg-rose-600" : "bg-amber-600"
+                        }`}>
                           {bookingCount}
                         </span>
                       )}
@@ -725,7 +711,7 @@ function BookAppointmentForm({
               </div>
             )}
             {slots.length > 0 && (
-              <p className="text-xs mt-3 text-[var(--color-text-secondary)]">
+              <p className="text-xs mt-3 font-medium text-slate-600 dark:text-slate-400">
                 🟡 Number on slot = existing bookings for that time
               </p>
             )}
@@ -733,18 +719,17 @@ function BookAppointmentForm({
         )}
 
         {/* Notes */}
-        <div className="rounded-[2rem] p-5" style={S.card}>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm">
           <SectionLabel text="Notes (optional)" />
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
             placeholder="Any notes about this appointment..."
-            rows={3} className="w-full px-4 py-3 rounded-xl text-sm outline-none resize-none transition-all"
-            style={S.input} onFocus={focusInput} onBlur={blurInput} />
+            rows={3} className={`${FIELD_INPUT} resize-none`} />
         </div>
 
-        <button onClick={handleSubmit} disabled={isLoading}
-          className="w-full py-4 rounded-full text-sm font-bold text-white transition-all hover:opacity-95 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-          style={{ background: organicTheme.colors.primary, boxShadow: organicTheme.shadows.button }}>
-          {isLoading ? "Booking..." : "Book Appointment ✓"}
+        <button onClick={handleSubmit} disabled={isLoading} type="button"
+          className="bg-teal-600 hover:bg-teal-500 text-white font-bold text-base py-3.5 px-6 rounded-xl shadow-md transition-all w-full flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
+          <ClipboardCheck size={18} />
+          {isLoading ? "Booking..." : "Book Appointment"}
         </button>
       </div>
     </div>
@@ -813,6 +798,19 @@ export default function AppointmentsPage({
   const handleBooked = (newAppt) => {
     setAppointments((p) => [newAppt, ...p]);
     setView("list");
+  };
+
+  const markNoShow = async (id) => {
+    try {
+      await axiosInstance.put(`/appointments/${id}`, {
+        status: "No-show",
+        cancellationReason: "No-show",
+      });
+      toast.success("Marked as no-show");
+      fetchAppointments();
+    } catch {
+      toast.error("Failed to update appointment");
+    }
   };
 
   const toggleSelected = (id) => {
@@ -897,12 +895,11 @@ export default function AppointmentsPage({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h2 className="text-3xl font-bold text-[var(--color-text-primary)]" style={{ fontFamily: "Fraunces" }}>Appointments</h2>
-          <p className="text-sm mt-1 text-[var(--color-text-secondary)]">{appointments.length} appointments</p>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Appointments</h2>
+          <p className="text-sm font-medium mt-1 text-slate-600 dark:text-slate-400">{appointments.length} appointments</p>
         </div>
-        <button onClick={() => setView("book")}
-          className="flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold text-white transition-all hover:scale-105 active:scale-95 hover:opacity-95 w-fit"
-          style={{ background: organicTheme.colors.primary, boxShadow: organicTheme.shadows.button }}>
+        <button onClick={() => setView("book")} type="button"
+          className="bg-teal-600 hover:bg-teal-500 text-white font-bold text-sm py-3 px-6 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 w-fit">
           + Book Appointment
         </button>
       </div>
@@ -913,26 +910,24 @@ export default function AppointmentsPage({
         {/* Date filter first so native calendar popup has room on the right */}
         <div className="flex items-center gap-2">
           <input type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)}
-            className="px-4 py-2.5 rounded-full text-xs outline-none transition-all"
-            style={{ ...S.input, colorScheme: "light" }}
-            onFocus={focusInput} onBlur={blurInput} />
+            aria-label="Filter by date"
+            className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white shadow-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 focus:outline-none" />
           {dateFilter && (
-            <button onClick={() => setDateFilter("")}
-              className="text-xs px-3 py-2 rounded-full transition-all text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-soft)] active:scale-[0.99]">✕</button>
+            <button type="button" onClick={() => setDateFilter("")}
+              className="text-xs font-bold px-3 py-2 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-200/70 dark:hover:bg-slate-700 transition-colors">✕</button>
           )}
         </div>
 
         {/* Status filters */}
         <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
           {["All", ...STATUSES].map((s) => (
-            <button key={s} onClick={() => setActiveFilter(s)}
+            <button key={s} type="button" onClick={() => setActiveFilter(s)}
               aria-pressed={activeFilter === s}
-              className="shrink-0 px-3 py-2 rounded-full text-xs font-semibold transition-all"
-              style={{
-                background: activeFilter === s ? "rgba(93,112,82,0.14)" : "color-mix(in srgb, var(--color-bg-soft) 46%, transparent)",
-                border: activeFilter === s ? "1px solid rgba(93,112,82,0.35)" : "1px solid color-mix(in srgb, var(--color-border) 80%, transparent)",
-                color: activeFilter === s ? organicTheme.colors.primary : organicTheme.colors.mutedForeground,
-              }}>
+              className={`shrink-0 px-4 py-1.5 rounded-full text-xs transition-all ${
+                activeFilter === s
+                  ? "bg-teal-600 text-white font-bold shadow-sm border border-teal-600"
+                  : "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-teal-500 font-semibold"
+              }`}>
               {s}
             </button>
           ))}
@@ -940,64 +935,51 @@ export default function AppointmentsPage({
       </div>
 
       {selectedIds.length > 0 && (
-        <div className="mb-4 p-3 rounded-xl flex flex-wrap items-center gap-2"
-          style={{ background: "color-mix(in srgb, var(--color-primary) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--color-primary) 25%, transparent)" }}>
-          <p className="text-xs font-semibold text-[var(--color-text-primary)]">
+        <div className="mb-4 p-3 rounded-xl flex flex-wrap items-center gap-2 bg-teal-50/60 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800">
+          <p className="text-xs font-bold text-slate-900 dark:text-white mr-1">
             {selectedIds.length} selected
           </p>
+          {[
+            { label: "Mark Confirmed", status: "Confirmed", cls: "bg-teal-100 text-teal-900 border-teal-300 dark:bg-teal-500/20 dark:text-teal-100 dark:border-teal-400/50" },
+            { label: "Mark Completed", status: "Completed", cls: "bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-100 dark:border-emerald-400/50" },
+            { label: "Mark No-show", status: "No-show", cls: "bg-rose-100 text-rose-900 border-rose-300 dark:bg-rose-500/20 dark:text-rose-100 dark:border-rose-400/50" },
+            { label: "Mark Cancelled", status: "Cancelled", cls: "bg-rose-100 text-rose-900 border-rose-300 dark:bg-rose-500/20 dark:text-rose-100 dark:border-rose-400/50" },
+          ].map(({ label, status, cls }) => (
+            <button
+              key={status}
+              type="button"
+              onClick={() => runBulkStatusUpdate(status)}
+              disabled={bulkLoading}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all disabled:opacity-60 ${cls}`}>
+              {bulkLoading ? "Saving..." : label}
+            </button>
+          ))}
           <button
-            onClick={() => runBulkStatusUpdate("Confirmed")}
-            disabled={bulkLoading}
-            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold"
-            style={{ background: "rgba(16,184,129,0.14)", color: "var(--color-success)", border: "1px solid rgba(16,184,129,0.35)" }}>
-            {bulkLoading ? "Saving..." : "Mark Confirmed"}
-          </button>
-          <button
-            onClick={() => runBulkStatusUpdate("Completed")}
-            disabled={bulkLoading}
-            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold"
-            style={{ background: "rgba(34,197,94,0.14)", color: "var(--color-success)", border: "1px solid rgba(34,197,94,0.35)" }}>
-            {bulkLoading ? "Saving..." : "Mark Completed"}
-          </button>
-          <button
-            onClick={() => runBulkStatusUpdate("No-show")}
-            disabled={bulkLoading}
-            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold"
-            style={{ background: "rgba(239,68,68,0.14)", color: "var(--color-danger)", border: "1px solid rgba(239,68,68,0.35)" }}>
-            {bulkLoading ? "Saving..." : "Mark No-show"}
-          </button>
-          <button
-            onClick={() => runBulkStatusUpdate("Cancelled")}
-            disabled={bulkLoading}
-            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold"
-            style={{ background: "color-mix(in srgb, var(--color-danger) 14%, transparent)", color: "var(--color-danger)", border: "1px solid color-mix(in srgb, var(--color-danger) 35%, transparent)" }}>
-            {bulkLoading ? "Saving..." : "Mark Cancelled"}
-          </button>
-          <button
+            type="button"
             onClick={() => setSelectedIds([])}
             disabled={bulkLoading}
-            className="px-2.5 py-1.5 rounded-lg text-xs font-semibold"
-            style={{ background: "var(--color-bg)", color: "var(--color-text-secondary)", border: "1px solid var(--color-border)" }}>
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 hover:border-teal-500 disabled:opacity-60">
             Clear
           </button>
         </div>
       )}
 
       {/* Appointments List */}
-      <div className="rounded-2xl overflow-hidden" style={S.card}>
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
 
         {/* Desktop Header */}
-        <div className="hidden sm:grid grid-cols-6 gap-4 px-5 py-3"
-          style={{ borderBottom: "1px solid var(--color-border)", background: "var(--color-bg)" }}>
+        <div className="hidden sm:grid grid-cols-6 gap-4 p-4 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700">
           <div className="flex items-center">
             <input
               type="checkbox"
+              aria-label="Select all appointments"
+              className="w-4 h-4 accent-teal-600 cursor-pointer"
               checked={appointments.length > 0 && selectedIds.length === appointments.length}
               onChange={toggleSelectAllVisible}
             />
           </div>
           {["Patient", "Date & Time", "Type", "Status", "Action"].map((h) => (
-            <p key={h} className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-secondary)]">{h}</p>
+            <p key={h} className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">{h}</p>
           ))}
         </div>
 
@@ -1012,114 +994,89 @@ export default function AppointmentsPage({
         ) : appointments.length === 0 ? (
           <div className="text-center py-16">
             <div className="text-5xl mb-3">📅</div>
-            <p className="text-sm font-bold text-[var(--color-text-primary)] mb-1">No appointments found</p>
-            <p className="text-xs text-[var(--color-text-secondary)]">
+            <p className="text-base font-bold text-slate-900 dark:text-white mb-1">No appointments found</p>
+            <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
               {activeFilter !== "All" || dateFilter ? "Try changing filters" : "Book your first appointment"}
             </p>
           </div>
         ) : (
           appointments.map((apt) => (
             <div key={apt._id}
-              className="group cursor-pointer transition-all duration-200"
-              style={{ borderBottom: "1px solid var(--color-border)" }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "color-mix(in srgb, var(--color-primary) 6%, transparent)")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+              role="button"
+              tabIndex={0}
+              className="group cursor-pointer border-b border-slate-200 dark:border-slate-800 last:border-b-0 hover:bg-slate-50 dark:hover:bg-slate-800/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-500 transition-colors"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setActiveAppointment(apt);
+                  setView("detail");
+                }
+              }}
               onClick={() => { setActiveAppointment(apt); setView("detail"); }}>
 
               {/* Mobile */}
-              <div className="sm:hidden flex items-center gap-3 px-4 py-4">
+              <div className="sm:hidden flex items-center gap-3 p-4">
                 <input
                   type="checkbox"
+                  aria-label={`Select appointment for ${apt.patient?.name || "Unknown"}`}
+                  className="w-4 h-4 accent-teal-600 cursor-pointer"
                   checked={selectedIds.includes(apt._id)}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    toggleSelected(apt._id);
-                  }}
+                  onChange={() => toggleSelected(apt._id)}
                   onClick={(e) => e.stopPropagation()}
                 />
-                <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
-                  style={{ background: "rgba(93,112,82,0.12)", color: organicTheme.colors.primary }}>
-                  <TypeIcon type={apt.type} size={18} />
-                </div>
+                <Avatar name={apt.patient?.name} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-[var(--color-text-primary)] truncate">{apt.patient?.name || "Unknown"}</p>
-                  <p className="text-xs mt-0.5 text-[var(--color-text-secondary)]">
+                  <p className="text-base font-bold text-slate-900 dark:text-white truncate">{apt.patient?.name || "Unknown"}</p>
+                  <p className="text-xs mt-0.5 font-semibold text-slate-700 dark:text-slate-300">
                     {formatDate(apt.date)} at {apt.slot} · {apt.type}
                   </p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <StatusBadge status={apt.status} />
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); markNoShow(apt._id); }}
+                      className="text-xs text-rose-600 dark:text-rose-400 font-semibold hover:bg-rose-50 dark:hover:bg-rose-500/15 px-2 py-1 rounded-lg">
+                      No-show
+                    </button>
+                  </div>
                 </div>
-                <StatusBadge status={apt.status} />
-                <button
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    try {
-                      await axiosInstance.put(`/appointments/${apt._id}`, {
-                        status: "No-show",
-                        cancellationReason: "No-show",
-                      });
-                      toast.success("Marked as no-show");
-                      fetchAppointments();
-                    } catch {
-                      toast.error("Failed to update appointment");
-                    }
-                  }}
-                  className="text-[10px] px-2 py-1 rounded-lg font-semibold"
-                  style={{ background: "rgba(239,68,68,0.14)", color: "var(--color-danger)", border: "1px solid rgba(239,68,68,0.35)" }}>
-                  No-show
-                </button>
               </div>
 
               {/* Desktop */}
-              <div className="hidden sm:grid grid-cols-6 gap-4 items-center px-5 py-4">
+              <div className="hidden sm:grid grid-cols-6 gap-4 items-center p-4">
                 <div className="flex items-center">
                   <input
                     type="checkbox"
+                    aria-label={`Select appointment for ${apt.patient?.name || "Unknown"}`}
+                    className="w-4 h-4 accent-teal-600 cursor-pointer"
                     checked={selectedIds.includes(apt._id)}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      toggleSelected(apt._id);
-                    }}
+                    onChange={() => toggleSelected(apt._id)}
                     onClick={(e) => e.stopPropagation()}
                   />
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-2xl flex items-center justify-center text-sm shrink-0"
-                    style={{ background: "rgba(93,112,82,0.12)", color: organicTheme.colors.primary }}>
-                    <TypeIcon type={apt.type} size={16} />
-                  </div>
-                  <span className="text-sm font-semibold text-[var(--color-text-primary)] truncate">{apt.patient?.name || "Unknown"}</span>
+                <div className="flex items-center gap-3 min-w-0">
+                  <Avatar name={apt.patient?.name} />
+                  <span className="text-base font-bold text-slate-900 dark:text-white truncate">{apt.patient?.name || "Unknown"}</span>
                 </div>
                 <div>
-                  <p className="text-sm text-[var(--color-text-primary)]">{formatDate(apt.date)}</p>
-                  <p className="text-xs text-[var(--color-text-secondary)]">{apt.slot}</p>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{formatDate(apt.date)}</p>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{apt.slot}</p>
                 </div>
-                <span className="text-sm text-[var(--color-text-secondary)]">{apt.type}</span>
-                <StatusBadge status={apt.status} />
-                <div className="flex items-center">
-                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        try {
-                          await axiosInstance.put(`/appointments/${apt._id}`, {
-                            status: "No-show",
-                            cancellationReason: "No-show",
-                          });
-                          toast.success("Marked as no-show");
-                          fetchAppointments();
-                        } catch {
-                          toast.error("Failed to update appointment");
-                        }
-                      }}
-                      className="text-xs px-2.5 py-1.5 rounded-lg font-semibold"
-                      style={{ background: "rgba(239,68,68,0.14)", color: "var(--color-danger)", border: "1px solid rgba(239,68,68,0.35)" }}>
-                      No-show
-                    </button>
-                    <button
-                      className="text-xs px-2.5 py-1.5 rounded-lg font-semibold"
-                      style={{ background: "color-mix(in srgb, var(--color-primary) 10%, transparent)", color: "var(--color-primary)", border: "1px solid color-mix(in srgb, var(--color-primary) 25%, transparent)" }}>
-                      View →
-                    </button>
-                  </div>
+                <div><TypeBadge type={apt.type} /></div>
+                <div><StatusBadge status={apt.status} /></div>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setActiveAppointment(apt); setView("detail"); }}
+                    className="text-sm text-teal-600 dark:text-teal-400 font-bold hover:underline">
+                    View →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); markNoShow(apt._id); }}
+                    className="text-sm text-rose-600 dark:text-rose-400 font-semibold hover:bg-rose-50 dark:hover:bg-rose-500/15 px-2 py-1 rounded-lg transition-colors">
+                    No-show
+                  </button>
                 </div>
               </div>
             </div>
