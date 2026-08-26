@@ -7,7 +7,11 @@ const sendEmail = async ({ to, subject, html }) => {
   const sendSmtpEmail = new Brevo.SendSmtpEmail();
   sendSmtpEmail.subject = subject;
   sendSmtpEmail.htmlContent = html;
-  sendSmtpEmail.sender = { name: "MedAlerto", email: "ltxabdullah44@gmail.com" };
+  // Hardcoded to the sender verified in our Brevo account (Senders & Domains).
+  // Brevo rejects any other address with an "unverified sender" error, so this
+  // value must not be changed without verifying the new address first.
+  sendSmtpEmail.sender = { name: "MedAlerto", email: "medalerto.official@gmail.com" };
+  // Recipient list is built dynamically from the caller-supplied `to` address.
   sendSmtpEmail.to = [{ email: to }];
 
   return apiInstance.sendTransacEmail(sendSmtpEmail);
