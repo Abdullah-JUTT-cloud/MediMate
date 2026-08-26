@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
-import ConsultationWorkspace from "./ConsultationWorkspace";
+import ConsultationWorkspace from "./ConsultationWorkspaceRedesigned";
 import useAuthStore from "../store/authStore";
 import VerifiedBadge from "../components/VerifiedBadge";
 
