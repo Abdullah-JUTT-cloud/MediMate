@@ -1,17 +1,14 @@
-const DEFAULT_COOKIE_MAX_AGE = 15 * 24 * 60 * 60 * 1000;
+const DEFAULT_COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 
 export const getCookieOptions = (maxAge = DEFAULT_COOKIE_MAX_AGE) => {
   const options = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
+    secure: true,
+    sameSite: "lax",
     path: "/",
     maxAge,
+    domain: ".medalerto.me",
   };
-
-  if (process.env.COOKIE_DOMAIN) {
-    options.domain = process.env.COOKIE_DOMAIN;
-  }
 
   return options;
 };

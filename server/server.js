@@ -59,6 +59,7 @@ const PORT = process.env.PORT || 3000;
 const allowedOrigins = [
   "https://medalerto.me",
   "https://www.medalerto.me",
+  "https://api.medalerto.me",
   "https://medalerto.pages.dev",
   "http://localhost:5173",
 ].map((origin) => origin.trim().replace(/\/$/, ""));
