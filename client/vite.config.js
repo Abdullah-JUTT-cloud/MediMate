@@ -7,6 +7,10 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  server: {
+    host: true,
+    allowedHosts: ['.e2b.app'],
+  },
   build: {
     rollupOptions: {
       output: {

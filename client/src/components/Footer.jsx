@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { CheckCircle2, Send, ShieldCheck } from "lucide-react";
 import useThemedLogo from "../hooks/useThemedLogo";
 
 const footerLinks = {
@@ -12,7 +14,6 @@ const footerLinks = {
     { name: "Contact", href: "/contact" },
     { name: "Blog", href: "/blog" },
   ],
-  // Fix duplicate footer content by replacing the repeated contact link with distinct support destinations.
   Support: [
     { name: "FAQ", href: "/faq" },
     { name: "Privacy Policy", href: "/privacy-policy" },
@@ -26,21 +27,34 @@ const footerLinks = {
 
 export default function Footer() {
   const logo = useThemedLogo();
+  const [subscribed, setSubscribed] = useState(false);
+
+  const handleSubscribe = (e) => {
+    e.preventDefault();
+    setSubscribed(true);
+  };
 
   return (
     <footer
       id="contact"
       className="relative overflow-hidden border-t border-[var(--color-border)]/70 bg-[var(--color-bg)] text-[var(--color-text-primary)]"
     >
+      {/* Hairline accent along the top edge (matches the navbar treatment) */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -left-12 top-12 h-80 w-80 bg-[var(--color-accent)]/20 blur-3xl"
+        className="pointer-events-none absolute inset-x-8 top-0 h-px bg-[linear-gradient(to_right,transparent,rgba(var(--color-primary-rgb),0.45),transparent)]"
+      />
+
+      {/* Decorative organic glow behind the brand column — kept away from the updates card */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-24 top-10 h-96 w-96 bg-[var(--color-accent)]/25 blur-3xl"
         style={{ borderRadius: "60% 40% 35% 65% / 55% 35% 65% 45%" }}
       />
+      {/* Soft ambient wash along the bottom — subtle, no color clash */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -right-12 bottom-12 h-80 w-80 bg-[var(--color-primary)]/10 blur-3xl"
-        style={{ borderRadius: "48% 52% 39% 61% / 48% 34% 66% 52%" }}
+        className="pointer-events-none absolute bottom-0 left-1/2 h-56 w-[42rem] -translate-x-1/2 bg-[var(--color-primary)]/8 blur-3xl"
       />
 
       <div className="relative mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
@@ -68,7 +82,7 @@ export default function Footer() {
             <p className="mt-6 max-w-[320px] text-sm font-medium leading-relaxed text-[var(--color-text-secondary)]">
               Trusted clinic management for faster workflows, secure delivery, and seamless patient communication.
             </p>
-            
+
             <p className="mt-4 text-xs font-bold text-[var(--color-primary)]/80">
               Built for doctors. Designed for simplicity.
             </p>
@@ -142,36 +156,84 @@ export default function Footer() {
           </div>
 
           <div className="lg:col-span-4">
-            <div className="ml-auto max-w-[400px] rounded-4xl border border-[var(--color-border)]/70 bg-[var(--color-card)] p-8 shadow-[0_10px_30px_rgba(0,0,0,0.08)] transition-all hover:shadow-[0_15px_40px_rgba(0,0,0,0.12)]">
-              <p className="font-mono text-[10px] uppercase tracking-[0.35em] text-[var(--color-primary)]">
-                Updates
-              </p>
-              <h4 className="mt-4 font-heading text-2xl font-semibold leading-tight text-[var(--color-text-primary)]">
-                Stay updated with product improvements.
-              </h4>
-              <p className="mt-3 text-sm leading-relaxed text-[var(--color-text-secondary)]">
-                Get practical clinic workflows and feature updates that reduce
-                friction without noise.
-              </p>
+            <div className="relative ml-auto max-w-[400px]">
+              {/* Designed halo behind the card — aligned to it, so nothing clashes */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -inset-8 rounded-[3.5rem] bg-gradient-to-tr from-[var(--color-primary)]/12 via-transparent to-[var(--color-accent)]/50 blur-2xl"
+              />
 
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  className="h-12 w-full rounded-full border border-[var(--color-border)] bg-[var(--color-card)]/70 px-4 font-body text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)] focus:border-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/20"
+              <div className="relative overflow-hidden rounded-4xl border border-[var(--color-border)]/80 bg-[var(--color-card)]/95 p-8 shadow-[var(--shadow-float)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-[var(--color-primary)]/25 hover:shadow-[var(--shadow-float)]">
+                {/* Hairline highlight along the card's top edge */}
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-x-8 top-0 h-px bg-[linear-gradient(to_right,transparent,rgba(var(--color-primary-rgb),0.45),transparent)]"
                 />
-                <button className="group relative inline-flex h-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)] px-6 font-body text-sm font-bold text-[var(--color-on-primary)] shadow-[0_4px_20px_-2px_rgba(var(--color-primary-rgb),0.2)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-14px_rgba(var(--color-primary-rgb),0.4)] active:translate-y-0">
-                  <span className="relative z-10">Subscribe</span>
-                </button>
+                {/* Faint inner glow, contained inside the card */}
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute -right-14 -top-14 h-36 w-36 rounded-full bg-[var(--color-primary)]/10 blur-3xl"
+                />
+
+                <div className="relative">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-[var(--color-primary)]/20 bg-[var(--color-primary)]/10 px-3.5 py-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--color-primary)] animate-pulse" />
+                    <span className="font-mono text-[10px] uppercase tracking-[0.3em] text-[var(--color-primary)]">
+                      Updates
+                    </span>
+                  </span>
+
+                  <h4 className="mt-5 font-heading text-2xl font-semibold leading-tight text-[var(--color-text-primary)]">
+                    Stay updated with{" "}
+                    <span className="italic text-[var(--color-secondary)]">
+                      product improvements.
+                    </span>
+                  </h4>
+                  <p className="mt-3 text-sm leading-relaxed text-[var(--color-text-secondary)]">
+                    Get practical clinic workflows and feature updates that
+                    reduce friction without noise.
+                  </p>
+
+                  {subscribed ? (
+                    <div className="mt-6 inline-flex items-center gap-2.5 rounded-full border border-[var(--color-primary)]/25 bg-[var(--color-primary)]/10 px-4 py-3">
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--color-primary)]" />
+                      <span className="text-xs font-bold text-[var(--color-primary)]">
+                        You&apos;re on the list — watch your inbox!
+                      </span>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleSubscribe} className="mt-6">
+                      <div className="flex flex-col gap-3 sm:flex-row">
+                        <input
+                          type="email"
+                          required
+                          placeholder="Enter your email"
+                          aria-label="Email address"
+                          className="h-12 w-full flex-1 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-soft)]/60 px-4 font-body text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)] focus:border-[var(--color-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/20"
+                        />
+                        <button
+                          type="submit"
+                          className="group relative inline-flex h-12 shrink-0 items-center justify-center gap-2 overflow-hidden rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)] px-6 font-body text-sm font-bold text-[var(--color-on-primary)] shadow-[0_4px_20px_-2px_rgba(var(--color-primary-rgb),0.2)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-14px_rgba(var(--color-primary-rgb),0.4)] active:translate-y-0"
+                        >
+                          <span className="absolute inset-0 -translate-x-full bg-white/15 transition-transform duration-500 group-hover:translate-x-0" />
+                          <Send className="relative z-10 h-4 w-4" />
+                          <span className="relative z-10">Subscribe</span>
+                        </button>
+                      </div>
+                    </form>
+                  )}
+
+                  <p className="mt-3 flex items-center justify-center gap-1.5 text-[10px] text-[var(--color-text-secondary)]/80 sm:justify-start">
+                    <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-[var(--color-primary)]" />
+                    No spam. Only useful updates.
+                  </p>
+                </div>
               </div>
-              <p className="mt-3 text-[10px] text-[var(--color-text-secondary)]/80 text-center sm:text-left">
-                No spam. Only useful updates.
-              </p>
             </div>
           </div>
         </div>
 
-        <div className="mt-16 border-t border-[#E5E7EB] pt-8">
+        <div className="mt-16 border-t border-[var(--color-border)] pt-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <p className="font-mono text-[10px] uppercase tracking-[0.24em] text-[var(--color-text-secondary)]">
               © 2026 MedAlerto. All rights reserved.
