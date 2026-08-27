@@ -121,9 +121,9 @@ const DateTimeField = ({ id, label, type, value, onChange }) => (
     <input
       id={id}
       type={type}
-      value={value}
+      value={value ?? ""}
       onChange={onChange}
-      className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl p-3 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 outline-none w-full shadow-xs [color-scheme:light] dark:[color-scheme:dark]"
+      className="emergency-native-picker bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl p-3 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 outline-none w-full shadow-xs [color-scheme:light] dark:[color-scheme:dark]"
     />
   </div>
 );
@@ -236,10 +236,10 @@ export default function EmergencyCancelledPage({ onReschedule }) {
   const [endDate, setEndDate] = useState("");
   const [endTime, setEndTime] = useState("");
 
-  const resetBulkCancellationInputs = () => {
+  const handleClearInputs = () => {
     setStartDate("");
-    setStartTime("");
     setEndDate("");
+    setStartTime("");
     setEndTime("");
   };
 
@@ -304,7 +304,7 @@ export default function EmergencyCancelledPage({ onReschedule }) {
       const cancelled = Array.isArray(res.data?.cancelledAppointments) ? res.data.cancelledAppointments : [];
       toast.success(`${cancelled.length} appointments cancelled`);
       setAppointments((prev) => [...cancelled, ...prev]);
-      resetBulkCancellationInputs();
+      handleClearInputs();
     } catch {
       toast.error("Failed to cancel appointments");
     } finally {
@@ -405,12 +405,7 @@ export default function EmergencyCancelledPage({ onReschedule }) {
           </button>
           <button
             type="button"
-            onClick={() => {
-              setStartDate("");
-              setStartTime("");
-              setEndDate("");
-              setEndTime("");
-            }}
+            onClick={handleClearInputs}
             className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold px-4 py-3 rounded-xl text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:focus-visible:ring-slate-500"
           >
             Clear Inputs

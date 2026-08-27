@@ -228,6 +228,25 @@ input[type="date"], input[type="time"] {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23FFFFFF' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'><rect x='3' y='5' width='18' height='16' rx='2'/><line x1='16' y1='3' x2='16' y2='7'/><line x1='8' y1='3' x2='8' y2='7'/><line x1='3' y1='11' x2='21' y2='11'/></svg>");
 }
 
+/* Emergency cancellation uses the browser's native date/time picker visuals
+   without the app-wide decorative overlay icon treatment. */
+input.emergency-native-picker[type="date"],
+input.emergency-native-picker[type="time"] {
+  background-image: none;
+  padding-right: 0.75rem;
+}
+
+input.emergency-native-picker[type="date"]::-webkit-calendar-picker-indicator,
+input.emergency-native-picker[type="time"]::-webkit-calendar-picker-indicator {
+  opacity: 1;
+  position: static;
+  right: auto;
+  width: auto;
+  height: auto;
+  cursor: pointer;
+  -webkit-appearance: auto;
+}
+
 /* Premium Animations */
 @keyframes float {
   0% {
