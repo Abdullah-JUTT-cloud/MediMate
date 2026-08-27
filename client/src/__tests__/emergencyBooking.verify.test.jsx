@@ -236,7 +236,7 @@ describe("Appointments booking form (AppointmentsPage)", () => {
     expect(screen.getByRole("button", { name: /Slot 17:30/i }).disabled).toBe(false);
 
     await user.click(screen.getByRole("button", { name: /Slot 17:30/i }));
-    await user.click(screen.getByRole("button", { name: "Emergency" }));
+    await user.selectOptions(screen.getByLabelText(/Consultation Type/i), "Emergency");
 
     // Fill billing amount + confirm booking.
     const amountInput = screen.getAllByPlaceholderText("2000")[0];
