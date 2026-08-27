@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { CalendarDays } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import axiosInstance from "../../api/axios";
 import useAuthStore from "../../store/authStore";
@@ -24,7 +23,6 @@ export default function BookAppointmentModal({ patient, onClose, onBooked }) {
   const { doctor } = useAuthStore();
 
   const [date, setDate] = useState(getTodayDateInput());
-  const dateInputRef = useRef(null);
   const [slot, setSlot] = useState("");
   const [type, setType] = useState("Consultation");
   const [notes, setNotes] = useState("");
@@ -159,31 +157,12 @@ export default function BookAppointmentModal({ patient, onClose, onBooked }) {
             <div className="relative">
               <input
                 id="booking-date"
-                ref={dateInputRef}
                 type="date"
                 value={date}
                 min={getTodayDateInput()}
                 onChange={(event) => setDate(event.target.value)}
-                className={`${cls.input} [color-scheme:light] dark:[color-scheme:dark]`}
+                className={`${cls.input} cursor-pointer [color-scheme:light] dark:[color-scheme:dark]`}
               />
-              {/* Imperative trigger (Option B): the calendar icon overlays the
-                  input for visual affordance. Previously it (or the browser's
-                  own indicator layer) swallowed clicks via `pointer-events-none`
-                  placement quirks, so tapping the icon itself never opened the
-                  native date picker. Making the icon a real clickable button
-                  that calls `showPicker()` on the underlying input guarantees a
-                  click anywhere on the icon — desktop or mobile — opens the
-                  picker, while the input itself still opens it normally when
-                  clicked directly. */}
-              <button
-                type="button"
-                tabIndex={-1}
-                aria-label="Open calendar"
-                onClick={() => dateInputRef.current?.showPicker?.()}
-                className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500 transition-colors hover:text-teal-600 dark:text-slate-400 dark:hover:text-teal-400"
-              >
-                <CalendarDays size={16} />
-              </button>
             </div>
             <p className={cls.mutedText + " mt-1.5"}>
               {formatLongDate(date)} — slots come from the sessions configured at this

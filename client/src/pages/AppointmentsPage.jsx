@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { CalendarDays, ClipboardCheck, RefreshCcw, Search, Siren, Stethoscope, Trash2 } from "lucide-react";
+import { ClipboardCheck, RefreshCcw, Search, Siren, Stethoscope, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import useAuthStore from "../store/authStore";
@@ -292,6 +292,10 @@ function BookAppointmentForm({
   preSelectedPatient = null,
   rescheduleCancelledAppointmentId = null,
   onEmergencyRescheduleComplete,
+  // When `true` the form is rendered inside the booking dialog/drawer opened
+  // from the main "+ Book Appointment" button instead of as a full page.
+  isModal = false,
+  onClose,
 }) {
   const { doctor } = useAuthStore();
   const [patients, setPatients] = useState([]);
@@ -314,7 +318,6 @@ function BookAppointmentForm({
   const [searchLoading, setSearchLoading] = useState(false);
   const [isHydratingSelectedPatient, setIsHydratingSelectedPatient] = useState(false);
   const hasShownMissingScheduleToast = useRef(false);
-  const dateInputRef = useRef(null);
 
   // Live per-slot occupancy shared with the Patient booking modal
   // (standardCount / emergencyCount / isFull from GET /api/slots).
@@ -322,6 +325,16 @@ function BookAppointmentForm({
     useSlotAvailability(date, {
       enabled: Boolean(date && selectedPatient && !isHydratingSelectedPatient),
     });
+
+  // Allow the drawer/dialog to be dismissed from the keyboard.
+  useEffect(() => {
+    if (!isModal || !onClose) return;
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isModal, onClose]);
 
   // Preselected patients coming from reschedule can be partial objects (without locations).
   useEffect(() => {
@@ -484,11 +497,8 @@ function BookAppointmentForm({
   const discountFee = Math.max(0, Number(billingDiscount || 0));
   const netFee = Math.max(0, originalFee - discountFee);
 
-  return (
-    <div className="max-w-3xl mx-auto px-1">
-      <BackButton onClick={onBack} label="Back to Appointments" />
-
-      <div className="space-y-4">
+  const formContent = (
+    <div className="space-y-4">
 
         {/* Patient Search */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm">
@@ -548,37 +558,34 @@ function BookAppointmentForm({
             <div>
               <SectionLabel text="Date" />
               <div className="relative">
-                <input type="date" ref={dateInputRef} value={date} onChange={(e) => setDate(e.target.value)}
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
                   min={formatDateInput(new Date())}
-                  className={FIELD_INPUT} />
-                {/* Imperative trigger (Option B) so a click on the calendar
-                    glyph itself always opens the native picker, in addition
-                    to the pointer-events fix on the native indicator. */}
-                <button
-                  type="button"
-                  tabIndex={-1}
-                  aria-label="Open calendar"
-                  onClick={() => dateInputRef.current?.showPicker?.()}
-                  className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500 transition-colors hover:text-teal-600 dark:text-slate-400 dark:hover:text-teal-400"
-                >
-                  <CalendarDays size={16} />
-                </button>
+                  className={`${FIELD_INPUT} cursor-pointer [color-scheme:light] dark:[color-scheme:dark]`}
+                />
               </div>
             </div>
             <div>
-              <SectionLabel text="Appointment Type" />
-              <div className="grid grid-cols-2 gap-2">
+              <label htmlFor="booking-appointment-type" className={FIELD_LABEL}>
+                Consultation Type
+              </label>
+              <select
+                id="booking-appointment-type"
+                value={type}
+                onChange={(e) => setType(e.target.value)}
+                className={`${FIELD_INPUT} cursor-pointer`}
+              >
+                <option value="" disabled>
+                  Select type
+                </option>
                 {APPOINTMENT_TYPES.map((t) => (
-                  <button key={t} type="button" onClick={() => setType(t)}
-                    className={`py-2.5 px-3 rounded-xl text-xs border transition-all flex items-center gap-1.5 ${
-                      type === t
-                        ? "bg-teal-600 text-white font-bold border-teal-600 shadow-sm"
-                        : "bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:border-teal-400 font-semibold"
-                    }`}>
-                    <TypeIcon type={t} size={14} /> {t}
-                  </button>
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
                 ))}
-              </div>
+              </select>
             </div>
           </div>
 
@@ -603,7 +610,39 @@ function BookAppointmentForm({
               />
             </button>
           </div>
-          <div className="border-t border-slate-200 dark:border-slate-800 pt-6 mt-2 space-y-5">
+        </div>
+
+        {/* Slots — shared SlotPicker (same grid/logic as the Patient booking modal) */}
+        {selectedPatient && date && (
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm">
+            <SectionLabel text={`Available Slots — ${getDayName(date)}, ${formatDate(date)}`} />
+            {isHydratingSelectedPatient ? (
+              <div className="text-center py-8 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                <div className="text-3xl mb-2">⏳</div>
+                <p className="text-sm font-bold text-slate-900 dark:text-white mb-1">Loading patient schedule...</p>
+                <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                  Fetching complete location details to calculate slots
+                </p>
+              </div>
+            ) : (
+              <SlotPicker
+                slots={slots}
+                availability={slotAvailability}
+                selectedSlot={selectedSlot}
+                onSelectSlot={setSelectedSlot}
+                isEmergency={isEmergency}
+                onEmergencyChange={setIsEmergency}
+                isLoading={isLoadingSlots}
+                emptyTitle="No slots available"
+                emptyHint={`${selectedPatient.name} has no sessions on ${getDayName(date)}`}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Payment & Discount */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm">
+          <div className="space-y-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <SectionLabel text="Price / Amount (PKR)" />
@@ -675,34 +714,6 @@ function BookAppointmentForm({
           </div>
         </div>
 
-        {/* Slots — shared SlotPicker (same grid/logic as the Patient booking modal) */}
-        {selectedPatient && date && (
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm">
-            <SectionLabel text={`Available Slots — ${getDayName(date)}, ${formatDate(date)}`} />
-            {isHydratingSelectedPatient ? (
-              <div className="text-center py-8 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                <div className="text-3xl mb-2">⏳</div>
-                <p className="text-sm font-bold text-slate-900 dark:text-white mb-1">Loading patient schedule...</p>
-                <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                  Fetching complete location details to calculate slots
-                </p>
-              </div>
-            ) : (
-              <SlotPicker
-                slots={slots}
-                availability={slotAvailability}
-                selectedSlot={selectedSlot}
-                onSelectSlot={setSelectedSlot}
-                isEmergency={isEmergency}
-                onEmergencyChange={setIsEmergency}
-                isLoading={isLoadingSlots}
-                emptyTitle="No slots available"
-                emptyHint={`${selectedPatient.name} has no sessions on ${getDayName(date)}`}
-              />
-            )}
-          </div>
-        )}
-
         {/* Notes */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm">
           <SectionLabel text="Notes (optional)" />
@@ -716,7 +727,44 @@ function BookAppointmentForm({
           <ClipboardCheck size={18} />
           {isLoading ? "Booking..." : "Book Appointment"}
         </button>
+    </div>
+  );
+
+  if (isModal) {
+    return (
+      <div className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto bg-black/50 p-4 sm:py-10">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Book Appointment"
+          className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900"
+        >
+          <div className="flex flex-shrink-0 items-center justify-between gap-4 border-b border-slate-200 px-5 py-4 dark:border-slate-800">
+            <div className="min-w-0">
+              <h2 className="truncate text-lg font-bold text-slate-900 dark:text-white">Book Appointment</h2>
+              <p className="truncate text-xs font-semibold text-slate-500 dark:text-slate-400">
+                Search a patient, pick a date and confirm the fee.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close booking dialog"
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl border border-slate-300 text-lg font-bold text-slate-500 transition-colors hover:border-slate-400 hover:text-slate-800 dark:border-slate-600 dark:text-slate-300 dark:hover:text-white"
+            >
+              ×
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6">{formContent}</div>
+        </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="max-w-3xl mx-auto px-1">
+      <BackButton onClick={onBack} label="Back to Appointments" />
+      {formContent}
     </div>
   );
 }
@@ -740,6 +788,7 @@ export default function AppointmentsPage({
   const [preSelectedPatient, setPreSelectedPatient] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [isBookModalOpen, setIsBookModalOpen] = useState(false);
 
   const fetchAppointments = useCallback(async () => {
     setIsLoading(true);
@@ -883,7 +932,7 @@ export default function AppointmentsPage({
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Appointments</h2>
           <p className="text-sm font-medium mt-1 text-slate-600 dark:text-slate-400">{appointments.length} appointments</p>
         </div>
-        <button onClick={() => setView("book")} type="button"
+        <button onClick={() => setIsBookModalOpen(true)} type="button"
           className="bg-teal-600 hover:bg-teal-500 text-white font-bold text-sm py-3 px-6 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 w-fit">
           + Book Appointment
         </button>
@@ -1069,6 +1118,21 @@ export default function AppointmentsPage({
         )}
       </div>
     </div>
+
+    {isBookModalOpen && (
+      <BookAppointmentForm
+        isModal
+        onClose={() => setIsBookModalOpen(false)}
+        onBooked={(appointment) => {
+          handleBooked(appointment);
+          setIsBookModalOpen(false);
+        }}
+        preSelectedPatient={preSelectedPatient}
+        rescheduleCancelledAppointmentId={rescheduleCancelledAppointmentId}
+        onEmergencyRescheduleComplete={onEmergencyRescheduleComplete}
+      />
+    )}
+
     <ConfirmDialog {...dialogProps} />
     </>
   );
