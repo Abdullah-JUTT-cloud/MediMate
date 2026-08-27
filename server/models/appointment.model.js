@@ -47,6 +47,13 @@ const appointmentSchema = new mongoose.Schema({
         default: 0,
         min: 0,
     },
+    // `standardFee` is the canonical raw base price (pre-discount). `originalFee`
+    // is kept as a legacy alias so existing reads/aggregations keep working.
+    standardFee: {
+        type: Number,
+        default: 0,
+        min: 0,
+    },
     originalFee: {
         type: Number,
         default: 0,
@@ -57,6 +64,8 @@ const appointmentSchema = new mongoose.Schema({
         default: 0,
         min: 0,
     },
+    // `netAmount` = standardFee - discountAmount, computed exactly once in
+    // appointment.controller.js. Never re-derive/re-subtract it elsewhere.
     netAmount: {
         type: Number,
         default: 0,

@@ -31,6 +31,13 @@ const paymentSchema = new mongoose.Schema({
         required: true,
         default: 0
     },
+    // Canonical raw base price (pre-discount). `originalFee` stays as a
+    // legacy alias so existing reads/aggregations keep working.
+    standardFee: {
+        type: Number,
+        default: 0,
+        min: 0,
+    },
     originalFee: {
         type: Number,
         default: 0,
@@ -46,6 +53,7 @@ const paymentSchema = new mongoose.Schema({
         default: 0,
         min: 0,
     },
+    // netAmount = standardFee - discount, computed exactly once upstream.
     netAmount: {
         type: Number,
         default: 0,
