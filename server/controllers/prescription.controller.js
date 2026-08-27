@@ -116,9 +116,23 @@ export const downloadPrescription = async (req, res) => {
       .toISOString()
       .split("T")[0]}.pdf`;
 
+    // Support both inline viewing (default) and attachment download. The client
+    // requests an attachment with `?download=true` and inline by omitting it, so
+    // the same endpoint serves both:
+    //   - /api/prescriptions/view/:checkupId     -> inline (opens in a new tab)
+    //   - /api/prescriptions/download/:checkupId -> attachment (forces download)
+    const disposition =
+      req.query.download === "true" ? "attachment" : "inline";
+
     res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.setHeader(
+      "Content-Disposition",
+      `${disposition}; filename="${filename}"`
+    );
     res.setHeader("Content-Length", pdfBuffer.length);
+    // Let the browser read Content-Disposition cross-origin so the client can
+    // distinguish a view (inline) from a download (attachment).
+    res.setHeader("Access-Control-Expose-Headers", "Content-Disposition");
     return res.status(200).send(pdfBuffer);
   } catch (error) {
     console.error("[downloadPrescription]", error);
