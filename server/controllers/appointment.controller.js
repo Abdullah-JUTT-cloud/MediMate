@@ -74,13 +74,12 @@ export const getAppointments = async (req, res) => {
     const query = { doctor: req.doctorId };
 
     if (date) {
-      const startOfDay = new Date(date);
+      const dateStr = String(date).trim();
+      const startOfDay = new Date(dateStr + 'T00:00:00');
+      const endOfDay = new Date(dateStr + 'T23:59:59.999');
       if (isNaN(startOfDay.getTime())) {
         return res.status(400).json({ message: "Invalid date parameter" });
       }
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(date);
-      endOfDay.setHours(23, 59, 59, 999);
       query.date = { $gte: startOfDay, $lte: endOfDay };
     }
 
@@ -212,13 +211,13 @@ export const createAppointment = async (req, res) => {
     });
     await appointment.save();
 
-    // Create consultation payment record simultaneously (initial status PENDING until consultation is completed)
+    // Create consultation payment record immediately upon booking (upfront revenue recognized)
     await Payment.create({
       patientId: patientId,
       appointmentId: appointment._id,
       doctorId: req.doctorId,
       category: 'CONSULTATION',
-      status: 'PENDING',
+      status: 'PAID',
       amount: finalConsultationFee,
       originalFee: parsedAmount,
       discount: parsedDiscount,
@@ -577,23 +576,28 @@ export const sendRescheduleWhatsApp = async (req, res) => {
 
 export const getTodayQueue = async (req, res) => {
   try {
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-
-    const startOfPreviousDay = new Date(startOfToday);
-    startOfPreviousDay.setDate(startOfPreviousDay.getDate() - 1);
-
-    const endOfToday = new Date();
-    endOfToday.setHours(23, 59, 59, 999);
+    let startOfDay, endOfDay;
+    if (req.query.date) {
+      const dateStr = String(req.query.date).trim();
+      startOfDay = new Date(dateStr + 'T00:00:00');
+      endOfDay = new Date(dateStr + 'T23:59:59.999');
+      if (isNaN(startOfDay.getTime())) {
+        return res.status(400).json({ message: "Invalid date parameter" });
+      }
+    } else {
+      startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      endOfDay = new Date();
+      endOfDay.setHours(23, 59, 59, 999);
+    }
 
     const query = {
       doctor: req.doctorId,
-      date: { $gte: startOfPreviousDay, $lte: endOfToday }
+      date: { $gte: startOfDay, $lte: endOfDay }
     };
 
     const appointments = await Appointment.find(query)
-      .populate("patient")
-      .sort({ slot: 1, checkInTime: 1 });
+      .populate("patient");
 
     const appointmentIds = appointments.map((a) => a._id);
     const payments = await Payment.find({ appointmentId: { $in: appointmentIds } });
@@ -611,7 +615,45 @@ export const getTodayQueue = async (req, res) => {
       return apptObj;
     });
 
-    res.status(200).json({ appointments: appointmentsWithPayments });
+    // Dynamic queue sort: active above completed, active by slot time, completed by token/time
+    const parseSlotTime = (slotStr) => {
+      if (!slotStr) return Infinity;
+      const parts = String(slotStr).trim().split(' ');
+      if (parts.length < 2) return Infinity;
+      const [timePart, meridiem] = parts;
+      const [hStr, mStr] = timePart.split(':');
+      let h = parseInt(hStr, 10) || 0;
+      const m = parseInt(mStr, 10) || 0;
+      if (meridiem && meridiem.toUpperCase() === 'PM' && h !== 12) h += 12;
+      if (meridiem && meridiem.toUpperCase() === 'AM' && h === 12) h = 0;
+      return h * 60 + m;
+    };
+
+    appointmentsWithPayments.sort((a, b) => {
+      const aActive = a.queueStatus !== 'COMPLETED';
+      const bActive = b.queueStatus !== 'COMPLETED';
+      if (aActive !== bActive) return aActive ? -1 : 1;
+      if (aActive && bActive) {
+        const ta = parseSlotTime(a.slot);
+        const tb = parseSlotTime(b.slot);
+        if (ta !== tb) return ta - tb;
+        return new Date(a.checkInTime || 0) - new Date(b.checkInTime || 0);
+      }
+      // Completed group: sink to bottom, order by token number then check-in
+      const aToken = parseInt(String(a.token || '').replace(/\D/g, ''), 10) || 0;
+      const bToken = parseInt(String(b.token || '').replace(/\D/g, ''), 10) || 0;
+      if (aToken !== bToken) return aToken - bToken;
+      return new Date(a.checkInTime || 0) - new Date(b.checkInTime || 0);
+    });
+
+    // Strict local-date equality guard: only keep appointments whose local date matches request
+    const requestedDateStr = req.query.date ? String(req.query.date).trim() : new Date().toLocaleDateString('en-CA');
+    const strictAppointments = appointmentsWithPayments.filter((appt) => {
+      const d = new Date(appt.date || appt.checkInTime || 0);
+      return d.toLocaleDateString('en-CA') === requestedDateStr;
+    });
+
+    res.status(200).json({ appointments: strictAppointments });
   } catch (error) {
     console.error("[getTodayQueue]", error);
     res.status(500).json({ message: "Internal server error" });
