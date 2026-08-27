@@ -307,9 +307,13 @@ describe("booking + form flows", () => {
     const post = requestLog.find((entry) => entry.startsWith("POST /appointments"));
     expect(post).toContain('"slot":"17:30"');
     expect(post).toContain('"patientId":"p1"');
+    // Payload must carry the RAW fee + RAW discount (never pre-subtracted)
+    // so the backend can compute netAmount = standardFee - discount exactly
+    // once. Regression guard for the double-discount bug.
+    expect(post).toContain('"standardFee":4000');
     expect(post).toContain('"amount":4000');
     expect(post).toContain('"discount":100');
-    expect(post).toContain('"consultationFee":3900');
+    expect(post).not.toContain('"consultationFee"');
     expect(post).toContain('"paymentMethod":"Cash"');
   });
 

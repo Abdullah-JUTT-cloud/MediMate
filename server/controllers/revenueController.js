@@ -10,8 +10,12 @@ export const getRealizedRevenue = async (req, res) => {
       return res.status(400).json({ message: "Doctor ID required" });
     }
 
-    // Immediate recognition: sum netAmount from created appointments with upfront fee.
-    // No COMPLETED-status filter is applied.
+    // Immediate recognition: sum netAmount (already computed ONCE in
+    // appointment.controller.js as standardFee - discountAmount) from created
+    // appointments with an upfront fee. No COMPLETED-status filter is applied.
+    // IMPORTANT: do not re-subtract discountAmount from netAmount/consultationFee
+    // here — that was the source of the double-discount bug (500 fee, 50
+    // discount incorrectly showing as 100 PKR off instead of 50).
     const revenueAgg = await Appointment.aggregate([
       { $match: { doctor: new mongoose.Types.ObjectId(String(doctorId)), consultationFee: { $gt: 0 } } },
       {
@@ -19,7 +23,7 @@ export const getRealizedRevenue = async (req, res) => {
           _id: null,
           totalRealized: { $sum: { $toDouble: "$netAmount" } },
           totalDiscount: { $sum: { $toDouble: "$discountAmount" } },
-          totalFee: { $sum: { $toDouble: "$consultationFee" } },
+          totalFee: { $sum: { $toDouble: { $ifNull: ["$standardFee", "$originalFee"] } } },
           count: { $sum: 1 },
         },
       },

@@ -215,15 +215,23 @@ export const createAppointment = async (req, res) => {
       return res.status(400).json({ message: "Type is required" });
     }
 
-    const parsedAmount = Number(req.body.consultationFee ?? req.body.amount ?? 0);
-    const parsedDiscount = Number(req.body.discount ?? 0);
+    // Standardized payload contract: the frontend must always send the RAW
+    // base price as `standardFee` and the RAW discount as `discount`. It must
+    // NOT pre-subtract the discount before dispatching the request — doing so
+    // previously caused a double-discount bug because this controller also
+    // subtracted the discount, e.g. 500 fee - 50 discount (frontend) = 450
+    // sent as `consultationFee`, then 450 - 50 (backend) = 400 instead of 450.
+    // `amount`/`consultationFee` are accepted only as legacy fallbacks for the
+    // base fee — never combine them with a second subtraction downstream.
+    const standardFee = Number(req.body.standardFee ?? req.body.amount ?? req.body.consultationFee ?? 0);
+    const discount = Number(req.body.discount ?? 0);
     const paymentDescription = String(req.body.description ?? "Consultation").trim() || "Consultation";
     const paymentMethod = req.body.paymentMethod || "Cash";
 
-    if (!Number.isFinite(parsedAmount) || parsedAmount < 0) {
+    if (!Number.isFinite(standardFee) || standardFee < 0) {
       return res.status(400).json({ message: "Consultation amount must be valid" });
     }
-    if (!Number.isFinite(parsedDiscount) || parsedDiscount < 0) {
+    if (!Number.isFinite(discount) || discount < 0) {
       return res.status(400).json({ message: "Discount must be valid" });
     }
 
@@ -261,7 +269,10 @@ export const createAppointment = async (req, res) => {
       );
     };
 
-    const finalConsultationFee = Math.max(0, parsedAmount - parsedDiscount);
+    // Compute the net fee ONCE, here, from the raw standardFee/discount pair.
+    // Nothing downstream (Mongoose hooks, Payment record, aggregations) may
+    // subtract the discount again — they all just persist/read this value.
+    const netAmount = Math.max(0, Number(standardFee) - Number(discount || 0));
 
     const appointment = new Appointment({
       patient: patientId,
@@ -273,10 +284,11 @@ export const createAppointment = async (req, res) => {
       isWalkIn: req.body.isWalkIn ?? true,
       queueStatus: req.body.queueStatus || 'WAITING',
       checkInTime: req.body.checkInTime || Date.now(),
-      consultationFee: finalConsultationFee,
-      originalFee: parsedAmount,
-      discountAmount: parsedDiscount,
-      netAmount: finalConsultationFee,
+      consultationFee: netAmount,
+      standardFee,
+      originalFee: standardFee,
+      discountAmount: discount,
+      netAmount,
     });
     await appointment.save();
 
@@ -287,11 +299,12 @@ export const createAppointment = async (req, res) => {
       doctorId: req.doctorId,
       category: 'CONSULTATION',
       status: 'PAID',
-      amount: finalConsultationFee,
-      originalFee: parsedAmount,
-      discount: parsedDiscount,
-      discountAmount: parsedDiscount,
-      netAmount: finalConsultationFee,
+      amount: netAmount,
+      standardFee,
+      originalFee: standardFee,
+      discount,
+      discountAmount: discount,
+      netAmount,
       description: paymentDescription,
       method: paymentMethod
     });

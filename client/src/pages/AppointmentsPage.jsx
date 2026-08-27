@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { ClipboardCheck, RefreshCcw, Search, Siren, Stethoscope, Trash2 } from "lucide-react";
+import { CalendarDays, ClipboardCheck, RefreshCcw, Search, Siren, Stethoscope, Trash2 } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 import useAuthStore from "../store/authStore";
@@ -310,6 +310,7 @@ function BookAppointmentForm({
   const [searchLoading, setSearchLoading] = useState(false);
   const [isHydratingSelectedPatient, setIsHydratingSelectedPatient] = useState(false);
   const hasShownMissingScheduleToast = useRef(false);
+  const dateInputRef = useRef(null);
 
   // Preselected patients coming from reschedule can be partial objects (without locations).
   useEffect(() => {
@@ -451,10 +452,14 @@ function BookAppointmentForm({
       return;
     }
 
-    const chargeAmount = Math.max(0, parsedAmount - parsedDiscount);
-
     setIsLoading(true);
     try {
+      // Send RAW standardFee + RAW discount only — never pre-subtract the
+      // discount before dispatching. The server (appointment.controller.js)
+      // is the single place that computes netAmount = standardFee - discount,
+      // so sending an already-discounted `consultationFee`/`amount` here
+      // used to double-apply the discount (500 fee, 50 discount rendered as
+      // 100 PKR off / 400 net instead of 50 off / 450 net).
       const res = await axiosInstance.post("/appointments", {
         patientId: selectedPatient._id,
         date,
@@ -462,7 +467,7 @@ function BookAppointmentForm({
         type,
         notes,
         isWalkIn,
-        consultationFee: chargeAmount,
+        standardFee: parsedAmount,
         amount: parsedAmount,
         discount: parsedDiscount,
         description: billingDescription.trim() || "Consultation",
@@ -547,9 +552,23 @@ function BookAppointmentForm({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div>
               <SectionLabel text="Date" />
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-                min={formatDateInput(new Date())}
-                className={FIELD_INPUT} />
+              <div className="relative">
+                <input type="date" ref={dateInputRef} value={date} onChange={(e) => setDate(e.target.value)}
+                  min={formatDateInput(new Date())}
+                  className={FIELD_INPUT} />
+                {/* Imperative trigger (Option B) so a click on the calendar
+                    glyph itself always opens the native picker, in addition
+                    to the pointer-events fix on the native indicator. */}
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  aria-label="Open calendar"
+                  onClick={() => dateInputRef.current?.showPicker?.()}
+                  className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500 transition-colors hover:text-teal-600 dark:text-slate-400 dark:hover:text-teal-400"
+                >
+                  <CalendarDays size={16} />
+                </button>
+              </div>
             </div>
             <div>
               <SectionLabel text="Appointment Type" />

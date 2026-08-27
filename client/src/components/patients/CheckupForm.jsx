@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { CalendarDays } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../../api/axios";
 import useAuthStore from "../../store/authStore";
@@ -50,6 +51,7 @@ export default function CheckupForm({ patient, existingCheckup, onBack, onSaved 
           .split("T")[0]
       : "",
   );
+  const nextAppointmentDateRef = useRef(null);
   const [medicines, setMedicines] = useState(
     existingCheckup?.prescription?.medicines?.length
       ? existingCheckup.prescription.medicines
@@ -405,15 +407,31 @@ export default function CheckupForm({ patient, existingCheckup, onBack, onSaved 
               <label htmlFor="checkup-next-appointment" className={cls.fieldLabel}>
                 Next Appointment (optional)
               </label>
-              <input
-                id="checkup-next-appointment"
-                type="date"
-                value={nextAppointment}
-                onChange={(event) => handleNextAppointmentChange(event.target.value)}
-                min={minAppointmentDate}
-                disabled={!selectedFacility}
-                className={`${cls.input} [color-scheme:light] dark:[color-scheme:dark] disabled:cursor-not-allowed disabled:opacity-60`}
-              />
+              <div className="relative">
+                <input
+                  id="checkup-next-appointment"
+                  ref={nextAppointmentDateRef}
+                  type="date"
+                  value={nextAppointment}
+                  onChange={(event) => handleNextAppointmentChange(event.target.value)}
+                  min={minAppointmentDate}
+                  disabled={!selectedFacility}
+                  className={`${cls.input} [color-scheme:light] dark:[color-scheme:dark] disabled:cursor-not-allowed disabled:opacity-60`}
+                />
+                {/* Imperative trigger (Option B): guarantees a click on the
+                    calendar glyph opens the native picker even when disabled
+                    styling/z-index quirks would otherwise intercept the hit. */}
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  aria-label="Open calendar"
+                  disabled={!selectedFacility}
+                  onClick={() => nextAppointmentDateRef.current?.showPicker?.()}
+                  className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500 transition-colors hover:text-teal-600 disabled:cursor-not-allowed disabled:opacity-60 dark:text-slate-400 dark:hover:text-teal-400"
+                >
+                  <CalendarDays size={16} />
+                </button>
+              </div>
               <p className={`${cls.mutedText} mt-1.5`}>
                 {!selectedFacility
                   ? "Select the visit location first to enable date selection."

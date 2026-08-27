@@ -182,14 +182,27 @@ input[type="date"] {
 
 input[type="date"]::-webkit-calendar-picker-indicator {
   /* Hide native indicator visually so our custom icon remains visible
-     across themes. Keep it non-interactive so clicks go to the input. */
+     across themes, but keep it fully interactive and stretched over the
+     whole field. Chromium only opens the native date picker when the click
+     actually lands on this indicator element, so `pointer-events: none`
+     here was silently swallowing clicks aimed at the (now purely cosmetic)
+     calendar icon — the picker never opened no matter where on the icon
+     the user clicked. Keeping pointer-events enabled and covering the full
+     input width means a click anywhere in the field — including right on
+     top of the visible icon — hits this indicator and opens the picker. */
   opacity: 0;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
+  position: absolute;
+  right: 0;
+  width: 100%;
+  height: 100%;
   -webkit-appearance: none;
 }
 input[type="time"]::-webkit-calendar-picker-indicator {
   opacity: 0;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
   -webkit-appearance: none;
 }
 

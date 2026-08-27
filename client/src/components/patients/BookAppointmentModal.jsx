@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CalendarDays } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../../api/axios";
 import useAuthStore from "../../store/authStore";
@@ -24,6 +25,7 @@ export default function BookAppointmentModal({ patient, onClose, onBooked }) {
   const { doctor } = useAuthStore();
 
   const [date, setDate] = useState(getTodayDateInput());
+  const dateInputRef = useRef(null);
   const [slot, setSlot] = useState("");
   const [type, setType] = useState("Consultation");
   const [notes, setNotes] = useState("");
@@ -102,6 +104,13 @@ export default function BookAppointmentModal({ patient, onClose, onBooked }) {
 
     setIsBooking(true);
     try {
+      // Send the RAW base fee + RAW discount only. Do NOT pre-subtract the
+      // discount into `standardFee`/`consultationFee` here — the backend
+      // (appointment.controller.js) is the single source of truth that
+      // computes netAmount = standardFee - discount exactly once. Sending an
+      // already-discounted value under `consultationFee`/`amount` caused the
+      // backend to subtract the discount a second time (the double-discount
+      // bug: 500 fee - 50 discount showed up as 400 instead of 450).
       const res = await axiosInstance.post("/appointments", {
         patientId: patient._id,
         date,
@@ -109,7 +118,7 @@ export default function BookAppointmentModal({ patient, onClose, onBooked }) {
         type,
         notes,
         isWalkIn: true,
-        consultationFee: netAmount,
+        standardFee: parsedFee,
         amount: parsedFee,
         discount: parsedDiscount,
         description: "Consultation",
@@ -171,14 +180,35 @@ export default function BookAppointmentModal({ patient, onClose, onBooked }) {
             <label htmlFor="booking-date" className={cls.fieldLabel}>
               Appointment Date
             </label>
-            <input
-              id="booking-date"
-              type="date"
-              value={date}
-              min={getTodayDateInput()}
-              onChange={(event) => setDate(event.target.value)}
-              className={`${cls.input} [color-scheme:light] dark:[color-scheme:dark]`}
-            />
+            <div className="relative">
+              <input
+                id="booking-date"
+                ref={dateInputRef}
+                type="date"
+                value={date}
+                min={getTodayDateInput()}
+                onChange={(event) => setDate(event.target.value)}
+                className={`${cls.input} [color-scheme:light] dark:[color-scheme:dark]`}
+              />
+              {/* Imperative trigger (Option B): the calendar icon overlays the
+                  input for visual affordance. Previously it (or the browser's
+                  own indicator layer) swallowed clicks via `pointer-events-none`
+                  placement quirks, so tapping the icon itself never opened the
+                  native date picker. Making the icon a real clickable button
+                  that calls `showPicker()` on the underlying input guarantees a
+                  click anywhere on the icon — desktop or mobile — opens the
+                  picker, while the input itself still opens it normally when
+                  clicked directly. */}
+              <button
+                type="button"
+                tabIndex={-1}
+                aria-label="Open calendar"
+                onClick={() => dateInputRef.current?.showPicker?.()}
+                className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500 transition-colors hover:text-teal-600 dark:text-slate-400 dark:hover:text-teal-400"
+              >
+                <CalendarDays size={16} />
+              </button>
+            </div>
             <p className={cls.mutedText + " mt-1.5"}>
               {formatLongDate(date)} — slots come from the sessions configured at this
               patient&apos;s clinic or hospital.
