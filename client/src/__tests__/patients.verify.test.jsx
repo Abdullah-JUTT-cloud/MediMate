@@ -116,11 +116,14 @@ import {
 } from "../components/patients/patientTokens";
 
 beforeEach(() => {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  vi.setSystemTime(new Date("2026-08-26T12:00:00.000Z"));
   requestLog.length = 0;
 });
 
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
 });
 
 describe("patient formatting + slot helpers", () => {

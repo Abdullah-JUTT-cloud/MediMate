@@ -124,7 +124,7 @@ export const createExtraPayment = async (req, res) => {
         appointmentId: undefined,
         doctorId: req.doctorId,
         category: "LAB",
-        status: "PAID",
+        status: "REALIZED",
         amount: parsedAmount,
         originalFee: parsedAmount,
         discount: 0,

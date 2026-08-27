@@ -212,13 +212,13 @@ export const createAppointment = async (req, res) => {
     });
     await appointment.save();
 
-    // Create consultation payment record simultaneously
+    // Create consultation payment record simultaneously (initial status PENDING until consultation is completed)
     await Payment.create({
       patientId: patientId,
       appointmentId: appointment._id,
       doctorId: req.doctorId,
       category: 'CONSULTATION',
-      status: 'PAID',
+      status: 'PENDING',
       amount: finalConsultationFee,
       originalFee: parsedAmount,
       discount: parsedDiscount,
@@ -353,7 +353,18 @@ export const updateAppointment = async (req, res) => {
       appointment.reminderSent = true;
     }
 
+    if (status === "Completed" || status === "COMPLETED") {
+      appointment.queueStatus = "COMPLETED";
+    }
+
     await appointment.save();
+
+    if (status === "Completed" || status === "COMPLETED") {
+      await Payment.updateMany(
+        { appointmentId: appointment._id },
+        { $set: { status: "REALIZED" } }
+      );
+    }
 
     const populated = await Appointment.findById(id).populate(
       "patient",

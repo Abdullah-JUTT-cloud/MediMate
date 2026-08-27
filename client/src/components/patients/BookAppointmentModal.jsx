@@ -126,11 +126,11 @@ export default function BookAppointmentModal({ patient, onClose, onBooked }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-start justify-center overflow-y-auto p-4 sm:items-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
       <button
         type="button"
         aria-label="Close booking dialog"
-        className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/75"
+        className="fixed inset-0 cursor-default bg-transparent"
         onClick={onClose}
       />
 
@@ -138,9 +138,9 @@ export default function BookAppointmentModal({ patient, onClose, onBooked }) {
         role="dialog"
         aria-modal="true"
         aria-label={`Book appointment for ${patient?.name}`}
-        className="relative my-6 w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900"
+        className="relative w-full max-w-xl max-h-[90vh] flex flex-col bg-white rounded-xl shadow-2xl overflow-hidden dark:bg-slate-900 dark:border dark:border-slate-800"
       >
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-6 dark:border-slate-800">
+        <div className="flex-shrink-0 p-4 border-b border-slate-200 dark:border-slate-800 flex items-start justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
             <PatientAvatar name={patient?.name} size="md" />
             <div className="min-w-0">
@@ -166,7 +166,7 @@ export default function BookAppointmentModal({ patient, onClose, onBooked }) {
           </button>
         </div>
 
-        <div className="space-y-5 p-6">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
           <div>
             <label htmlFor="booking-date" className={cls.fieldLabel}>
               Appointment Date
@@ -336,7 +336,7 @@ export default function BookAppointmentModal({ patient, onClose, onBooked }) {
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-3 border-t border-slate-200 p-6 dark:border-slate-800">
+        <div className="flex-shrink-0 p-4 border-t bg-gray-50 border-slate-200 dark:border-slate-800 dark:bg-slate-800/50 flex items-center justify-end gap-3">
           <button type="button" onClick={onClose} className={cls.btnSecondary}>
             Cancel
           </button>

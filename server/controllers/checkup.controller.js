@@ -558,7 +558,7 @@ export const completeCheckup = async (req, res) => {
         appointmentId,
         doctorId: req.doctorId,
         category: 'LAB',
-        status: 'PAID',
+        status: 'REALIZED',
         amount: serializedLabFee,
         originalFee: serializedLabFee,
         discount: 0,
@@ -665,6 +665,12 @@ export const completeCheckup = async (req, res) => {
     appointment.queueStatus = 'COMPLETED';
     appointment.status = 'Completed';
     await appointment.save();
+
+    // Flip consultation payment records to REALIZED upon consultation completion
+    await Payment.updateMany(
+      { appointmentId: appointment._id },
+      { $set: { status: 'REALIZED' } }
+    );
 
     res.status(201).json({
       message: "Checkup completed, secondary payments processed, and PDF prescription dispatched",
