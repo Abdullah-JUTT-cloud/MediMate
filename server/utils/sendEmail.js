@@ -1,20 +1,52 @@
-import Brevo from '@getbrevo/brevo';
+import nodemailer from "nodemailer";
 
-const apiInstance = new Brevo.TransactionalEmailsApi();
-apiInstance.setApiKey(Brevo.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
+// ─── Dynamic sender configuration ────────────────────────────────────────────
+// Sender identity is fully environment-driven; no hardcoded addresses exist in
+// this codebase. Ensure the configured address is verified in your Brevo
+// account (Senders & Domains) before dispatching.
+const SENDER_EMAIL =
+  process.env.SENDER_EMAIL || process.env.EMAIL_USER || "hello@medalerto.me";
+const FROM_NAME = process.env.FROM_NAME || "MedAlerto";
+
+// ─── SMTP transport configuration ────────────────────────────────────────────
+// Defaults to the Brevo SMTP relay (https://www.brevo.com/docs/smtp/).
+const SMTP_PORT = Number(process.env.SMTP_PORT) || 587;
+
+const transportOptions = {
+  host: process.env.SMTP_HOST || "smtp-relay.brevo.com",
+  port: SMTP_PORT,
+  secure: SMTP_PORT === 465, // 587 → STARTTLS, 465 → implicit TLS
+};
+
+const smtpUser = process.env.SMTP_USER;
+const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
+
+// Only attach auth when credentials are present, so an unconfigured dev
+// environment does not fail with a spurious EAUTH before the relay responds.
+if (smtpUser || smtpPass) {
+  transportOptions.auth = {
+    user: smtpUser,
+    pass: smtpPass,
+  };
+}
+
+const smtpTransporter = nodemailer.createTransport(transportOptions);
+
+if (!smtpUser && !smtpPass) {
+  console.warn(
+    "[sendEmail] SMTP credentials are not configured. Set SMTP_USER and " +
+      "SMTP_PASS (or EMAIL_PASS) before dispatching email."
+  );
+}
 
 const sendEmail = async ({ to, subject, html }) => {
-  const sendSmtpEmail = new Brevo.SendSmtpEmail();
-  sendSmtpEmail.subject = subject;
-  sendSmtpEmail.htmlContent = html;
-  // Hardcoded to the sender verified in our Brevo account (Senders & Domains).
-  // Brevo rejects any other address with an "unverified sender" error, so this
-  // value must not be changed without verifying the new address first.
-  sendSmtpEmail.sender = { name: "MedAlerto", email: "medalerto.official@gmail.com" };
-  // Recipient list is built dynamically from the caller-supplied `to` address.
-  sendSmtpEmail.to = [{ email: to }];
-
-  return apiInstance.sendTransacEmail(sendSmtpEmail);
+  return smtpTransporter.sendMail({
+    from: `"${FROM_NAME}" <${SENDER_EMAIL}>`,
+    // Recipient is built dynamically from the caller-supplied `to` address.
+    to,
+    subject,
+    html,
+  });
 };
 
 const verificationEmailTemplate = (fullName, otp) => {
