@@ -327,7 +327,7 @@ function PatientRow({ appointment, onStart }) {
   );
 }
 
-function QueueContent({ appointments, loading, refreshing, filter, setFilter, searchQuery, setSearchQuery, onRefresh, onStart }) {
+function QueueContent({ appointments, loading, refreshing, filter, setFilter, searchQuery, setSearchQuery, onRefresh, onStart, selectedDate, setSelectedDate }) {
   const noShow = appointments.filter((patient) => patient.queueStatus === "NO_SHOW").length;
   const stats = useMemo(() => ({
     total: appointments.length,
@@ -338,13 +338,42 @@ function QueueContent({ appointments, loading, refreshing, filter, setFilter, se
 
   const filteredPatients = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    return appointments.filter((appointment) => {
+    const base = appointments.filter((appointment) => {
       const matchesFilter = filter === "ALL" || appointment.queueStatus === filter;
       if (!matchesFilter) return false;
       if (!query) return true;
       return [appointment.token, appointment.patient?.name, appointment.patient?.phone, appointment.slot]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query));
+    });
+
+    const parseSlotTime = (slotStr) => {
+      if (!slotStr) return Infinity;
+      const parts = String(slotStr).trim().split(' ');
+      if (parts.length < 2) return Infinity;
+      const [timePart, meridiem] = parts;
+      const [hStr, mStr] = timePart.split(':');
+      let h = parseInt(hStr, 10) || 0;
+      const m = parseInt(mStr, 10) || 0;
+      if (meridiem && meridiem.toUpperCase() === 'PM' && h !== 12) h += 12;
+      if (meridiem && meridiem.toUpperCase() === 'AM' && h === 12) h = 0;
+      return h * 60 + m;
+    };
+
+    return [...base].sort((a, b) => {
+      const aActive = a.queueStatus !== "COMPLETED";
+      const bActive = b.queueStatus !== "COMPLETED";
+      if (aActive !== bActive) return aActive ? -1 : 1;
+      if (aActive && bActive) {
+        const ta = parseSlotTime(a.slot);
+        const tb = parseSlotTime(b.slot);
+        if (ta !== tb) return ta - tb;
+        return new Date(a.checkInTime || 0) - new Date(b.checkInTime || 0);
+      }
+      const aToken = parseInt(String(a.token || '').replace(/\D/g, ''), 10) || 0;
+      const bToken = parseInt(String(b.token || '').replace(/\D/g, ''), 10) || 0;
+      if (aToken !== bToken) return aToken - bToken;
+      return new Date(a.checkInTime || 0) - new Date(b.checkInTime || 0);
     });
   }, [appointments, filter, searchQuery]);
 
@@ -386,7 +415,7 @@ function QueueContent({ appointments, loading, refreshing, filter, setFilter, se
             <div className="relative w-full lg:max-w-[282px]"><Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search name, phone or token..." className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-8 text-[11px] font-semibold text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-500/10 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:focus:bg-slate-900" />{searchQuery && <button type="button" onClick={() => setSearchQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:text-slate-700" aria-label="Clear search"><X size={13} /></button>}</div>
           </div>
 
-          <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/75 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/30 sm:px-5"><div className="flex items-center gap-2.5"><CalendarDays size={15} className="text-teal-600 dark:text-teal-400" /><h2 className="text-[13px] font-extrabold text-slate-800 dark:text-slate-100">Today <span className="font-medium text-slate-400">•</span> {filteredPatients.length} {filteredPatients.length === 1 ? "Patient" : "Patients"}</h2><span className="hidden rounded-full bg-slate-200 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em] text-slate-500 dark:bg-slate-800 dark:text-slate-400 sm:inline">Wed, 26 Aug</span></div><div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />Last synced just now</div></div>
+          <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/75 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/30 sm:px-5"><div className="flex min-w-0 items-center gap-2.5 overflow-x-auto pb-0.5"><CalendarDays size={15} className="text-teal-600 dark:text-teal-400 shrink-0" /><h2 className="text-[13px] font-extrabold text-slate-800 dark:text-slate-100 whitespace-nowrap">{selectedDate ? new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' }) : 'Today'} <span className="font-medium text-slate-400">•</span> {filteredPatients.length} {filteredPatients.length === 1 ? 'Patient' : 'Patients'}</h2><input type="date" value={selectedDate || new Date().toISOString().slice(0, 10)} onChange={(e) => { const v = e.target.value; const todayStr = new Date().toISOString().slice(0, 10); setSelectedDate(v === todayStr ? '' : v); }} className="ml-2 h-7 rounded-md border border-slate-200 bg-white px-2 text-[10px] font-semibold text-slate-700 shadow-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200" /></div><div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />Last synced just now</div></div>
 
           {loading ? <div className="flex min-h-[300px] flex-col items-center justify-center gap-3 text-slate-500"><RefreshCw size={21} className="animate-spin text-teal-500" /><p className="text-[12px] font-semibold">Loading clinical assembly line...</p></div> : filteredPatients.length === 0 ? <div className="flex min-h-[280px] flex-col items-center justify-center px-6 text-center"><div className="mb-3 rounded-full bg-slate-100 p-3 text-slate-400 dark:bg-slate-800"><Search size={20} /></div><h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100">No patients found</h3><p className="mt-1 text-[11px] text-slate-500">Try a different status filter or search term.</p></div> : <div><div className="hidden grid-cols-[minmax(240px,1.3fr)_112px_118px_154px_190px] gap-4 border-b border-slate-100 px-5 py-2.5 text-[9px] font-extrabold uppercase tracking-[0.12em] text-slate-400 dark:border-slate-800 dark:text-slate-500 lg:grid"><span>Patient details</span><span>Visit timing</span><span>Payment</span><span>Queue status</span><span className="text-right">Action</span></div>{filteredPatients.map((appointment) => <PatientRow key={appointment._id} appointment={appointment} onStart={onStart} />)}</div>}
         </section>
@@ -410,6 +439,7 @@ export default function DoctorQueuePage({ standalone = false, demo = false, onBa
   const [activeConsultation, setActiveConsultation] = useState(null);
   const [history, setHistory] = useState([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(""); // empty = today
 
   const fetchQueue = useCallback(async (showLoader = false) => {
     if (demo) {
@@ -420,7 +450,8 @@ export default function DoctorQueuePage({ standalone = false, demo = false, onBa
     if (showLoader) setLoading(true);
     setRefreshing(true);
     try {
-      const response = await axiosInstance.get("/appointments/today");
+      const dateParam = selectedDate ? `?date=${selectedDate}` : "";
+      const response = await axiosInstance.get(`/appointments/today${dateParam}`);
       const incoming = response.data?.appointments || [];
       // Some older API records predate token IDs; keep the queue legible and searchable.
       setAppointments(incoming.map((item, index) => ({
@@ -435,7 +466,7 @@ export default function DoctorQueuePage({ standalone = false, demo = false, onBa
       setLoading(false);
       setRefreshing(false);
     }
-  }, [demo]);
+  }, [demo, selectedDate]);
 
   useEffect(() => {
     if (demo) return undefined;
@@ -474,7 +505,7 @@ export default function DoctorQueuePage({ standalone = false, demo = false, onBa
     toast(`${key === "revenue" ? "Revenue Lab" : key[0].toUpperCase() + key.slice(1)} is available from the dashboard shell`, { icon: "•" });
   };
 
-  const content = <QueueContent appointments={appointments} loading={loading} refreshing={refreshing} filter={filter} setFilter={setFilter} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onRefresh={() => fetchQueue(false)} onStart={handleStart} />;
+  const content = <QueueContent appointments={appointments} loading={loading} refreshing={refreshing} filter={filter} setFilter={setFilter} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onRefresh={() => fetchQueue(false)} onStart={handleStart} selectedDate={selectedDate} setSelectedDate={setSelectedDate} />;
 
   if (!standalone) {
     return <>{content}<ConsultationWorkspace isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} appointment={activeConsultation} history={history} onCheckupComplete={() => { setDrawerOpen(false); fetchQueue(false); }} /></>;
