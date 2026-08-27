@@ -81,6 +81,12 @@ const appointmentSchema = new mongoose.Schema({
         enum:["Consultation", "Follow-up", "Check-up", "Emergency"],
         required: true
     },
+    // Emergency override flag: emergency bookings bypass the 3-per-slot
+    // standard capacity check and are counted separately in slot aggregation.
+    isEmergency: {
+        type: Boolean,
+        default: false,
+    },
     notes:{
         type:String,
 
@@ -103,5 +109,9 @@ appointmentSchema.index({ doctor: 1, createdAt: -1 });
 
 // Slot lookup index used by max-capacity checks in controllers.
 appointmentSchema.index({ doctor: 1, date: 1, slot: 1, status: 1 });
+
+// Slot availability aggregation index: groups active bookings per time slot
+// and separates standard vs emergency counts (GET /api/slots).
+appointmentSchema.index({ doctor: 1, date: 1, slot: 1, isEmergency: 1, status: 1 });
 
 export default mongoose.model("Appointment", appointmentSchema);

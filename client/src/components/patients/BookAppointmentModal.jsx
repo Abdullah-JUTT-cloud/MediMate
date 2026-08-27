@@ -5,7 +5,6 @@ import axiosInstance from "../../api/axios";
 import useAuthStore from "../../store/authStore";
 import {
   APPOINTMENT_TYPES,
-  MAX_APPOINTMENTS_PER_SLOT,
   PAYMENT_METHODS,
   buildSlotsForDate,
   cls,
@@ -13,9 +12,9 @@ import {
   formatMoney,
   getTodayDateInput,
 } from "./patientTokens";
+import SlotPicker from "./SlotPicker";
+import { useSlotAvailability } from "./slotAvailability";
 import { PatientAvatar, Spinner } from "./patientUi";
-
-const BLOCKED_STATUSES = ["Cancelled", "No-show", "Completed"];
 
 /**
  * Books a slot for one patient and logs the upfront consultation fee in the
@@ -32,8 +31,9 @@ export default function BookAppointmentModal({ patient, onClose, onBooked }) {
   const [fee, setFee] = useState("");
   const [discount, setDiscount] = useState("0");
   const [method, setMethod] = useState("Cash");
-  const [bookedSlots, setBookedSlots] = useState([]);
-  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  // Emergency Mode override — defaults OFF; when ON full slots become
+  // selectable and the backend bypasses the 3-per-slot capacity check.
+  const [isEmergency, setIsEmergency] = useState(false);
   const [isBooking, setIsBooking] = useState(false);
 
   const slots = useMemo(
@@ -41,34 +41,9 @@ export default function BookAppointmentModal({ patient, onClose, onBooked }) {
     [doctor, patient, date],
   );
 
-  // Occupancy per slot, so staff can see capacity before they commit.
-  useEffect(() => {
-    if (!date) return;
-    let cancelled = false;
-
-    const load = async () => {
-      setIsLoadingSlots(true);
-      try {
-        const params = new URLSearchParams({ date, limit: "500" });
-        const res = await axiosInstance.get(`/appointments?${params.toString()}`);
-        if (cancelled) return;
-        setBookedSlots(
-          (res.data.appointments || [])
-            .filter((appointment) => !BLOCKED_STATUSES.includes(appointment.status))
-            .map((appointment) => appointment.slot),
-        );
-      } catch {
-        if (!cancelled) setBookedSlots([]);
-      } finally {
-        if (!cancelled) setIsLoadingSlots(false);
-      }
-    };
-
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, [date]);
+  // Live per-slot occupancy (standardCount / emergencyCount / isFull) shared
+  // with the Appointments booking form.
+  const { availability, isLoading: isLoadingSlots } = useSlotAvailability(date);
 
   // Reset the picked slot whenever the slot list changes underneath it.
   useEffect(() => {
@@ -117,6 +92,7 @@ export default function BookAppointmentModal({ patient, onClose, onBooked }) {
         slot,
         type,
         notes,
+        isEmergency,
         isWalkIn: true,
         standardFee: parsedFee,
         amount: parsedFee,
@@ -217,57 +193,16 @@ export default function BookAppointmentModal({ patient, onClose, onBooked }) {
 
           <div>
             <span className={cls.fieldLabel}>Time Slot</span>
-            {isLoadingSlots ? (
-              <p className={cls.mutedText}>Checking slot availability…</p>
-            ) : slots.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center dark:border-slate-700 dark:bg-slate-800/50">
-                <p className="text-sm font-bold text-slate-900 dark:text-white">
-                  No slots on this date
-                </p>
-                <p className={cls.mutedText + " mt-1"}>
-                  No session is scheduled here on {formatLongDate(date)}. Pick another
-                  date or add sessions in Settings.
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                {slots.map((entry) => {
-                  const booked = bookedSlots.filter((time) => time === entry.time).length;
-                  const isFull = booked >= MAX_APPOINTMENTS_PER_SLOT;
-                  const isSelected = slot === entry.time;
-                  return (
-                    <button
-                      key={entry.time}
-                      type="button"
-                      disabled={isFull}
-                      onClick={() => setSlot(entry.time)}
-                      title={`${entry.locationName} · ${booked}/${MAX_APPOINTMENTS_PER_SLOT} booked`}
-                      className={`rounded-xl border px-2 py-2.5 text-sm font-bold transition-colors ${
-                        isSelected
-                          ? "border-teal-600 bg-teal-600 text-white shadow-md"
-                          : "border-slate-300 bg-white text-slate-800 hover:border-teal-500 hover:text-teal-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:hover:text-teal-300"
-                      } ${isFull ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400 dark:border-slate-800 dark:bg-slate-800/60 dark:text-slate-600" : ""}`}
-                    >
-                      {entry.time}
-                      {booked > 0 && !isFull && (
-                        <span
-                          className={`block text-[11px] font-semibold ${
-                            isSelected
-                              ? "text-teal-50"
-                              : "text-slate-500 dark:text-slate-400"
-                          }`}
-                        >
-                          {booked} booked
-                        </span>
-                      )}
-                      {isFull && (
-                        <span className="block text-[11px] font-semibold">Full</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+            <SlotPicker
+              slots={slots}
+              availability={availability}
+              selectedSlot={slot}
+              onSelectSlot={setSlot}
+              isEmergency={isEmergency}
+              onEmergencyChange={setIsEmergency}
+              isLoading={isLoadingSlots}
+              emptyHint={`No session is scheduled here on ${formatLongDate(date)}. Pick another date or add sessions in Settings.`}
+            />
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

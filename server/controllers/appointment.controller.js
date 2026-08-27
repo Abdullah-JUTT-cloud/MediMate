@@ -5,8 +5,12 @@ import { Doctor } from "../models/doctor.model.js";
 import { sendWhatsAppTextMessage } from "../services/whatsapp.service.js";
 import Payment from "../models/payment.model.js";
 import Checkup from "../models/checkup.model.js";
+import {
+  getSlotAvailability,
+  MAX_STANDARD_APPOINTMENTS_PER_SLOT,
+} from "../services/slotService.js";
 
-const MAX_APPOINTMENTS_PER_SLOT = 3;
+const MAX_APPOINTMENTS_PER_SLOT = MAX_STANDARD_APPOINTMENTS_PER_SLOT;
 const INACTIVE_STATUSES = ["Cancelled", "No-show", "Completed"];
 
 // The clinic operates in Pakistan Standard Time (Asia/Karachi, UTC+5, no DST).
@@ -135,6 +139,45 @@ const resolveFacilityForPatient = (patient, doctor) => {
   return { facilityName: location.locationName || "", facilityType: "" };
 };
 
+/**
+ * GET /api/slots?date=YYYY-MM-DD
+ *
+ * Aggregates live slot occupancy for the authenticated doctor's appointments
+ * on the requested clinic-local date. Each slot exposes:
+ *   - standardCount  (non-emergency active bookings)
+ *   - emergencyCount (isEmergency === true active bookings)
+ *   - totalCount
+ *   - isFull         (true when standardCount >= 3)
+ *
+ * The booking modals use this endpoint so Patient and Appointments pages
+ * render EXACTLY the same capacity data and emergency badges.
+ */
+export const getSlots = async (req, res) => {
+  try {
+    const requestedDate = String(req.query.date || "").trim();
+    const range = getClinicDayRange(requestedDate);
+    if (!range) {
+      return res
+        .status(400)
+        .json({ message: "Invalid date parameter. Expected YYYY-MM-DD." });
+    }
+
+    const slots = await getSlotAvailability({
+      doctorId: req.doctorId,
+      dayRange: range,
+    });
+
+    res.status(200).json({
+      date: requestedDate,
+      maxPerSlot: MAX_STANDARD_APPOINTMENTS_PER_SLOT,
+      slots,
+    });
+  } catch (error) {
+    console.error("[getSlots]", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 export const getAppointments = async (req, res) => {
   try {
     const { date, status, page = 1, limit = 50 } = req.query;
@@ -215,6 +258,10 @@ export const createAppointment = async (req, res) => {
       return res.status(400).json({ message: "Type is required" });
     }
 
+    // Emergency Mode override: emergency bookings bypass the standard
+    // 3-per-slot capacity check entirely (unlimited emergency bookings).
+    const isEmergency = req.body.isEmergency === true || req.body.isEmergency === "true";
+
     // Standardized payload contract: the frontend must always send the RAW
     // base price as `standardFee` and the RAW discount as `discount`. It must
     // NOT pre-subtract the discount before dispatching the request — doing so
@@ -243,19 +290,21 @@ export const createAppointment = async (req, res) => {
       return res.status(404).json({ message: "Patient not found" });
     }
 
-    const activeCount = await Appointment.countDocuments({
+    // Capacity check uses STANDARD (non-emergency) bookings only. Emergency
+    // bookings are counted separately and never block the slot.
+    const standardCount = await Appointment.countDocuments({
       doctor: req.doctorId,
       date,
       slot,
       status: { $nin: INACTIVE_STATUSES },
+      isEmergency: { $ne: true },
     });
 
-    if (activeCount >= MAX_APPOINTMENTS_PER_SLOT) {
+    if (!isEmergency && standardCount >= MAX_APPOINTMENTS_PER_SLOT) {
       return res
-        .status(409)
+        .status(400)
         .json({
-          message:
-            "This slot has reached the maximum capacity (3 appointments)",
+          message: "Slot capacity reached. Enable Emergency Mode to override",
         });
     }
 
@@ -281,6 +330,7 @@ export const createAppointment = async (req, res) => {
       slot,
       type,
       notes,
+      isEmergency,
       isWalkIn: req.body.isWalkIn ?? true,
       queueStatus: req.body.queueStatus || 'WAITING',
       checkInTime: req.body.checkInTime || Date.now(),
@@ -367,6 +417,7 @@ export const updateAppointment = async (req, res) => {
       slot,
       type,
       notes,
+      isEmergency,
       emergencyCancelled,
       cancellationReason,
     } = req.body;
@@ -383,26 +434,36 @@ export const updateAppointment = async (req, res) => {
     const nextSlot = typeof slot !== "undefined" ? slot : appointment.slot;
     const nextStatus =
       typeof status !== "undefined" ? status : appointment.status;
+    const nextIsEmergency =
+      typeof isEmergency !== "undefined"
+        ? isEmergency === true || isEmergency === "true"
+        : appointment.isEmergency === true;
     const wasActive = !INACTIVE_STATUSES.includes(appointment.status);
     const willBeActive = !INACTIVE_STATUSES.includes(nextStatus);
     const dateOrSlotChanged =
       typeof date !== "undefined" || typeof slot !== "undefined";
 
     // Re-check capacity if slot changes or this appointment is becoming active.
-    if ((dateOrSlotChanged || (!wasActive && willBeActive)) && willBeActive) {
-      const activeCount = await Appointment.countDocuments({
+    // Emergency appointments bypass the standard-capacity check, and only
+    // non-emergency bookings count toward it.
+    if (
+      (dateOrSlotChanged || (!wasActive && willBeActive)) &&
+      willBeActive &&
+      !nextIsEmergency
+    ) {
+      const standardCount = await Appointment.countDocuments({
         doctor: req.doctorId,
         _id: { $ne: appointment._id },
         date: nextDate,
         slot: nextSlot,
         status: { $nin: INACTIVE_STATUSES },
+        isEmergency: { $ne: true },
       });
-      if (activeCount >= MAX_APPOINTMENTS_PER_SLOT) {
+      if (standardCount >= MAX_APPOINTMENTS_PER_SLOT) {
         return res
           .status(400)
           .json({
-            message:
-              "This slot has reached the maximum capacity (3 appointments)",
+            message: "Slot capacity reached. Enable Emergency Mode to override",
           });
       }
     }
@@ -411,6 +472,8 @@ export const updateAppointment = async (req, res) => {
     if (date) appointment.date = date;
     if (slot) appointment.slot = slot;
     if (type) appointment.type = type;
+    if (typeof isEmergency !== "undefined")
+      appointment.isEmergency = nextIsEmergency;
     if (typeof notes !== "undefined") appointment.notes = notes;
     if (typeof emergencyCancelled !== "undefined")
       appointment.emergencyCancelled = emergencyCancelled;

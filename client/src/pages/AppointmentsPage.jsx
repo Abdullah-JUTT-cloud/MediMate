@@ -6,6 +6,8 @@ import useAuthStore from "../store/authStore";
 import { RowSkeleton } from "../components/SkeletonLoaders";
 import ConfirmDialog from "../components/ConfirmDialog";
 import useConfirmDialog from "../hooks/useConfirmDialog";
+import SlotPicker from "../components/patients/SlotPicker";
+import { useSlotAvailability } from "../components/patients/slotAvailability";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -305,12 +307,21 @@ function BookAppointmentForm({
   const [billingDiscount, setBillingDiscount] = useState("0");
   const [billingDescription, setBillingDescription] = useState("Consultation");
   const [paymentMethod, setPaymentMethod] = useState("Cash");
-  const [bookedSlots, setBookedSlots] = useState([]);
+  // Emergency Mode override — defaults OFF; when ON full slots become
+  // selectable and the backend bypasses the 3-per-slot capacity check.
+  const [isEmergency, setIsEmergency] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [isHydratingSelectedPatient, setIsHydratingSelectedPatient] = useState(false);
   const hasShownMissingScheduleToast = useRef(false);
   const dateInputRef = useRef(null);
+
+  // Live per-slot occupancy shared with the Patient booking modal
+  // (standardCount / emergencyCount / isFull from GET /api/slots).
+  const { availability: slotAvailability, isLoading: isLoadingSlots } =
+    useSlotAvailability(date, {
+      enabled: Boolean(date && selectedPatient && !isHydratingSelectedPatient),
+    });
 
   // Preselected patients coming from reschedule can be partial objects (without locations).
   useEffect(() => {
@@ -388,7 +399,6 @@ function BookAppointmentForm({
       }
       console.warn("Slot generation skipped: doctor clinics/hospitals missing in auth store");
       setSlots([]);
-      setBookedSlots([]);
       setSelectedSlot("");
       return;
     }
@@ -417,22 +427,6 @@ function BookAppointmentForm({
 
     setSlots(generatedSlots);
     setSelectedSlot("");
-
-    // Fetch already booked slots for this date
-    const fetchBooked = async () => {
-      try {
-        const params = new URLSearchParams({ date, limit: "500" });
-        const res = await axiosInstance.get(`/appointments?${params.toString()}`);
-        setBookedSlots(
-          res.data.appointments
-            .filter((a) => !["Cancelled", "No-show", "Completed"].includes(a.status))
-            .map((a) => a.slot)
-        );
-      } catch {
-        setBookedSlots([]);
-      }
-    };
-    fetchBooked();
   }, [date, selectedPatient, doctor, isHydratingSelectedPatient]);
 
   const handleSubmit = async () => {
@@ -466,6 +460,7 @@ function BookAppointmentForm({
         slot: selectedSlot,
         type,
         notes,
+        isEmergency,
         isWalkIn,
         standardFee: parsedAmount,
         amount: parsedAmount,
@@ -680,7 +675,7 @@ function BookAppointmentForm({
           </div>
         </div>
 
-        {/* Slots */}
+        {/* Slots — shared SlotPicker (same grid/logic as the Patient booking modal) */}
         {selectedPatient && date && (
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm">
             <SectionLabel text={`Available Slots — ${getDayName(date)}, ${formatDate(date)}`} />
@@ -692,47 +687,18 @@ function BookAppointmentForm({
                   Fetching complete location details to calculate slots
                 </p>
               </div>
-            ) : slots.length === 0 ? (
-              <div className="text-center py-8 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                <div className="text-3xl mb-2">📅</div>
-                <p className="text-sm font-bold text-slate-900 dark:text-white mb-1">No slots available</p>
-                <p className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                  {selectedPatient.name} has no sessions on {getDayName(date)}
-                </p>
-              </div>
             ) : (
-              <div className="flex flex-wrap gap-2">
-                {slots.map((slot) => {
-                  const bookingCount = bookedSlots.filter((b) => b === slot.time).length;
-                  const isSelected = selectedSlot === slot.time;
-                  const isFull = bookingCount >= 3;
-                  return (
-                    <button key={slot.time} type="button" onClick={() => setSelectedSlot(slot.time)}
-                      disabled={isFull}
-                      className={`relative px-4 py-2.5 rounded-xl text-sm border transition-all ${
-                        isFull
-                          ? "bg-rose-100 dark:bg-rose-500/15 text-rose-900 dark:text-rose-100 border-rose-300 dark:border-rose-400/50 font-bold cursor-not-allowed"
-                          : isSelected
-                            ? "bg-teal-600 text-white font-bold border-teal-600 shadow-sm"
-                            : "bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-300 dark:border-slate-700 hover:border-teal-400 font-semibold"
-                      }`}>
-                      {slot.time}
-                      {bookingCount > 0 && (
-                        <span className={`absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[9px] flex items-center justify-center font-bold text-white ${
-                          bookingCount >= 3 ? "bg-rose-600" : "bg-amber-600"
-                        }`}>
-                          {bookingCount}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-            {slots.length > 0 && (
-              <p className="text-xs mt-3 font-medium text-slate-600 dark:text-slate-400">
-                🟡 Number on slot = existing bookings for that time
-              </p>
+              <SlotPicker
+                slots={slots}
+                availability={slotAvailability}
+                selectedSlot={selectedSlot}
+                onSelectSlot={setSelectedSlot}
+                isEmergency={isEmergency}
+                onEmergencyChange={setIsEmergency}
+                isLoading={isLoadingSlots}
+                emptyTitle="No slots available"
+                emptyHint={`${selectedPatient.name} has no sessions on ${getDayName(date)}`}
+              />
             )}
           </div>
         )}
