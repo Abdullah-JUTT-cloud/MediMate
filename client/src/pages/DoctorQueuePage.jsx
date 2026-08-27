@@ -1,4 +1,4 @@
-import { createElement, useCallback, useEffect, useMemo, useState } from "react";
+import { createElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Activity,
@@ -7,6 +7,7 @@ import {
   CalendarDays,
   Check,
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ClipboardList,
   Clock3,
@@ -131,6 +132,118 @@ const formatTime = (value) => {
 const formatFee = (appointment) =>
   Number(appointment.paymentAmount || appointment.netAmount || appointment.originalFee || appointment.consultationFee || 0).toLocaleString();
 
+// ─── Timezone-safe local date helpers ─────────────────────────────────────────
+// The queue must show and query the date the doctor actually sees on their
+// calendar (client/clinic local time), never a UTC-shifted value. All helpers
+// below derive "YYYY-MM-DD" from local date parts instead of toISOString(),
+// which can shift the day backwards for PKT (UTC+5) users.
+
+const toLocalDateInput = (value) => {
+  const date = value instanceof Date ? value : new Date(value);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const addLocalDays = (value, days) => {
+  const date = value instanceof Date ? new Date(value.getTime()) : new Date(value);
+  date.setDate(date.getDate() + days);
+  return date;
+};
+
+const parseDateInputLocal = (value) => {
+  const [year, month, day] = String(value || "").split("-").map(Number);
+  return new Date(year || 1970, (month || 1) - 1, day || 1);
+};
+
+/** "27 Aug" for the dropdown option labels. */
+const formatShortDayMonth = (value) =>
+  parseDateInputLocal(value).toLocaleDateString("en-US", { day: "numeric", month: "short" });
+
+/** "Thu, 27 Aug" for the queue heading when a custom date is chosen. */
+const formatQueueDateHeading = (value) =>
+  parseDateInputLocal(value).toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short" });
+
+function QueueDateSelector({ selectedDate, onChange }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+
+  const today = toLocalDateInput(new Date());
+  const yesterday = toLocalDateInput(addLocalDays(new Date(), -1));
+  const selected = selectedDate || today;
+  const isToday = selected === today;
+  const isYesterday = selected === yesterday;
+
+  const triggerLabel = isToday
+    ? `Today · ${formatShortDayMonth(selected)}`
+    : isYesterday
+      ? `Yesterday · ${formatShortDayMonth(selected)}`
+      : formatQueueDateHeading(selected);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const handleOutsideClick = (event) => {
+      if (rootRef.current && !rootRef.current.contains(event.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [open]);
+
+  const choose = (value) => {
+    onChange(value);
+    setOpen(false);
+  };
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] font-extrabold text-slate-700 shadow-sm transition hover:border-teal-400 hover:text-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-teal-500 dark:hover:text-teal-300"
+      >
+        <CalendarDays size={14} className="text-teal-600 dark:text-teal-400" />
+        <span className="whitespace-nowrap">{triggerLabel}</span>
+        <ChevronDown size={14} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-[calc(100%+6px)] z-30 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-[0_12px_32px_rgba(15,23,42,0.12)] dark:border-slate-700 dark:bg-slate-900">
+          <button
+            type="button"
+            onClick={() => choose(today)}
+            className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-[12px] font-bold transition ${isToday ? "bg-teal-50 text-teal-700 dark:bg-teal-950/50 dark:text-teal-300" : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"}`}
+          >
+            <span>Today</span>
+            <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">{formatShortDayMonth(today)}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => choose(yesterday)}
+            className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-[12px] font-bold transition ${isYesterday ? "bg-teal-50 text-teal-700 dark:bg-teal-950/50 dark:text-teal-300" : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"}`}
+          >
+            <span>Yesterday</span>
+            <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">{formatShortDayMonth(yesterday)}</span>
+          </button>
+          <div className="mt-1 border-t border-slate-100 pt-1.5 dark:border-slate-800">
+            <label className="flex items-center gap-2 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
+              <CalendarDays size={12} /> Custom date
+            </label>
+            <input
+              type="date"
+              value={selected}
+              onChange={(event) => event.target.value && choose(event.target.value)}
+              className="mt-1 h-8 w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-[11px] font-semibold text-slate-700 outline-none transition focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-500/10 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function QueueSidebar({ collapsed, mobileOpen, onClose, onToggle, activeKey, onNavigate, doctor }) {
   const doctorName = doctor?.fullName || "Dr. Ayesha Rahman";
   const specialty = [doctor?.title, doctor?.specialization].filter(Boolean).join(" ") || "Dermatologist";
@@ -236,6 +349,13 @@ function QueueSidebar({ collapsed, mobileOpen, onClose, onToggle, activeKey, onN
 }
 
 function QueueTopbar({ doctor, onMenu, onProfile }) {
+  const todayLabel = new Date().toLocaleDateString("en-PK", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
   return (
     <header className="flex h-[76px] shrink-0 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-7 dark:border-slate-800 dark:bg-slate-950/95">
       <div className="flex items-center gap-3">
@@ -246,7 +366,7 @@ function QueueTopbar({ doctor, onMenu, onProfile }) {
             <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50" />
             <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">Clinic operations</span>
           </div>
-          <p className="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500">Wednesday, 26 August 2026 <span className="mx-1.5 text-slate-300">•</span> Islamabad clinic</p>
+          <p className="mt-0.5 text-[11px] text-slate-400 dark:text-slate-500">{todayLabel} <span className="mx-1.5 text-slate-300">•</span> Islamabad clinic</p>
         </div>
       </div>
       <div className="flex items-center gap-2 sm:gap-4">
@@ -329,6 +449,15 @@ function PatientRow({ appointment, onStart }) {
 
 function QueueContent({ appointments, loading, refreshing, filter, setFilter, searchQuery, setSearchQuery, onRefresh, onStart, selectedDate, setSelectedDate }) {
   const noShow = appointments.filter((patient) => patient.queueStatus === "NO_SHOW").length;
+
+  const todayInput = toLocalDateInput(new Date());
+  const yesterdayInput = toLocalDateInput(addLocalDays(new Date(), -1));
+  const queueDateHeading =
+    !selectedDate || selectedDate === todayInput
+      ? "Today"
+      : selectedDate === yesterdayInput
+        ? "Yesterday"
+        : formatQueueDateHeading(selectedDate);
   const stats = useMemo(() => ({
     total: appointments.length,
     waiting: appointments.filter((patient) => patient.queueStatus === "WAITING").length,
@@ -390,7 +519,7 @@ function QueueContent({ appointments, loading, refreshing, filter, setFilter, se
       <div className="mx-auto max-w-[1480px] space-y-5 px-4 py-6 sm:px-7 sm:py-7">
         <section className="flex flex-col justify-between gap-4 xl:flex-row xl:items-end">
           <div>
-            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-teal-600 dark:text-teal-400">Doctor queue / Today</p>
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-teal-600 dark:text-teal-400">Doctor queue / {queueDateHeading}</p>
             <h1 className="text-[28px] font-extrabold tracking-[-0.045em] text-slate-950 dark:text-white sm:text-[32px]">Clinical Assembly Line</h1>
             <p className="mt-1.5 max-w-2xl text-[12px] font-medium leading-5 text-slate-500 dark:text-slate-400 sm:text-[13px]">Real-time patient queue, live token sequencing &amp; WhatsApp prescription dispatch.</p>
           </div>
@@ -415,7 +544,7 @@ function QueueContent({ appointments, loading, refreshing, filter, setFilter, se
             <div className="relative w-full lg:max-w-[282px]"><Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search name, phone or token..." className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-8 text-[11px] font-semibold text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-500/10 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:focus:bg-slate-900" />{searchQuery && <button type="button" onClick={() => setSearchQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:text-slate-700" aria-label="Clear search"><X size={13} /></button>}</div>
           </div>
 
-          <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/75 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/30 sm:px-5"><div className="flex min-w-0 items-center gap-2.5 overflow-x-auto pb-0.5"><CalendarDays size={15} className="text-teal-600 dark:text-teal-400 shrink-0" /><h2 className="text-[13px] font-extrabold text-slate-800 dark:text-slate-100 whitespace-nowrap">{selectedDate ? new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' }) : 'Today'} <span className="font-medium text-slate-400">•</span> {filteredPatients.length} {filteredPatients.length === 1 ? 'Patient' : 'Patients'}</h2><input type="date" value={selectedDate || new Date().toISOString().slice(0, 10)} onChange={(e) => { const v = e.target.value; const todayStr = new Date().toISOString().slice(0, 10); setSelectedDate(v === todayStr ? '' : v); }} className="ml-2 h-7 rounded-md border border-slate-200 bg-white px-2 text-[10px] font-semibold text-slate-700 shadow-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200" /></div><div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />Last synced just now</div></div>
+          <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/75 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/30 sm:px-5"><div className="flex min-w-0 items-center gap-2.5 overflow-x-auto pb-0.5"><CalendarDays size={15} className="text-teal-600 dark:text-teal-400 shrink-0" /><h2 className="text-[13px] font-extrabold text-slate-800 dark:text-slate-100 whitespace-nowrap">{queueDateHeading} <span className="font-medium text-slate-400">•</span> {filteredPatients.length} {filteredPatients.length === 1 ? 'Patient' : 'Patients'}</h2><QueueDateSelector selectedDate={selectedDate} onChange={setSelectedDate} /></div><div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />Last synced just now</div></div>
 
           {loading ? <div className="flex min-h-[300px] flex-col items-center justify-center gap-3 text-slate-500"><RefreshCw size={21} className="animate-spin text-teal-500" /><p className="text-[12px] font-semibold">Loading clinical assembly line...</p></div> : filteredPatients.length === 0 ? <div className="flex min-h-[280px] flex-col items-center justify-center px-6 text-center"><div className="mb-3 rounded-full bg-slate-100 p-3 text-slate-400 dark:bg-slate-800"><Search size={20} /></div><h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100">No patients found</h3><p className="mt-1 text-[11px] text-slate-500">Try a different status filter or search term.</p></div> : <div><div className="hidden grid-cols-[minmax(240px,1.3fr)_112px_118px_154px_190px] gap-4 border-b border-slate-100 px-5 py-2.5 text-[9px] font-extrabold uppercase tracking-[0.12em] text-slate-400 dark:border-slate-800 dark:text-slate-500 lg:grid"><span>Patient details</span><span>Visit timing</span><span>Payment</span><span>Queue status</span><span className="text-right">Action</span></div>{filteredPatients.map((appointment) => <PatientRow key={appointment._id} appointment={appointment} onStart={onStart} />)}</div>}
         </section>
@@ -439,7 +568,7 @@ export default function DoctorQueuePage({ standalone = false, demo = false, onBa
   const [activeConsultation, setActiveConsultation] = useState(null);
   const [history, setHistory] = useState([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(""); // empty = today
+  const [selectedDate, setSelectedDate] = useState(() => toLocalDateInput(new Date()));
 
   const fetchQueue = useCallback(async (showLoader = false) => {
     if (demo) {
@@ -450,8 +579,9 @@ export default function DoctorQueuePage({ standalone = false, demo = false, onBa
     if (showLoader) setLoading(true);
     setRefreshing(true);
     try {
-      const dateParam = selectedDate ? `?date=${selectedDate}` : "";
-      const response = await axiosInstance.get(`/appointments/today${dateParam}`);
+      const response = await axiosInstance.get("/appointments/today", {
+        params: { date: selectedDate },
+      });
       const incoming = response.data?.appointments || [];
       // Some older API records predate token IDs; keep the queue legible and searchable.
       setAppointments(incoming.map((item, index) => ({

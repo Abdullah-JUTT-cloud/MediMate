@@ -9,6 +9,77 @@ import Checkup from "../models/checkup.model.js";
 const MAX_APPOINTMENTS_PER_SLOT = 3;
 const INACTIVE_STATUSES = ["Cancelled", "No-show", "Completed"];
 
+// The clinic operates in Pakistan Standard Time (Asia/Karachi, UTC+5, no DST).
+// Mongoose stores date-only strings like "2026-08-27" as UTC midnight, so
+// filtering with server-local (usually UTC) day bounds lets PKT appointments
+// leak into the previous calendar day. These helpers convert a "YYYY-MM-DD"
+// calendar date into the clinic-local [startOfDay, endOfDay] instant range and
+// format instants back into clinic-local date strings — never the server's tz.
+const CLINIC_TIMEZONE = "Asia/Karachi";
+const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Formats an instant as "YYYY-MM-DD" in the clinic's timezone. */
+const toClinicDateString = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: CLINIC_TIMEZONE,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
+  } catch {
+    return date.toLocaleDateString("en-CA");
+  }
+};
+
+/** UTC offset of the clinic timezone (in minutes) for the given instant. */
+const getClinicOffsetMinutes = (date) => {
+  try {
+    const values = {};
+    for (const part of new Intl.DateTimeFormat("en-US", {
+      timeZone: CLINIC_TIMEZONE,
+      hourCycle: "h23",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    }).formatToParts(date)) {
+      if (part.type !== "literal") values[part.type] = part.value;
+    }
+    const asUTC = Date.UTC(
+      Number(values.year),
+      Number(values.month) - 1,
+      Number(values.day),
+      Number(values.hour),
+      Number(values.minute),
+      Number(values.second),
+    );
+    return Math.round((asUTC - date.getTime()) / 60000);
+  } catch {
+    return 5 * 60; // PKT fallback: UTC+5
+  }
+};
+
+/**
+ * Converts "YYYY-MM-DD" into clinic-local day boundaries as UTC instants.
+ * Returns { startOfDay, endOfDay } or null when the input is not a valid date.
+ */
+const getClinicDayRange = (dateStr) => {
+  const value = String(dateStr || "").trim();
+  if (!DATE_ONLY_PATTERN.test(value)) return null;
+  const [year, month, day] = value.split("-").map(Number);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  const utcMidnight = Date.UTC(year, month - 1, day);
+  const startOfDay = new Date(utcMidnight - getClinicOffsetMinutes(new Date(utcMidnight)) * 60000);
+  const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1);
+  return { startOfDay, endOfDay };
+};
+
 const sendAppointmentWhatsApp = async (patient, appointment, message) => {
   try {
     await sendWhatsAppTextMessage(patient.phone, message);
@@ -74,13 +145,11 @@ export const getAppointments = async (req, res) => {
     const query = { doctor: req.doctorId };
 
     if (date) {
-      const dateStr = String(date).trim();
-      const startOfDay = new Date(dateStr + 'T00:00:00');
-      const endOfDay = new Date(dateStr + 'T23:59:59.999');
-      if (isNaN(startOfDay.getTime())) {
-        return res.status(400).json({ message: "Invalid date parameter" });
+      const range = getClinicDayRange(String(date).trim());
+      if (!range) {
+        return res.status(400).json({ message: "Invalid date parameter. Expected YYYY-MM-DD." });
       }
-      query.date = { $gte: startOfDay, $lte: endOfDay };
+      query.date = { $gte: range.startOfDay, $lte: range.endOfDay };
     }
 
     if (status) {
@@ -576,24 +645,21 @@ export const sendRescheduleWhatsApp = async (req, res) => {
 
 export const getTodayQueue = async (req, res) => {
   try {
-    let startOfDay, endOfDay;
-    if (req.query.date) {
-      const dateStr = String(req.query.date).trim();
-      startOfDay = new Date(dateStr + 'T00:00:00');
-      endOfDay = new Date(dateStr + 'T23:59:59.999');
-      if (isNaN(startOfDay.getTime())) {
-        return res.status(400).json({ message: "Invalid date parameter" });
-      }
-    } else {
-      startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
-      endOfDay = new Date();
-      endOfDay.setHours(23, 59, 59, 999);
+    // Accept ?date=YYYY-MM-DD, otherwise default to "today" in the clinic's own
+    // timezone (Asia/Karachi) so PKT appointments never bleed into the previous
+    // calendar day when the server runs on UTC.
+    const requestedDateStr = req.query.date
+      ? String(req.query.date).trim()
+      : toClinicDateString(new Date());
+
+    const range = getClinicDayRange(requestedDateStr);
+    if (!range) {
+      return res.status(400).json({ message: "Invalid date parameter. Expected YYYY-MM-DD." });
     }
 
     const query = {
       doctor: req.doctorId,
-      date: { $gte: startOfDay, $lte: endOfDay }
+      date: { $gte: range.startOfDay, $lte: range.endOfDay }
     };
 
     const appointments = await Appointment.find(query)
@@ -646,11 +712,12 @@ export const getTodayQueue = async (req, res) => {
       return new Date(a.checkInTime || 0) - new Date(b.checkInTime || 0);
     });
 
-    // Strict local-date equality guard: only keep appointments whose local date matches request
-    const requestedDateStr = req.query.date ? String(req.query.date).trim() : new Date().toLocaleDateString('en-CA');
+    // Defensive guard: only keep appointments whose calendar date in the clinic
+    // timezone matches the requested date. This is a second line of defence on
+    // top of the day-range query above (the server's timezone is no longer used).
     const strictAppointments = appointmentsWithPayments.filter((appt) => {
-      const d = new Date(appt.date || appt.checkInTime || 0);
-      return d.toLocaleDateString('en-CA') === requestedDateStr;
+      const apptDate = toClinicDateString(appt.date) || toClinicDateString(appt.checkInTime);
+      return apptDate === requestedDateStr;
     });
 
     res.status(200).json({ appointments: strictAppointments });
