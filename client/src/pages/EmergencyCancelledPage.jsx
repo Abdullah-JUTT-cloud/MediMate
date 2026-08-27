@@ -231,16 +231,16 @@ export default function EmergencyCancelledPage({ onReschedule }) {
   const [appointments, setAppointments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCancelling, setIsCancelling] = useState(false);
-  const [emergencyStartDate, setEmergencyStartDate] = useState("");
-  const [emergencyStartTime, setEmergencyStartTime] = useState("");
-  const [emergencyEndDate, setEmergencyEndDate] = useState("");
-  const [emergencyEndTime, setEmergencyEndTime] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [endTime, setEndTime] = useState("");
 
-  const clearForm = () => {
-    setEmergencyStartDate("");
-    setEmergencyStartTime("");
-    setEmergencyEndDate("");
-    setEmergencyEndTime("");
+  const resetBulkCancellationInputs = () => {
+    setStartDate("");
+    setStartTime("");
+    setEndDate("");
+    setEndTime("");
   };
 
   // `isLoading` starts true, so the effect only has to resolve the request —
@@ -271,14 +271,14 @@ export default function EmergencyCancelledPage({ onReschedule }) {
     };
   }, []);
 
-  const handleEmergencyCancel = async () => {
-    if (!emergencyStartDate || !emergencyStartTime || !emergencyEndDate || !emergencyEndTime) {
+  const handleBulkCancellation = async () => {
+    if (!startDate || !startTime || !endDate || !endTime) {
       toast.error("Select start/end date and time");
       return;
     }
 
-    const startDateTime = new Date(`${emergencyStartDate}T${emergencyStartTime}:00`);
-    const endDateTime = new Date(`${emergencyEndDate}T${emergencyEndTime}:00`);
+    const startDateTime = new Date(`${startDate}T${startTime}:00`);
+    const endDateTime = new Date(`${endDate}T${endTime}:00`);
     if (startDateTime > endDateTime) {
       toast.error("Start date/time must be before end date/time");
       return;
@@ -286,7 +286,7 @@ export default function EmergencyCancelledPage({ onReschedule }) {
 
     const confirmed = await confirm({
       title: "Emergency Cancel",
-      message: `Cancel all appointments from ${emergencyStartDate} ${emergencyStartTime} to ${emergencyEndDate} ${emergencyEndTime}?`,
+      message: `Cancel all appointments from ${startDate} ${startTime} to ${endDate} ${endTime}?`,
       confirmText: "Yes, Cancel All",
       cancelText: "Keep Appointments",
       tone: "danger",
@@ -296,15 +296,15 @@ export default function EmergencyCancelledPage({ onReschedule }) {
     setIsCancelling(true);
     try {
       const res = await axiosInstance.post("/appointments/emergency-cancel", {
-        startDate: emergencyStartDate,
-        startTime: emergencyStartTime,
-        endDate: emergencyEndDate,
-        endTime: emergencyEndTime,
+        startDate: startDate,
+        startTime: startTime,
+        endDate: endDate,
+        endTime: endTime,
       });
       const cancelled = Array.isArray(res.data?.cancelledAppointments) ? res.data.cancelledAppointments : [];
       toast.success(`${cancelled.length} appointments cancelled`);
       setAppointments((prev) => [...cancelled, ...prev]);
-      clearForm();
+      resetBulkCancellationInputs();
     } catch {
       toast.error("Failed to cancel appointments");
     } finally {
@@ -332,8 +332,12 @@ export default function EmergencyCancelledPage({ onReschedule }) {
       </header>
 
       {/* ── Bulk emergency cancellation control ───────────────────────── */}
-      <section
+      <form
         aria-labelledby="emergency-cancel-control-title"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void handleBulkCancellation();
+        }}
         className="bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900/50 rounded-2xl p-6 shadow-sm mb-6 relative overflow-hidden before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-rose-500"
       >
         <h3
@@ -355,36 +359,35 @@ export default function EmergencyCancelledPage({ onReschedule }) {
             id="emergency-start-date"
             label="Start Date"
             type="date"
-            value={emergencyStartDate}
-            onChange={(e) => setEmergencyStartDate(e.target.value)}
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
           />
           <DateTimeField
             id="emergency-start-time"
             label="Start Time"
             type="time"
-            value={emergencyStartTime}
-            onChange={(e) => setEmergencyStartTime(e.target.value)}
+            value={startTime}
+            onChange={(e) => setStartTime(e.target.value)}
           />
           <DateTimeField
             id="emergency-end-date"
             label="End Date"
             type="date"
-            value={emergencyEndDate}
-            onChange={(e) => setEmergencyEndDate(e.target.value)}
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
           />
           <DateTimeField
             id="emergency-end-time"
             label="End Time"
             type="time"
-            value={emergencyEndTime}
-            onChange={(e) => setEmergencyEndTime(e.target.value)}
+            value={endTime}
+            onChange={(e) => setEndTime(e.target.value)}
           />
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <button
-            type="button"
-            onClick={handleEmergencyCancel}
+            type="submit"
             disabled={isCancelling}
             className="bg-rose-600 hover:bg-rose-500 text-white font-bold px-6 py-3 rounded-xl shadow-md transition-all text-sm flex items-center gap-2 justify-center disabled:cursor-not-allowed disabled:bg-rose-600/50 disabled:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
           >
@@ -402,13 +405,18 @@ export default function EmergencyCancelledPage({ onReschedule }) {
           </button>
           <button
             type="button"
-            onClick={clearForm}
+            onClick={() => {
+              setStartDate("");
+              setStartTime("");
+              setEndDate("");
+              setEndTime("");
+            }}
             className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold px-4 py-3 rounded-xl text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:focus-visible:ring-slate-500"
           >
             Clear Inputs
           </button>
         </div>
-      </section>
+      </form>
 
       {/* ── Cancelled appointments directory ──────────────────────────── */}
       <section aria-labelledby="cancelled-directory-title">
