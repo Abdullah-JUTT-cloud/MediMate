@@ -1,9 +1,10 @@
-import { createElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createElement, useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Activity,
   BarChart3,
   Bell,
+  Calendar,
   CalendarDays,
   Check,
   CheckCircle2,
@@ -166,80 +167,35 @@ const formatQueueDateHeading = (value) =>
   parseDateInputLocal(value).toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short" });
 
 function QueueDateSelector({ selectedDate, onChange }) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef(null);
-
   const today = toLocalDateInput(new Date());
-  const yesterday = toLocalDateInput(addLocalDays(new Date(), -1));
   const selected = selectedDate || today;
   const isToday = selected === today;
-  const isYesterday = selected === yesterday;
+  const isYesterday = selected === toLocalDateInput(addLocalDays(new Date(), -1));
 
-  const triggerLabel = isToday
+  const selectedDateLabel = isToday
     ? `Today · ${formatShortDayMonth(selected)}`
     : isYesterday
       ? `Yesterday · ${formatShortDayMonth(selected)}`
       : formatQueueDateHeading(selected);
 
-  useEffect(() => {
-    if (!open) return undefined;
-    const handleOutsideClick = (event) => {
-      if (rootRef.current && !rootRef.current.contains(event.target)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
-  }, [open]);
-
-  const choose = (value) => {
-    onChange(value);
-    setOpen(false);
+  const handleDateChange = (event) => {
+    if (event.target.value) onChange(event.target.value);
   };
 
   return (
-    <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-[11px] font-extrabold text-slate-700 shadow-sm transition hover:border-teal-400 hover:text-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-teal-500 dark:hover:text-teal-300"
-      >
-        <CalendarDays size={14} className="text-teal-600 dark:text-teal-400" />
-        <span className="whitespace-nowrap">{triggerLabel}</span>
-        <ChevronDown size={14} className={`transition-transform ${open ? "rotate-180" : ""}`} />
-      </button>
-
-      {open && (
-        <div className="absolute left-0 top-[calc(100%+6px)] z-30 w-56 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-[0_12px_32px_rgba(15,23,42,0.12)] dark:border-slate-700 dark:bg-slate-900">
-          <button
-            type="button"
-            onClick={() => choose(today)}
-            className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-[12px] font-bold transition ${isToday ? "bg-teal-50 text-teal-700 dark:bg-teal-950/50 dark:text-teal-300" : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"}`}
-          >
-            <span>Today</span>
-            <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">{formatShortDayMonth(today)}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => choose(yesterday)}
-            className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-left text-[12px] font-bold transition ${isYesterday ? "bg-teal-50 text-teal-700 dark:bg-teal-950/50 dark:text-teal-300" : "text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"}`}
-          >
-            <span>Yesterday</span>
-            <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500">{formatShortDayMonth(yesterday)}</span>
-          </button>
-          <div className="mt-1 border-t border-slate-100 pt-1.5 dark:border-slate-800">
-            <label className="flex items-center gap-2 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400 dark:text-slate-500">
-              <CalendarDays size={12} /> Custom date
-            </label>
-            <input
-              type="date"
-              value={selected}
-              onChange={(event) => event.target.value && choose(event.target.value)}
-              className="mt-1 h-8 w-full rounded-lg border border-slate-200 bg-slate-50 px-2.5 text-[11px] font-semibold text-slate-700 outline-none transition focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-500/10 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-            />
-          </div>
-        </div>
-      )}
+    <div className="relative inline-flex items-center">
+      <div className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 bg-white text-slate-700 shadow-sm hover:border-teal-500 focus-within:ring-2 focus-within:ring-teal-500/20 transition-all cursor-pointer">
+        <Calendar className="w-3.5 h-3.5 text-teal-600"/>
+        <span>{selectedDateLabel}</span>
+        <ChevronDown className="w-3.5 h-3.5 text-slate-400"/>
+      </div>
+      <input
+        type="date"
+        value={selected}
+        onChange={handleDateChange}
+        aria-label="Select queue date"
+        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+      />
     </div>
   );
 }
@@ -544,7 +500,7 @@ function QueueContent({ appointments, loading, refreshing, filter, setFilter, se
             <div className="relative w-full lg:max-w-[282px]"><Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search name, phone or token..." className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-8 text-[11px] font-semibold text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-500/10 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:focus:bg-slate-900" />{searchQuery && <button type="button" onClick={() => setSearchQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:text-slate-700" aria-label="Clear search"><X size={13} /></button>}</div>
           </div>
 
-          <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/75 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/30 sm:px-5"><div className="flex min-w-0 items-center gap-2.5 overflow-x-auto pb-0.5"><CalendarDays size={15} className="text-teal-600 dark:text-teal-400 shrink-0" /><h2 className="text-[13px] font-extrabold text-slate-800 dark:text-slate-100 whitespace-nowrap">{queueDateHeading} <span className="font-medium text-slate-400">•</span> {filteredPatients.length} {filteredPatients.length === 1 ? 'Patient' : 'Patients'}</h2><QueueDateSelector selectedDate={selectedDate} onChange={setSelectedDate} /></div><div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />Last synced just now</div></div>
+          <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/75 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/30 sm:px-5"><div className="flex min-w-0 flex-wrap items-center gap-2.5"><CalendarDays size={15} className="text-teal-600 dark:text-teal-400 shrink-0" /><h2 className="text-[13px] font-extrabold text-slate-800 dark:text-slate-100 whitespace-nowrap">{queueDateHeading} <span className="font-medium text-slate-400">•</span> {filteredPatients.length} {filteredPatients.length === 1 ? 'Patient' : 'Patients'}</h2><QueueDateSelector selectedDate={selectedDate} onChange={setSelectedDate} /></div><div className="flex items-center gap-1.5 text-[10px] font-semibold text-slate-400"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />Last synced just now</div></div>
 
           {loading ? <div className="flex min-h-[300px] flex-col items-center justify-center gap-3 text-slate-500"><RefreshCw size={21} className="animate-spin text-teal-500" /><p className="text-[12px] font-semibold">Loading clinical assembly line...</p></div> : filteredPatients.length === 0 ? <div className="flex min-h-[280px] flex-col items-center justify-center px-6 text-center"><div className="mb-3 rounded-full bg-slate-100 p-3 text-slate-400 dark:bg-slate-800"><Search size={20} /></div><h3 className="text-sm font-extrabold text-slate-800 dark:text-slate-100">No patients found</h3><p className="mt-1 text-[11px] text-slate-500">Try a different status filter or search term.</p></div> : <div><div className="hidden grid-cols-[minmax(240px,1.3fr)_112px_118px_154px_190px] gap-4 border-b border-slate-100 px-5 py-2.5 text-[9px] font-extrabold uppercase tracking-[0.12em] text-slate-400 dark:border-slate-800 dark:text-slate-500 lg:grid"><span>Patient details</span><span>Visit timing</span><span>Payment</span><span>Queue status</span><span className="text-right">Action</span></div>{filteredPatients.map((appointment) => <PatientRow key={appointment._id} appointment={appointment} onStart={onStart} />)}</div>}
         </section>
