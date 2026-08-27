@@ -23,7 +23,9 @@ const getSubscriptionCountdownText = (expiresAt, status = "TRIAL") => {
   if (!expiresAt) return "";
   const diffMs = new Date(expiresAt).getTime() - Date.now();
   if (diffMs <= 0) return "Your subscription has ended. Please pay to continue.";
-  const totalDays = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+  const expiryMidnight = new Date(new Date(expiresAt).toDateString()).getTime();
+  const todayMidnight = new Date(new Date().toDateString()).getTime();
+  const totalDays = Math.max(0, Math.round((expiryMidnight - todayMidnight) / (1000 * 60 * 60 * 24)));
   const safeStatus = String(status || "").toUpperCase();
   const label = safeStatus === "MONTHLY" ? "monthly subscription" : safeStatus === "YEARLY" ? "yearly subscription" : safeStatus === "ACTIVE" ? "active subscription" : safeStatus === "TRIAL" ? "free trial" : "subscription";
   return `${totalDays} day${totalDays === 1 ? "" : "s"} remaining on your ${label}. Pay to move forward securely.`;
