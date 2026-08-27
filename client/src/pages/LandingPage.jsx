@@ -79,7 +79,7 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="landing-page min-h-screen bg-[var(--color-bg)] text-[var(--color-text-primary)]">
+    <div className="landing-page min-h-[100dvh] bg-[var(--color-bg)] text-[var(--color-text-primary)]">
       <Navbar />
 
       <main>

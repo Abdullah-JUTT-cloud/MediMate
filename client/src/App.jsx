@@ -51,7 +51,37 @@ function App() {
       <BrowserRouter>
         <ScrollToTop />
         <ThemeToggle theme={theme} onToggle={toggleTheme} />
-        <Toaster position="top-right" />
+        {/* Global toast banner: fixed, centred, high z-index, sits below sticky
+            headers (offset by safe-area + header height) so it never covers the
+            patient/queue header. Short auto-dismiss keeps it from lingering. */}
+        <Toaster
+          position="top-center"
+          containerStyle={{
+            top: "calc(env(safe-area-inset-top, 0px) + 6rem)",
+            zIndex: 9999,
+          }}
+          toastOptions={{
+            duration: 2600,
+            style: {
+              maxWidth: "min(28rem, calc(100vw - 1.5rem))",
+              width: "100%",
+              fontSize: "0.8125rem",
+              fontWeight: 600,
+              borderRadius: "0.75rem",
+              background: "var(--color-surface, #ffffff)",
+              color: "var(--color-text-primary, #1e293b)",
+              border: "1px solid var(--color-border, #e2e8f0)",
+              boxShadow: "0 18px 40px -16px rgba(0, 0, 0, 0.35)",
+              padding: "0.75rem 1rem",
+            },
+            success: {
+              iconTheme: { primary: "#0d9488", secondary: "#ffffff" },
+            },
+            error: {
+              iconTheme: { primary: "#dc2626", secondary: "#ffffff" },
+            },
+          }}
+        />
         <ErrorBoundary>
           <Suspense fallback={<RouteSkeleton />}>
             <Routes>

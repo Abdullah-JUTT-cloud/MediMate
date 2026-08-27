@@ -89,7 +89,7 @@ export default function ConsultationWorkspacePreview() {
   const [isOpen, setIsOpen] = useState(true);
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4">
+    <div className="min-h-[100dvh] bg-slate-50 p-4">
       <button
         type="button"
         onClick={() => setIsOpen(true)}

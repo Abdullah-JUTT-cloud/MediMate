@@ -20,6 +20,20 @@ import {
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
 
+// WhatsApp glyph (brand icon isn't shipped by lucide-react) — inherits currentColor.
+const WhatsAppIcon = (props) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    aria-hidden="true"
+    focusable="false"
+    className="h-4 w-4"
+    {...props}
+  >
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.173.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04.999-1.04 2.437 0 1.438 1.03 2.828 1.175 3.024.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.36-.214-3.741.982.998-3.648-.243-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.885-9.885 9.885M20.52 3.449C18.24 1.245 15.24 0 12.045 0 5.463 0 .104 5.358.101 11.94c0 2.096.547 4.142 1.588 5.945L0 24l6.305-1.654a11.88 11.88 0 0 0 5.74 1.462h.004c6.582 0 11.94-5.358 11.943-11.94 0-3.195-1.245-6.2-3.472-8.359" />
+  </svg>
+);
+
 // Common quick disease suggestions
 const QUICK_DISEASES = [
   "Hypertension",
@@ -521,7 +535,7 @@ export default function ConsultationWorkspaceRedesigned({
       role="dialog"
       aria-modal="true"
       aria-labelledby="workspace-heading"
-      className="fixed inset-0 z-50 flex overflow-hidden"
+      className="fixed inset-x-0 top-0 z-50 flex h-[100dvh] flex-col overflow-hidden"
     >
       {/* Light overlay backdrop */}
       <div
@@ -530,11 +544,11 @@ export default function ConsultationWorkspaceRedesigned({
       />
 
       {/* Main container - clean, modern clinical workspace */}
-      <div className="relative z-10 flex h-full w-full max-w-none flex-col bg-slate-50 text-slate-900 shadow-2xl">
+      <div className="relative z-10 flex min-h-0 h-full w-full max-w-none flex-col bg-slate-50 text-slate-900 shadow-2xl">
         {/* =========================================================================
             STICKY TOP PATIENT BAR
            ========================================================================= */}
-        <header className="shrink-0 bg-white border-b border-slate-200 p-4 shadow-sm sticky top-0 z-20">
+        <header className="safe-top shrink-0 bg-white border-b border-slate-200 p-4 shadow-sm sticky top-0 z-30">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             {/* Patient Details Left Section */}
             <div className="flex items-center gap-3.5 min-w-0">
@@ -582,27 +596,22 @@ export default function ConsultationWorkspaceRedesigned({
                 </div>
 
                 {/* Patient Metadata Sub-line */}
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-600 text-sm font-medium mt-1">
-                  <span className="font-semibold text-slate-900">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-slate-600 text-sm font-medium mt-1">
+                  <span className="whitespace-nowrap font-semibold text-slate-900">
                     Slot: {appointment.slot || "—"}
                   </span>
-                  <span className="text-slate-400">•</span>
-                  <span>
+                  <span className="whitespace-nowrap">
                     {patient.age ? `${patient.age} Yrs` : "Age N/A"} ·{" "}
                     {patient.gender || "Gender N/A"}
                   </span>
-                  <span className="text-slate-400">•</span>
-                  <span className="flex items-center gap-1 font-mono">
+                  <span className="whitespace-nowrap inline-flex items-center gap-1 font-mono">
                     <Phone size={11} className="text-slate-500" />
                     {patient.phone || "No phone"}
                   </span>
                   {patient.bloodGroup && (
-                    <>
-                      <span className="text-slate-400">•</span>
-                      <span className="font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded">
-                        {patient.bloodGroup}
-                      </span>
-                    </>
+                    <span className="whitespace-nowrap font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded">
+                      {patient.bloodGroup}
+                    </span>
                   )}
                 </div>
               </div>
@@ -648,13 +657,13 @@ export default function ConsultationWorkspaceRedesigned({
         {/* =========================================================================
             SPLIT WORKSPACE BODY (2 COLUMNS)
            ========================================================================= */}
-        <div className="grid flex-1 grid-cols-1 overflow-hidden lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
+        <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-12 lg:overflow-hidden divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
           {/* ---------------------------------------------------------------------
               LEFT COLUMN: Patient History (35%)
              --------------------------------------------------------------------- */}
           <section
             aria-label="Patient clinical history"
-            className="lg:col-span-5 flex flex-col h-full overflow-hidden bg-white"
+            className="lg:col-span-5 flex flex-col lg:h-full lg:overflow-hidden bg-white"
           >
             {/* Column Header */}
             <div className="shrink-0 px-4 sm:px-6 py-3.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
@@ -833,14 +842,14 @@ export default function ConsultationWorkspaceRedesigned({
              --------------------------------------------------------------------- */}
           <section
             aria-label="Active examination and prescription form"
-            className="lg:col-span-7 flex flex-col h-full overflow-hidden bg-slate-50"
+            className="lg:col-span-7 flex flex-col lg:h-full lg:overflow-hidden bg-slate-50"
           >
             {/* Column Header */}
-            <div className="shrink-0 px-4 sm:px-6 py-3.5 border-b border-slate-200 bg-white flex items-center justify-between">
+            <div className="shrink-0 px-4 sm:px-6 py-3.5 border-b border-slate-200 bg-white flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2">
                 <Stethoscope size={16} className="text-teal-600" />
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                  Active Examination & Prescription
+                  Active Examination &amp; Prescription
                 </h4>
               </div>
               <span className="text-xs text-slate-500 font-medium">
@@ -1083,17 +1092,17 @@ export default function ConsultationWorkspaceRedesigned({
             {/* =============================================================
                 STICKY ACTION FOOTER
                ============================================================= */}
-            <div className="shrink-0 border-t border-slate-200 bg-white px-4 sm:px-6 py-4 shadow-lg sticky bottom-0 z-20">
+            <div className="shrink-0 border-t border-slate-200 bg-white px-4 sm:px-6 py-4 shadow-lg safe-bottom">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-                <div className="text-xs text-slate-600 sm:block">
+                <div className="min-w-0 truncate text-xs text-slate-600 sm:block">
                   Patient: <strong className="text-slate-900">{patient.name}</strong>
                 </div>
 
-                <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="flex items-stretch gap-3 w-full sm:w-auto">
                   <button
                     type="button"
                     onClick={onClose}
-                    className="flex-1 sm:flex-initial px-5 py-3.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 font-bold text-sm transition-colors"
+                    className="flex-1 sm:flex-initial min-h-[44px] px-5 py-3.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 font-bold text-sm transition-colors"
                   >
                     Cancel
                   </button>
@@ -1102,7 +1111,7 @@ export default function ConsultationWorkspaceRedesigned({
                     type="button"
                     onClick={handleCompleteConsultation}
                     disabled={isSubmitting}
-                    className="flex-1 sm:flex-initial bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg transition-all text-sm uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 sm:flex-initial min-h-[44px] bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg transition-all text-sm uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isSubmitting ? (
                       <>
@@ -1111,8 +1120,12 @@ export default function ConsultationWorkspaceRedesigned({
                       </>
                     ) : (
                       <>
-                        <span>Save Checkup & Dispatch WhatsApp Prescription</span>
-                        <ChevronRight size={18} />
+                        <WhatsAppIcon className="h-4 w-4 shrink-0" />
+                        <span className="sm:hidden">Save &amp; Send Rx</span>
+                        <span className="hidden sm:inline">
+                          Save Checkup &amp; Dispatch WhatsApp Prescription
+                        </span>
+                        <ChevronRight size={18} className="shrink-0" />
                       </>
                     )}
                   </button>

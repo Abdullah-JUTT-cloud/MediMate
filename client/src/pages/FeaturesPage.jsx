@@ -1109,7 +1109,7 @@ function MetricsSection() {
 
 export default function FeaturesPage() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[var(--color-bg)] text-[var(--color-text-primary)]">
+    <div className="relative min-h-[100dvh] overflow-hidden bg-[var(--color-bg)] text-[var(--color-text-primary)]">
       {/* Scoped keyframes for the micro-preview animations on this page. */}
       <style>{`
         @keyframes fxFlash {

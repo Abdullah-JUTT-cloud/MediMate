@@ -204,7 +204,7 @@ export default function PrescriptionModal({
           </button>
         </div>
 
-        <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+        <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-4 max-h-[70dvh] overflow-y-auto">
           {isGenerating ? (
             <div className="flex flex-col items-center justify-center py-8">
               <Skeleton

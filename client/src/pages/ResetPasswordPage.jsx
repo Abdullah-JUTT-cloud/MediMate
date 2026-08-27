@@ -74,7 +74,7 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg-gradient)] text-[var(--color-text-primary)]">
+    <div className="min-h-[100dvh] bg-[var(--color-bg-gradient)] text-[var(--color-text-primary)]">
       <div className="pointer-events-none fixed inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-[var(--color-primary)]/8 via-transparent to-[var(--color-primary)]/5" />
       </div>
@@ -96,7 +96,7 @@ export default function ResetPasswordPage() {
         </div>
       </nav>
 
-      <main className="relative z-10 mx-auto flex min-h-[calc(100vh-73px)] w-full max-w-6xl items-center justify-center px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+      <main className="relative z-10 mx-auto flex min-h-[calc(100dvh-73px)] w-full max-w-6xl items-center justify-center px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
         <section className="w-full max-w-md rounded-xl border bg-[var(--color-card)] p-6 shadow-sm sm:p-8">
           <div className="text-center mb-8">
             <div className="mx-auto w-[50px] sm:w-[60px] lg:w-[85px] aspect-square glass-card rounded-2xl flex items-center justify-center border-[var(--color-border)] mb-2 bg-[var(--color-bg-soft)] shadow-sm">

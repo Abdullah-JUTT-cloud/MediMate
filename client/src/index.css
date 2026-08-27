@@ -53,6 +53,22 @@
   --shadow-soft: 0 4px 20px -2px var(--shadow);
   --shadow-float: 0 10px 40px -10px var(--shadow);
 
+  /* ── Fluid type scale (clamp-based) ───────────────────────────────────────
+     Scales with viewport width instead of being tuned to one screen width, so
+     type never needs per-breakpoint px overrides. Use via text-[length:var(--step-N)]. */
+  --step--1: clamp(0.75rem, 0.72rem + 0.15vw, 0.875rem);
+  --step-0: clamp(0.875rem, 0.84rem + 0.18vw, 1rem);
+  --step-1: clamp(1rem, 0.95rem + 0.27vw, 1.125rem);
+  --step-2: clamp(1.125rem, 1.05rem + 0.4vw, 1.375rem);
+  --step-3: clamp(1.375rem, 1.25rem + 0.65vw, 1.75rem);
+  --step-4: clamp(1.75rem, 1.5rem + 1.1vw, 2.25rem);
+
+  /* ── Fluid spacing scale (clamp-based) ───────────────────────────────────── */
+  --space-2: clamp(0.5rem, 0.46rem + 0.2vw, 0.75rem);
+  --space-3: clamp(0.75rem, 0.68rem + 0.35vw, 1rem);
+  --space-4: clamp(1rem, 0.9rem + 0.5vw, 1.25rem);
+  --space-6: clamp(1.25rem, 1.1rem + 0.75vw, 1.75rem);
+
   /* Ensure RGB is available if used anywhere */
   --color-primary-rgb: 13, 148, 136; /* #0D9488 */
 
@@ -135,7 +151,11 @@ html,
 body,
 #root {
   width: 100%;
+  /* Fallback for browsers without dvh, then the dynamic-viewport height that
+     shrinks when the mobile keyboard / URL bar opens (root fix for the
+     keyboard-covers-content class of bugs). */
   min-height: 100vh;
+  min-height: 100dvh;
   margin: 0;
   overflow-x: hidden;
 }
@@ -508,4 +528,50 @@ input.emergency-native-picker[type="time"]::-webkit-calendar-picker-indicator {
   body::before {
     opacity: 0.02;
   }
+}
+
+/* ── Safe-area insets (notches / home indicators) ─────────────────────────── */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.safe-left {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+.safe-right {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* ── Horizontal scroll-fade mask for filter tabs / chip rails ───────────────
+   A partially-hidden tab visibly fades instead of being hard-clipped mid-word.
+   The left edge fades too so it reads as scrollable once scrolled. */
+.tab-scroll-fade {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 16px,
+    #000 calc(100% - 26px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 16px,
+    #000 calc(100% - 26px),
+    transparent 100%
+  );
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* ── Shared chip / pill (used by filter chips & suggestion chips) ───────────
+   Single source of truth so chips behave identically across pages: never
+   shrink, never wrap mid-word, always truncate/ellipsis instead of clipping. */
+.med-chip {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  flex-shrink: 0;
 }

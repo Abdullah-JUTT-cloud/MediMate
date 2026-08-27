@@ -121,7 +121,7 @@ export default function BookAppointmentModal({ patient, onClose, onBooked }) {
         role="dialog"
         aria-modal="true"
         aria-label={`Book appointment for ${patient?.name}`}
-        className="relative w-full max-w-xl max-h-[90vh] flex flex-col bg-white rounded-xl shadow-2xl overflow-hidden dark:bg-slate-900 dark:border dark:border-slate-800"
+        className="relative w-full max-w-xl max-h-[90dvh] flex flex-col bg-white rounded-xl shadow-2xl overflow-hidden dark:bg-slate-900 dark:border dark:border-slate-800"
       >
         <div className="flex-shrink-0 p-4 border-b border-slate-200 dark:border-slate-800 flex items-start justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">

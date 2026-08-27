@@ -1135,7 +1135,7 @@ function ArticleReaderModal({ article, onClose }) {
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.95, opacity: 0, y: 20 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="relative w-full max-w-4xl max-h-[92vh] flex flex-col rounded-3xl border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-text-primary)] shadow-2xl overflow-hidden"
+        className="relative w-full max-w-4xl max-h-[92dvh] flex flex-col rounded-3xl border border-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-text-primary)] shadow-2xl overflow-hidden"
       >
         {/* Sticky Modal Top Bar */}
         <div className="sticky top-0 z-20 flex items-center justify-between border-b border-[var(--color-border)]/70 bg-[var(--color-card)]/95 px-6 py-4 backdrop-blur-md">
@@ -1481,7 +1481,7 @@ export default function BlogPage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[var(--color-bg)] text-[var(--color-text-primary)] transition-colors duration-300">
+    <div className="relative min-h-[100dvh] overflow-hidden bg-[var(--color-bg)] text-[var(--color-text-primary)] transition-colors duration-300">
       {/* Background Ambience Blobs */}
       <div
         aria-hidden="true"

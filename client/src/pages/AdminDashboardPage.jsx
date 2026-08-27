@@ -317,8 +317,8 @@ export default function AdminDashboardPage() {
   if (isCheckingAdmin || !admin) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
-      <div className="grid min-h-screen lg:grid-cols-[280px_1fr]">
+    <div className="min-h-[100dvh] bg-slate-50 font-sans text-slate-900">
+      <div className="grid min-h-[100dvh] lg:grid-cols-[280px_1fr]">
         <aside className="bg-slate-900 px-5 py-6 text-white">
           <div className="rounded-xl border border-white/10 bg-white/5 p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-teal-300">MedAlerto Admin</p>
@@ -511,7 +511,7 @@ export default function AdminDashboardPage() {
           )}
 
           {activeSection === "tickets" && (
-            <section className="grid min-h-[calc(100vh-11rem)] gap-5 xl:grid-cols-[380px_1fr]">
+            <section className="grid min-h-[calc(100dvh-11rem)] gap-5 xl:grid-cols-[380px_1fr]">
               <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <div>
@@ -745,7 +745,7 @@ export default function AdminDashboardPage() {
 
       {previewReceipt ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4" onClick={() => setPreviewReceipt(null)}>
-          <div className="max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-xl bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
+          <div className="max-h-[92dvh] w-full max-w-3xl overflow-hidden rounded-xl bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
               <div>
                 <p className="text-sm font-bold text-slate-950">{previewReceipt.doctorName || "Receipt preview"}</p>
@@ -756,7 +756,7 @@ export default function AdminDashboardPage() {
               </button>
             </div>
             <div className="bg-slate-100 p-4">
-              <img src={previewReceipt.screenshotUrl} alt="Payment receipt preview" className="mx-auto max-h-[75vh] rounded-xl object-contain" />
+              <img src={previewReceipt.screenshotUrl} alt="Payment receipt preview" className="mx-auto max-h-[75dvh] rounded-xl object-contain" />
             </div>
           </div>
         </div>
