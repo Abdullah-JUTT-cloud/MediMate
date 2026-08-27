@@ -13,6 +13,7 @@ export default function PrescriptionModal({
   const [pdfBase64, setPdfBase64] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [viewingPdf, setViewingPdf] = useState(false);
   const [saved, setSaved] = useState(!!checkup?.prescription?.pdfUrl);
   const [pdfUrl, setPdfUrl] = useState(checkup?.prescription?.pdfUrl || "");
 
@@ -91,7 +92,7 @@ export default function PrescriptionModal({
     } else if (checkup?._id) {
       try {
         const res = await axiosInstance.get(
-          `/prescriptions/download/${checkup._id}`,
+          `/prescriptions/download/${checkup._id}?download=true`,
           {
             responseType: "blob",
           }
@@ -127,12 +128,50 @@ export default function PrescriptionModal({
     }
   };
 
-  const handleViewPdf = () => {
+  // Opens the actual PDF in a new browser tab.
+  // - If we already hold the generated base64 (e.g. fresh generation), render it
+  //   directly from a Blob.
+  // - Otherwise fetch the PDF from the backend as a Blob so we always open a real
+  //   PDF and never fall back to a client-side catch-all route (e.g. /dashboard).
+  const canViewPdf = Boolean(pdfBase64 || checkup?._id);
+
+  const handleViewPdf = async () => {
     if (pdfBase64) {
       const blob = base64ToBlob(pdfBase64);
       window.open(URL.createObjectURL(blob), "_blank");
-    } else if (pdfUrl) {
-      window.open(pdfUrl, "_blank");
+      return;
+    }
+
+    if (!checkup?._id) {
+      toast.error("No prescription is available to view");
+      return;
+    }
+
+    // Open the tab synchronously inside the user gesture so pop-up blockers don't
+    // reject it, then inject the real PDF blob once it has been fetched.
+    const newTab = window.open("about:blank", "_blank");
+    if (!newTab) {
+      toast.error("Please allow pop-ups to view the prescription");
+      return;
+    }
+
+    setViewingPdf(true);
+    try {
+      const res = await axiosInstance.get(
+        `/prescriptions/view/${checkup._id}`,
+        { responseType: "blob" }
+      );
+      const url = URL.createObjectURL(
+        new Blob([res.data], { type: "application/pdf" })
+      );
+      newTab.location = url;
+    } catch (err) {
+      newTab.close();
+      toast.error(
+        err.response?.data?.message || "Failed to load prescription PDF"
+      );
+    } finally {
+      setViewingPdf(false);
     }
   };
 
@@ -233,10 +272,25 @@ export default function PrescriptionModal({
               <div className="space-y-2 sm:space-y-3">
                 <button
                   onClick={handleViewPdf}
-                  className="w-full py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-bold transition-all hover:opacity-90 border border-[var(--color-primary)]/25 bg-[var(--color-primary)]/12 text-[var(--color-primary)]"
+                  disabled={viewingPdf || !canViewPdf}
+                  className="w-full py-2 sm:py-3 rounded-xl text-xs sm:text-sm font-bold transition-all hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 border border-[var(--color-primary)]/25 bg-[var(--color-primary)]/12 text-[var(--color-primary)]"
                   aria-label="View prescription PDF"
                 >
-                  👁️ View PDF Again
+                  {viewingPdf ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <span
+                        className="w-3 h-3 sm:w-4 sm:h-4 rounded-full border-2 animate-spin inline-block"
+                        style={{
+                          borderColor: "var(--color-primary)",
+                          borderTopColor: "transparent",
+                        }}
+                      />
+                      <span className="hidden sm:inline">Opening PDF...</span>
+                      <span className="sm:hidden">Opening...</span>
+                    </span>
+                  ) : (
+                    "👁️ View PDF Again"
+                  )}
                 </button>
 
                 <button
