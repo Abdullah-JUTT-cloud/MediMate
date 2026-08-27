@@ -559,7 +559,7 @@ export default function SupportCenterPage() {
     }
     setVoiceDraft(null);
     if (showToast) {
-      toast.info("Voice note discarded");
+      toast("Voice note discarded", { icon: "🎙️" });
     }
   };
 
@@ -886,7 +886,7 @@ export default function SupportCenterPage() {
     recordingTimeRef.current = 0;
     audioChunksRef.current = [];
     stopRecordingTimer();
-    toast.info("Recording cancelled");
+    toast("Recording cancelled", { icon: "🎙️" });
   };
 
   const togglePauseRecording = () => {
