@@ -870,7 +870,7 @@ export default function SignupPage() {
   const passwordState = evaluatePassword(personal.password);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[var(--color-bg-gradient)] px-4 py-8 sm:px-6">
+    <div className="relative min-h-[100dvh] overflow-hidden bg-[var(--color-bg-gradient)] px-4 py-8 sm:px-6">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -left-24 top-10 h-80 w-80 rounded-[60%_40%_35%_65%/55%_35%_65%_45%] bg-[var(--color-accent)]/60 blur-3xl"

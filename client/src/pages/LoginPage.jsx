@@ -118,7 +118,7 @@ export default function LoginPage() {
   ];
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[var(--color-bg-gradient)] font-body text-[var(--color-text-primary)] selection:bg-[var(--color-primary)]/30">
+    <div className="relative min-h-[100dvh] flex items-center justify-center overflow-hidden bg-[var(--color-bg-gradient)] font-body text-[var(--color-text-primary)] selection:bg-[var(--color-primary)]/30">
       {/* Background Elements */}
       <div className="absolute inset-0 z-0 overflow-hidden">
         <div className="absolute -top-[10%] -left-[10%] w-[50%] h-[50%] rounded-full bg-[var(--color-primary)]/20 blur-[120px] animate-pulse-slow" />

@@ -219,7 +219,7 @@ function QueueSidebar({ collapsed, mobileOpen, onClose, onToggle, activeKey, onN
           collapsed ? "lg:w-[78px]" : "lg:w-[248px]"
         } ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
-        <div className={`flex h-[76px] shrink-0 items-center border-b border-slate-100 dark:border-slate-800 ${collapsed ? "justify-center px-3" : "justify-between px-5"}`}>
+        <div className={`flex h-[4.75rem] shrink-0 items-center border-b border-slate-100 dark:border-slate-800 ${collapsed ? "justify-center px-3" : "justify-between px-5"}`}>
           <button type="button" className="flex items-center gap-3" onClick={() => onNavigate("dashboard")} aria-label="Go to dashboard">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-600 text-white shadow-sm shadow-teal-600/20">
               <Stethoscope size={19} strokeWidth={2.4} />
@@ -313,7 +313,7 @@ function QueueTopbar({ doctor, onMenu, onProfile }) {
   });
 
   return (
-    <header className="flex h-[76px] shrink-0 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-7 dark:border-slate-800 dark:bg-slate-950/95">
+    <header className="safe-top relative z-20 flex h-[4.75rem] shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4 backdrop-blur sm:px-7 dark:border-slate-800 dark:bg-slate-950">
       <div className="flex items-center gap-3">
         <button type="button" onClick={onMenu} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-900 lg:hidden" aria-label="Open navigation"><Menu size={20} /></button>
         <div className="hidden h-7 w-px bg-slate-200 dark:bg-slate-800 sm:block" />
@@ -354,7 +354,7 @@ function MetricCard({ label, value, icon: Icon, tone, note }) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.11em] text-slate-500 dark:text-slate-400">{label}</p>
-          <p className="mt-2 text-[28px] font-extrabold leading-none tracking-[-0.04em] text-slate-900 dark:text-white">{value}</p>
+          <p className="mt-2 text-[length:var(--step-4)] font-extrabold leading-none tracking-[-0.04em] text-slate-900 dark:text-white">{value}</p>
           <p className="mt-2 text-[10px] font-semibold text-slate-400 dark:text-slate-500">{note}</p>
         </div>
         <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${tones.icon}`}>{createElement(Icon, { size: 18 })}</div>
@@ -463,20 +463,20 @@ function QueueContent({ appointments, loading, refreshing, filter, setFilter, se
   }, [appointments, filter, searchQuery]);
 
   const filters = [
-    { key: "ALL", label: "All Patients", count: stats.total },
-    { key: "WAITING", label: "Waiting", count: stats.waiting },
-    { key: "IN_CONSULTATION", label: "In Consultation", count: stats.consultation },
-    { key: "COMPLETED", label: "Completed", count: stats.completed },
-    { key: "NO_SHOW", label: "No Show", count: noShow },
+    { key: "ALL", label: "All Patients", short: "All", count: stats.total },
+    { key: "WAITING", label: "Waiting", short: "Waiting", count: stats.waiting },
+    { key: "IN_CONSULTATION", label: "In Consultation", short: "Active", count: stats.consultation },
+    { key: "COMPLETED", label: "Completed", short: "Done", count: stats.completed },
+    { key: "NO_SHOW", label: "No Show", short: "No-show", count: noShow },
   ];
 
   return (
-    <main className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900/70">
+    <main className="flex-1 overflow-y-auto scroll-pt-20 bg-slate-50 dark:bg-slate-900/70">
       <div className="mx-auto max-w-[1480px] space-y-5 px-4 py-6 sm:px-7 sm:py-7">
         <section className="flex flex-col justify-between gap-4 xl:flex-row xl:items-end">
           <div>
             <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-teal-600 dark:text-teal-400">Doctor queue / {queueDateHeading}</p>
-            <h1 className="text-[28px] font-extrabold tracking-[-0.045em] text-slate-950 dark:text-white sm:text-[32px]">Clinical Assembly Line</h1>
+            <h1 className="text-[length:var(--step-4)] font-extrabold tracking-[-0.045em] text-slate-950 dark:text-white">Clinical Assembly Line</h1>
             <p className="mt-1.5 max-w-2xl text-[12px] font-medium leading-5 text-slate-500 dark:text-slate-400 sm:text-[13px]">Real-time patient queue, live token sequencing &amp; WhatsApp prescription dispatch.</p>
           </div>
           <button type="button" onClick={onRefresh} disabled={refreshing} className="inline-flex h-10 items-center justify-center gap-2 self-start rounded-lg bg-teal-600 px-4 text-[12px] font-extrabold text-white shadow-sm shadow-teal-600/20 transition hover:bg-teal-700 disabled:cursor-wait disabled:opacity-70 xl:self-auto"><RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />{refreshing ? "Refreshing queue" : "Refresh Queue"}</button>
@@ -491,10 +491,10 @@ function QueueContent({ appointments, loading, refreshing, filter, setFilter, se
 
         <section className="rounded-xl border border-slate-200 bg-white shadow-[0_2px_10px_rgba(15,23,42,0.03)] dark:border-slate-800 dark:bg-slate-900">
           <div className="flex flex-col gap-4 border-b border-slate-100 px-4 py-4 dark:border-slate-800 lg:flex-row lg:items-center lg:justify-between lg:px-5">
-            <div className="flex min-w-0 items-center gap-2 overflow-x-auto pb-0.5">
+            <div className="tab-scroll-fade flex min-w-0 items-center gap-2 overflow-x-auto pb-0.5">
               {filters.map((item) => {
                 const active = filter === item.key;
-                return <button key={item.key} type="button" onClick={() => setFilter(item.key)} className={`inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-extrabold transition ${active ? "bg-slate-900 text-white shadow-sm dark:bg-white dark:text-slate-900" : "text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"}`}><span>{item.label}</span><span className={`rounded px-1.5 py-0.5 text-[10px] ${active ? "bg-white/15 text-white dark:bg-slate-900/10 dark:text-slate-900" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"}`}>{item.count}</span></button>;
+                return <button key={item.key} type="button" onClick={() => setFilter(item.key)} className={`med-chip inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-extrabold whitespace-nowrap transition ${active ? "bg-slate-900 text-white shadow-sm dark:bg-white dark:text-slate-900" : "text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"}`}><span className="sm:hidden">{item.short}</span><span className="hidden sm:inline">{item.label}</span><span className={`rounded px-1.5 py-0.5 text-[10px] ${active ? "bg-white/15 text-white dark:bg-slate-900/10 dark:text-slate-900" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"}`}>{item.count}</span></button>;
               })}
             </div>
             <div className="relative w-full lg:max-w-[282px]"><Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search name, phone or token..." className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-8 text-[11px] font-semibold text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-500/10 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:focus:bg-slate-900" />{searchQuery && <button type="button" onClick={() => setSearchQuery("")} className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:text-slate-700" aria-label="Clear search"><X size={13} /></button>}</div>
@@ -598,7 +598,7 @@ export default function DoctorQueuePage({ standalone = false, demo = false, onBa
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 font-body text-slate-900 dark:bg-slate-900 dark:text-slate-100">
+    <div className="flex  h-[100dvh] overflow-hidden bg-slate-50 font-body text-slate-900 dark:bg-slate-900 dark:text-slate-100">
       <QueueSidebar collapsed={collapsed} mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} onToggle={() => setCollapsed((value) => !value)} activeKey="queue" onNavigate={navigateFromSidebar} doctor={doctor} />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <QueueTopbar doctor={doctor} onMenu={() => setMobileOpen(true)} onProfile={() => toast("Profile settings are available in the dashboard")} />

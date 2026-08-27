@@ -36,7 +36,7 @@ const principles = [
 
 export default function AboutUsPage() {
   return (
-    <div className="min-h-screen overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
+    <div className="min-h-[100dvh] overflow-hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-white">
       <Navbar />
       <main className="px-4 pb-20 pt-28 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl">

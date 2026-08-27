@@ -274,7 +274,7 @@ export default function DashboardPage() {
   const pageTitle = visibleNavItems.find((n) => n.key === activeNav)?.label || "Dashboard";
 
   return (
-    <div className="relative flex h-screen overflow-hidden bg-[var(--color-bg)] text-[var(--color-text-primary)]">
+    <div className="relative flex  h-[100dvh] overflow-hidden bg-[var(--color-bg)] text-[var(--color-text-primary)]">
       <div aria-hidden="true" className="pointer-events-none absolute -left-24 top-24 h-96 w-96 rounded-[60%_40%_35%_65%/55%_35%_65%_45%] bg-[var(--color-accent)]/55 blur-3xl" />
       <div aria-hidden="true" className="pointer-events-none absolute -right-24 top-52 h-[26rem] w-[26rem] rounded-[48%_52%_39%_61%/48%_34%_66%_52%] bg-[var(--color-primary)]/10 blur-3xl" />
       {sidebarOpen && <div className="fixed inset-0 z-20 bg-black bg-opacity-60 lg:hidden" onClick={() => setSidebarOpen(false)} />}
@@ -441,7 +441,7 @@ export default function DashboardPage() {
                 Clear all
               </button>
             </div>
-            <div className="overflow-y-auto p-2 space-y-1.5" style={{ maxHeight: "min(20rem, calc(100vh - 7rem))" }}>
+            <div className="overflow-y-auto p-2 space-y-1.5" style={{ maxHeight: "min(20rem, calc(100dvh - 7rem))" }}>
               {isLoadingNotifications ? (
                 <p className="p-2 text-xs text-[var(--color-text-secondary)]">Loading...</p>
               ) : notifications.length === 0 ? (

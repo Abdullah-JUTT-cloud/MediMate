@@ -966,7 +966,7 @@ export default function SupportCenterPage() {
         />
 
         {showIssueListPane ? (
-          <section className="xl:col-span-4 h-[calc(100vh-9rem)] overflow-hidden flex flex-col">
+          <section className="xl:col-span-4 h-[calc(100dvh-9rem)] overflow-hidden flex flex-col">
             <div className="flex items-center gap-3 mb-4">
               <span className="h-12 w-12 rounded-2xl flex items-center justify-center bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300">
                 <LifeBuoy size={22} />
@@ -1620,7 +1620,7 @@ export default function SupportCenterPage() {
           <img
             src={previewImage.url}
             alt={previewImage.name}
-            className="max-h-[90vh] max-w-[92vw] rounded-xl object-contain"
+            className="max-h-[90dvh] max-w-[92vw] rounded-xl object-contain"
           />
         </div>
       ) : null}

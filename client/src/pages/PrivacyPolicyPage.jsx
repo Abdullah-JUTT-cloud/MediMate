@@ -468,7 +468,7 @@ function SectionContent({ items }) {
 
 export default function PrivacyPolicyPage() {
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-white">
+    <div className="min-h-[100dvh] bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-white">
       <Navbar />
 
       <main className="px-4 pb-24 pt-10 sm:px-6 sm:pt-12 lg:px-8">

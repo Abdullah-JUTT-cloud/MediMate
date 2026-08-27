@@ -7,7 +7,7 @@ export default function PatientLoginPage() {
   const logo = useThemedLogo();
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] px-4 py-6 text-[var(--color-text-primary)]">
+    <div className="min-h-[100dvh] bg-[var(--color-bg)] px-4 py-6 text-[var(--color-text-primary)]">
       <nav className="mx-auto flex w-full max-w-5xl items-center justify-between">
         <button
           type="button"
@@ -23,7 +23,7 @@ export default function PatientLoginPage() {
         </button>
       </nav>
 
-      <main className="mx-auto flex min-h-[calc(100vh-6rem)] w-full max-w-5xl items-center justify-center">
+      <main className="mx-auto flex min-h-[calc(100dvh-6rem)] w-full max-w-5xl items-center justify-center">
         <div className="w-full max-w-xl rounded-4xl border border-[var(--color-border)] bg-[var(--color-card)]/95 p-8 text-center shadow-[0_10px_40px_-10px_rgba(93,112,82,0.18)] sm:p-10">
           <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-3xl bg-[var(--color-primary)]/10 text-[var(--color-primary)]">
             <MessageSquareOff size={28} strokeWidth={2.2} />

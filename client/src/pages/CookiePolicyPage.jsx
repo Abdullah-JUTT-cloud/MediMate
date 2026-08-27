@@ -43,7 +43,7 @@ const sections = [
 
 export default function CookiePolicyPage() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[var(--color-bg)] text-[var(--color-text-primary)]">
+    <div className="relative min-h-[100dvh] overflow-hidden bg-[var(--color-bg)] text-[var(--color-text-primary)]">
       <div aria-hidden="true" className="pointer-events-none absolute -left-20 top-24 h-80 w-80 rounded-[60%_40%_35%_65%/55%_35%_65%_45%] bg-[var(--color-accent)]/60 blur-3xl" />
       <div aria-hidden="true" className="pointer-events-none absolute -right-24 top-56 h-96 w-96 rounded-[48%_52%_39%_61%/48%_34%_66%_52%] bg-[var(--color-primary)]/10 blur-3xl" />
       <Navbar />
