@@ -292,8 +292,6 @@ export default function ConsultationWorkspaceRedesigned({
   const [labTests, setLabTests] = useState("");
   const [patientAdvice, setPatientAdvice] = useState("");
   const [nextAppointment, setNextAppointment] = useState("");
-  const [consultationDiscount, setConsultationDiscount] = useState("0");
-  const [labFee, setLabFee] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState({});
   const [expandedHistory, setExpandedHistory] = useState({});
@@ -310,8 +308,6 @@ export default function ConsultationWorkspaceRedesigned({
       setLabTests("");
       setPatientAdvice("");
       setNextAppointment("");
-      setConsultationDiscount("0");
-      setLabFee("");
       setFormErrors({});
       setExpandedHistory({});
     }
@@ -337,7 +333,7 @@ export default function ConsultationWorkspaceRedesigned({
     };
   }, [isOpen, onClose]);
 
-  // Financial calculations
+  // Upfront consultation fees are locked at check-in/booking
   const originalFee = useMemo(() => {
     const fee = Number(
       appointment?.originalFee ??
@@ -349,22 +345,14 @@ export default function ConsultationWorkspaceRedesigned({
   }, [appointment]);
 
   const discountAmount = useMemo(() => {
-    const d = Number(consultationDiscount) || 0;
+    const d = Number(appointment?.discountAmount ?? appointment?.discount ?? 0);
     return Math.max(0, Math.min(d, originalFee));
-  }, [consultationDiscount, originalFee]);
+  }, [appointment, originalFee]);
 
   const netConsultationFee = useMemo(() => {
-    return Math.max(0, originalFee - discountAmount);
-  }, [originalFee, discountAmount]);
-
-  const ancillaryFee = useMemo(() => {
-    const l = Number(labFee) || 0;
-    return Math.max(0, l);
-  }, [labFee]);
-
-  const totalPayable = useMemo(() => {
-    return netConsultationFee + ancillaryFee;
-  }, [netConsultationFee, ancillaryFee]);
+    const net = Number(appointment?.netAmount ?? (originalFee - discountAmount));
+    return Number.isFinite(net) ? Math.max(0, net) : Math.max(0, originalFee - discountAmount);
+  }, [appointment, originalFee, discountAmount]);
 
   // Helper to add preset to comma-separated field
   const appendQuickItem = (setter, currentVal, item) => {
@@ -501,12 +489,12 @@ export default function ConsultationWorkspaceRedesigned({
           discountAmount,
           discount: discountAmount,
           netAmount: netConsultationFee,
-          ancillaryFee,
+          ancillaryFee: 0,
           description: "Consultation & Prescription",
-          method: "Cash",
+          method: appointment?.paymentMethod || "Cash",
           isPaid: true,
         },
-        labFee: ancillaryFee,
+        labFee: 0,
       };
 
       await axiosInstance.post("/checkups/complete", payload);
@@ -625,15 +613,15 @@ export default function ConsultationWorkspaceRedesigned({
               {/* Financial Status Pill */}
               <div
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-                  appointment.paymentStatus === "PAID"
+                  appointment.paymentStatus === "PAID" || appointment.paymentStatus === "REALIZED"
                     ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
                     : "bg-amber-100 text-amber-700 border border-amber-200"
                 }`}
               >
-                {appointment.paymentStatus === "PAID" ? (
+                {appointment.paymentStatus === "PAID" || appointment.paymentStatus === "REALIZED" ? (
                   <>
                     <CheckCircle2 size={13} className="text-emerald-600" />
-                    <span>✓ Paid Rs. {Number(appointment.paymentAmount || appointment.netAmount || 0).toLocaleString()}</span>
+                    <span>✓ Paid Rs. {Number(appointment.paymentAmount || appointment.netAmount || originalFee).toLocaleString()}</span>
                   </>
                 ) : (
                   <>
@@ -1086,57 +1074,6 @@ export default function ConsultationWorkspaceRedesigned({
                     </div>
                   </div>
                 </div>
-
-                {/* Financial Adjustments Card */}
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="flex items-center justify-between border-b border-slate-200 pb-2 mb-3">
-                    <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                      Fee & Billing Summary
-                    </span>
-                    <span className="text-xs font-semibold text-slate-500">
-                      Standard Fee: Rs. {originalFee.toLocaleString()}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                    <div>
-                      <label className={FIELD_LABEL_CLASS}>
-                        Consultation Discount (PKR)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={consultationDiscount}
-                        onChange={(e) => setConsultationDiscount(e.target.value)}
-                        placeholder="0"
-                        className={FIELD_INPUT_CLASS}
-                      />
-                    </div>
-                    <div>
-                      <label className={FIELD_LABEL_CLASS}>
-                        Lab / Ancillary Fee (PKR)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={labFee}
-                        onChange={(e) => setLabFee(e.target.value)}
-                        placeholder="0"
-                        className={FIELD_INPUT_CLASS}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Net Calculated Fee Pill */}
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-200">
-                    <span className="text-xs font-bold text-slate-600">
-                      Net Total Payable:
-                    </span>
-                    <span className="text-sm font-bold text-teal-600 font-mono">
-                      Rs. {totalPayable.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
               </div>
 
               {/* Bottom spacing */}
@@ -1149,7 +1086,7 @@ export default function ConsultationWorkspaceRedesigned({
             <div className="shrink-0 border-t border-slate-200 bg-white px-4 sm:px-6 py-4 shadow-lg sticky bottom-0 z-20">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
                 <div className="text-xs text-slate-600 sm:block">
-                  Patient: <strong className="text-slate-900">{patient.name}</strong> · Net: <strong className="text-teal-600">Rs. {totalPayable.toLocaleString()}</strong>
+                  Patient: <strong className="text-slate-900">{patient.name}</strong>
                 </div>
 
                 <div className="flex items-center gap-3 w-full sm:w-auto">
