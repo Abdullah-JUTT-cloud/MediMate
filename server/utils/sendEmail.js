@@ -1,52 +1,58 @@
-import nodemailer from "nodemailer";
+// ─── Brevo transactional email (HTTPS REST API) ──────────────────────────────
+// Docs: https://developers.brevo.com/reference/sendtransacemail
+// Emails are dispatched directly over HTTPS — there is no SMTP transport in
+// this codebase. Authentication uses a Brevo API key (Settings → SMTP & API →
+// API Keys) passed via the `api-key` request header.
+
+const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 
 // ─── Dynamic sender configuration ────────────────────────────────────────────
 // Sender identity is fully environment-driven; no hardcoded addresses exist in
 // this codebase. Ensure the configured address is verified in your Brevo
 // account (Senders & Domains) before dispatching.
-const SENDER_EMAIL =
-  process.env.SENDER_EMAIL || process.env.EMAIL_USER || "hello@medalerto.me";
+const SENDER_EMAIL = process.env.SENDER_EMAIL || "hello@medalerto.me";
 const FROM_NAME = process.env.FROM_NAME || "MedAlerto";
 
-// ─── SMTP transport configuration ────────────────────────────────────────────
-// Defaults to the Brevo SMTP relay (https://www.brevo.com/docs/smtp/).
-const SMTP_PORT = Number(process.env.SMTP_PORT) || 587;
-
-const transportOptions = {
-  host: process.env.SMTP_HOST || "smtp-relay.brevo.com",
-  port: SMTP_PORT,
-  secure: SMTP_PORT === 465, // 587 → STARTTLS, 465 → implicit TLS
-};
-
-const smtpUser = process.env.SMTP_USER;
-const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
-
-// Only attach auth when credentials are present, so an unconfigured dev
-// environment does not fail with a spurious EAUTH before the relay responds.
-if (smtpUser || smtpPass) {
-  transportOptions.auth = {
-    user: smtpUser,
-    pass: smtpPass,
-  };
-}
-
-const smtpTransporter = nodemailer.createTransport(transportOptions);
-
-if (!smtpUser && !smtpPass) {
+if (!process.env.BREVO_API_KEY) {
   console.warn(
-    "[sendEmail] SMTP credentials are not configured. Set SMTP_USER and " +
-      "SMTP_PASS (or EMAIL_PASS) before dispatching email."
+    "[sendEmail] BREVO_API_KEY is not configured. Set it to your Brevo API " +
+      "key (Settings → SMTP & API → API Keys) before dispatching email."
   );
 }
 
 const sendEmail = async ({ to, subject, html }) => {
-  return smtpTransporter.sendMail({
-    from: `"${FROM_NAME}" <${SENDER_EMAIL}>`,
-    // Recipient is built dynamically from the caller-supplied `to` address.
-    to,
+  const payload = {
+    sender: { name: FROM_NAME, email: SENDER_EMAIL },
+    to: [{ email: to }],
     subject,
-    html,
+    htmlContent: html,
+  };
+
+  const response = await fetch(BREVO_API_URL, {
+    method: "POST",
+    headers: {
+      "api-key": process.env.BREVO_API_KEY,
+      "Content-Type": "application/json",
+      accept: "application/json",
+    },
+    body: JSON.stringify(payload),
   });
+
+  // Brevo returns 201 on success with a { messageId } body. Anything else is
+  // an API/credential/deliverability error — surface the response detail.
+  if (!response.ok) {
+    let detail = "";
+    try {
+      detail = JSON.stringify(await response.json());
+    } catch {
+      detail = await response.text().catch(() => "");
+    }
+    throw new Error(
+      `Brevo email request failed (${response.status} ${response.statusText}): ${detail}`
+    );
+  }
+
+  return response.json();
 };
 
 const verificationEmailTemplate = (fullName, otp) => {
