@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import {
+  Calendar,
   CalendarClock,
   CalendarX2,
   CircleAlert,
   CircleCheck,
+  Clock,
   LoaderCircle,
   MessageSquareOff,
   RefreshCcw,
@@ -110,23 +112,32 @@ const REASON_CLASS = {
 
 // ─── Sub components ──────────────────────────────────────────────────────────
 
-const DateTimeField = ({ id, label, type, value, onChange }) => (
-  <div>
-    <label
-      htmlFor={id}
-      className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5 block"
-    >
-      {label}
-    </label>
-    <input
-      id={id}
-      type={type}
-      value={value ?? ""}
-      onChange={onChange}
-      className="emergency-native-picker bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl p-3 focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 outline-none w-full shadow-xs [color-scheme:light] dark:[color-scheme:dark]"
-    />
-  </div>
-);
+const DateTimeField = ({ id, label, type, value, onChange }) => {
+  const PickerIcon = type === "date" ? Calendar : Clock;
+  return (
+    <div>
+      <label
+        htmlFor={id}
+        className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5 block"
+      >
+        {label}
+      </label>
+      <div className="relative flex items-center w-full">
+        <input
+          id={id}
+          type={type}
+          value={value ?? ""}
+          onChange={onChange}
+          className="w-full pr-10 pl-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm rounded-xl focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20 outline-none shadow-xs cursor-pointer [color-scheme:light] dark:[color-scheme:dark] [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+        />
+        <PickerIcon
+          aria-hidden="true"
+          className="absolute right-3 w-5 h-5 text-slate-400 dark:text-slate-500 pointer-events-none shrink-0"
+        />
+      </div>
+    </div>
+  );
+};
 
 const RescheduleButton = ({ appointment, onReschedule, className = "" }) => (
   <button
