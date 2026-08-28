@@ -26,7 +26,6 @@ export default function PatientDashboardPage() {
   const [cancelling, setCancelling] = useState(null);
   const [activeTab, setActiveTab] = useState("ALL");
   const [patientUser, setPatientUser] = useState(null);
-  const [lightboxUrl, setLightboxUrl] = useState(null);
 
   useEffect(() => {
     // Check session info
@@ -92,7 +91,7 @@ export default function PatientDashboardPage() {
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-indigo-50/30 dark:from-zinc-950 dark:to-zinc-900 pb-16">
       {/* Top Header Navigation */}
       <header className="sticky top-0 z-30 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+        <div className="w-full max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-md shadow-indigo-500/20">
               M
@@ -113,10 +112,12 @@ export default function PatientDashboardPage() {
             )}
             <button
               onClick={() => navigate("/book/doctors")}
-              className="inline-flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition shadow-sm"
+              aria-label="Book Appointment"
+              className="inline-flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold px-2.5 py-2 min-[400px]:px-3.5 rounded-xl transition shadow-sm"
             >
               <PlusCircle size={15} />
-              <span>Book Appointment</span>
+              {/* Icon-only on the narrowest phones so the header fits 320px */}
+              <span className="hidden min-[400px]:inline">Book Appointment</span>
             </button>
             <button
               onClick={handleLogout}
@@ -129,8 +130,8 @@ export default function PatientDashboardPage() {
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-8">
+      {/* Main Content Area — fluid from 320px up */}
+      <main className="w-full max-w-7xl mx-auto px-4 pt-8">
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-zinc-900 dark:text-white tracking-tight">

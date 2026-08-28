@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "../../api/axios";
+import MyAppointmentsButton from "../../components/booking/MyAppointmentsButton";
 import {
   Search,
   Stethoscope,
@@ -115,7 +116,7 @@ export default function DoctorSearchPage() {
     <div className="min-h-screen bg-slate-50/70 dark:bg-zinc-950 font-sans text-slate-800 dark:text-zinc-100 pb-20">
       {/* Top Header Navigation */}
       <header className="sticky top-0 z-40 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-zinc-800">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+        <div className="w-full max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-2">
           <Link to="/" className="flex items-center gap-2.5 group">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-500 flex items-center justify-center text-white font-black text-xl shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform">
               M
@@ -128,14 +129,10 @@ export default function DoctorSearchPage() {
             </div>
           </Link>
 
-          <div className="flex items-center gap-3">
-            <Link
-              to="/patient/appointments"
-              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-zinc-800 transition"
-            >
-              <Calendar size={15} />
-              <span>My Appointments</span>
-            </Link>
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Authenticated → /book/dashboard; guest → Patient Login/Signup
+                modal (never a dead route). */}
+            <MyAppointmentsButton />
             <Link
               to="/book/login"
               className="text-xs font-bold text-slate-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 px-3.5 py-2 rounded-xl transition"
@@ -144,7 +141,7 @@ export default function DoctorSearchPage() {
             </Link>
             <Link
               to="/book/register"
-              className="text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl shadow-sm shadow-indigo-500/20 transition hover:shadow-md"
+              className="hidden min-[480px]:inline text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl shadow-sm shadow-indigo-500/20 transition hover:shadow-md"
             >
               Register Account
             </Link>
@@ -224,8 +221,8 @@ export default function DoctorSearchPage() {
         </div>
       </section>
 
-      {/* Main Content Area */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-10">
+      {/* Main Content Area — fluid from 320px up */}
+      <main className="w-full max-w-7xl mx-auto px-4 pt-10">
         {/* Results Header Info */}
         <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-200 dark:border-zinc-800">
           <div>
