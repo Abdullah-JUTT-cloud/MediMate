@@ -331,7 +331,7 @@ export default function DoctorSearchPage() {
                           <div className="flex items-center gap-1.5 mt-2">
                             <StarRating value={doc.avgRating} />
                             <span className="text-xs font-semibold text-slate-600 dark:text-zinc-300">
-                              {doc.avgRating?.toFixed(1)} ({doc.reviewCount})
+                              {Number(doc.avgRating).toFixed(1)} ({doc.reviewCount})
                             </span>
                           </div>
                         ) : (
