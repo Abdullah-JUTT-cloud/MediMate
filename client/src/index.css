@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800&family=Nunito:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800&family=Nunito:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 /* Theme inheritance fix: bind Tailwind's `dark:` variant to the app-level
    [data-theme] attribute (set by useTheme) so dark-mode utilities follow the
@@ -10,8 +10,8 @@
 
 
 :root {
-  --font-body: "Nunito", ui-sans-serif, system-ui, sans-serif;
-  --font-heading: "Fraunces", ui-serif, Georgia, serif;
+  --font-body: "Plus Jakarta Sans", "Nunito", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Plus Jakarta Sans", "Fraunces", ui-serif, Georgia, serif;
   --font-mono: "Nunito", ui-sans-serif, system-ui, sans-serif;
 
   /* New Variables (Light) */

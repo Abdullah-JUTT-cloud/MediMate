@@ -210,6 +210,43 @@ const doctorSchema = new Schema(
       default: "",
       trim: true,
     },
+
+    // Online booking advance fee — the amount a PatientAccount must upload
+    // a payment screenshot for before the receptionist can approve the booking.
+    // Set to 0 to disable advance payment requirement.
+    advanceBookingFee: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    onlineBookingFee: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    // Payment / bank account details — shown to patients in the booking portal
+    // so they know where to transfer the advance booking fee.
+    paymentAccountTitle: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    paymentBankName: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    paymentAccountNumber: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    paymentIBAN: {
+      type: String,
+      default: "",
+      trim: true,
+    },
   },
   { timestamps: true }
 );

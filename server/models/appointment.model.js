@@ -9,7 +9,17 @@ const appointmentSchema = new mongoose.Schema({
     patient:{
         type: mongoose.Schema.Types.ObjectId,
         ref: "Patient",
-        required: [true, "Patient is required"]
+        // Not required for online bookings — patientAccount is used instead
+        // until the receptionist approves and maps a clinic Patient record.
+        required: false,
+        default: null,
+    },
+    // Reference to PatientAccount for public online bookings.
+    // Null for walk-in / receptionist-entered appointments.
+    patientAccount: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "PatientAccount",
+        default: null,
     },
     date:{
         type: Date,
@@ -39,7 +49,7 @@ const appointmentSchema = new mongoose.Schema({
     },
     cancellationReason: {
         type: String,
-        enum: ["Doctor", "Patient", "Emergency", "No-show", null],
+        enum: ["Doctor", "Patient", "Emergency", "No-show", "Payment Rejected", null],
         default: null,
     },
     consultationFee: {
@@ -98,9 +108,24 @@ const appointmentSchema = new mongoose.Schema({
         default: null,
     },
 
-    
-    
-    
+    // === Online Booking Fields ===
+    // True while a PatientAccount booking is pending receptionist approval.
+    // These appointments are excluded from slot capacity counts so they do not
+    // falsely block other bookings.
+    awaitingOnlineApproval: {
+        type: Boolean,
+        default: false,
+    },
+    // True once the patient's advance payment proof has been verified.
+    advancePaid: {
+        type: Boolean,
+        default: false,
+    },
+    // Rejection reason specified by clinic staff upon declining an online booking
+    rejectionReason: {
+        type: String,
+        default: null,
+    },
 },{timestamps:true});
 
 // Speed up hot paths for date/status dashboard queries and listing.
@@ -113,5 +138,9 @@ appointmentSchema.index({ doctor: 1, date: 1, slot: 1, status: 1 });
 // Slot availability aggregation index: groups active bookings per time slot
 // and separates standard vs emergency counts (GET /api/slots).
 appointmentSchema.index({ doctor: 1, date: 1, slot: 1, isEmergency: 1, status: 1 });
+
+// Online booking approval queue: fast lookup of pending patient-submitted requests.
+appointmentSchema.index({ doctor: 1, awaitingOnlineApproval: 1, createdAt: -1 });
+appointmentSchema.index({ patientAccount: 1, createdAt: -1 });
 
 export default mongoose.model("Appointment", appointmentSchema);

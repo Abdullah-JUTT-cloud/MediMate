@@ -31,6 +31,8 @@ import patientAuthRoutes from "./routes/patientAuth.routes.js";
 import patientChatRoutes from "./routes/patientChat.routes.js";
 import subscriptionRoutes from "./routes/subscription.routes.js";
 import { startSubscriptionExpiryJob } from "./utils/subscriptionJob.js";
+import patientAccountRoutes from "./routes/patientAccount.routes.js";
+import publicRoutes from "./routes/public.routes.js";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import mongoSanitize from "express-mongo-sanitize";
@@ -136,6 +138,18 @@ app.use("/api/notifications", dataLimiter, notificationRoutes);
 app.use("/api/patient-chats", dataLimiter, patientChatRoutes);
 app.use("/api/subscriptions", dataLimiter, subscriptionRoutes);
 app.use("/api/insights", dataLimiter, insightsRoutes);
+
+// ── Patient Booking Module (public + patient-account) ─────────────────────────
+// Public doctor discovery: no auth, separate generous rate limiter
+const publicLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 200,
+  message: { message: "Too many requests, please try again later" },
+});
+app.use("/api/public", publicLimiter, publicRoutes);
+
+// Patient account auth + booking: same limiter as auth for OTP routes
+app.use("/api/patient-account", authLimiter, patientAccountRoutes);
 
 connectDB()
   .then(() => {

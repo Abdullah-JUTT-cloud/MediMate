@@ -88,6 +88,12 @@ export default function Navbar() {
             Blog
           </Link>
           <button
+            onClick={() => navigate("/book/doctors")}
+            className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)]/10 px-5 font-body text-sm font-bold text-[var(--color-primary)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-primary)]/20 active:translate-y-0"
+          >
+            Book Appointment
+          </button>
+          <button
             onClick={() => navigate("/login")}
             className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--color-secondary)] bg-[var(--color-card)]/65 px-5 font-body text-sm font-bold text-[var(--color-secondary)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--color-secondary)] hover:bg-[var(--color-bg-soft)] hover:shadow-[0_10px_28px_-14px_rgba(193,140,93,0.28)] active:translate-y-0"
           >
@@ -167,6 +173,15 @@ export default function Navbar() {
             </Link>
             <button
               onClick={() => {
+                navigate("/book/doctors");
+                setMenuOpen(false);
+              }}
+              className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)]/10 px-5 font-body text-sm font-bold text-[var(--color-primary)] transition duration-300 hover:-translate-y-0.5"
+            >
+              Book Appointment
+            </button>
+            <button
+              onClick={() => {
                 navigate("/login");
                 setMenuOpen(false);
               }}
@@ -186,6 +201,7 @@ export default function Navbar() {
           </div>
         </div>
       )}
+
     </nav>
   );
 }

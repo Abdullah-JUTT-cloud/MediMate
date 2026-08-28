@@ -17,6 +17,7 @@ import RevenueLabPage from "./RevenueLabPage";
 import SupportCenterPage from "./SupportCenterPage";
 import DoctorChatsPage from "./DoctorChatsPage";
 import DoctorQueuePage from "./DoctorQueuePage";
+import OnlineBookingsPage from "./OnlineBookingsPage";
 import VerifiedBadge from "../components/VerifiedBadge";
 import DashboardHome from "../components/dashboard/DashboardHome";
 import { getRealtimeSocketForRole } from "../realtime/socket";
@@ -24,6 +25,7 @@ import { getRealtimeSocketForRole } from "../realtime/socket";
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", key: "dashboard" },
   { icon: ClipboardList, label: "Doctor Queue", key: "queue" },
+  { icon: CalendarCheck2, label: "Online Approvals", key: "online-bookings" },
   { icon: Users, label: "Patients", key: "patients" },
   { icon: MessagesSquare, label: "Chats", key: "chats" },
   { icon: CalendarCheck2, label: "Appointments", key: "appointments" },
@@ -514,6 +516,7 @@ export default function DashboardPage() {
             <>
           {activeNav === "settings" && <SettingsPage />}
           {activeNav === "queue" && <DoctorQueuePage />}
+          {activeNav === "online-bookings" && <OnlineBookingsPage />}
           {activeNav === "patients" && <PatientsPage />}
           {activeNav === "payments" && <PaymentPage onBack={() => setActiveNav("dashboard")} />}
           {activeNav === "chats" && <DoctorChatsPage />}
@@ -550,7 +553,7 @@ export default function DashboardPage() {
           </>
           )}
 
-          {!isAccessRestricted && !["dashboard", "queue", "settings", "patients", "chats", "appointments", "emergency-cancelled", "insights", "revenue-lab", "payments", "support"].includes(activeNav) && (
+          {!isAccessRestricted && !["dashboard", "queue", "online-bookings", "settings", "patients", "chats", "appointments", "emergency-cancelled", "insights", "revenue-lab", "payments", "support"].includes(activeNav) && (
             <div className="flex h-full items-center justify-center">
               <div className="rounded-4xl border border-[var(--color-border)] bg-[var(--color-card)]/95 px-10 py-16 text-center shadow-[0_10px_40px_-10px_rgba(93,112,82,0.18)]">
                 <div className="mb-4 text-5xl">🚧</div>

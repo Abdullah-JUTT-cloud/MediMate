@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   UserCog,
   FileCheck2,
+  CreditCard,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
@@ -476,6 +477,13 @@ export default function SettingsPage() {
     pmdcNumber: "", licenseStatus: "Active",
     licenseIssueDate: "", licenseExpiryDate: "",
   });
+  const [payments, setPayments] = useState({
+    advanceBookingFee: 0,
+    paymentAccountTitle: "",
+    paymentBankName: "",
+    paymentAccountNumber: "",
+    paymentIBAN: "",
+  });
   const [clinics, setClinics] = useState([]);
   const [hospitals, setHospitals] = useState([]);
   const [pmdcCertificate, setPmdcCertificate] = useState("");
@@ -508,6 +516,13 @@ export default function SettingsPage() {
           licenseStatus: d.licenseStatus || "Active",
           licenseIssueDate: d.licenseIssueDate ? d.licenseIssueDate.split("T")[0] : "",
           licenseExpiryDate: d.licenseExpiryDate ? d.licenseExpiryDate.split("T")[0] : "",
+        });
+        setPayments({
+          advanceBookingFee: d.advanceBookingFee || 0,
+          paymentAccountTitle: d.paymentAccountTitle || "",
+          paymentBankName: d.paymentBankName || "",
+          paymentAccountNumber: d.paymentAccountNumber || "",
+          paymentIBAN: d.paymentIBAN || "",
         });
         setClinics((d.clinics || []).map((c, i) => ({ ...c, id: c.id || Date.now() + i })));
         setHospitals((d.hospitals || []).map((h, i) => ({ ...h, id: h.id || Date.now() + i })));
@@ -568,6 +583,10 @@ export default function SettingsPage() {
     save(licensing, "Licensing info updated!");
   };
 
+  const savePayments = () => {
+    save(payments, "Payment & fee settings updated!");
+  };
+
   const saveLocations = () => {
     for (const c of clinics) {
       if (!c.name.trim()) { toast.error("Clinic name is required"); return; }
@@ -603,6 +622,7 @@ export default function SettingsPage() {
     { key: "professional", label: "Professional", icon: GraduationCap },
     { key: "licensing", label: "Licensing", icon: ClipboardList },
     { key: "locations", label: "Locations", icon: MapPin },
+    { key: "payments", label: "Payments & Fee", icon: CreditCard },
   ];
 
   const licenseStatusPillCls = (s) => {
@@ -1260,6 +1280,98 @@ export default function SettingsPage() {
             isLoading={isSaving}
             label="Save Locations"
           />
+        </div>
+      )}
+
+      {/* ── PAYMENTS & FEE TAB ── */}
+      {activeTab === "payments" && (
+        <div className={`${CARD} p-6 sm:p-8`}>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-2">
+            <CreditCard size={18} className="text-teal-600 dark:text-teal-400" aria-hidden="true" />
+            Online Booking Fee & Bank Details
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">
+            Configure the advance fee patients must pay when requesting an online booking, and the bank account info where they will transfer funds.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="sm:col-span-2">
+              <FieldLabel text="Online Booking Fee (PKR)" htmlFor="advanceBookingFee" optional />
+              <input
+                id="advanceBookingFee"
+                type="number"
+                min="0"
+                step="50"
+                value={payments.advanceBookingFee}
+                onChange={(e) =>
+                  setPayments((p) => ({
+                    ...p,
+                    advanceBookingFee: Math.max(0, Number(e.target.value) || 0),
+                    onlineBookingFee: Math.max(0, Number(e.target.value) || 0),
+                  }))
+                }
+                placeholder="e.g. 1000 (Set to 0 for no online fee)"
+                className={FIELD_INPUT}
+              />
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
+                Patients will be instructed to upload a screenshot of this online booking fee when submitting a booking request. Set to 0 if no advance online fee is required.
+              </p>
+            </div>
+
+            <div>
+              <FieldLabel text="Bank Name" htmlFor="paymentBankName" optional />
+              <input
+                id="paymentBankName"
+                value={payments.paymentBankName}
+                onChange={(e) =>
+                  setPayments((p) => ({ ...p, paymentBankName: e.target.value }))
+                }
+                placeholder="e.g. Meezan Bank / JazzCash / EasyPaisa"
+                className={FIELD_INPUT}
+              />
+            </div>
+
+            <div>
+              <FieldLabel text="Account Title" htmlFor="paymentAccountTitle" optional />
+              <input
+                id="paymentAccountTitle"
+                value={payments.paymentAccountTitle}
+                onChange={(e) =>
+                  setPayments((p) => ({ ...p, paymentAccountTitle: e.target.value }))
+                }
+                placeholder="e.g. Dr. Muhammad Ahmed"
+                className={FIELD_INPUT}
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <FieldLabel text="Account Number / Phone" htmlFor="paymentAccountNumber" optional />
+              <input
+                id="paymentAccountNumber"
+                value={payments.paymentAccountNumber}
+                onChange={(e) =>
+                  setPayments((p) => ({ ...p, paymentAccountNumber: e.target.value }))
+                }
+                placeholder="e.g. 03001234567 or 01234567891234"
+                className={FIELD_INPUT}
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <FieldLabel text="IBAN" htmlFor="paymentIBAN" optional />
+              <input
+                id="paymentIBAN"
+                value={payments.paymentIBAN}
+                onChange={(e) =>
+                  setPayments((p) => ({ ...p, paymentIBAN: e.target.value }))
+                }
+                placeholder="e.g. PK36MEZN0001234567891234"
+                className={FIELD_INPUT}
+              />
+            </div>
+          </div>
+
+          <SaveButton onClick={savePayments} isLoading={isSaving} label="Save Payment Details" />
         </div>
       )}
     </div>

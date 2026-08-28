@@ -4,9 +4,10 @@ import Patient from "../models/patient.model.js";
 import Appointment from "../models/appointment.model.js";
 import Payment from "../models/payment.model.js";
 import { Doctor } from "../models/doctor.model.js";
+import Review from "../models/review.model.js";
 import { generatePrescriptionPdf } from "../utils/generatePrescriptionPdf.js";
 import { uploadToR2, getFileUrl } from "../services/storage.service.js";
-import { sendWhatsAppPdfDocument } from "../services/whatsapp.service.js";
+import { sendWhatsAppPdfDocument, sendWhatsAppTextMessage } from "../services/whatsapp.service.js";
 
 const PAYMENT_METHODS = new Set(["Cash", "Card", "Online Transfer"]);
 const MAX_PAYMENT_AMOUNT = 1000000;
@@ -665,6 +666,42 @@ export const completeCheckup = async (req, res) => {
     appointment.queueStatus = 'COMPLETED';
     appointment.status = 'Completed';
     await appointment.save();
+
+    // === Review dispatch for online-booked patients ===
+    // If this appointment was booked via PatientAccount, generate a single-use
+    // review token and send a WhatsApp invite. Errors are non-fatal.
+    if (appointment.patientAccount) {
+      try {
+        const reviewToken = Review.generateToken();
+        const tokenExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+        await Review.create({
+          doctorId: appointment.doctor,
+          patientAccountId: appointment.patientAccount,
+          appointmentId: appointment._id,
+          token: reviewToken,
+          tokenExpiry,
+          isSubmitted: false,
+        });
+
+        // Build review URL (uses VITE_CLIENT_URL or a fallback)
+        const clientBaseUrl = process.env.CLIENT_URL || "https://medalerto.me";
+        const reviewUrl = `${clientBaseUrl}/review/${reviewToken}`;
+
+        // Fetch patientAccount for phone number
+        const { default: PatientAccount } = await import("../models/patientAccount.model.js");
+        const patientAccount = await PatientAccount.findById(appointment.patientAccount).select("name phone");
+
+        if (patientAccount?.phone) {
+          const doctor = await Doctor.findById(appointment.doctor).select("fullName");
+          const doctorName = doctor?.fullName || "your doctor";
+          const reviewMsg = `Dear ${patientAccount.name},\n\nThank you for your visit with Dr. ${doctorName}! 🙏\n\nWe would love to hear your feedback. Please share your experience by clicking the link below (valid for 7 days):\n\n${reviewUrl}\n\n— MedAlerto`;
+          await sendWhatsAppTextMessage(patientAccount.phone, reviewMsg);
+        }
+      } catch (reviewErr) {
+        console.error("[completeCheckup] Review dispatch failed:", reviewErr.message);
+      }
+    }
 
     // Flip consultation payment records to REALIZED upon consultation completion
     await Payment.updateMany(

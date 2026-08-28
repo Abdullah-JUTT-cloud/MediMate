@@ -686,6 +686,7 @@ export default function SignupPage() {
     licenseIssueDate: "",
     licenseExpiryDate: "",
     pmdcCertificate: "",
+    advanceBookingFee: "",
   });
 
   // ── Step 3 state
@@ -1364,17 +1365,26 @@ export default function SignupPage() {
                   />
                 </div>
 
-                {/* PMDC Certificate Upload — disabled until Cloudinary */}
+                {/* Online Booking Fee */}
                 <div className="sm:col-span-2">
                   <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)]">
-                    PMDC Certificate{" "}
-                    <span className="text-xs opacity-60">
-                      (optional — coming soon)
-                    </span>
+                    Online Booking Fee (PKR){" "}
+                    <span className="text-xs opacity-60">(optional — can change in profile settings later)</span>
                   </label>
-                  <div className="w-full rounded-full border border-dashed border-[var(--color-border)] bg-[var(--color-muted)] px-4 py-3 text-sm text-[var(--color-text-secondary)]">
-                    Upload will be available soon
-                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    step="50"
+                    value={professional.advanceBookingFee}
+                    onChange={(e) =>
+                      updateProfessional("advanceBookingFee", e.target.value)
+                    }
+                    placeholder="e.g. 1000 (Set 0 or leave empty if no online fee required)"
+                    className={inputCls}
+                    style={S.input}
+                    onFocus={focusStyle}
+                    onBlur={blurStyle}
+                  />
                 </div>
               </div>
             </div>

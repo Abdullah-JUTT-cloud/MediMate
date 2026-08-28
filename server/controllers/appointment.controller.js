@@ -5,84 +5,19 @@ import { Doctor } from "../models/doctor.model.js";
 import { sendWhatsAppTextMessage } from "../services/whatsapp.service.js";
 import Payment from "../models/payment.model.js";
 import Checkup from "../models/checkup.model.js";
+import BookingPaymentProof from "../models/bookingPaymentProof.model.js";
 import {
   getSlotAvailability,
   MAX_STANDARD_APPOINTMENTS_PER_SLOT,
 } from "../services/slotService.js";
+import {
+  getClinicDayRange,
+  toClinicDateString,
+} from "../utils/dateUtils.js";
 
 const MAX_APPOINTMENTS_PER_SLOT = MAX_STANDARD_APPOINTMENTS_PER_SLOT;
 const INACTIVE_STATUSES = ["Cancelled", "No-show", "Completed"];
 
-// The clinic operates in Pakistan Standard Time (Asia/Karachi, UTC+5, no DST).
-// Mongoose stores date-only strings like "2026-08-27" as UTC midnight, so
-// filtering with server-local (usually UTC) day bounds lets PKT appointments
-// leak into the previous calendar day. These helpers convert a "YYYY-MM-DD"
-// calendar date into the clinic-local [startOfDay, endOfDay] instant range and
-// format instants back into clinic-local date strings — never the server's tz.
-const CLINIC_TIMEZONE = "Asia/Karachi";
-const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-
-/** Formats an instant as "YYYY-MM-DD" in the clinic's timezone. */
-const toClinicDateString = (value) => {
-  if (!value) return null;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-  try {
-    return new Intl.DateTimeFormat("en-CA", {
-      timeZone: CLINIC_TIMEZONE,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(date);
-  } catch {
-    return date.toLocaleDateString("en-CA");
-  }
-};
-
-/** UTC offset of the clinic timezone (in minutes) for the given instant. */
-const getClinicOffsetMinutes = (date) => {
-  try {
-    const values = {};
-    for (const part of new Intl.DateTimeFormat("en-US", {
-      timeZone: CLINIC_TIMEZONE,
-      hourCycle: "h23",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    }).formatToParts(date)) {
-      if (part.type !== "literal") values[part.type] = part.value;
-    }
-    const asUTC = Date.UTC(
-      Number(values.year),
-      Number(values.month) - 1,
-      Number(values.day),
-      Number(values.hour),
-      Number(values.minute),
-      Number(values.second),
-    );
-    return Math.round((asUTC - date.getTime()) / 60000);
-  } catch {
-    return 5 * 60; // PKT fallback: UTC+5
-  }
-};
-
-/**
- * Converts "YYYY-MM-DD" into clinic-local day boundaries as UTC instants.
- * Returns { startOfDay, endOfDay } or null when the input is not a valid date.
- */
-const getClinicDayRange = (dateStr) => {
-  const value = String(dateStr || "").trim();
-  if (!DATE_ONLY_PATTERN.test(value)) return null;
-  const [year, month, day] = value.split("-").map(Number);
-  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
-  const utcMidnight = Date.UTC(year, month - 1, day);
-  const startOfDay = new Date(utcMidnight - getClinicOffsetMinutes(new Date(utcMidnight)) * 60000);
-  const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000 - 1);
-  return { startOfDay, endOfDay };
-};
 
 const sendAppointmentWhatsApp = async (patient, appointment, message) => {
   try {
@@ -290,14 +225,16 @@ export const createAppointment = async (req, res) => {
       return res.status(404).json({ message: "Patient not found" });
     }
 
-    // Capacity check uses STANDARD (non-emergency) bookings only. Emergency
-    // bookings are counted separately and never block the slot.
+    // Capacity check uses STANDARD (non-emergency) bookings only.
+    // Appointments awaiting online approval are excluded — they are not
+    // confirmed yet and must not block receptionist-entered bookings.
     const standardCount = await Appointment.countDocuments({
       doctor: req.doctorId,
       date,
       slot,
       status: { $nin: INACTIVE_STATUSES },
       isEmergency: { $ne: true },
+      awaitingOnlineApproval: { $ne: true },
     });
 
     if (!isEmergency && standardCount >= MAX_APPOINTMENTS_PER_SLOT) {
@@ -458,6 +395,7 @@ export const updateAppointment = async (req, res) => {
         slot: nextSlot,
         status: { $nin: INACTIVE_STATUSES },
         isEmergency: { $ne: true },
+        awaitingOnlineApproval: { $ne: true },
       });
       if (standardCount >= MAX_APPOINTMENTS_PER_SLOT) {
         return res
@@ -872,3 +810,279 @@ export const sendOverdueReminder = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Online Booking Approval / Rejection  (receptionist-authenticated)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * PATCH /api/appointments/:id/approve-online
+ *
+ * Confirms a pending online booking:
+ *  1. Re-checks slot capacity (now counting this booking for real).
+ *  2. Clears awaitingOnlineApproval and sets status → "Confirmed".
+ *  3. Marks the BookingPaymentProof → APPROVED.
+ *  4. Sends a WhatsApp confirmation to the PatientAccount's phone.
+ *
+ * Expects the corresponding PatientAccount to already exist; a clinic-scoped
+ * Patient record can be linked manually or auto-created by the receptionist
+ * later when the patient arrives for their first visit.
+ */
+export const approveOnlineBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { checkupPrice, consultationFee } = req.body || {};
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ message: "Invalid appointment ID" });
+    }
+
+    const appointment = await Appointment.findOne({
+      _id: id,
+      doctor: req.doctorId,
+      $or: [
+        { awaitingOnlineApproval: true },
+        { cancellationReason: "Payment Rejected" },
+        { status: "Cancelled", rejectionReason: { $ne: null } },
+      ],
+    }).populate("patientAccount", "name phone email");
+
+    if (!appointment) {
+      return res.status(404).json({ message: "Pending or rejected online booking not found" });
+    }
+
+    // Re-check capacity now that this booking will count
+    const range = getClinicDayRange(toClinicDateString(appointment.date));
+    if (range) {
+      const standardCount = await Appointment.countDocuments({
+        doctor: req.doctorId,
+        date: { $gte: range.startOfDay, $lte: range.endOfDay },
+        slot: appointment.slot,
+        status: { $nin: INACTIVE_STATUSES },
+        isEmergency: { $ne: true },
+        awaitingOnlineApproval: { $ne: true },
+        _id: { $ne: appointment._id },
+      });
+
+      if (standardCount >= MAX_APPOINTMENTS_PER_SLOT) {
+        return res.status(409).json({
+          message: "Slot is now full — cannot approve this booking. Please reschedule it first.",
+        });
+      }
+    }
+
+    // Resolve Doctor's fee settings or explicit checkup price input
+    const doctor = await Doctor.findById(req.doctorId).select("advanceBookingFee onlineBookingFee");
+    const doctorFee = doctor?.onlineBookingFee || doctor?.advanceBookingFee || 0;
+    const finalFee = Math.max(0, Number(checkupPrice ?? consultationFee ?? appointment.consultationFee ?? doctorFee) || 0);
+
+    // Auto-create or find clinic Patient record so patient appears in Doctor Queue & Patient lists
+    let patientRecord = null;
+    if (appointment.patient) {
+      patientRecord = await Patient.findById(appointment.patient);
+    }
+    if (!patientRecord && appointment.patientAccount?.phone) {
+      patientRecord = await Patient.findOne({
+        doctor: req.doctorId,
+        phone: appointment.patientAccount.phone,
+      });
+      if (!patientRecord) {
+        patientRecord = await Patient.create({
+          doctor: req.doctorId,
+          name: appointment.patientAccount.name || "Online Patient",
+          phone: appointment.patientAccount.phone,
+          email: appointment.patientAccount.email || "",
+          locations: [],
+        });
+      }
+    }
+
+    appointment.patient = patientRecord?._id || appointment.patient;
+    appointment.awaitingOnlineApproval = false;
+    appointment.advancePaid = true;
+    appointment.status = "Confirmed";
+    appointment.queueStatus = "WAITING";
+    appointment.consultationFee = finalFee;
+    appointment.standardFee = finalFee;
+    appointment.originalFee = finalFee;
+    appointment.netAmount = finalFee;
+    await appointment.save();
+
+    // Mark payment proof approved
+    await BookingPaymentProof.updateOne(
+      { appointmentId: appointment._id, status: "PENDING" },
+      { $set: { status: "APPROVED" } }
+    );
+
+    // Create/Upsert Payment record so it automatically reflects on Revenue Lab and Payments pages
+    if (patientRecord?._id) {
+      await Payment.findOneAndUpdate(
+        { appointmentId: appointment._id },
+        {
+          patientId: patientRecord._id,
+          doctorId: req.doctorId,
+          appointmentId: appointment._id,
+          category: "CONSULTATION",
+          status: "PAID",
+          amount: finalFee,
+          standardFee: finalFee,
+          originalFee: finalFee,
+          netAmount: finalFee,
+          description: "Online Approved Consultation",
+          method: "Online Transfer",
+        },
+        { upsert: true, new: true }
+      );
+    }
+
+    // WhatsApp confirmation to patient
+    const patientPhone = appointment.patientAccount?.phone || patientRecord?.phone;
+    if (patientPhone) {
+      const patientName = appointment.patientAccount?.name || patientRecord?.name || "Patient";
+      const dateStr = toClinicDateString(appointment.date) || String(appointment.date).slice(0, 10);
+      const confirmMsg = `Dear ${patientName}, your appointment request with MedAlerto has been *confirmed* ✅\n\nDate: ${dateStr}\nSlot: ${appointment.slot}\nTotal Price: Rs ${finalFee.toLocaleString()}\n\nPlease arrive 10 minutes early. Thank you!`;
+      sendWhatsAppTextMessage(patientPhone, confirmMsg).catch((err) =>
+        console.error("[approveOnlineBooking] WhatsApp error:", err.message)
+      );
+    }
+
+    res.status(200).json({ message: "Online booking approved and confirmed", appointment });
+  } catch (error) {
+    console.error("[approveOnlineBooking]", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+/**
+ * PATCH /api/appointments/:id/reject-online
+ *
+ * Rejects a pending online booking:
+ *  1. Cancels the appointment with reason "Payment Rejected".
+ *  2. Marks the BookingPaymentProof → REJECTED with the given reason.
+ *  3. Notifies the patient via WhatsApp.
+ *
+ * Body: { reason?: string }
+ */
+export const rejectOnlineBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason = "Payment could not be verified" } = req.body || {};
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ message: "Invalid appointment ID" });
+    }
+
+    const appointment = await Appointment.findOne({
+      _id: id,
+      doctor: req.doctorId,
+      awaitingOnlineApproval: true,
+    }).populate("patientAccount", "name phone email");
+
+    if (!appointment) {
+      return res.status(404).json({ message: "Pending online booking not found" });
+    }
+
+    appointment.awaitingOnlineApproval = false;
+    appointment.status = "Cancelled";
+    appointment.cancellationReason = "Payment Rejected";
+    appointment.rejectionReason = String(reason).slice(0, 500);
+    appointment.cancelledAt = new Date();
+    await appointment.save();
+
+    // Mark payment proof rejected
+    await BookingPaymentProof.updateOne(
+      { appointmentId: appointment._id },
+      { $set: { status: "REJECTED", rejectionReason: String(reason).slice(0, 500) } }
+    );
+
+    // WhatsApp rejection notice
+    const patientPhone = appointment.patientAccount?.phone;
+    if (patientPhone) {
+      const patientName = appointment.patientAccount?.name || "Patient";
+      const dateStr = toClinicDateString(appointment.date) || String(appointment.date).slice(0, 10);
+      const rejectMsg = `Dear ${patientName}, unfortunately your appointment request for ${dateStr} at slot ${appointment.slot} could not be confirmed.\n\nReason: ${reason}\n\nPlease contact the clinic to rebook or submit a corrected payment. — MedAlerto`;
+      sendWhatsAppTextMessage(patientPhone, rejectMsg).catch((err) =>
+        console.error("[rejectOnlineBooking] WhatsApp error:", err.message)
+      );
+    }
+
+    res.status(200).json({ message: "Online booking rejected and cancelled" });
+  } catch (error) {
+    console.error("[rejectOnlineBooking]", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+/**
+ * GET /api/appointments/online-pending
+ * Lists all pending online approval requests AND rejected online requests
+ * for the authenticated doctor. Used by the receptionist approval queue.
+ */
+export const getOnlinePendingBookings = async (req, res) => {
+  try {
+    const { page = 1, limit = 50 } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(200, Math.max(1, parseInt(limit, 10) || 50));
+    const skip = (pageNum - 1) * limitNum;
+
+    const pendingQuery = { doctor: req.doctorId, awaitingOnlineApproval: true };
+    const rejectedQuery = {
+      doctor: req.doctorId,
+      status: "Cancelled",
+      cancellationReason: "Payment Rejected",
+    };
+
+    const [appointments, total, rejectedList] = await Promise.all([
+      Appointment.find(pendingQuery)
+        .populate("patientAccount", "name phone email")
+        .sort({ createdAt: 1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
+      Appointment.countDocuments(pendingQuery),
+      Appointment.find(rejectedQuery)
+        .populate("patientAccount", "name phone email")
+        .sort({ cancelledAt: -1, updatedAt: -1 })
+        .limit(50)
+        .lean(),
+    ]);
+
+    // Lookup payment proof screenshots
+    const allAppointmentIds = [
+      ...appointments.map((a) => a._id),
+      ...rejectedList.map((a) => a._id),
+    ];
+    const proofs = await BookingPaymentProof.find({ appointmentId: { $in: allAppointmentIds } }).lean();
+
+    const proofMap = {};
+    proofs.forEach((p) => {
+      if (p.appointmentId) {
+        proofMap[p.appointmentId.toString()] = {
+          url: p.screenshotUrl,
+          rejectionReason: p.rejectionReason,
+        };
+      }
+    });
+
+    const appointmentsWithProof = appointments.map((a) => ({
+      ...a,
+      paymentScreenshotUrl: proofMap[a._id.toString()]?.url || a.paymentScreenshotUrl || a.paymentScreenshot || null,
+    }));
+
+    const rejectedWithProof = rejectedList.map((a) => ({
+      ...a,
+      rejectionReason: a.rejectionReason || proofMap[a._id.toString()]?.rejectionReason || "Payment screenshot could not be verified",
+      paymentScreenshotUrl: proofMap[a._id.toString()]?.url || a.paymentScreenshotUrl || a.paymentScreenshot || null,
+    }));
+
+    res.status(200).json({
+      appointments: appointmentsWithProof,
+      rejectedAppointments: rejectedWithProof,
+      pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) },
+    });
+  } catch (error) {
+    console.error("[getOnlinePendingBookings]", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+

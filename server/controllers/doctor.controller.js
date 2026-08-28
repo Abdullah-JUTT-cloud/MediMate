@@ -69,6 +69,12 @@ export const updateProfile = async (req, res) => {
     hospitals,
     slotDuration,
     profilePicture,
+    // Payment / bank details
+    advanceBookingFee,
+    paymentAccountTitle,
+    paymentBankName,
+    paymentAccountNumber,
+    paymentIBAN,
   } = req.body;
   try {
     // Validate and parse numeric / range-constrained fields
@@ -133,6 +139,20 @@ export const updateProfile = async (req, res) => {
     if (typeof licenseStatus !== "undefined") doctor.licenseStatus = licenseStatus;
     if (typeof licenseIssueDate !== "undefined") doctor.licenseIssueDate = licenseIssueDate;
     if (typeof licenseExpiryDate !== "undefined") doctor.licenseExpiryDate = licenseExpiryDate;
+    // Payment / bank account fields
+    const feeInput = typeof onlineBookingFee !== "undefined" ? onlineBookingFee : advanceBookingFee;
+    if (typeof feeInput !== "undefined") {
+      const parsedFee = Number(feeInput);
+      if (!Number.isFinite(parsedFee) || parsedFee < 0) {
+        return res.status(400).json({ message: "onlineBookingFee must be a non-negative number" });
+      }
+      doctor.advanceBookingFee = parsedFee;
+      doctor.onlineBookingFee = parsedFee;
+    }
+    if (typeof paymentAccountTitle !== "undefined") doctor.paymentAccountTitle = String(paymentAccountTitle).trim();
+    if (typeof paymentBankName !== "undefined") doctor.paymentBankName = String(paymentBankName).trim();
+    if (typeof paymentAccountNumber !== "undefined") doctor.paymentAccountNumber = String(paymentAccountNumber).trim();
+    if (typeof paymentIBAN !== "undefined") doctor.paymentIBAN = String(paymentIBAN).trim();
     await doctor.save();
     const updatedDoc = await Doctor.findById(req.doctorId).select(
       "-password -otp -otpExpiry -resetToken -resetTokenExpiry",

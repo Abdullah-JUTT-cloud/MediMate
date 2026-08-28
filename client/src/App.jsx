@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AppToaster from "./components/Toast";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PatientProtectedRoute from "./components/PatientProtectedRoute";
+import PatientAccountProtectedRoute from "./components/PatientAccountProtectedRoute";
 import ThemeToggle from "./components/ThemeToggle";
 import ScrollToTop from "./components/ScrollToTop";
 import useTheme from "./hooks/useTheme";
@@ -38,10 +39,20 @@ const TermsOfServicePage = lazy(() => import("./pages/TermsOfServicePage"));
 const CookiePolicyPage = lazy(() => import("./pages/CookiePolicyPage"));
 const BlogPage = lazy(() => import("./pages/BlogPage"));
 
+// Patient Booking Module (isolated from legacy patient-chat)
+const DoctorSearchPage = lazy(() => import("./pages/booking/DoctorSearchPage"));
+const DoctorProfilePage = lazy(() => import("./pages/booking/DoctorProfilePage"));
+const PatientLoginPage2 = lazy(() => import("./pages/booking/PatientLoginPage2"));
+const PatientRegisterPage = lazy(() => import("./pages/booking/PatientRegisterPage"));
+const PatientVerifyEmailPage = lazy(() => import("./pages/booking/PatientVerifyEmailPage"));
+const PatientDashboardPage = lazy(() => import("./pages/booking/PatientDashboardPage"));
+const ReviewSubmitPage = lazy(() => import("./pages/booking/ReviewSubmitPage"));
+
 function NotFoundRoute() {
   const doctor = useAuthStore((state) => state.doctor);
   return <Navigate to={doctor ? "/dashboard" : "/"} replace />;
 }
+
 
 function App() {
   const { theme, toggleTheme } = useTheme();
@@ -112,7 +123,29 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+
+              {/* ── Patient Booking Module ───────────────────────────────── */}
+              {/* Public — no auth required */}
+              <Route path="/book/doctors" element={<DoctorSearchPage />} />
+              <Route path="/book/doctors/:id" element={<DoctorProfilePage />} />
+              {/* Patient account auth */}
+              <Route path="/book/login" element={<PatientLoginPage2 />} />
+              <Route path="/book/register" element={<PatientRegisterPage />} />
+              <Route path="/book/verify-email" element={<PatientVerifyEmailPage />} />
+              {/* Protected patient pages */}
+              <Route
+                path="/book/dashboard"
+                element={
+                  <PatientAccountProtectedRoute>
+                    <PatientDashboardPage />
+                  </PatientAccountProtectedRoute>
+                }
+              />
+              {/* Public token-based review submission */}
+              <Route path="/review/:token" element={<ReviewSubmitPage />} />
+
               <Route path="*" element={<NotFoundRoute />} />
+
             </Routes>
           </Suspense>
         </ErrorBoundary>

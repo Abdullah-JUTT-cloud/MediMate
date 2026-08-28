@@ -167,10 +167,10 @@ export default function LandingPage() {
                 style={{ "--d": "270ms" }}
               >
                 <button
-                  onClick={() => navigate("/signup")}
+                  onClick={() => navigate("/book/doctors")}
                   className="hero-cta-primary group relative inline-flex h-14 items-center justify-center gap-2.5 overflow-hidden rounded-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)] px-9 font-body text-sm font-bold text-[var(--color-on-primary)] transition-all duration-300 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-primary)]"
                 >
-                  <span className="relative z-10">Start Free Trial</span>
+                  <span className="relative z-10">Book an Appointment</span>
                   <svg
                     className="relative z-10 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
                     viewBox="0 0 24 24"
@@ -187,22 +187,13 @@ export default function LandingPage() {
                   <div className="absolute inset-0 -translate-x-full bg-white/10 transition-transform duration-500 group-hover:translate-x-0" />
                 </button>
                 <button
-                  onClick={() => navigate("/features")}
+                  onClick={() => navigate("/signup")}
                   className="see-platform-button group inline-flex h-14 items-center justify-center gap-3 rounded-full border border-[var(--color-border)] bg-[var(--color-card)]/60 px-7 font-body text-sm font-bold backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-primary)]"
                 >
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-primary)]/12 text-[var(--color-primary)] transition-transform duration-300 group-hover:scale-110">
-                    <svg
-                      className="ml-0.5 h-3 w-3"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                      aria-hidden="true"
-                    >
-                      <path d="M8 5.14v14l11-7-11-7Z" />
-                    </svg>
-                  </span>
-                  See Platform
+                  Are you a Doctor? Get Started
                 </button>
               </div>
+
 
               {/* Social proof */}
               <div

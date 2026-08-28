@@ -15,12 +15,24 @@ const FROM_NAME = process.env.FROM_NAME || "MedAlerto";
 
 if (!process.env.BREVO_API_KEY) {
   console.warn(
-    "[sendEmail] BREVO_API_KEY is not configured. Set it to your Brevo API " +
-      "key (Settings → SMTP & API → API Keys) before dispatching email."
+    "[sendEmail] BREVO_API_KEY is not configured. Falling back to development mock/console logging."
   );
 }
 
 const sendEmail = async ({ to, subject, html }) => {
+  if (!process.env.BREVO_API_KEY) {
+    console.log("==================================================");
+    console.log(`[DEVELOPMENT EMAIL MOCK]`);
+    console.log(`To: ${to}`);
+    console.log(`Subject: ${subject}`);
+    // Extract OTP if present in the html content
+    const otpMatch = html.match(/>(\d{6})</) || html.match(/(\d{6})/);
+    if (otpMatch) {
+      console.log(`OTP Code detected: ${otpMatch[1]}`);
+    }
+    console.log("==================================================");
+    return { messageId: "dev-mock-id" };
+  }
   const payload = {
     sender: { name: FROM_NAME, email: SENDER_EMAIL },
     to: [{ email: to }],

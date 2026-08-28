@@ -1,14 +1,19 @@
 const DEFAULT_COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
+const IS_PROD = process.env.NODE_ENV === "production";
 
 export const getCookieOptions = (maxAge = DEFAULT_COOKIE_MAX_AGE) => {
   const options = {
     httpOnly: true,
-    secure: true,
-    sameSite: "lax",
+    secure: IS_PROD,
+    sameSite: IS_PROD ? "lax" : "lax",
     path: "/",
     maxAge,
-    domain: ".medalerto.me",
   };
+
+  // Only set a custom domain in production to avoid localhost cookie issues
+  if (IS_PROD) {
+    options.domain = ".medalerto.me";
+  }
 
   return options;
 };
