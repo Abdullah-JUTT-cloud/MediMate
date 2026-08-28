@@ -2,6 +2,20 @@ import mongoose from "mongoose";
 import Patient from "../models/patient.model.js";
 import Appointment from "../models/appointment.model.js";
 import Checkup from "../models/checkup.model.js";
+import { Doctor } from "../models/doctor.model.js";
+import {
+  LocationSelectionError,
+  resolveLocationSelection,
+} from "../utils/patientLocation.js";
+
+/**
+ * Loads the doctor's configured clinics + hospitals so a posted `location`
+ * (single facility coming from the Edit Profile dropdown) can be validated and
+ * rewritten into the canonical `{ locationType, locationId, locationName }`
+ * shape before it is persisted.
+ */
+const loadFacilityOwner = async (doctorId) =>
+  Doctor.findById(doctorId).select("clinics hospitals").lean();
 
 export const getPatients = async (req, res) => {
     try {
@@ -71,13 +85,25 @@ export const addPatient = async (req, res) => {
             phone,
             bloodGroup,
             medicalHistory,
-            locations,
         });
+
+        // `location` is the single-select facility value; `locations` remains
+        // supported for the multi-select registration form.
+        if (Object.hasOwn(req.body, "location")) {
+            const doctor = await loadFacilityOwner(req.doctorId);
+            const resolved = resolveLocationSelection(req.body.location, doctor);
+            patient.locations = resolved ? [resolved] : [];
+        } else if (typeof locations !== "undefined") {
+            patient.locations = Array.isArray(locations) ? locations : [];
+        }
 
         await patient.save();
         res.status(201).json({ message: "Patient added successfully", patient });
     } catch (error) {
         console.error("[addPatient]", error);
+        if (error instanceof LocationSelectionError) {
+            return res.status(400).json({ message: error.message });
+        }
         res.status(500).json({ message: "Internal server error" });
     }
 };
@@ -114,13 +140,28 @@ export const updatePatient = async (req, res) => {
             patient.medicalHistory = medicalHistory;
         }
         if (typeof locations !== "undefined") {
-            patient.locations = locations;
+            patient.locations = Array.isArray(locations) ? locations : [];
+        }
+
+        // Single facility assignment coming from the Edit Profile LOCATION
+        // dropdown. Accepts "Clinic:<id>", a raw facility id/name, a
+        // `{ locationType, locationId, locationName }` object, or null/""/"unassigned"
+        // to clear the assignment. Takes precedence over `locations` so the
+        // selector is always authoritative for this route.
+        if (Object.hasOwn(req.body, "location")) {
+            const doctor = await loadFacilityOwner(req.doctorId);
+            const resolved = resolveLocationSelection(req.body.location, doctor);
+            patient.locations = resolved ? [resolved] : [];
+            patient.markModified("locations");
         }
 
         await patient.save();
         res.status(200).json({ message: "Patient updated successfully", patient });
     } catch (error) {
         console.error("[updatePatient]", error);
+        if (error instanceof LocationSelectionError) {
+            return res.status(400).json({ message: error.message });
+        }
         res.status(500).json({ message: "Internal server error" });
     }
 };

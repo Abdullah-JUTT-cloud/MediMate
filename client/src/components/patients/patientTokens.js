@@ -242,6 +242,37 @@ export const buildDoctorLocations = (doctor) => [
 ];
 
 /**
+ * Composite `<option>` value for the facility selector on the Edit Profile
+ * form, e.g. "Clinic:665f…c1". Prefixing with the type keeps a clinic id from
+ * ever colliding with a hospital id.
+ */
+export const toLocationValue = (location) =>
+  location?.locationId ? `${location.locationType}:${location.locationId}` : "";
+
+/**
+ * Matches a location already stored on a patient against the doctor's current
+ * facility list (by type + id first, then by type + name) and returns the
+ * canonical facility, or null when the patient's facility no longer exists in
+ * the doctor's settings.
+ */
+export const matchFacility = (facilities = [], location) => {
+  if (!location) return null;
+  return (
+    facilities.find(
+      (facility) =>
+        facility.locationType === location.locationType &&
+        String(facility.locationId) === String(location.locationId),
+    ) ||
+    facilities.find(
+      (facility) =>
+        facility.locationType === location.locationType &&
+        facility.locationName === location.locationName,
+    ) ||
+    null
+  );
+};
+
+/**
  * Returns every bookable slot for a patient on a given date, derived from the
  * sessions configured at the facilities that patient is attached to.
  */

@@ -4,7 +4,7 @@
  * Run with:  npx vitest run   (needs vitest, jsdom, @testing-library/react)
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, cleanup, waitFor } from "@testing-library/react";
+import { render, screen, cleanup, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 const patientFixture = {
@@ -89,7 +89,24 @@ vi.mock("../api/axios", () => ({
       requestLog.push(`POST ${url} ${JSON.stringify(body)}`);
       return { data: { appointment: { _id: "a1", ...body } } };
     }),
-    put: vi.fn(async () => ({ data: { patient: patientFixture } })),
+    put: vi.fn(async (url, body) => {
+      requestLog.push(`PUT ${url} ${JSON.stringify(body)}`);
+      const nextLocations = body?.location
+        ? [body.location]
+        : Object.hasOwn(body || {}, "location")
+          ? []
+          : patientFixture.locations;
+      return {
+        data: {
+          patient: {
+            ...patientFixture,
+            ...body,
+            location: nextLocations[0] || null,
+            locations: nextLocations,
+          },
+        },
+      };
+    }),
     delete: vi.fn(async () => ({ data: { message: "ok" } })),
   },
   getApiBaseUrl: () => "/api",
@@ -287,6 +304,40 @@ describe("PatientDetailPage profile + history", () => {
   });
 });
 
+describe("PatientsPage ↔ PatientDetailPage location sync", () => {
+  it("updates the LOCATION badge in the table without a reload", async () => {
+    const user = userEvent.setup();
+    render(<PatientsPage />);
+
+    // Directory shows the clinic badge seeded from the fixture.
+    expect((await screen.findAllByText("City Care Clinic")).length).toBeGreaterThan(0);
+
+    await user.click((await screen.findAllByText("Ahmed Raza"))[0]);
+    await screen.findByRole("heading", { name: "Ahmed Raza" });
+
+    await user.click(screen.getByRole("button", { name: "✏️ Edit Profile" }));
+    await user.selectOptions(screen.getByLabelText("Location"), "");
+    await user.click(screen.getByRole("button", { name: "Save Changes ✓" }));
+
+    // Saving closes the editor again.
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /Book Today's Appointment/ })).toBeTruthy();
+    });
+
+    // Back to the directory — the LOCATION column must show the — placeholder
+    // for that row without any refetch.
+    await user.click(screen.getByRole("button", { name: /Back to Patients/ }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "+ Register New Patient" })).toBeTruthy();
+    });
+
+    const row = (await screen.findAllByText("Ahmed Raza"))[0].closest("tr");
+    expect(within(row).queryAllByText("City Care Clinic")).toEqual([]);
+    expect(within(row).getByText("—")).toBeTruthy();
+  });
+});
+
 describe("booking + form flows", () => {
   it("posts the slot together with the upfront consultation fee", async () => {
     const user = userEvent.setup();
@@ -325,6 +376,64 @@ describe("booking + form flows", () => {
     expect(screen.getByLabelText("Gender *")).toBeTruthy();
     expect(screen.getByRole("button", { name: /City Care Clinic/ })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Register Patient ✓" })).toBeTruthy();
+  });
+
+  it("offers the doctor's clinics + hospitals in the edit-profile LOCATION dropdown", async () => {
+    const user = userEvent.setup();
+    render(
+      <PatientDetailPage
+        patient={{ ...patientFixture, locations: [] }}
+        onBack={() => {}}
+        onNewCheckup={() => {}}
+        onEditCheckup={() => {}}
+        confirmAction={async () => false}
+      />,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "✏️ Edit Profile" }));
+
+    const select = screen.getByLabelText("Location");
+    expect(select.value).toBe(""); // unassigned patients start on the default option
+    expect([...select.options].map((option) => option.text)).toEqual([
+      "Unassigned (—)",
+      "[Clinic] City Care Clinic",
+    ]);
+
+    await user.selectOptions(select, "Clinic:c1");
+    await user.click(screen.getByRole("button", { name: "Save Changes ✓" }));
+
+    await waitFor(() => {
+      expect(requestLog.some((entry) => entry.startsWith("PUT /patients/p1"))).toBe(true);
+    });
+    const put = requestLog.find((entry) => entry.startsWith("PUT /patients/p1"));
+    expect(put).toContain('"location":{"locationType":"Clinic","locationId":"c1","locationName":"City Care Clinic"}');
+  });
+
+  it("pre-selects the patient's current facility and can unassign it", async () => {
+    const user = userEvent.setup();
+    render(
+      <PatientDetailPage
+        patient={patientFixture}
+        onBack={() => {}}
+        onNewCheckup={() => {}}
+        onEditCheckup={() => {}}
+        confirmAction={async () => false}
+      />,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "✏️ Edit Profile" }));
+
+    const select = screen.getByLabelText("Location");
+    expect(select.value).toBe("Clinic:c1");
+
+    await user.selectOptions(select, "");
+    await user.click(screen.getByRole("button", { name: "Save Changes ✓" }));
+
+    await waitFor(() => {
+      expect(requestLog.some((entry) => entry.startsWith("PUT /patients/p1"))).toBe(true);
+    });
+    const put = requestLog.find((entry) => entry.startsWith("PUT /patients/p1"));
+    expect(put).toContain('"location":null');
   });
 
   it("renders the checkup form seeded from an existing checkup", async () => {
