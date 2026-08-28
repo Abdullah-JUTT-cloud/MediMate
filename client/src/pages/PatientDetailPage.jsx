@@ -1,14 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
+import useAuthStore from "../store/authStore";
 import { ProfileHeaderSkeleton, RowSkeleton } from "../components/SkeletonLoaders";
 import BookAppointmentModal from "../components/patients/BookAppointmentModal";
 import {
   BLOOD_GROUPS,
   GENDERS,
+  buildDoctorLocations,
   cls,
   formatLongDate,
+  matchFacility,
   pluralize,
+  toLocationValue,
 } from "../components/patients/patientTokens";
 import {
   BackLink,
@@ -36,6 +40,27 @@ const EDIT_FIELDS = [
 ];
 
 /**
+ * The API returns the assigned facility both as `locations[0]` and (via the
+ * model virtual) as `location`. Normalising here keeps the profile header and
+ * the LOCATION column badge in sync whichever one the response carries.
+ */
+const withLocations = (record) => {
+  if (!record || (Array.isArray(record.locations) && record.locations.length > 0)) return record;
+  return record.location ? { ...record, locations: [record.location] } : record;
+};
+
+/** Seeds the Edit Profile form (including the LOCATION selector) from a record. */
+const buildEditForm = (source) => ({
+  name: source?.name || "",
+  age: source?.age || "",
+  gender: source?.gender || "Male",
+  phone: source?.phone || "",
+  bloodGroup: source?.bloodGroup || "Unknown",
+  medicalHistory: source?.medicalHistory || [],
+  location: toLocationValue(source?.locations?.[0]),
+});
+
+/**
  * Patient profile + full visit history.
  *
  * Accepts either a hydrated `patient` object (dashboard directory flow) or a
@@ -58,32 +83,70 @@ export default function PatientDetailPage({
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   const [prescriptionCheckup, setPrescriptionCheckup] = useState(null);
   const [autoGeneratePrescription, setAutoGeneratePrescription] = useState(false);
+  const { doctor } = useAuthStore();
+
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [editForm, setEditForm] = useState({
-    name: patientProp?.name || "",
-    age: patientProp?.age || "",
-    gender: patientProp?.gender || "Male",
-    phone: patientProp?.phone || "",
-    bloodGroup: patientProp?.bloodGroup || "Unknown",
-    medicalHistory: patientProp?.medicalHistory || [],
-  });
+  const [editForm, setEditForm] = useState(() => buildEditForm(patientProp));
+  // Value the LOCATION dropdown was opened with, so we only push a facility
+  // change to the API when the doctor actually picked a different one.
+  const [initialLocationValue, setInitialLocationValue] = useState(() =>
+    toLocationValue(patientProp?.locations?.[0]),
+  );
   const [historyInput, setHistoryInput] = useState("");
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  // Every clinic + hospital configured on the logged-in doctor's profile.
+  const doctorLocations = useMemo(() => buildDoctorLocations(doctor), [doctor]);
+
+  /**
+   * Options for the LOCATION dropdown: one per configured clinic/hospital, plus
+   * the patient's current facility when it is missing from the doctor's
+   * settings (so an edit never silently drops a historical assignment).
+   */
+  const locationOptions = useMemo(() => {
+    const currentLocation = patient?.locations?.[0] || null;
+    const options = doctorLocations.map((location) => ({
+      value: toLocationValue(location),
+      label: `[${location.locationType}] ${location.locationName}`,
+      facility: {
+        locationType: location.locationType,
+        locationId: location.locationId,
+        locationName: location.locationName,
+      },
+    }));
+
+    if (currentLocation && !matchFacility(doctorLocations, currentLocation)) {
+      options.push({
+        value: toLocationValue(currentLocation),
+        label: `[${currentLocation.locationType}] ${currentLocation.locationName} (removed from settings)`,
+        facility: {
+          locationType: currentLocation.locationType,
+          locationId: currentLocation.locationId,
+          locationName: currentLocation.locationName,
+        },
+      });
+    }
+
+    return options;
+  }, [doctorLocations, patient]);
+
+  const openEditProfile = () => {
+    const nextForm = buildEditForm(patient);
+    setEditForm(nextForm);
+    setInitialLocationValue(nextForm.location);
+    setHistoryInput("");
+    setIsEditingProfile(true);
+  };
 
   // Hydrate the record when only an id was supplied.
   useEffect(() => {
     if (patientProp) {
       setPatient(patientProp);
       setIsLoading(false);
-      setEditForm({
-        name: patientProp.name || "",
-        age: patientProp.age || "",
-        gender: patientProp.gender || "Male",
-        phone: patientProp.phone || "",
-        bloodGroup: patientProp.bloodGroup || "Unknown",
-        medicalHistory: patientProp.medicalHistory || [],
-      });
+      const nextForm = buildEditForm(patientProp);
+      setEditForm(nextForm);
+      setInitialLocationValue(nextForm.location);
       return;
     }
     if (!patientId) return;
@@ -136,13 +199,32 @@ export default function PatientDetailPage({
 
     setIsSavingProfile(true);
     try {
-      const res = await axiosInstance.put(`/patients/${patient._id}`, editForm);
-      setPatient(res.data.patient);
-      onPatientUpdated?.(res.data.patient);
+      const payload = {
+        name: editForm.name.trim(),
+        age: Number(editForm.age),
+        gender: editForm.gender,
+        phone: editForm.phone.trim(),
+        bloodGroup: editForm.bloodGroup,
+        medicalHistory: editForm.medicalHistory,
+      };
+
+      // Facility assignment from the LOCATION dropdown. Sent as the canonical
+      // object (or null for "Unassigned"); only included when the selection
+      // actually changed so patients attached to several facilities keep the
+      // other ones intact.
+      if (editForm.location !== initialLocationValue) {
+        payload.location =
+          locationOptions.find((option) => option.value === editForm.location)?.facility || null;
+      }
+
+      const res = await axiosInstance.put(`/patients/${patient._id}`, payload);
+      const updatedPatient = withLocations(res.data.patient);
+      setPatient(updatedPatient);
+      onPatientUpdated?.(updatedPatient);
       toast.success("Patient profile updated");
       setIsEditingProfile(false);
-    } catch {
-      toast.error("Failed to update patient");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update patient");
     } finally {
       setIsSavingProfile(false);
     }
@@ -217,7 +299,7 @@ export default function PatientDetailPage({
             <div>
               <h2 className="text-xl font-bold text-slate-900 dark:text-white">Edit Profile</h2>
               <p className={`${cls.mutedText} mt-1`}>
-                Update demographics, contact details and known allergies.
+                Update demographics, contact details, assigned facility and known allergies.
               </p>
             </div>
             <button
@@ -284,6 +366,31 @@ export default function PatientDetailPage({
                   </option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label htmlFor="edit-location" className={cls.fieldLabel}>
+                Location
+              </label>
+              <select
+                id="edit-location"
+                value={editForm.location}
+                onChange={(event) =>
+                  setEditForm((prev) => ({ ...prev, location: event.target.value }))
+                }
+                className={cls.input}
+              >
+                <option value="">Unassigned (—)</option>
+                {locationOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <p className={`${cls.mutedText} mt-1.5`}>
+                {doctorLocations.length === 0
+                  ? "No clinics or hospitals configured yet — add one under Settings → Locations."
+                  : "The clinic or hospital this patient is assigned to."}
+              </p>
             </div>
           </div>
 
@@ -364,7 +471,7 @@ export default function PatientDetailPage({
               </button>
               <button
                 type="button"
-                onClick={() => setIsEditingProfile(true)}
+                onClick={openEditProfile}
                 className={cls.btnSecondary}
               >
                 ✏️ Edit Profile
