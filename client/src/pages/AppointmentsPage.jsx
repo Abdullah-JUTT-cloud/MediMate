@@ -932,20 +932,26 @@ export default function AppointmentsPage({
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Appointments</h2>
           <p className="text-sm font-medium mt-1 text-slate-600 dark:text-slate-400">{appointments.length} appointments</p>
         </div>
-        <button onClick={() => setIsBookModalOpen(true)} type="button"
-          className="bg-teal-600 hover:bg-teal-500 text-white font-bold text-sm py-3 px-6 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 w-fit">
-          + Book Appointment
-        </button>
+        {/* relative z-10 ensures this button's stacking context sits above the filter row below it,
+            preventing the date input's invisible picker hit-box from overlapping on wide viewports. */}
+        <div className="relative z-10">
+          <button onClick={() => setIsBookModalOpen(true)} type="button"
+            className="bg-teal-600 hover:bg-teal-500 text-white font-bold text-sm py-3 px-6 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 w-fit">
+            + Book Appointment
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
       {/* Fix filter rows wrapping unpredictably on tablet by keeping the status chips on a horizontal scroller. */}
       <div className="flex flex-wrap items-center gap-3 mb-5">
-        {/* Date filter first so native calendar popup has room on the right */}
-        <div className="flex items-center gap-2">
+        {/* relative z-0 + max-w-[160px] strictly bounds the date input and its invisible
+            ::-webkit-calendar-picker-indicator hit-box so it cannot bleed over adjacent
+            elements (specifically the "+ Book Appointment" button above on wide viewports). */}
+        <div className="relative z-0 flex items-center gap-2">
           <input type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)}
             aria-label="Filter by date"
-            className="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white shadow-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 focus:outline-none" />
+            className="w-full max-w-[160px] shrink-0 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white shadow-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 focus:outline-none" />
           {dateFilter && (
             <button type="button" onClick={() => setDateFilter("")}
               className="text-xs font-bold px-3 py-2 rounded-lg text-slate-700 dark:text-slate-200 hover:bg-slate-200/70 dark:hover:bg-slate-700 transition-colors">✕</button>
