@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import axios from "../../api/axios";
 import toast from "react-hot-toast";
 import usePatientAccountStore from "../../store/patientAccountStore";
 
 export default function PatientLoginPage2() {
   const navigate = useNavigate();
+  const location = useLocation();
   const setPatient = usePatientAccountStore((s) => s.setPatient);
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
@@ -19,7 +20,10 @@ export default function PatientLoginPage2() {
       const { data } = await axios.post("/patient-account/login", form);
       setPatient(data.patient);
       toast.success("Welcome back!");
-      navigate("/book/dashboard");
+      // Return to the page the patient was coming from (e.g. a doctor
+      // profile that required sign-in); default to the dashboard.
+      const from = location.state?.from;
+      navigate(from && from.startsWith("/book/") ? from : "/book/dashboard");
     } catch (err) {
       toast.error(err.response?.data?.message || "Login failed");
     } finally {

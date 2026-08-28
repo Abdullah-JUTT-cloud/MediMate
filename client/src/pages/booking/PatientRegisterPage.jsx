@@ -2,11 +2,9 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "../../api/axios";
 import toast from "react-hot-toast";
-import usePatientAccountStore from "../../store/patientAccountStore";
 
 export default function PatientRegisterPage() {
   const navigate = useNavigate();
-  const setPatient = usePatientAccountStore((s) => s.setPatient);
   const [form, setForm] = useState({ name: "", email: "", phone: "", password: "" });
   const [loading, setLoading] = useState(false);
 

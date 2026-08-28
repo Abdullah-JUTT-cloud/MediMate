@@ -11,6 +11,7 @@ import useTheme from "./hooks/useTheme";
 import { RouteSkeleton } from "./components/RouteSkeleton";
 import ErrorBoundary from "./components/ErrorBoundary";
 import useAuthStore from "./store/authStore";
+import { PatientAuthProvider } from "./context/PatientAuthContext";
 
 const LandingPage = lazy(() => import("./pages/LandingPage"));
 const SignupPage = lazy(() => import("./pages/SignupPage"));
@@ -69,6 +70,11 @@ function App() {
         <AppToaster />
         <ErrorBoundary>
           <Suspense fallback={<RouteSkeleton />}>
+            {/* Global patient auth context — hydrates the persisted
+                patient session from localStorage, verifies the JWT against
+                the server once on mount, and wraps all /book/* routes (and
+                the header "My Appointments" button on public pages). */}
+            <PatientAuthProvider>
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/home" element={<LandingPage />} />
@@ -147,6 +153,7 @@ function App() {
               <Route path="*" element={<NotFoundRoute />} />
 
             </Routes>
+            </PatientAuthProvider>
           </Suspense>
         </ErrorBoundary>
       </BrowserRouter>

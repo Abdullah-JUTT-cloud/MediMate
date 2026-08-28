@@ -1,5 +1,6 @@
 import axios from "axios";
 import useAuthStore from "../store/authStore";
+import usePatientAccountStore from "../store/patientAccountStore";
 
 const API_BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:5000/api").trim().replace(/\/$/, "");
 
@@ -17,6 +18,18 @@ const axiosInstance = axios.create({
     withCredentials: true,
 });
 
+/**
+ * Patient booking module endpoints that may legitimately return 401
+ * (wrong credentials / unverified account) WITHOUT meaning the session
+ * expired. Those must not clear a valid stored session.
+ */
+const PATIENT_AUTH_FLOW_PATHS = [
+    "/patient-account/login",
+    "/patient-account/register",
+    "/patient-account/verify-email",
+    "/patient-account/resend-otp",
+];
+
 axiosInstance.interceptors.response.use(
     (response) => response,
     (error) => {
@@ -24,6 +37,17 @@ axiosInstance.interceptors.response.use(
             const { doctor, logout } = useAuthStore.getState();
             if (doctor) {
                 logout();
+            }
+
+            // Patient JWT expired/invalid on a protected patient-account
+            // call: clear the local session so route guards redirect to
+            // /book/login instead of showing a half-authenticated UI or
+            // looping between booking pages.
+            const url = String(error.config?.url || "");
+            const isPatientAccountCall = url.includes("/patient-account/");
+            const isAuthFlowCall = PATIENT_AUTH_FLOW_PATHS.some((path) => url.includes(path));
+            if (isPatientAccountCall && !isAuthFlowCall) {
+                usePatientAccountStore.getState().clearSession();
             }
         }
 

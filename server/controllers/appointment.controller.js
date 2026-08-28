@@ -815,18 +815,40 @@ export const sendOverdueReminder = async (req, res) => {
 // Online Booking Approval / Rejection  (receptionist-authenticated)
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Derives a full-year age from a date of birth. Returns null when the value
+// is missing/unparseable or implausible so callers can fall back to a
+// schema-safe placeholder.
+const ageFromDob = (dob) => {
+  if (!dob) return null;
+  const dobDate = new Date(dob);
+  if (Number.isNaN(dobDate.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - dobDate.getFullYear();
+  const monthDiff = now.getMonth() - dobDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < dobDate.getDate())) age -= 1;
+  return age >= 0 && age < 130 ? age : null;
+};
+
+const VALID_PATIENT_GENDERS = ["Male", "Female", "Other"];
+
 /**
  * PATCH /api/appointments/:id/approve-online
  *
  * Confirms a pending online booking:
  *  1. Re-checks slot capacity (now counting this booking for real).
- *  2. Clears awaitingOnlineApproval and sets status → "Confirmed".
- *  3. Marks the BookingPaymentProof → APPROVED.
- *  4. Sends a WhatsApp confirmation to the PatientAccount's phone.
+ *  2. Reconciles fees: netAmount = standardFee - discountAmount (>= 0).
+ *  3. Clears awaitingOnlineApproval and sets status → "Confirmed".
+ *  4. Links/auto-creates the clinic-scoped Patient record (required
+ *     age/gender are supplied — this previously threw a schema
+ *     ValidationError and surfaced as a 500 on "Confirm Approval").
+ *  5. Marks the BookingPaymentProof → APPROVED.
+ *  6. Upserts the Payment record (Revenue Lab / Payments pages).
+ *  7. queueStatus → "WAITING" so the booking enters the active Doctor Queue.
+ *  8. Sends a WhatsApp confirmation to the PatientAccount's phone.
  *
- * Expects the corresponding PatientAccount to already exist; a clinic-scoped
- * Patient record can be linked manually or auto-created by the receptionist
- * later when the patient arrives for their first visit.
+ * Re-approving a previously REJECTED booking is supported: the stale
+ * cancellation/rejection state is cleared so the booking is a clean
+ * "Confirmed" record.
  */
 export const approveOnlineBooking = async (req, res) => {
   try {
@@ -840,15 +862,26 @@ export const approveOnlineBooking = async (req, res) => {
     const appointment = await Appointment.findOne({
       _id: id,
       doctor: req.doctorId,
-      $or: [
-        { awaitingOnlineApproval: true },
-        { cancellationReason: "Payment Rejected" },
-        { status: "Cancelled", rejectionReason: { $ne: null } },
-      ],
-    }).populate("patientAccount", "name phone email");
+    }).populate("patientAccount", "name phone email dateOfBirth");
 
     if (!appointment) {
       return res.status(404).json({ message: "Pending or rejected online booking not found" });
+    }
+
+    // Idempotency: distinguish "already approved" from other non-approvable
+    // states so a double-click or stale UI state returns a 409, not a 500.
+    const isPending = appointment.awaitingOnlineApproval === true;
+    const isRejected =
+      appointment.status === "Cancelled" &&
+      appointment.cancellationReason === "Payment Rejected";
+
+    if (!isPending && !isRejected) {
+      return res.status(409).json({
+        message:
+          appointment.status === "Confirmed"
+            ? "This booking has already been approved"
+            : "This booking is not awaiting online approval",
+      });
     }
 
     // Re-check capacity now that this booking will count
@@ -871,12 +904,26 @@ export const approveOnlineBooking = async (req, res) => {
       }
     }
 
-    // Resolve Doctor's fee settings or explicit checkup price input
+    // ── Fee reconciliation ──────────────────────────────────────────────────
+    // Single source of truth: netAmount = standardFee - discountAmount,
+    // clamped at zero. The explicit checkup price from the approval modal
+    // wins; otherwise fall back to the stored fee, then the doctor's
+    // configured online booking fee.
     const doctor = await Doctor.findById(req.doctorId).select("advanceBookingFee onlineBookingFee");
     const doctorFee = doctor?.onlineBookingFee || doctor?.advanceBookingFee || 0;
-    const finalFee = Math.max(0, Number(checkupPrice ?? consultationFee ?? appointment.consultationFee ?? doctorFee) || 0);
+    const standardFee = Math.max(
+      0,
+      Number(checkupPrice ?? consultationFee ?? appointment.consultationFee ?? doctorFee) || 0,
+    );
+    const discountAmount = Math.max(0, Number(appointment.discountAmount) || 0);
+    const netAmount = Math.max(0, standardFee - discountAmount);
 
-    // Auto-create or find clinic Patient record so patient appears in Doctor Queue & Patient lists
+    // ── Clinic Patient record ──────────────────────────────────────────────
+    // Auto-create or find the clinic-scoped Patient record so the patient
+    // appears in the Doctor Queue and Patient lists. The Patient model
+    // REQUIRES age + gender; the auto-create below supplies them (derived
+    // from the PatientAccount where possible, placeholder otherwise) so the
+    // approval can never fail schema validation.
     let patientRecord = null;
     if (appointment.patient) {
       patientRecord = await Patient.findById(appointment.patient);
@@ -887,11 +934,15 @@ export const approveOnlineBooking = async (req, res) => {
         phone: appointment.patientAccount.phone,
       });
       if (!patientRecord) {
+        const patientGender = VALID_PATIENT_GENDERS.includes(appointment.patientAccount?.gender)
+          ? appointment.patientAccount.gender
+          : "Other";
         patientRecord = await Patient.create({
           doctor: req.doctorId,
           name: appointment.patientAccount.name || "Online Patient",
           phone: appointment.patientAccount.phone,
-          email: appointment.patientAccount.email || "",
+          age: ageFromDob(appointment.patientAccount?.dateOfBirth) ?? 18,
+          gender: patientGender,
           locations: [],
         });
       }
@@ -901,11 +952,18 @@ export const approveOnlineBooking = async (req, res) => {
     appointment.awaitingOnlineApproval = false;
     appointment.advancePaid = true;
     appointment.status = "Confirmed";
+    // Enters the active Doctor Queue (getTodayQueue renders WAITING first).
     appointment.queueStatus = "WAITING";
-    appointment.consultationFee = finalFee;
-    appointment.standardFee = finalFee;
-    appointment.originalFee = finalFee;
-    appointment.netAmount = finalFee;
+    appointment.consultationFee = netAmount;
+    appointment.standardFee = standardFee;
+    appointment.originalFee = standardFee;
+    appointment.discountAmount = discountAmount;
+    appointment.netAmount = netAmount;
+    // Clear stale rejection state when re-approving a previously rejected
+    // request so the booking reads as a clean "Confirmed" record.
+    appointment.cancellationReason = null;
+    appointment.rejectionReason = null;
+    appointment.cancelledAt = null;
     await appointment.save();
 
     // Mark payment proof approved
@@ -914,7 +972,10 @@ export const approveOnlineBooking = async (req, res) => {
       { $set: { status: "APPROVED" } }
     );
 
-    // Create/Upsert Payment record so it automatically reflects on Revenue Lab and Payments pages
+    // Create/Upsert Payment record so it automatically reflects on Revenue Lab
+    // and Payments pages. `patientId` is required by the Payment schema, so
+    // the upsert is only attempted once a clinic Patient record exists;
+    // runValidators keeps the stored document schema-clean on re-approval.
     if (patientRecord?._id) {
       await Payment.findOneAndUpdate(
         { appointmentId: appointment._id },
@@ -924,23 +985,26 @@ export const approveOnlineBooking = async (req, res) => {
           appointmentId: appointment._id,
           category: "CONSULTATION",
           status: "PAID",
-          amount: finalFee,
-          standardFee: finalFee,
-          originalFee: finalFee,
-          netAmount: finalFee,
+          amount: netAmount,
+          standardFee,
+          originalFee: standardFee,
+          discount: discountAmount,
+          discountAmount,
+          netAmount,
           description: "Online Approved Consultation",
           method: "Online Transfer",
         },
-        { upsert: true, new: true }
+        { upsert: true, new: true, runValidators: true }
       );
     }
 
-    // WhatsApp confirmation to patient
+    // WhatsApp confirmation to patient (fire-and-forget — a messaging
+    // failure must never turn an otherwise successful approval into a 500).
     const patientPhone = appointment.patientAccount?.phone || patientRecord?.phone;
     if (patientPhone) {
       const patientName = appointment.patientAccount?.name || patientRecord?.name || "Patient";
       const dateStr = toClinicDateString(appointment.date) || String(appointment.date).slice(0, 10);
-      const confirmMsg = `Dear ${patientName}, your appointment request with MedAlerto has been *confirmed* ✅\n\nDate: ${dateStr}\nSlot: ${appointment.slot}\nTotal Price: Rs ${finalFee.toLocaleString()}\n\nPlease arrive 10 minutes early. Thank you!`;
+      const confirmMsg = `Dear ${patientName}, your appointment request with MedAlerto has been *confirmed* ✅\n\nDate: ${dateStr}\nSlot: ${appointment.slot}\nTotal Price: Rs ${netAmount.toLocaleString()}\n\nPlease arrive 10 minutes early. Thank you!`;
       sendWhatsAppTextMessage(patientPhone, confirmMsg).catch((err) =>
         console.error("[approveOnlineBooking] WhatsApp error:", err.message)
       );
@@ -948,8 +1012,36 @@ export const approveOnlineBooking = async (req, res) => {
 
     res.status(200).json({ message: "Online booking approved and confirmed", appointment });
   } catch (error) {
-    console.error("[approveOnlineBooking]", error);
-    res.status(500).json({ message: "Internal server error" });
+    // Log the exact stack trace so approval 500s are never silent.
+    console.error("[approveOnlineBooking] failed:", error);
+
+    // Mongoose schema validation failure — return a descriptive 400 with the
+    // first validation message instead of a generic 500.
+    if (error?.name === "ValidationError" && error?.message) {
+      const firstMessage =
+        Object.values(error.errors || {})[0]?.message || error.message;
+      return res.status(400).json({
+        message: `Validation failed while approving booking: ${firstMessage}`,
+      });
+    }
+
+    // Bad ObjectId reference while populating/creating linked documents.
+    if (error?.name === "CastError") {
+      return res.status(400).json({
+        message: "Invalid patient or doctor reference while approving booking",
+      });
+    }
+
+    // Unique-index collision (e.g. two payments for the same booking).
+    if (error?.code === 11000) {
+      return res.status(409).json({
+        message: "A payment record for this booking already exists",
+      });
+    }
+
+    res.status(500).json({
+      message: "Internal server error while approving booking. Please try again.",
+    });
   }
 };
 

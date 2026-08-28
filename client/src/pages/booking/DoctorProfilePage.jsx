@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "../../api/axios";
 import toast from "react-hot-toast";
 import usePatientAccountStore from "../../store/patientAccountStore";
+import MyAppointmentsButton from "../../components/booking/MyAppointmentsButton";
 import {
   ArrowLeft,
   Calendar,
@@ -127,6 +128,32 @@ function getNext7Days() {
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
+const dayNameFor = (dateStr) => DAY_NAMES[new Date(dateStr + "T00:00:00").getDay()];
+
+/**
+ * Set of weekday names the given facility location (Clinic or Hospital)
+ * operates, parsed from its `sessions` array.
+ *
+ * Returns null when no sessions are configured — "standard availability"
+ * mode, where every day of the week is bookable (legacy behaviour).
+ */
+function getOperatingDaySet(location) {
+  const sessions = location?.sessions;
+  if (!Array.isArray(sessions) || sessions.length === 0) return null;
+  const daySet = new Set();
+  sessions.forEach((s) => {
+    if (s && typeof s.day === "string" && DAY_NAMES.includes(s.day)) daySet.add(s.day);
+  });
+  return daySet.size > 0 ? daySet : null;
+}
+
+/** First bookable date (from today) inside the 7-day window for a facility. */
+function firstOperatingDateFor(location, days) {
+  const daySet = getOperatingDaySet(location);
+  if (!daySet) return days[0];
+  return days.find((d) => daySet.has(dayNameFor(d))) || null;
+}
+
 export default function DoctorProfilePage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -135,7 +162,9 @@ export default function DoctorProfilePage() {
   const [doctor, setDoctor] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [slots, setSlots] = useState([]);
-  const [selectedDate, setSelectedDate] = useState(getNext7Days()[0]);
+  // Stable 7-day window for the carousel — computed once per visit.
+  const days7 = useMemo(() => getNext7Days(), []);
+  const [selectedDate, setSelectedDate] = useState(days7[0]);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [loading, setLoading] = useState(true);
   const [slotsLoading, setSlotsLoading] = useState(false);
@@ -160,7 +189,7 @@ export default function DoctorProfilePage() {
         ]);
         setDoctor(docRes.data.doctor);
         setReviews(revRes.data.reviews || []);
-      } catch (err) {
+      } catch {
         toast.error("Doctor not found or no longer available");
         navigate("/book/doctors");
       } finally {
@@ -169,25 +198,6 @@ export default function DoctorProfilePage() {
     };
     load();
   }, [id, navigate]);
-
-  // Load booked slots when doctor or date changes
-  useEffect(() => {
-    if (!id || !selectedDate) return;
-    const fetchSlots = async () => {
-      setSlotsLoading(true);
-      try {
-        const { data } = await axios.get(`/public/doctors/${id}/slots`, {
-          params: { date: selectedDate },
-        });
-        setSlots(data.slots || []);
-      } catch {
-        setSlots([]);
-      } finally {
-        setSlotsLoading(false);
-      }
-    };
-    fetchSlots();
-  }, [id, selectedDate]);
 
   // Practice locations lists
   const hasClinics = doctor?.clinics && doctor.clinics.length > 0;
@@ -206,6 +216,74 @@ export default function DoctorProfilePage() {
   }, [doctor, locationType]);
 
   const currentLocation = currentLocationList[selectedLocationIndex] || currentLocationList[0] || null;
+
+  // ── Dynamic facility schedule (Task 3) ────────────────────────────────────
+  // Weekdays the SELECTED facility operates (null = no sessions configured,
+  // i.e. standard availability where every day is bookable).
+  const operatingDays = useMemo(() => getOperatingDaySet(currentLocation), [currentLocation]);
+
+  const dayOperates = (dateStr) => !operatingDays || operatingDays.has(dayNameFor(dateStr));
+
+  // When the selected facility changes (Clinic↔Hospital toggle, location
+  // dropdown, or initial doctor load) the previously selected date may no
+  // longer be an operating day — snap to the first operating day in the
+  // 7-day window and reset the picked slot. If no day in the window
+  // operates, keep the date and let the UI show the "closed" state.
+  useEffect(() => {
+    if (!currentLocation) return;
+    if (dayOperates(selectedDate)) return;
+    const next = days7.find((d) => dayOperates(d));
+    if (next && next !== selectedDate) {
+      setSelectedDate(next);
+      setSelectedSlot(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentLocation, days7]);
+
+  // Switch between Clinic / Hospital: reset date + slot to match the
+  // facility that is about to be selected.
+  const switchLocationType = (newType) => {
+    const list = newType === "Clinic" ? doctor?.clinics || [] : doctor?.hospitals || [];
+    setLocationType(newType);
+    setSelectedLocationIndex(0);
+    setSelectedSlot(null);
+    const nextDate = firstOperatingDateFor(list[0] || null, days7);
+    if (nextDate) setSelectedDate(nextDate);
+  };
+
+  // Select a different specific facility (dropdown): same reset behaviour.
+  const switchLocationIndex = (idx) => {
+    setSelectedLocationIndex(idx);
+    setSelectedSlot(null);
+    const nextDate = firstOperatingDateFor(currentLocationList[idx] || null, days7);
+    if (nextDate) setSelectedDate(nextDate);
+  };
+
+  // Load booked slots when doctor or date changes — but never for a day the
+  // selected facility does not operate (all slots are disabled then).
+  useEffect(() => {
+    if (!id || !selectedDate) return;
+    if (!dayOperates(selectedDate)) {
+      setSlots([]);
+      setSlotsLoading(false);
+      return;
+    }
+    const fetchSlots = async () => {
+      setSlotsLoading(true);
+      try {
+        const { data } = await axios.get(`/public/doctors/${id}/slots`, {
+          params: { date: selectedDate },
+        });
+        setSlots(data.slots || []);
+      } catch {
+        setSlots([]);
+      } finally {
+        setSlotsLoading(false);
+      }
+    };
+    fetchSlots();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, selectedDate, operatingDays]);
 
   // Active day sessions
   const daySessions = useMemo(() => {
@@ -265,8 +343,10 @@ export default function DoctorProfilePage() {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      toast.success("Appointment request submitted successfully!");
-      navigate("/patient/appointments");
+      // Success → straight to the Patient Dashboard. Never bounce back to
+      // /book/doctors (or the old, non-existent /patient/appointments route).
+      toast.success("Appointment request submitted successfully");
+      navigate("/book/dashboard");
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to submit appointment request");
     } finally {
@@ -287,14 +367,13 @@ export default function DoctorProfilePage() {
 
   if (!doctor) return null;
 
-  const days7 = getNext7Days();
   const onlineFee = doctor.onlineBookingFee || doctor.advanceBookingFee || 0;
 
   return (
     <div className="min-h-screen bg-slate-50/70 dark:bg-zinc-950 font-sans text-slate-800 dark:text-zinc-100 pb-20">
       {/* Header Bar */}
       <header className="sticky top-0 z-40 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-zinc-800">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+        <div className="w-full max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <button
             onClick={() => navigate("/book/doctors")}
             className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
@@ -311,20 +390,16 @@ export default function DoctorProfilePage() {
           </Link>
 
           <div className="flex items-center gap-2">
-            <Link
-              to="/patient/appointments"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-zinc-200 bg-slate-100 dark:bg-zinc-800 px-3.5 py-2 rounded-xl hover:bg-slate-200 dark:hover:bg-zinc-700 transition"
-            >
-              <Calendar size={14} />
-              <span>My Appointments</span>
-            </Link>
+            {/* Authenticated → /book/dashboard; guest → Patient Login/Signup
+                modal (see MyAppointmentsButton). */}
+            <MyAppointmentsButton from={`/book/doctors/${id}`} />
           </div>
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-8">
-        <div className="grid lg:grid-cols-3 gap-8 items-start">
+      {/* Main Container — fluid from 320px up */}
+      <main className="w-full max-w-7xl mx-auto px-4 pt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
           {/* Left Column: Doctor Profile Overview */}
           <div className="lg:col-span-2 space-y-6">
             {/* Doctor Profile Card */}
@@ -617,11 +692,7 @@ export default function DoctorProfilePage() {
                   <div className="grid grid-cols-2 gap-2 bg-slate-100 dark:bg-zinc-800 p-1.5 rounded-2xl">
                     <button
                       type="button"
-                      onClick={() => {
-                        setLocationType("Clinic");
-                        setSelectedLocationIndex(0);
-                        setSelectedSlot(null);
-                      }}
+                      onClick={() => switchLocationType("Clinic")}
                       className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
                         locationType === "Clinic"
                           ? "bg-white dark:bg-zinc-700 text-teal-700 dark:text-teal-300 shadow-sm"
@@ -632,11 +703,7 @@ export default function DoctorProfilePage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        setLocationType("Hospital");
-                        setSelectedLocationIndex(0);
-                        setSelectedSlot(null);
-                      }}
+                      onClick={() => switchLocationType("Hospital")}
                       className={`py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
                         locationType === "Hospital"
                           ? "bg-white dark:bg-zinc-700 text-indigo-700 dark:text-indigo-300 shadow-sm"
@@ -662,10 +729,7 @@ export default function DoctorProfilePage() {
                   </label>
                   <select
                     value={selectedLocationIndex}
-                    onChange={(e) => {
-                      setSelectedLocationIndex(Number(e.target.value));
-                      setSelectedSlot(null);
-                    }}
+                    onChange={(e) => switchLocationIndex(Number(e.target.value))}
                     className="w-full rounded-2xl border border-slate-300 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800 px-3.5 py-2.5 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     {currentLocationList.map((loc, idx) => (
@@ -687,15 +751,20 @@ export default function DoctorProfilePage() {
                       <Clock size={13} />
                       <span>Hours: {daySessions.map((s) => `${s.startTime} - ${s.endTime}`).join(", ")}</span>
                     </p>
-                  ) : (
+                  ) : dayOperates(selectedDate) ? (
                     <p className="text-indigo-600 dark:text-indigo-400 font-semibold mt-2">
                       ℹ️ Showing standard availability slots
+                    </p>
+                  ) : (
+                    <p className="text-rose-600 dark:text-rose-400 font-semibold mt-2">
+                      ⛔ Closed on {dayNameFor(selectedDate)} — select an available day below
                     </p>
                   )}
                 </div>
               )}
 
-              {/* Date Picker Bar */}
+              {/* Date Picker Bar — days the selected facility does not
+                  operate are disabled (pointer-events-none opacity-40). */}
               <div className="mb-5">
                 <label className="block text-[10px] font-black text-slate-400 dark:text-zinc-500 uppercase tracking-wider mb-2">
                   Select Date
@@ -704,11 +773,15 @@ export default function DoctorProfilePage() {
                   {days7.map((d) => {
                     const date = new Date(d + "T00:00:00");
                     const dayName = DAY_NAMES[date.getDay()];
+                    const operates = dayOperates(d);
                     const hasSessionOnDay = currentLocation?.sessions?.some((s) => s.day === dayName);
 
                     return (
                       <button
                         key={d}
+                        type="button"
+                        disabled={!operates}
+                        aria-disabled={!operates}
                         onClick={() => {
                           setSelectedDate(d);
                           setSelectedSlot(null);
@@ -716,19 +789,27 @@ export default function DoctorProfilePage() {
                         className={`shrink-0 flex flex-col items-center py-2.5 px-3 rounded-2xl text-xs transition-all min-w-[54px] ${
                           selectedDate === d
                             ? "bg-indigo-600 text-white font-extrabold shadow-md shadow-indigo-500/20 scale-105"
-                            : hasSessionOnDay
-                            ? "border border-teal-300 dark:border-teal-800 bg-teal-50/50 dark:bg-teal-950/30 text-slate-800 dark:text-zinc-200 hover:border-indigo-400"
-                            : "border border-slate-200 dark:border-zinc-800 text-slate-500 dark:text-zinc-400 hover:border-indigo-400"
+                            : operates
+                            ? hasSessionOnDay
+                              ? "border border-teal-300 dark:border-teal-800 bg-teal-50/50 dark:bg-teal-950/30 text-slate-800 dark:text-zinc-200 hover:border-indigo-400"
+                              : "border border-slate-200 dark:border-zinc-800 text-slate-500 dark:text-zinc-400 hover:border-indigo-400"
+                            : "pointer-events-none opacity-40 bg-slate-100 dark:bg-zinc-800/70 border border-slate-200 dark:border-zinc-800 text-slate-500 dark:text-zinc-400"
                         }`}
                       >
                         <span className="font-bold">{date.toLocaleDateString("en-US", { weekday: "short" })}</span>
                         <span className="text-sm font-black">{date.getDate()}</span>
-                        {hasSessionOnDay && (
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full mt-1 ${
-                              selectedDate === d ? "bg-white" : "bg-teal-500"
-                            }`}
-                          />
+                        {!operates ? (
+                          <span className="text-[8px] font-black uppercase tracking-wider mt-1 text-slate-400 dark:text-zinc-500">
+                            Closed
+                          </span>
+                        ) : (
+                          hasSessionOnDay && (
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full mt-1 ${
+                                selectedDate === d ? "bg-white" : "bg-teal-500"
+                              }`}
+                            />
+                          )
                         )}
                       </button>
                     );
@@ -745,7 +826,11 @@ export default function DoctorProfilePage() {
                   <span className="text-[11px] text-slate-400 font-medium">({doctor.slotDuration || 20} mins)</span>
                 </div>
 
-                {slotsLoading ? (
+                {!dayOperates(selectedDate) ? (
+                  <div className="text-center py-5 text-slate-400 dark:text-zinc-500 text-xs font-semibold rounded-2xl border border-dashed border-slate-200 dark:border-zinc-800 bg-slate-50/60 dark:bg-zinc-900/40">
+                    🚪 This {locationType.toLowerCase()} is closed on {dayNameFor(selectedDate)}. Select a highlighted day to see its time slots.
+                  </div>
+                ) : slotsLoading ? (
                   <div className="text-center py-6 text-slate-400 text-xs font-semibold">Loading availability…</div>
                 ) : dynamicSlotTimes.length === 0 ? (
                   <div className="text-center py-5 text-slate-400 dark:text-zinc-500 text-xs font-semibold">
