@@ -110,7 +110,9 @@ export const listDoctors = async (req, res) => {
     const enriched = doctors.map((doc) => ({
       ...doc,
       profilePicUrl: doc.profilePicUrl ? getFileUrl(doc.profilePicUrl) : "",
-      avgRating: statsMap[String(doc._id)]?.avgRating?.toFixed(1) ?? null,
+      avgRating: statsMap[String(doc._id)]?.avgRating != null
+        ? Math.round(statsMap[String(doc._id)].avgRating * 10) / 10
+        : null,
       reviewCount: statsMap[String(doc._id)]?.reviewCount ?? 0,
     }));
 
@@ -159,7 +161,9 @@ export const getDoctorProfile = async (req, res) => {
       doctor: {
         ...doctor,
         profilePicUrl: doctor.profilePicUrl ? getFileUrl(doctor.profilePicUrl) : "",
-        avgRating: statsResult?.avgRating?.toFixed(1) ?? null,
+        avgRating: statsResult?.avgRating != null
+          ? Math.round(statsResult.avgRating * 10) / 10
+          : null,
         reviewCount: statsResult?.reviewCount ?? 0,
       },
     });

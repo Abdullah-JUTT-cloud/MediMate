@@ -435,7 +435,7 @@ export default function DoctorProfilePage() {
                     <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-zinc-800">
                       <StarRating value={doctor.avgRating} />
                       <span className="text-xs font-bold text-slate-700 dark:text-zinc-200">
-                        {doctor.avgRating.toFixed(1)}
+                        {Number(doctor.avgRating).toFixed(1)}
                       </span>
                       <span className="text-xs text-slate-400">({doctor.reviewCount} patient reviews)</span>
                     </div>
