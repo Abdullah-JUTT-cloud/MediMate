@@ -335,6 +335,10 @@ export default function OnlineBookingsPage() {
   // Approval Modal state
   const [approvingBooking, setApprovingBooking] = useState(null);
   const [checkupPrice, setCheckupPrice] = useState("1000");
+  // "Pay at consultation" — approve the booking without a final price; the
+  // doctor sets the fee at the visit (the online advance is already tracked
+  // via the payment proof).
+  const [payAtConsultation, setPayAtConsultation] = useState(false);
 
   // Rejection Modal state
   const [rejectingBooking, setRejectingBooking] = useState(null);
@@ -371,6 +375,7 @@ export default function OnlineBookingsPage() {
   const openApproveModal = (booking) => {
     setApprovingBooking(booking);
     setCheckupPrice(String(booking.consultationFee || 1000));
+    setPayAtConsultation(false);
   };
 
   const handleConfirmApprove = async () => {
@@ -378,17 +383,23 @@ export default function OnlineBookingsPage() {
     const id = approvingBooking._id;
     const priceNum = Number(checkupPrice);
 
-    if (isNaN(priceNum) || priceNum < 0) {
+    // With "Pay at consultation" ON the fee is not known yet — no price is
+    // required and none is sent.
+    if (!payAtConsultation && (isNaN(priceNum) || priceNum < 0)) {
       return toast.error("Please enter a valid checkup price");
     }
 
     setActioning(id);
     try {
       await axiosInstance.patch(`/appointments/${id}/approve-online`, {
-        checkupPrice: priceNum,
+        ...(payAtConsultation
+          ? { payAtConsultation: true }
+          : { checkupPrice: priceNum }),
       });
       toast.success(
-        `Appointment approved! Consultation fee (Rs ${priceNum.toLocaleString()}) logged to Revenue & Queue.`
+        payAtConsultation
+          ? "Appointment approved! The doctor will set the fee at consultation."
+          : `Appointment approved! Consultation fee (Rs ${priceNum.toLocaleString()}) logged to Revenue & Queue.`
       );
       setBookings((prev) =>
         prev.map((b) =>
@@ -397,7 +408,10 @@ export default function OnlineBookingsPage() {
                 ...b,
                 awaitingOnlineApproval: false,
                 status: "Confirmed",
-                consultationFee: priceNum,
+                // Deferred fee: the price is not known yet — clear the
+                // pre-populated booking fee so no stale price is displayed.
+                consultationFee: payAtConsultation ? 0 : priceNum,
+                payAtConsultation,
               }
             : b
         )
@@ -597,7 +611,9 @@ export default function OnlineBookingsPage() {
               Approve Online Booking
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-              Specify the checkup consultation price. Approving will register the patient and log this payment to the Doctor Queue and Revenue ledger.
+              {payAtConsultation
+                ? "Confirming the booking only — the doctor will set the final fee at consultation. The patient's online advance is already recorded and will be applied to the bill."
+                : "Specify the checkup consultation price. Approving will register the patient and log this payment to the Doctor Queue and Revenue ledger."}
             </p>
 
             <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-xl text-xs space-y-1.5 mb-4 border border-slate-200 dark:border-slate-700">
@@ -627,11 +643,44 @@ export default function OnlineBookingsPage() {
               </p>
             </div>
 
+            {/* Charge timing toggle */}
+            <div
+              role="group"
+              aria-label="When to charge the consultation fee"
+              className="inline-flex w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-1 mb-4"
+            >
+              <button
+                type="button"
+                onClick={() => setPayAtConsultation(false)}
+                aria-pressed={!payAtConsultation}
+                className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold transition-colors ${
+                  !payAtConsultation
+                    ? "bg-emerald-600 text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
+                }`}
+              >
+                Set fee now
+              </button>
+              <button
+                type="button"
+                onClick={() => setPayAtConsultation(true)}
+                aria-pressed={payAtConsultation}
+                className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold transition-colors ${
+                  payAtConsultation
+                    ? "bg-emerald-600 text-white shadow-sm"
+                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
+                }`}
+              >
+                Pay at consultation
+              </button>
+            </div>
+
             <div className="mb-5">
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1.5">
-                Checkup Consultation Fee (PKR) *
+                Checkup Consultation Fee (PKR)
+                {!payAtConsultation && " *"}
               </label>
-              <div className="relative">
+              <div className={`relative ${payAtConsultation ? "opacity-50" : ""}`}>
                 <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-bold text-sm">
                   Rs
                 </span>
@@ -641,12 +690,15 @@ export default function OnlineBookingsPage() {
                   step="100"
                   value={checkupPrice}
                   onChange={(e) => setCheckupPrice(e.target.value)}
-                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 pl-10 pr-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                  placeholder="e.g. 1500"
+                  disabled={payAtConsultation}
+                  className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 pl-10 pr-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100 dark:disabled:bg-slate-800"
+                  placeholder={payAtConsultation ? "Set at consultation" : "e.g. 1500"}
                 />
               </div>
               <p className="text-[11px] text-slate-400 mt-1">
-                Doctor can adjust consultation charge as needed.
+                {payAtConsultation
+                  ? "You're only confirming the booking — the doctor sets the final price at the visit."
+                  : "Doctor can adjust consultation charge as needed."}
               </p>
             </div>
 

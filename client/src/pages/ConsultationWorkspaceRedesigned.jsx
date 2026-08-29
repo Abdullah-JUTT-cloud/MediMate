@@ -16,6 +16,7 @@ import {
   ChevronDown,
   ChevronUp,
   Sparkles,
+  DollarSign,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
@@ -309,8 +310,16 @@ export default function ConsultationWorkspaceRedesigned({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState({});
   const [expandedHistory, setExpandedHistory] = useState({});
+  // "Pay at consultation" appointments: the fee was deferred, so the doctor
+  // enters the TOTAL final fee (plus optional discount) right here. The
+  // remaining balance after the online advance is computed automatically.
+  const [deferredFee, setDeferredFee] = useState("");
+  const [deferredDiscount, setDeferredDiscount] = useState("0");
 
-  // Reset form when appointment changes or drawer opens
+  // Reset form when appointment changes or drawer opens.
+  // (Deps are intentionally [isOpen, appointment?._id]: prefill reads the
+  // stored fee once at open — tracking the fee fields would wipe the
+  // doctor's in-progress input if the queue re-fetches the appointment.)
   useEffect(() => {
     if (isOpen) {
       setDiseases("");
@@ -324,7 +333,17 @@ export default function ConsultationWorkspaceRedesigned({
       setNextAppointment("");
       setFormErrors({});
       setExpandedHistory({});
+      // Pre-fill a previously stored fee (e.g. re-opened before save) but
+      // never a zero — the fee input is required for deferred visits.
+      const storedFee = Number(appointment?.standardFee || 0);
+      setDeferredFee(storedFee > 0 ? String(storedFee) : "");
+      setDeferredDiscount(
+        Number(appointment?.discountAmount || 0) > 0
+          ? String(appointment?.discountAmount)
+          : "0",
+      );
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, appointment?._id]);
 
   // Lock body scroll when open and handle Escape key
@@ -347,7 +366,9 @@ export default function ConsultationWorkspaceRedesigned({
     };
   }, [isOpen, onClose]);
 
-  // Upfront consultation fees are locked at check-in/booking
+  // Upfront consultation fees are locked at check-in/booking — EXCEPT when
+  // the fee was deferred ("pay at consultation"), in which case the editable
+  // section below replaces this read-only derivation.
   const originalFee = useMemo(() => {
     const fee = Number(
       appointment?.originalFee ??
@@ -367,6 +388,21 @@ export default function ConsultationWorkspaceRedesigned({
     const net = Number(appointment?.netAmount ?? (originalFee - discountAmount));
     return Number.isFinite(net) ? Math.max(0, net) : Math.max(0, originalFee - discountAmount);
   }, [appointment, originalFee, discountAmount]);
+
+  // ── Deferred ("pay at consultation") fee entry ────────────────────────────
+  // The doctor enters the TOTAL final fee (e.g. 1000) plus an optional
+  // discount. For online bookings the advance was already collected, so the
+  // amount collected now is:
+  //   netAmount = max(0, standardFee - discountAmount - advanceAmountPaid)
+  // (advanceAmountPaid is 0 for plain walk-ins → standardFee - discountAmount)
+  const isDeferredFee = appointment?.payAtConsultation === true;
+  const advanceAmountPaid = Number(appointment?.advanceAmountPaid || 0);
+  const deferredFeeNum = Number(deferredFee);
+  const deferredDiscountNum = Number(deferredDiscount || 0);
+  const deferredNet =
+    Number.isFinite(deferredFeeNum) && Number.isFinite(deferredDiscountNum)
+      ? Math.max(0, deferredFeeNum - deferredDiscountNum - advanceAmountPaid)
+      : 0;
 
   // Helper to add preset to comma-separated field
   const appendQuickItem = (setter, currentVal, item) => {
@@ -452,6 +488,22 @@ export default function ConsultationWorkspaceRedesigned({
       }
     }
 
+    // Deferred fee: required before checkout for pay-at-consultation visits.
+    if (isDeferredFee) {
+      if (deferredFee === "" || !Number.isFinite(deferredFeeNum) || deferredFeeNum < 0) {
+        errors.deferredFee = "Enter the consultation fee";
+      }
+      if (!Number.isFinite(deferredDiscountNum) || deferredDiscountNum < 0) {
+        errors.deferredDiscount = "Enter a valid discount amount";
+      } else if (
+        deferredFee !== "" &&
+        Number.isFinite(deferredFeeNum) &&
+        deferredDiscountNum > deferredFeeNum
+      ) {
+        errors.deferredDiscount = "Discount cannot be larger than the consultation fee";
+      }
+    }
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -460,6 +512,21 @@ export default function ConsultationWorkspaceRedesigned({
     if (!validateForm()) {
       if (!diagnosis.trim()) {
         toast.error("Diagnosis is required before saving prescription");
+      } else if (
+        isDeferredFee &&
+        (deferredFee === "" || !Number.isFinite(deferredFeeNum) || deferredFeeNum < 0)
+      ) {
+        toast.error("Enter the consultation fee before saving the checkup");
+      } else if (
+        isDeferredFee &&
+        (!Number.isFinite(deferredDiscountNum) || deferredDiscountNum < 0)
+      ) {
+        toast.error("Enter a valid discount amount");
+      } else if (
+        isDeferredFee &&
+        deferredDiscountNum > deferredFeeNum
+      ) {
+        toast.error("Discount cannot be larger than the consultation fee");
       } else {
         toast.error(
           "Please fill in all required fields (Name, Dosage, Frequency, Duration) for every prescribed medicine",
@@ -497,17 +564,34 @@ export default function ConsultationWorkspaceRedesigned({
           patientAdvice: patientAdvice.trim(),
           nextAppointment: nextAppointment || undefined,
         },
-        payment: {
-          amount: netConsultationFee,
-          originalFee,
-          discountAmount,
-          discount: discountAmount,
-          netAmount: netConsultationFee,
-          ancillaryFee: 0,
-          description: "Consultation & Prescription",
-          method: appointment?.paymentMethod || "Cash",
-          isPaid: true,
-        },
+        // Deferred fee: send the TOTAL final fee (originalFee/standardFee)
+        // plus the raw discount. The backend re-derives netAmount with the
+        // shared formula (subtracting the online advance) and creates the
+        // Payment record for the first time — nothing here pre-subtracts.
+        payment: isDeferredFee
+          ? {
+              amount: deferredNet,
+              originalFee: deferredFeeNum,
+              standardFee: deferredFeeNum,
+              discountAmount: deferredDiscountNum,
+              discount: deferredDiscountNum,
+              netAmount: deferredNet,
+              ancillaryFee: 0,
+              description: "Consultation & Prescription",
+              method: appointment?.paymentMethod || "Cash",
+              isPaid: true,
+            }
+          : {
+              amount: netConsultationFee,
+              originalFee,
+              discountAmount,
+              discount: discountAmount,
+              netAmount: netConsultationFee,
+              ancillaryFee: 0,
+              description: "Consultation & Prescription",
+              method: appointment?.paymentMethod || "Cash",
+              isPaid: true,
+            },
         labFee: 0,
       };
 
@@ -1084,6 +1168,110 @@ export default function ConsultationWorkspaceRedesigned({
                   </div>
                 </div>
               </div>
+
+              {/* Module 5: Consultation Fee — ONLY for deferred ("pay at
+                  consultation") visits. Non-deferred visits keep the locked
+                  read-only fee behavior (values shown in the header pill). */}
+              {isDeferredFee && (
+                <div className="bg-white border border-teal-200 dark:border-teal-800 rounded-xl p-4 shadow-sm">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+                    <div className="flex items-center gap-2">
+                      <DollarSign size={17} className="text-teal-600" />
+                      <span className="text-xs font-bold text-teal-600 uppercase tracking-wider">
+                        Consultation Fee
+                      </span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                        (pay at consultation)
+                      </span>
+                    </div>
+                    <span className="text-xs text-rose-500 font-semibold">
+                      * Required
+                    </span>
+                  </div>
+
+                  {advanceAmountPaid > 0 && (
+                    <div className="mb-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-3 flex items-start gap-2">
+                      <span className="shrink-0 text-base leading-5">💡</span>
+                      <p className="text-xs font-semibold text-amber-800 dark:text-amber-200 leading-relaxed">
+                        Patient already paid Rs. {advanceAmountPaid.toLocaleString()} online —
+                        enter the total fee, the remaining balance will be
+                        calculated automatically.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className={FIELD_LABEL_CLASS} htmlFor="deferred-fee">
+                        Consultation Fee (Rs.) <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        id="deferred-fee"
+                        type="number"
+                        min="0"
+                        inputMode="numeric"
+                        value={deferredFee}
+                        onChange={(e) => {
+                          setDeferredFee(e.target.value);
+                          if (formErrors.deferredFee) {
+                            setFormErrors((prev) => ({ ...prev, deferredFee: null }));
+                          }
+                        }}
+                        placeholder="e.g. 1000"
+                        className={`w-full bg-white border text-slate-900 text-sm rounded-lg p-3 outline-none placeholder:text-slate-400 font-normal transition-all ${
+                          formErrors.deferredFee
+                            ? "border-rose-500 ring-1 ring-rose-500/10"
+                            : "border-slate-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10"
+                        }`}
+                      />
+                      {formErrors.deferredFee && (
+                        <p className="text-xs font-bold text-rose-500 mt-1 flex items-center gap-1">
+                          <AlertCircle size={13} /> {formErrors.deferredFee}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className={FIELD_LABEL_CLASS} htmlFor="deferred-discount">
+                        Discount (Rs.)
+                      </label>
+                      <input
+                        id="deferred-discount"
+                        type="number"
+                        min="0"
+                        inputMode="numeric"
+                        value={deferredDiscount}
+                        onChange={(e) => {
+                          setDeferredDiscount(e.target.value);
+                          if (formErrors.deferredDiscount) {
+                            setFormErrors((prev) => ({ ...prev, deferredDiscount: null }));
+                          }
+                        }}
+                        placeholder="0"
+                        className={`w-full bg-white border text-slate-900 text-sm rounded-lg p-3 outline-none placeholder:text-slate-400 font-normal transition-all ${
+                          formErrors.deferredDiscount
+                            ? "border-rose-500 ring-1 ring-rose-500/10"
+                            : "border-slate-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10"
+                        }`}
+                      />
+                      {formErrors.deferredDiscount && (
+                        <p className="text-xs font-bold text-rose-500 mt-1 flex items-center gap-1">
+                          <AlertCircle size={13} /> {formErrors.deferredDiscount}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between rounded-lg border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-950/40 px-4 py-3">
+                    <span className="text-xs font-bold uppercase tracking-wider text-teal-700 dark:text-teal-300">
+                      Collected now
+                      {advanceAmountPaid > 0 ? " (balance)" : ""}
+                    </span>
+                    <span className="text-base font-extrabold text-teal-800 dark:text-teal-200">
+                      Rs. {deferredNet.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Bottom spacing */}
               <div className="h-6" />

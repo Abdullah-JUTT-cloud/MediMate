@@ -29,6 +29,14 @@ const checkupSchema = new mongoose.Schema(
       ref: "Doctor",
       required: true,
     },
+    // Links the checkup back to the appointment it closed (set by
+    // completeCheckup). Null for standalone history entries created via
+    // addCheckup. Lets Payments-page edits upsert the linked Payment record.
+    appointmentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Appointment",
+      default: null,
+    },
     diseases: {
       type: [{ type: String, trim: true, maxlength: 120 }],
       default: [],
@@ -90,6 +98,7 @@ const checkupSchema = new mongoose.Schema(
 
 // Compound indexes for all hot query paths
 checkupSchema.index({ patient: 1, doctor: 1, createdAt: -1 });
+checkupSchema.index({ appointmentId: 1 });
 checkupSchema.index({ doctor: 1, createdAt: -1 });
 checkupSchema.index({ doctor: 1, "prescription.pdfUrl": 1 });
 
