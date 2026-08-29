@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   X,
   Plus,
@@ -315,38 +315,287 @@ export default function ConsultationWorkspaceRedesigned({
   // remaining balance after the online advance is computed automatically.
   const [deferredFee, setDeferredFee] = useState("");
   const [deferredDiscount, setDeferredDiscount] = useState("0");
+  // Draft auto-save: snapshot of the form fields captured on open (or after
+  // the reset-on-open effect runs). Used to diff against current values so
+  // the close prompt only appears when something actually changed.
+  // The ref is a plain JS object — a snapshot, not reactive — so writes
+  // here don't trigger a re-render.
+  const baselineSnapshotRef = useRef(null);
+  // True while the "Save changes / Discard changes" confirmation is open.
+  // When the dialog is open, Escape/overlay click must NOT bypass the
+  // prompt and close the panel — that would be data loss.
+  const [closePromptOpen, setClosePromptOpen] = useState(false);
+  // Saving-during-discard state (Save changes path on the close prompt).
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
 
   // Reset form when appointment changes or drawer opens.
   // (Deps are intentionally [isOpen, appointment?._id]: prefill reads the
   // stored fee once at open — tracking the fee fields would wipe the
   // doctor's in-progress input if the queue re-fetches the appointment.)
+  //
+  // Draft resume: if a draft snapshot exists on the appointment, populate
+  // every form field from it so the doctor picks up exactly where they
+  // left off. If there is no draft, fall back to today's blank defaults.
+  //
+  // After computing the loaded values, capture them as the "baseline" for
+  // the close-prompt dirty check — same snapshot, written into the ref
+  // synchronously here so the very next render can diff against it (the
+  // setState calls below are async and would otherwise race the diff).
   useEffect(() => {
     if (isOpen) {
-      setDiseases("");
-      setNotes("");
-      setDiagnosis("");
-      setMedicines([
-        { name: "", dosage: "", frequency: "", duration: "", instructions: "" },
-      ]);
-      setLabTests("");
-      setPatientAdvice("");
-      setNextAppointment("");
+      const draft = appointment?.draftCheckup;
+      const hasDraft =
+        draft && typeof draft === "object" && !Array.isArray(draft);
+
+      const fromDraftString = (value, fallback = "") =>
+        typeof value === "string" ? value : fallback;
+
+      // Always start from a clean default so a partial/broken draft cannot
+      // leave stale values in the form.
+      const nextDiseases = fromDraftString(hasDraft ? draft.diseases : "");
+      const nextNotes = fromDraftString(hasDraft ? draft.notes : "");
+      const nextDiagnosis = fromDraftString(hasDraft ? draft.diagnosis : "");
+      const nextLabTests = fromDraftString(hasDraft ? draft.labTests : "");
+      const nextPatientAdvice = fromDraftString(
+        hasDraft ? draft.patientAdvice : "",
+      );
+      const nextNextAppointment = fromDraftString(
+        hasDraft ? draft.nextAppointment : "",
+      );
+
+      // Medicines: the draft keeps the same row shape (incl. the empty
+      // placeholder row), so restore verbatim. If the draft is missing or
+      // malformed, start with a single blank row — same as before.
+      let nextMedicines;
+      if (
+        hasDraft &&
+        Array.isArray(draft.medicines) &&
+        draft.medicines.length > 0 &&
+        draft.medicines.every(
+          (m) =>
+            m &&
+            typeof m === "object" &&
+            "name" in m &&
+            "dosage" in m &&
+            "frequency" in m &&
+            "duration" in m,
+        )
+      ) {
+        nextMedicines = draft.medicines.map((m) => ({
+          name: typeof m.name === "string" ? m.name : "",
+          dosage: typeof m.dosage === "string" ? m.dosage : "",
+          frequency: typeof m.frequency === "string" ? m.frequency : "",
+          duration: typeof m.duration === "string" ? m.duration : "",
+          instructions: typeof m.instructions === "string" ? m.instructions : "",
+        }));
+      } else {
+        nextMedicines = [
+          { name: "", dosage: "", frequency: "", duration: "", instructions: "" },
+        ];
+      }
+
+      // Deferred fee: pre-fill from the draft when present (and the visit
+      // is a deferred-fee visit) — otherwise fall back to whatever was
+      // stored on the appointment from booking. Never a zero — the fee
+      // input is required for deferred visits.
+      let nextDeferredFee;
+      if (hasDraft && typeof draft.deferredFee === "string") {
+        nextDeferredFee = draft.deferredFee;
+      } else {
+        const storedFee = Number(appointment?.standardFee || 0);
+        nextDeferredFee = storedFee > 0 ? String(storedFee) : "";
+      }
+      let nextDeferredDiscount;
+      if (hasDraft && typeof draft.deferredDiscount === "string") {
+        nextDeferredDiscount = draft.deferredDiscount;
+      } else {
+        nextDeferredDiscount =
+          Number(appointment?.discountAmount || 0) > 0
+            ? String(appointment?.discountAmount)
+            : "0";
+      }
+
+      setDiseases(nextDiseases);
+      setNotes(nextNotes);
+      setDiagnosis(nextDiagnosis);
+      setLabTests(nextLabTests);
+      setPatientAdvice(nextPatientAdvice);
+      setNextAppointment(nextNextAppointment);
+      setMedicines(nextMedicines);
+      setDeferredFee(nextDeferredFee);
+      setDeferredDiscount(nextDeferredDiscount);
       setFormErrors({});
       setExpandedHistory({});
-      // Pre-fill a previously stored fee (e.g. re-opened before save) but
-      // never a zero — the fee input is required for deferred visits.
-      const storedFee = Number(appointment?.standardFee || 0);
-      setDeferredFee(storedFee > 0 ? String(storedFee) : "");
-      setDeferredDiscount(
-        Number(appointment?.discountAmount || 0) > 0
-          ? String(appointment?.discountAmount)
-          : "0",
-      );
+      setClosePromptOpen(false);
+
+      // Capture the baseline synchronously from the SAME values we just
+      // queued into state. The ref must reflect the loaded view, not the
+      // pre-load (always-blank) state, so the first dirty-check is
+      // immediately accurate.
+      baselineSnapshotRef.current = {
+        diseases: nextDiseases,
+        notes: nextNotes,
+        diagnosis: nextDiagnosis,
+        medicines: JSON.parse(JSON.stringify(nextMedicines)),
+        labTests: nextLabTests,
+        patientAdvice: nextPatientAdvice,
+        nextAppointment: nextNextAppointment,
+        deferredFee: nextDeferredFee,
+        deferredDiscount: nextDeferredDiscount,
+      };
+    } else {
+      baselineSnapshotRef.current = null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, appointment?._id]);
 
-  // Lock body scroll when open and handle Escape key
+  // === Draft auto-save: close-prompt dirty check + save/discard handlers ===
+  // Defined here (BEFORE the body-scroll useEffect below) so the
+  // listener can read the latest `requestClose` from the ref without
+  // hitting a temporal-dead-zone reference. The body-scroll effect
+  // depends on `requestCloseRef.current` (a stable ref) instead of
+  // `requestClose` (a fresh function each render), so it only re-binds
+  // when `isOpen` / `onClose` change — not on every state update.
+
+  // Captures the current form state into a plain JS object so the
+  // baseline ref (also a plain JS object) can be diffed against it.
+  // `JSON.parse(JSON.stringify(...))` on medicines is intentional — the
+  // baseline is a deep copy taken at load time, so a later reference
+  // comparison would always say "dirty" for an array that was only
+  // reseated (not edited).
+  const buildCurrentSnapshot = () => ({
+    diseases,
+    notes,
+    diagnosis,
+    medicines: JSON.parse(JSON.stringify(medicines)),
+    labTests,
+    patientAdvice,
+    nextAppointment,
+    deferredFee,
+    deferredDiscount,
+  });
+
+  // Diff the current form state against the baseline. Returns true if any
+  // field changed. Medicines are compared row-by-row (after stringify
+  // normalization) so re-ordering the array would NOT mark dirty — only
+  // a real edit would.
+  const isDirty = () => {
+    const baseline = baselineSnapshotRef.current;
+    if (!baseline) return false;
+    const current = buildCurrentSnapshot();
+    const keys = [
+      "diseases",
+      "notes",
+      "diagnosis",
+      "labTests",
+      "patientAdvice",
+      "nextAppointment",
+      "deferredFee",
+      "deferredDiscount",
+    ];
+    for (const key of keys) {
+      if (current[key] !== baseline[key]) return true;
+    }
+    if (current.medicines.length !== baseline.medicines.length) return true;
+    for (let i = 0; i < current.medicines.length; i += 1) {
+      const a = current.medicines[i];
+      const b = baseline.medicines[i];
+      if (
+        a.name !== b.name ||
+        a.dosage !== b.dosage ||
+        a.frequency !== b.frequency ||
+        a.duration !== b.duration ||
+        a.instructions !== b.instructions
+      ) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  // Persist the current form as a draft snapshot on the appointment, then
+  // close. Used by the "Save changes" branch of the close prompt. Errors
+  // are surfaced as a toast — the dialog stays open so the doctor can
+  // retry or fall back to "Discard changes".
+  const persistDraftAndClose = async () => {
+    if (!appointment?._id) {
+      onClose?.();
+      return;
+    }
+    setIsSavingDraft(true);
+    try {
+      const snapshot = buildCurrentSnapshot();
+      await axiosInstance.put(`/appointments/${appointment._id}`, {
+        draftCheckup: {
+          diseases: snapshot.diseases,
+          notes: snapshot.notes,
+          diagnosis: snapshot.diagnosis,
+          medicines: snapshot.medicines,
+          labTests: snapshot.labTests,
+          patientAdvice: snapshot.patientAdvice,
+          nextAppointment: snapshot.nextAppointment,
+          deferredFee: snapshot.deferredFee,
+          deferredDiscount: snapshot.deferredDiscount,
+        },
+        draftSavedAt: new Date().toISOString(),
+      });
+      toast.success("Draft saved.");
+      // The ref is intentionally NOT updated: the panel is closing, and
+      // the next open will reload the freshly-saved draft from the
+      // server (which is the source of truth).
+      setClosePromptOpen(false);
+      onClose?.();
+    } catch (err) {
+      toast.error(
+        err.response?.data?.message || "Failed to save draft. Please try again.",
+      );
+    } finally {
+      setIsSavingDraft(false);
+    }
+  };
+
+  // Discard path: just close. Matches today's "Cancel" behavior exactly
+  // when the doctor has nothing to lose. The dirty state is intentionally
+  // not re-baselined because the panel is going away.
+  const discardAndClose = () => {
+    setClosePromptOpen(false);
+    onClose?.();
+  };
+
+  // Centralized close handler — replaces the previous onClose on every
+  // close affordance (X button, backdrop click, Cancel button, Escape).
+  // When the form is dirty, it opens the save/discard dialog instead of
+  // closing. The `force` option is used by the consultation-complete
+  // success path, which has already persisted everything and must close
+  // immediately without re-prompting.
+  //
+  // A ref mirrors the latest version of this function so the body-scroll
+  // Escape listener (which is bound ONCE per `[isOpen, onClose]` change
+  // for performance) can always call the current closure.
+  const requestCloseRef = useRef(null);
+  const requestClose = (options = {}) => {
+    if (requestCloseRef.current) requestCloseRef.current(options);
+  };
+  requestCloseRef.current = (options = {}) => {
+    if (options.force) {
+      setClosePromptOpen(false);
+      onClose?.();
+      return;
+    }
+    if (isDirty()) {
+      setClosePromptOpen(true);
+      return;
+    }
+    setClosePromptOpen(false);
+    onClose?.();
+  };
+
+  // Lock body scroll when open and handle Escape key. Escape routes
+  // through `requestCloseRef.current` (a stable ref that always points
+  // at the latest `requestClose`) so unsaved changes prompt instead of
+  // closing silently — same as the X button and the Cancel button.
+  // While the close-prompt dialog is open, Escape is swallowed (the
+  // dialog's own X / overlay click is the "cancel the prompt" path).
   useEffect(() => {
     if (!isOpen) return;
 
@@ -355,7 +604,8 @@ export default function ConsultationWorkspaceRedesigned({
 
     const handleKeyDown = (e) => {
       if (e.key === "Escape") {
-        onClose?.();
+        if (closePromptOpenRef.current) return;
+        requestCloseRef.current?.();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -365,6 +615,14 @@ export default function ConsultationWorkspaceRedesigned({
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isOpen, onClose]);
+
+  // Mirror the closePromptOpen state into a ref so the body-scroll effect's
+  // Escape handler can check the current value without re-binding the
+  // listener on every prompt open/close (which would be a no-op churn).
+  const closePromptOpenRef = useRef(false);
+  useEffect(() => {
+    closePromptOpenRef.current = closePromptOpen;
+  }, [closePromptOpen]);
 
   // Upfront consultation fees are locked at check-in/booking — EXCEPT when
   // the fee was deferred ("pay at consultation"), in which case the editable
@@ -597,7 +855,10 @@ export default function ConsultationWorkspaceRedesigned({
 
       await axiosInstance.post("/checkups/complete", payload);
       toast.success("Consultation saved & WhatsApp prescription dispatched!");
-      onClose?.();
+      // `force: true` skips the dirty-check — the consultation is
+      // already persisted, the draft is already cleared server-side, and
+      // re-prompting now would be a false positive.
+      requestClose({ force: true });
       onCheckupComplete?.();
     } catch (err) {
       toast.error(
@@ -621,10 +882,11 @@ export default function ConsultationWorkspaceRedesigned({
       aria-labelledby="workspace-heading"
       className="fixed inset-x-0 top-0 z-50 flex h-[100dvh] flex-col overflow-hidden"
     >
-      {/* Light overlay backdrop */}
+      {/* Light overlay backdrop — close affordance routes through
+          `requestClose` so the unsaved-changes prompt shows if dirty. */}
       <div
         className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
+        onClick={requestClose}
       />
 
       {/* Main container - clean, modern clinical workspace */}
@@ -724,10 +986,11 @@ export default function ConsultationWorkspaceRedesigned({
                 )}
               </div>
 
-              {/* Close Button */}
+              {/* Close Button — routes through requestClose so the
+                  unsaved-changes prompt appears if anything is dirty. */}
               <button
                 type="button"
-                onClick={onClose}
+                onClick={requestClose}
                 aria-label="Close consultation workspace"
                 className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-1 text-xs font-semibold"
               >
@@ -1144,7 +1407,7 @@ export default function ConsultationWorkspaceRedesigned({
                         min={todayFormatted}
                         value={nextAppointment}
                         onChange={(e) => setNextAppointment(e.target.value)}
-                        className="w-full bg-white border border-slate-200 text-slate-900 text-sm rounded-lg p-3 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10 outline-none transition-all [color-scheme:dark]"
+                        className="w-full bg-white border border-slate-200 text-slate-900 text-sm rounded-lg p-3 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10 outline-none transition-all [color-scheme:light] dark:[color-scheme:dark]"
                       />
                     </div>
                     {/* Quick follow-up buttons */}
@@ -1289,7 +1552,7 @@ export default function ConsultationWorkspaceRedesigned({
                 <div className="flex items-stretch gap-3 w-full sm:w-auto">
                   <button
                     type="button"
-                    onClick={onClose}
+                    onClick={requestClose}
                     className="flex-1 sm:flex-initial min-h-[44px] px-5 py-3.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 font-bold text-sm transition-colors"
                   >
                     Cancel
@@ -1323,6 +1586,92 @@ export default function ConsultationWorkspaceRedesigned({
           </section>
         </div>
       </div>
+
+      {/* =========================================================================
+          UNSAVED-CHANGES PROMPT
+          Two-button dialog (Save changes / Discard changes). Renders ABOVE the
+          panel (z-60 vs panel z-50) so the dark backdrop covers the panel and
+          the doctor can't edit underneath. The "Cancel" affordance on this
+          dialog is the X / overlay click / Escape — each closes the dialog
+          without saving, so the doctor can keep editing.
+         ========================================================================= */}
+      {closePromptOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="unsaved-prompt-title"
+          aria-describedby="unsaved-prompt-message"
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+          onKeyDown={(e) => {
+            // Cancel-the-prompt affordance: pressing Escape while the
+            // prompt is open should close the prompt and put the doctor
+            // back into editing, NOT close the panel. The body-scroll
+            // effect's Escape listener deliberately no-ops while the
+            // prompt is open (it checks closePromptOpenRef.current), so
+            // this handler is the one that must respond.
+            if (e.key === "Escape") {
+              e.stopPropagation();
+              setClosePromptOpen(false);
+            }
+          }}
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/55"
+            onClick={() => setClosePromptOpen(false)}
+            aria-label="Close dialog"
+          />
+          <div className="relative w-full max-w-md rounded-2xl bg-white p-5 sm:p-6 shadow-2xl border border-slate-200">
+            <button
+              type="button"
+              onClick={() => setClosePromptOpen(false)}
+              aria-label="Close"
+              className="absolute right-3 top-3 h-8 w-8 rounded-lg text-sm font-bold text-slate-500 bg-slate-50 border border-slate-200 transition-all hover:bg-slate-100"
+            >
+              ×
+            </button>
+            <h3
+              id="unsaved-prompt-title"
+              className="pr-10 text-base sm:text-lg font-extrabold text-slate-900"
+            >
+              Save your changes?
+            </h3>
+            <p
+              id="unsaved-prompt-message"
+              className="mt-2 text-sm leading-6 text-slate-600"
+            >
+              You have unsaved edits in this consultation. Save them as a draft
+              so you can pick up where you left off, or discard them and close.
+            </p>
+            <div className="mt-6 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3">
+              <button
+                type="button"
+                onClick={discardAndClose}
+                disabled={isSavingDraft}
+                className="px-4 py-2.5 rounded-xl text-sm font-semibold text-rose-700 bg-rose-50 border border-rose-200 transition-all hover:bg-rose-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Discard changes
+              </button>
+              <button
+                type="button"
+                onClick={persistDraftAndClose}
+                disabled={isSavingDraft}
+                className="px-4 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                style={{ background: "linear-gradient(135deg, #0d9488, #0f766e)" }}
+              >
+                {isSavingDraft ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Saving…</span>
+                  </>
+                ) : (
+                  <span>Save changes</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

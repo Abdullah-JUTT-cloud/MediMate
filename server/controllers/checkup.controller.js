@@ -849,6 +849,13 @@ export const completeCheckup = async (req, res) => {
     // Update appointment queueStatus and status to COMPLETED
     appointment.queueStatus = 'COMPLETED';
     appointment.status = 'Completed';
+    // Clear any in-progress consultation draft — the visit is now done, so
+    // a stale draft would re-populate the workspace the next time it opens.
+    if (appointment.draftCheckup != null || appointment.draftSavedAt != null) {
+      appointment.draftCheckup = null;
+      appointment.draftSavedAt = null;
+      appointment.markModified("draftCheckup");
+    }
     await appointment.save();
 
     // === Review dispatch for online-booked patients ===
