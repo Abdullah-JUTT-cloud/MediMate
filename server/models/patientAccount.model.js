@@ -59,8 +59,5 @@ const patientAccountSchema = new Schema(
   { timestamps: true }
 );
 
-patientAccountSchema.index({ email: 1 });
-patientAccountSchema.index({ phone: 1 });
-
 const PatientAccount = mongoose.model("PatientAccount", patientAccountSchema);
 export default PatientAccount;
