@@ -377,6 +377,20 @@ export const updateAppointment = async (req, res) => {
       cancellationReason,
     } = req.body;
 
+    // Consultation draft auto-save: a snapshot of the in-progress form so
+    // the doctor can close the panel and resume later. Reuses this
+    // endpoint (instead of a dedicated PATCH /:id/draft) because the
+    // payload is just another field on the appointment document — none of
+    // the slot/status/cancellation logic above is touched when these
+    // fields are sent alone. The actual save is gated below so a
+    // draft-save never collides with a real status/date edit in the same
+    // request.
+    const draftCheckup = req.body.draftCheckup;
+    const draftSavedAt = req.body.draftSavedAt;
+    const hasDraftUpdate =
+      typeof draftCheckup !== "undefined" ||
+      typeof draftSavedAt !== "undefined";
+
     const appointment = await Appointment.findOne({
       doctor: req.doctorId,
       _id: id,
@@ -455,6 +469,30 @@ export const updateAppointment = async (req, res) => {
 
     if (status === "Completed" || status === "COMPLETED") {
       appointment.queueStatus = "COMPLETED";
+    }
+
+    // Consultation draft auto-save. Either:
+    //   - the explicit clear path (`draftCheckup: null` + `draftSavedAt:
+    //     null` sent by the consultation-complete handler), or
+    //   - the snapshot-save path (a draft object + a Date).
+    // `markModified` is required for Mixed subtrees so Mongoose actually
+    // persists nested changes. No slot/status side effects apply here.
+    if (hasDraftUpdate) {
+      const clearDraft =
+        draftCheckup === null &&
+        (typeof draftSavedAt === "undefined" || draftSavedAt === null);
+      if (clearDraft) {
+        appointment.draftCheckup = null;
+        appointment.draftSavedAt = null;
+      } else {
+        if (typeof draftCheckup !== "undefined") {
+          appointment.draftCheckup = draftCheckup;
+          appointment.markModified("draftCheckup");
+        }
+        if (typeof draftSavedAt !== "undefined") {
+          appointment.draftSavedAt = draftSavedAt ? new Date(draftSavedAt) : null;
+        }
+      }
     }
 
     await appointment.save();

@@ -146,6 +146,25 @@ const appointmentSchema = new mongoose.Schema({
         type: String,
         default: null,
     },
+    // === Consultation Draft Auto-Save ===
+    // Snapshot of the in-progress consultation form (diseases, notes,
+    // diagnosis, medicines, labTests, patientAdvice, nextAppointment,
+    // deferred fee) captured when the doctor clicks "Save changes" on the
+    // unsaved-changes prompt. Populated back into the workspace when the
+    // doctor next opens the appointment so they can resume where they
+    // left off. Cleared by the consultation-complete path so a finished
+    // visit never leaves a stale draft.
+    // Mixed is the right type — a draft is a free-form snapshot, NOT a
+    // validated Checkup. Doctors may save mid-typing with empty/partial
+    // rows, so applying the Checkup schema would block valid drafts.
+    draftCheckup: {
+        type: mongoose.Schema.Types.Mixed,
+        default: null,
+    },
+    draftSavedAt: {
+        type: Date,
+        default: null,
+    },
 },{timestamps:true});
 
 // Speed up hot paths for date/status dashboard queries and listing.
