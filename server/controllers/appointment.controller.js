@@ -197,6 +197,12 @@ export const createAppointment = async (req, res) => {
     // 3-per-slot capacity check entirely (unlimited emergency bookings).
     const isEmergency = req.body.isEmergency === true || req.body.isEmergency === "true";
 
+    // "Pay at consultation" deferral: the fee is not known yet (e.g. dentists
+    // can't price before the exam). Fee fields stay at their schema defaults
+    // (0) and NO Payment record is created — the consultation workspace sets
+    // the fee and creates the Payment when the visit is saved.
+    const payAtConsultation = req.body.payAtConsultation === true || req.body.payAtConsultation === "true";
+
     // Standardized payload contract: the frontend must always send the RAW
     // base price as `standardFee` and the RAW discount as `discount`. It must
     // NOT pre-subtract the discount before dispatching the request — doing so
@@ -255,10 +261,17 @@ export const createAppointment = async (req, res) => {
       );
     };
 
-    // Compute the net fee ONCE, here, from the raw standardFee/discount pair.
-    // Nothing downstream (Mongoose hooks, Payment record, aggregations) may
-    // subtract the discount again — they all just persist/read this value.
+    // Compute the net fee here from the raw standardFee/discount pair using
+    // the shared formula. Nothing downstream (Mongoose hooks, Payment record,
+    // aggregations) may subtract the discount again — they all just
+    // persist/read this value. For payAtConsultation bookings the fee is 0
+    // here; it is computed LATER at consultation save with the same formula.
     const netAmount = Math.max(0, Number(standardFee) - Number(discount || 0));
+    // Deferred bookings keep every fee field at its schema default (0) —
+    // don't store the placeholder 0 pair as if it were a real price.
+    const storedStandardFee = payAtConsultation ? 0 : standardFee;
+    const storedDiscount = payAtConsultation ? 0 : discount;
+    const storedNet = payAtConsultation ? 0 : netAmount;
 
     const appointment = new Appointment({
       patient: patientId,
@@ -271,30 +284,35 @@ export const createAppointment = async (req, res) => {
       isWalkIn: req.body.isWalkIn ?? true,
       queueStatus: req.body.queueStatus || 'WAITING',
       checkInTime: req.body.checkInTime || Date.now(),
-      consultationFee: netAmount,
-      standardFee,
-      originalFee: standardFee,
-      discountAmount: discount,
-      netAmount,
+      consultationFee: storedNet,
+      standardFee: storedStandardFee,
+      originalFee: storedStandardFee,
+      discountAmount: storedDiscount,
+      netAmount: storedNet,
+      payAtConsultation,
     });
     await appointment.save();
 
-    // Create consultation payment record immediately upon booking (upfront revenue recognized)
-    await Payment.create({
-      patientId: patientId,
-      appointmentId: appointment._id,
-      doctorId: req.doctorId,
-      category: 'CONSULTATION',
-      status: 'PAID',
-      amount: netAmount,
-      standardFee,
-      originalFee: standardFee,
-      discount,
-      discountAmount: discount,
-      netAmount,
-      description: paymentDescription,
-      method: paymentMethod
-    });
+    // Create consultation payment record immediately upon booking (upfront
+    // revenue recognized) — SKIPPED for deferred fees: there is no fee to
+    // log yet, and the record is created at consultation save instead.
+    if (!payAtConsultation) {
+      await Payment.create({
+        patientId: patientId,
+        appointmentId: appointment._id,
+        doctorId: req.doctorId,
+        category: 'CONSULTATION',
+        status: 'PAID',
+        amount: netAmount,
+        standardFee,
+        originalFee: standardFee,
+        discount,
+        discountAmount: discount,
+        netAmount,
+        description: paymentDescription,
+        method: paymentMethod
+      });
+    }
 
     const doctor = await Doctor.findById(req.doctorId);
     const { facilityName, facilityType } = resolveFacilityForPatient(
@@ -837,14 +855,20 @@ const VALID_PATIENT_GENDERS = ["Male", "Female", "Other"];
  * Confirms a pending online booking:
  *  1. Re-checks slot capacity (now counting this booking for real).
  *  2. Reconciles fees: netAmount = standardFee - discountAmount (>= 0).
+ *     With `payAtConsultation: true` the fee is deferred instead — fee
+ *     resolution is skipped entirely, fee fields are zeroed, the online
+ *     advance is stored on `advanceAmountPaid`, and no Payment record is
+ *     created (it happens at consultation save).
  *  3. Clears awaitingOnlineApproval and sets status → "Confirmed".
  *  4. Links/auto-creates the clinic-scoped Patient record (required
  *     age/gender are supplied — this previously threw a schema
  *     ValidationError and surfaced as a 500 on "Confirm Approval").
  *  5. Marks the BookingPaymentProof → APPROVED.
- *  6. Upserts the Payment record (Revenue Lab / Payments pages).
+ *  6. Upserts the Payment record (Revenue Lab / Payments pages) — skipped
+ *     for deferred fees.
  *  7. queueStatus → "WAITING" so the booking enters the active Doctor Queue.
- *  8. Sends a WhatsApp confirmation to the PatientAccount's phone.
+ *  8. Sends a WhatsApp confirmation to the PatientAccount's phone — without
+ *     a "Total Price" line when the fee is deferred.
  *
  * Re-approving a previously REJECTED booking is supported: the stale
  * cancellation/rejection state is cleared so the booking is a clean
@@ -854,6 +878,8 @@ export const approveOnlineBooking = async (req, res) => {
   try {
     const { id } = req.params;
     const { checkupPrice, consultationFee } = req.body || {};
+    const payAtConsultation =
+      req.body.payAtConsultation === true || req.body.payAtConsultation === "true";
 
     if (!mongoose.isValidObjectId(id)) {
       return res.status(400).json({ message: "Invalid appointment ID" });
@@ -905,18 +931,39 @@ export const approveOnlineBooking = async (req, res) => {
     }
 
     // ── Fee reconciliation ──────────────────────────────────────────────────
-    // Single source of truth: netAmount = standardFee - discountAmount,
-    // clamped at zero. The explicit checkup price from the approval modal
-    // wins; otherwise fall back to the stored fee, then the doctor's
-    // configured online booking fee.
-    const doctor = await Doctor.findById(req.doctorId).select("advanceBookingFee onlineBookingFee");
-    const doctorFee = doctor?.onlineBookingFee || doctor?.advanceBookingFee || 0;
-    const standardFee = Math.max(
-      0,
-      Number(checkupPrice ?? consultationFee ?? appointment.consultationFee ?? doctorFee) || 0,
-    );
-    const discountAmount = Math.max(0, Number(appointment.discountAmount) || 0);
-    const netAmount = Math.max(0, standardFee - discountAmount);
+    // "Pay at consultation": the receptionist is only confirming the booking —
+    // there is no fee to resolve yet. Skip the standardFee fallback chain
+    // (checkupPrice → stored fee → doctorFee) entirely and leave the fee
+    // fields at 0; the consultation workspace sets the fee later with the
+    // same shared formula, subtracting the online advance.
+    let standardFee = 0;
+    let discountAmount = 0;
+    let netAmount = 0;
+    let advanceAmount = 0;
+    if (!payAtConsultation) {
+      // Single source of truth: netAmount = standardFee - discountAmount,
+      // clamped at zero. The explicit checkup price from the approval modal
+      // wins; otherwise fall back to the stored fee, then the doctor's
+      // configured online booking fee.
+      const doctor = await Doctor.findById(req.doctorId).select("advanceBookingFee onlineBookingFee");
+      const doctorFee = doctor?.onlineBookingFee || doctor?.advanceBookingFee || 0;
+      standardFee = Math.max(
+        0,
+        Number(checkupPrice ?? consultationFee ?? appointment.consultationFee ?? doctorFee) || 0,
+      );
+      discountAmount = Math.max(0, Number(appointment.discountAmount) || 0);
+      netAmount = Math.max(0, standardFee - discountAmount);
+    } else {
+      // Capture the amount actually paid online (BookingPaymentProof.amount)
+      // so the consultation workspace can show "already paid Rs. X" and
+      // compute the remaining balance without an extra query.
+      const proof = await BookingPaymentProof.findOne({
+        appointmentId: appointment._id,
+      })
+        .sort({ createdAt: -1 })
+        .select("amount");
+      advanceAmount = Math.max(0, Number(proof?.amount) || 0);
+    }
 
     // ── Clinic Patient record ──────────────────────────────────────────────
     // Auto-create or find the clinic-scoped Patient record so the patient
@@ -954,11 +1001,25 @@ export const approveOnlineBooking = async (req, res) => {
     appointment.status = "Confirmed";
     // Enters the active Doctor Queue (getTodayQueue renders WAITING first).
     appointment.queueStatus = "WAITING";
-    appointment.consultationFee = netAmount;
-    appointment.standardFee = standardFee;
-    appointment.originalFee = standardFee;
-    appointment.discountAmount = discountAmount;
-    appointment.netAmount = netAmount;
+    if (payAtConsultation) {
+      // Deferred fee: zero out the pre-populated booking fee (the online
+      // booking flow seeds it with the doctor's advanceBookingFee) so no
+      // stale price is read downstream, and store the actual online advance
+      // amount for the consultation workspace.
+      appointment.payAtConsultation = true;
+      appointment.advanceAmountPaid = advanceAmount;
+      appointment.consultationFee = 0;
+      appointment.standardFee = 0;
+      appointment.originalFee = 0;
+      appointment.discountAmount = 0;
+      appointment.netAmount = 0;
+    } else {
+      appointment.consultationFee = netAmount;
+      appointment.standardFee = standardFee;
+      appointment.originalFee = standardFee;
+      appointment.discountAmount = discountAmount;
+      appointment.netAmount = netAmount;
+    }
     // Clear stale rejection state when re-approving a previously rejected
     // request so the booking reads as a clean "Confirmed" record.
     appointment.cancellationReason = null;
@@ -976,7 +1037,9 @@ export const approveOnlineBooking = async (req, res) => {
     // and Payments pages. `patientId` is required by the Payment schema, so
     // the upsert is only attempted once a clinic Patient record exists;
     // runValidators keeps the stored document schema-clean on re-approval.
-    if (patientRecord?._id) {
+    // SKIPPED for deferred fees — there is no fee to log yet; the record is
+    // created when the doctor saves the checkup with the final fee.
+    if (patientRecord?._id && !payAtConsultation) {
       await Payment.findOneAndUpdate(
         { appointmentId: appointment._id },
         {
@@ -1004,7 +1067,11 @@ export const approveOnlineBooking = async (req, res) => {
     if (patientPhone) {
       const patientName = appointment.patientAccount?.name || patientRecord?.name || "Patient";
       const dateStr = toClinicDateString(appointment.date) || String(appointment.date).slice(0, 10);
-      const confirmMsg = `Dear ${patientName}, your appointment request with MedAlerto has been *confirmed* ✅\n\nDate: ${dateStr}\nSlot: ${appointment.slot}\nTotal Price: Rs ${netAmount.toLocaleString()}\n\nPlease arrive 10 minutes early. Thank you!`;
+      // Deferred fee → the price isn't known yet, so omit the Total Price line.
+      const priceLine = payAtConsultation
+        ? ""
+        : `Total Price: Rs ${netAmount.toLocaleString()}\n`;
+      const confirmMsg = `Dear ${patientName}, your appointment request with MedAlerto has been *confirmed* ✅\n\nDate: ${dateStr}\nSlot: ${appointment.slot}\n${priceLine}\n\nPlease arrive 10 minutes early. Thank you!`;
       sendWhatsAppTextMessage(patientPhone, confirmMsg).catch((err) =>
         console.error("[approveOnlineBooking] WhatsApp error:", err.message)
       );

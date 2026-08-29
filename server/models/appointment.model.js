@@ -74,9 +74,29 @@ const appointmentSchema = new mongoose.Schema({
         default: 0,
         min: 0,
     },
-    // `netAmount` = standardFee - discountAmount, computed exactly once in
-    // appointment.controller.js. Never re-derive/re-subtract it elsewhere.
+    // `netAmount` = standardFee - discountAmount - advanceAmountPaid, computed
+    // with the same shared formula at whichever of these points actually sets
+    // the fee: booking (walk-in, charge-now), online-booking approval
+    // (charge-now), consultation save (pay-at-consultation / deferred), or a
+    // Payments-page edit (correction). The most recent write is authoritative —
+    // do not re-derive or re-subtract it downstream.
     netAmount: {
+        type: Number,
+        default: 0,
+        min: 0,
+    },
+    // True when the consultation fee was deferred (toggle used at walk-in
+    // booking or at online-booking approval). The fee fields stay at their
+    // defaults (0) until the doctor sets the fee at consultation time.
+    payAtConsultation: {
+        type: Boolean,
+        default: false,
+    },
+    // Actual amount the patient already paid online (from the
+    // BookingPaymentProof amount) for deferred fees. Lets the consultation
+    // workspace compute the remaining balance without an extra query.
+    // Note: distinct from `advancePaid` (boolean — "was an advance paid").
+    advanceAmountPaid: {
         type: Number,
         default: 0,
         min: 0,

@@ -465,6 +465,35 @@ export const updateCheckup = async (req, res) => {
       if (!paymentValidation.valid) {
         return res.status(400).json({ message: paymentValidation.message });
       }
+      // A bare "Payment Amount" edit (the Payments page sends only
+      // { amount, method, isPaid } — no fee split) is authoritative for what
+      // this checkup collected: the entered figure must land in
+      // payment.amount / netAmount exactly as typed — that is the value
+      // Revenue Lab reads ("edit to 1500 → 1500 hits revenue"). Without this
+      // override, normalizePayment would re-apply the stale discount from the
+      // fallback (1500 − 200 = 1300) and understate the correction. The fee
+      // split is re-derived so standardFee − discount = net stays consistent.
+      const requestedAmount = Number(payment.amount ?? payment.netAmount);
+      const hasExplicitFeeSplit = [
+        payment.originalFee,
+        payment.discountAmount,
+        payment.discount,
+        payment.netAmount,
+      ].some((v) => v !== undefined);
+      if (!hasExplicitFeeSplit && Number.isFinite(requestedAmount) && requestedAmount >= 0) {
+        const keptDiscount = Math.max(
+          0,
+          Number(paymentValidation.value.discountAmount || 0),
+        );
+        paymentValidation.value = {
+          ...paymentValidation.value,
+          amount: requestedAmount,
+          netAmount: requestedAmount,
+          originalFee: requestedAmount + keptDiscount,
+          discount: keptDiscount,
+          discountAmount: keptDiscount,
+        };
+      }
       checkup.payment = paymentValidation.value;
       checkup.markModified("payment");
     }
@@ -488,6 +517,72 @@ export const updateCheckup = async (req, res) => {
     }
 
     await checkup.save();
+
+    // ── Keep the Payment ledger + linked appointment in sync ───────────────
+    // The Payments page is a legitimate correction surface: whichever write
+    // happens last (booking, approval, consultation save, or this edit) is
+    // authoritative. A deferred checkup that was never priced in the
+    // consultation workspace has no Payment row at all, so this must be an
+    // UPSERT (same pattern as approveOnlineBooking) — update when the record
+    // exists, create when it doesn't. Standalone history checkups
+    // (appointmentId === null, created via addCheckup) have no appointment
+    // to link, so the checkup subdocument above is the whole update for them.
+    if (payment !== undefined && checkup.appointmentId) {
+      const feeDoc = checkup.payment || {};
+      const netAmount = Number(feeDoc.netAmount ?? feeDoc.amount ?? 0);
+      const standardFee = Number(feeDoc.originalFee ?? 0);
+      const discountAmount = Number(feeDoc.discountAmount ?? feeDoc.discount ?? 0);
+      const method = feeDoc.method || "Cash";
+
+      // Preserve REALIZED for already-completed visits when the fee is still
+      // marked paid; only flip back to PENDING if the editor unchecked it.
+      const existingPayment = await Payment.findOne({
+        appointmentId: checkup.appointmentId,
+        category: "CONSULTATION",
+      });
+      const nextStatus = feeDoc.isPaid
+        ? existingPayment?.status === "REALIZED"
+          ? "REALIZED"
+          : "PAID"
+        : "PENDING";
+
+      await Payment.findOneAndUpdate(
+        { appointmentId: checkup.appointmentId, category: "CONSULTATION" },
+        {
+          patientId: checkup.patient,
+          doctorId: checkup.doctor,
+          appointmentId: checkup.appointmentId,
+          category: "CONSULTATION",
+          status: nextStatus,
+          amount: netAmount,
+          standardFee,
+          originalFee: standardFee,
+          discount: discountAmount,
+          discountAmount,
+          netAmount,
+          description: feeDoc.description || "Consultation",
+          method,
+        },
+        { upsert: true, new: true, runValidators: true },
+      );
+
+      // Mirror the latest fee onto the shared Appointment fields so every
+      // reader (Doctor Queue fallbacks, workspace header, etc.) sees the
+      // most recent write.
+      await Appointment.updateOne(
+        { _id: checkup.appointmentId },
+        {
+          $set: {
+            standardFee,
+            originalFee: standardFee,
+            discountAmount,
+            netAmount,
+            consultationFee: netAmount,
+          },
+        },
+      );
+    }
+
     res.status(200).json({ message: "Checkup updated successfully", checkup });
   } catch (error) {
     console.error("updateCheckup error:", error);
@@ -534,6 +629,51 @@ export const completeCheckup = async (req, res) => {
       return res.status(400).json({ message: facilityValidation.message });
     }
 
+    // ── Deferred ("pay at consultation") fee finalization ──────────────────
+    // When the fee was deferred at booking/approval, the doctor enters the
+    // TOTAL final fee + optional discount here. This is the first time the
+    // fee exists, so it is computed with the shared formula:
+    //   netAmount = max(0, standardFee - discountAmount - advanceAmountPaid)
+    // (advanceAmountPaid is 0 for plain walk-ins, so the formula reduces to
+    // standardFee - discountAmount). The controller stays the source of
+    // truth — raw payload values are re-validated and re-derived, and the
+    // normalized payment subdocument is overwritten with exact values so an
+    // online advance is never mislabelled as a discount.
+    let deferredFee = null;
+    if (appointment.payAtConsultation === true) {
+      const rawPayment =
+        payment && typeof payment === "object" && !Array.isArray(payment) ? payment : {};
+      const standardFee = Number(
+        rawPayment.standardFee ?? rawPayment.originalFee ?? rawPayment.amount ?? NaN,
+      );
+      const discountAmount = Number(rawPayment.discountAmount ?? rawPayment.discount ?? 0);
+      if (!Number.isFinite(standardFee) || standardFee < 0) {
+        return res.status(400).json({
+          message:
+            "Consultation fee is required for pay-at-consultation appointments",
+        });
+      }
+      if (!Number.isFinite(discountAmount) || discountAmount < 0) {
+        return res.status(400).json({ message: "Discount must be valid" });
+      }
+      if (discountAmount > standardFee) {
+        return res.status(400).json({
+          message: "Discount cannot be larger than the consultation fee",
+        });
+      }
+      const advanceAmountPaid = Math.max(0, Number(appointment.advanceAmountPaid) || 0);
+      const netAmount = Math.max(0, standardFee - discountAmount - advanceAmountPaid);
+      deferredFee = { standardFee, discountAmount, netAmount, advanceAmountPaid };
+      paymentValidation.value = {
+        ...paymentValidation.value,
+        amount: netAmount,
+        originalFee: standardFee,
+        discount: discountAmount,
+        discountAmount,
+        netAmount,
+      };
+    }
+
     const normalizedDiseases = normalizeDiseasesWithDiagnosis(
       diseases,
       prescriptionValidation.value.diagnosis,
@@ -543,6 +683,7 @@ export const completeCheckup = async (req, res) => {
     const checkup = new Checkup({
       patient: patientId,
       doctor: req.doctorId,
+      appointmentId,
       diseases: normalizedDiseases,
       notes: cleanText(notes, 5000),
       prescription: prescriptionValidation.value,
@@ -551,6 +692,36 @@ export const completeCheckup = async (req, res) => {
     });
 
     await checkup.save();
+
+    // Deferred fee: persist it on the appointment (the shared fields every
+    // other surface reads) and create the Payment record NOW — none exists
+    // yet for this appointment, so this must be a create. The final
+    // Payment.updateMany below then flips it to REALIZED like any other
+    // completed consultation.
+    if (deferredFee) {
+      appointment.standardFee = deferredFee.standardFee;
+      appointment.originalFee = deferredFee.standardFee;
+      appointment.discountAmount = deferredFee.discountAmount;
+      appointment.netAmount = deferredFee.netAmount;
+      appointment.consultationFee = deferredFee.netAmount;
+      await appointment.save();
+
+      await Payment.create({
+        patientId,
+        appointmentId,
+        doctorId: req.doctorId,
+        category: "CONSULTATION",
+        status: "PAID",
+        amount: deferredFee.netAmount,
+        standardFee: deferredFee.standardFee,
+        originalFee: deferredFee.standardFee,
+        discount: deferredFee.discountAmount,
+        discountAmount: deferredFee.discountAmount,
+        netAmount: deferredFee.netAmount,
+        description: "Consultation",
+        method: paymentValidation.value.method || "Cash",
+      });
+    }
 
     if (labFee && Number(labFee) > 0) {
       const serializedLabFee = Number(labFee);
@@ -573,6 +744,19 @@ export const completeCheckup = async (req, res) => {
 
     const nextFollowUpDate = prescriptionValidation.value.nextAppointment;
     if (nextFollowUpDate) {
+      // The follow-up is a NEW visit: price it at the full fee
+      // (standardFee - discountAmount). For deferred visits the normalized
+      // netAmount still has the online advance subtracted, which must NOT
+      // carry into the follow-up's price.
+      const followUpStandard = deferredFee
+        ? deferredFee.standardFee
+        : paymentValidation.value.originalFee || paymentValidation.value.amount || 0;
+      const followUpDiscount = deferredFee
+        ? deferredFee.discountAmount
+        : paymentValidation.value.discountAmount || paymentValidation.value.discount || 0;
+      const followUpNet = deferredFee
+        ? Math.max(0, deferredFee.standardFee - deferredFee.discountAmount)
+        : paymentValidation.value.netAmount || paymentValidation.value.amount || 0;
       const futureAppointment = new Appointment({
         doctor: req.doctorId,
         patient: patientId,
@@ -583,10 +767,10 @@ export const completeCheckup = async (req, res) => {
         queueStatus: "WAITING",
         isWalkIn: false,
         checkInTime: new Date(nextFollowUpDate),
-        consultationFee: paymentValidation.value.netAmount || paymentValidation.value.amount || 0,
-        originalFee: paymentValidation.value.originalFee || paymentValidation.value.amount || 0,
-        discountAmount: paymentValidation.value.discountAmount || paymentValidation.value.discount || 0,
-        netAmount: paymentValidation.value.netAmount || paymentValidation.value.amount || 0,
+        consultationFee: followUpNet,
+        originalFee: followUpStandard,
+        discountAmount: followUpDiscount,
+        netAmount: followUpNet,
       });
 
       await futureAppointment.save();

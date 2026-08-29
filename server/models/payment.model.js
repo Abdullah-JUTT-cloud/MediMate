@@ -53,7 +53,11 @@ const paymentSchema = new mongoose.Schema({
         default: 0,
         min: 0,
     },
-    // netAmount = standardFee - discount, computed exactly once upstream.
+    // netAmount = standardFee - discountAmount - advanceAmountPaid, computed
+    // with the same shared formula by whichever write actually sets this
+    // record: booking (charge-now), online-booking approval (charge-now),
+    // consultation save (deferred fee), or a Payments-page edit (correction).
+    // The most recent write is authoritative — do not re-derive it downstream.
     netAmount: {
         type: Number,
         default: 0,

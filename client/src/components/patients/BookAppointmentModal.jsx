@@ -29,6 +29,10 @@ export default function BookAppointmentModal({ patient, onClose, onBooked }) {
   const [fee, setFee] = useState("");
   const [discount, setDiscount] = useState("0");
   const [method, setMethod] = useState("Cash");
+  // "Pay at consultation" — defer the fee to the visit (the doctor sets it
+  // in the consultation workspace). When ON the fee/discount inputs are
+  // locked out and no fee value is invented here.
+  const [payAtConsultation, setPayAtConsultation] = useState(false);
   // Emergency Mode override — defaults OFF; when ON full slots become
   // selectable and the backend bypasses the 3-per-slot capacity check.
   const [isEmergency, setIsEmergency] = useState(false);
@@ -63,15 +67,29 @@ export default function BookAppointmentModal({ patient, onClose, onBooked }) {
     : 0;
   const feeIsValid = fee !== "" && Number.isFinite(parsedFee) && parsedFee >= 0;
   const discountIsValid = Number.isFinite(parsedDiscount) && parsedDiscount >= 0;
-  const canBook = Boolean(date && slot && type && feeIsValid && discountIsValid);
+  // With "Pay at consultation" ON, an empty fee no longer blocks submission —
+  // the fee is set by the doctor at the visit instead.
+  const canBook = Boolean(
+    date && slot && type && discountIsValid && (payAtConsultation || feeIsValid),
+  );
+
+  const handleTogglePayAtConsultation = (on) => {
+    setPayAtConsultation(on);
+    if (on) {
+      // Lock the inputs out — clear any half-entered values so nothing stale
+      // is frozen in a disabled field.
+      setFee("");
+      setDiscount("0");
+    }
+  };
 
   const handleBook = async () => {
     if (!date) return toast.error("Select an appointment date");
     if (!slot) return toast.error("Select a time slot");
     if (!type) return toast.error("Select an appointment type");
-    if (!feeIsValid) return toast.error("Enter the upfront consultation fee");
+    if (!payAtConsultation && !feeIsValid) return toast.error("Enter the upfront consultation fee");
     if (!discountIsValid) return toast.error("Enter a valid discount amount");
-    if (parsedDiscount > parsedFee) {
+    if (!payAtConsultation && parsedDiscount > parsedFee) {
       return toast.error("Discount cannot be larger than the consultation fee");
     }
 
@@ -80,10 +98,12 @@ export default function BookAppointmentModal({ patient, onClose, onBooked }) {
       // Send the RAW base fee + RAW discount only. Do NOT pre-subtract the
       // discount into `standardFee`/`consultationFee` here — the backend
       // (appointment.controller.js) is the single source of truth that
-      // computes netAmount = standardFee - discount exactly once. Sending an
-      // already-discounted value under `consultationFee`/`amount` caused the
-      // backend to subtract the discount a second time (the double-discount
-      // bug: 500 fee - 50 discount showed up as 400 instead of 450).
+      // computes netAmount = standardFee - discount with the shared formula,
+      // at whichever point a fee is actually set. Sending an already-
+      // discounted value under `consultationFee`/`amount` caused the backend
+      // to subtract the discount a second time (the double-discount bug:
+      // 500 fee - 50 discount showed up as 400 instead of 450).
+      // With "Pay at consultation" ON we send zeros — don't invent a fee.
       const res = await axiosInstance.post("/appointments", {
         patientId: patient._id,
         date,
@@ -92,13 +112,18 @@ export default function BookAppointmentModal({ patient, onClose, onBooked }) {
         notes,
         isEmergency,
         isWalkIn: true,
-        standardFee: parsedFee,
-        amount: parsedFee,
-        discount: parsedDiscount,
+        payAtConsultation,
+        standardFee: payAtConsultation ? 0 : parsedFee,
+        amount: payAtConsultation ? 0 : parsedFee,
+        discount: payAtConsultation ? 0 : parsedDiscount,
         description: "Consultation",
         paymentMethod: method,
       });
-      toast.success(`Slot ${slot} booked · ${formatMoney(netAmount)} recorded`);
+      toast.success(
+        payAtConsultation
+          ? `Slot ${slot} booked · fee will be set at consultation`
+          : `Slot ${slot} booked · ${formatMoney(netAmount)} recorded`,
+      );
       onBooked?.(res.data.appointment);
       onClose();
     } catch (err) {
@@ -222,8 +247,48 @@ export default function BookAppointmentModal({ patient, onClose, onBooked }) {
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/70">
-            <span className={cls.blockLabel}>Upfront Consultation Fee</span>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className={cls.blockLabel}>Consultation Fee</span>
+              <div
+                role="group"
+                aria-label="When to charge the consultation fee"
+                className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5 dark:border-slate-700 dark:bg-slate-900"
+              >
+                <button
+                  type="button"
+                  onClick={() => handleTogglePayAtConsultation(false)}
+                  aria-pressed={!payAtConsultation}
+                  className={`rounded-md px-3 py-1 text-xs font-bold transition-colors ${
+                    !payAtConsultation
+                      ? "bg-teal-600 text-white shadow-sm"
+                      : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
+                  }`}
+                >
+                  Charge now
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleTogglePayAtConsultation(true)}
+                  aria-pressed={payAtConsultation}
+                  className={`rounded-md px-3 py-1 text-xs font-bold transition-colors ${
+                    payAtConsultation
+                      ? "bg-teal-600 text-white shadow-sm"
+                      : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
+                  }`}
+                >
+                  Pay at consultation
+                </button>
+              </div>
+            </div>
+            {payAtConsultation && (
+              <p className={`${cls.mutedText} mt-1.5`}>
+                Fee is unknown until the exam — the doctor sets it in the
+                consultation workspace and the patient is charged there.
+              </p>
+            )}
+            <div
+              className={`grid grid-cols-2 gap-3 ${payAtConsultation ? "opacity-50" : ""}`}
+            >
               <div>
                 <label htmlFor="booking-fee" className={cls.fieldLabel}>
                   Fee (Rs.)
@@ -236,7 +301,8 @@ export default function BookAppointmentModal({ patient, onClose, onBooked }) {
                   value={fee}
                   onChange={(event) => setFee(event.target.value)}
                   placeholder="2000"
-                  className={cls.input}
+                  disabled={payAtConsultation}
+                  className={`${cls.input} disabled:cursor-not-allowed disabled:bg-slate-100 dark:disabled:bg-slate-800`}
                 />
               </div>
               <div>
@@ -251,16 +317,17 @@ export default function BookAppointmentModal({ patient, onClose, onBooked }) {
                   value={discount}
                   onChange={(event) => setDiscount(event.target.value)}
                   placeholder="0"
-                  className={cls.input}
+                  disabled={payAtConsultation}
+                  className={`${cls.input} disabled:cursor-not-allowed disabled:bg-slate-100 dark:disabled:bg-slate-800`}
                 />
               </div>
             </div>
             <div className="mt-4 flex items-center justify-between rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 dark:border-teal-800 dark:bg-teal-950/40">
               <span className="text-xs font-bold uppercase tracking-wider text-teal-700 dark:text-teal-300">
-                Collected now
+                {payAtConsultation ? "Collected at consultation" : "Collected now"}
               </span>
               <span className="text-base font-extrabold text-teal-800 dark:text-teal-200">
-                {formatMoney(netAmount)}
+                {payAtConsultation ? "To be set" : formatMoney(netAmount)}
               </span>
             </div>
           </div>

@@ -11,7 +11,8 @@
     "migrate:doctor-names": "node scripts/migrateDoctorNames.js",
     "test:expiry": "node scripts/testExpiryEnforcement.js",
     "test:expiry:fix": "node scripts/testExpiryEnforcement.js --fix",
-    "test:approval": "node scripts/testApprovalController.js"
+    "test:approval": "node scripts/testApprovalController.js",
+    "test:deferred-fee": "node scripts/testDeferredFee.js"
   },
   "keywords": [],
   "author": "",
