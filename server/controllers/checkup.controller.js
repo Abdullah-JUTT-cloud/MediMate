@@ -6,6 +6,7 @@ import Payment from "../models/payment.model.js";
 import { Doctor } from "../models/doctor.model.js";
 import Review from "../models/review.model.js";
 import { generatePrescriptionPdf } from "../utils/generatePrescriptionPdf.js";
+import { computeConsultationFee, toFeeAmount } from "../utils/consultationFee.js";
 import { uploadToR2, getFileUrl } from "../services/storage.service.js";
 import { sendWhatsAppPdfDocument, sendWhatsAppTextMessage } from "../services/whatsapp.service.js";
 
@@ -179,6 +180,18 @@ const normalizePrescription = (prescription, { requireDiagnosis, requireMedicine
   return { valid: true, value: output };
 };
 
+/** Advance amounts are plain rupee figures, clamped to the schema ceiling. */
+const normalizeAdvanceAmount = (value) =>
+  Math.min(MAX_PAYMENT_AMOUNT, toFeeAmount(value));
+
+/**
+ * Normalizes the checkup payment subdocument.
+ *
+ * `amount` / `netAmount` hold the TOTAL billed price of the visit — the figure
+ * Revenue Lab aggregates. `advanceAmountPaid` (how much of that total already
+ * arrived online) is carried through untouched so a Payments-page edit never
+ * loses the split, and it is never re-stated as a discount.
+ */
 const normalizePayment = (payment, fallback = {}) => {
   if (payment === undefined || payment === null) {
     const fallbackAmount = Number(fallback.netAmount ?? fallback.amount ?? 0);
@@ -193,6 +206,7 @@ const normalizePayment = (payment, fallback = {}) => {
         discount: Math.max(0, Number(fallbackDiscount || 0)),
         discountAmount: Math.max(0, Number(fallbackDiscount || 0)),
         netAmount: Math.max(0, Number(fallbackAmount || 0)),
+        advanceAmountPaid: normalizeAdvanceAmount(fallback.advanceAmountPaid),
         ancillaryFee: Number(fallback.ancillaryFee || 0),
         description: cleanText(fallback.description || "Consultation", 200),
         method: fallback.method || "Cash",
@@ -241,6 +255,9 @@ const normalizePayment = (payment, fallback = {}) => {
       discount: finalDiscountAmount,
       discountAmount: finalDiscountAmount,
       netAmount: finalNetAmount,
+      advanceAmountPaid: normalizeAdvanceAmount(
+        payment.advanceAmountPaid ?? fallback.advanceAmountPaid,
+      ),
       ancillaryFee: Number(payment.ancillaryFee ?? fallback.ancillaryFee ?? 0),
       description,
       method,
@@ -560,6 +577,11 @@ export const updateCheckup = async (req, res) => {
           discount: discountAmount,
           discountAmount,
           netAmount,
+          // The advance stays on the ledger row too, so a correction on the
+          // Payments page never erases "how much of this already arrived
+          // online". The appointment's own `advanceAmountPaid` is intentionally
+          // NOT re-written below — it is booking data, not fee data.
+          advanceAmountPaid: toFeeAmount(feeDoc.advanceAmountPaid),
           description: feeDoc.description || "Consultation",
           method,
         },
@@ -629,16 +651,34 @@ export const completeCheckup = async (req, res) => {
       return res.status(400).json({ message: facilityValidation.message });
     }
 
-    // ── Deferred ("pay at consultation") fee finalization ──────────────────
+    // ── Online advance + deferred ("pay at consultation") fee finalization ──
+    // The online advance the patient already paid is a fact recorded on the
+    // APPOINTMENT, so the stored value wins over whatever the client sent (the
+    // payload copy exists only for legacy appointment rows that predate the
+    // field). It is mirrored onto the checkup subdocument so every surface can
+    // state the split ("Rs 500 received online, Rs 1,500 to collect").
+    const advanceAmountPaid = toFeeAmount(
+      toFeeAmount(appointment.advanceAmountPaid) > 0
+        ? appointment.advanceAmountPaid
+        : payment?.advanceAmountPaid,
+    );
+    paymentValidation.value = {
+      ...paymentValidation.value,
+      advanceAmountPaid,
+    };
+
     // When the fee was deferred at booking/approval, the doctor enters the
-    // TOTAL final fee + optional discount here. This is the first time the
-    // fee exists, so it is computed with the shared formula:
-    //   netAmount = max(0, standardFee - discountAmount - advanceAmountPaid)
-    // (advanceAmountPaid is 0 for plain walk-ins, so the formula reduces to
-    // standardFee - discountAmount). The controller stays the source of
-    // truth — raw payload values are re-validated and re-derived, and the
-    // normalized payment subdocument is overwritten with exact values so an
-    // online advance is never mislabelled as a discount.
+    // TOTAL final fee + optional discount here. This is the first time the fee
+    // exists, so it is computed with the shared formula (and the same formula
+    // the approvals page uses):
+    //   netAmount  = max(0, standardFee - discountAmount)   ← the billed total
+    //   balanceDue = max(0, netAmount - advanceAmountPaid)  ← cash to collect
+    // The advance is NOT subtracted from the total: a 2,000 consultation must
+    // land in Revenue Lab as 2,000 (500 arrived online + 1,500 at the desk),
+    // never as the 1,500 remainder. The controller stays the source of truth —
+    // raw payload values are re-validated and re-derived, and the normalized
+    // payment subdocument is overwritten with exact values so an online advance
+    // is never mislabelled as a discount.
     let deferredFee = null;
     if (appointment.payAtConsultation === true) {
       const rawPayment =
@@ -661,16 +701,19 @@ export const completeCheckup = async (req, res) => {
           message: "Discount cannot be larger than the consultation fee",
         });
       }
-      const advanceAmountPaid = Math.max(0, Number(appointment.advanceAmountPaid) || 0);
-      const netAmount = Math.max(0, standardFee - discountAmount - advanceAmountPaid);
-      deferredFee = { standardFee, discountAmount, netAmount, advanceAmountPaid };
+      deferredFee = computeConsultationFee({
+        standardFee,
+        discountAmount,
+        advanceAmountPaid,
+      });
       paymentValidation.value = {
         ...paymentValidation.value,
-        amount: netAmount,
-        originalFee: standardFee,
-        discount: discountAmount,
-        discountAmount,
-        netAmount,
+        amount: deferredFee.netAmount,
+        originalFee: deferredFee.standardFee,
+        discount: deferredFee.discountAmount,
+        discountAmount: deferredFee.discountAmount,
+        netAmount: deferredFee.netAmount,
+        advanceAmountPaid: deferredFee.advanceAmountPaid,
       };
     }
 
@@ -695,7 +738,10 @@ export const completeCheckup = async (req, res) => {
 
     // Deferred fee: persist it on the appointment (the shared fields every
     // other surface reads) and create the Payment record NOW — none exists
-    // yet for this appointment, so this must be a create. The final
+    // yet for this appointment, so this must be a create. The logged amount is
+    // the FULL billed price (deferredFee.netAmount = standardFee - discount),
+    // with the advance recorded alongside it as `advanceAmountPaid`; the cash
+    // actually handled at the desk is netAmount - advanceAmountPaid. The final
     // Payment.updateMany below then flips it to REALIZED like any other
     // completed consultation.
     if (deferredFee) {
@@ -704,6 +750,7 @@ export const completeCheckup = async (req, res) => {
       appointment.discountAmount = deferredFee.discountAmount;
       appointment.netAmount = deferredFee.netAmount;
       appointment.consultationFee = deferredFee.netAmount;
+      appointment.advanceAmountPaid = deferredFee.advanceAmountPaid;
       await appointment.save();
 
       await Payment.create({
@@ -718,8 +765,12 @@ export const completeCheckup = async (req, res) => {
         discount: deferredFee.discountAmount,
         discountAmount: deferredFee.discountAmount,
         netAmount: deferredFee.netAmount,
+        advanceAmountPaid: deferredFee.advanceAmountPaid,
         description: "Consultation",
-        method: paymentValidation.value.method || "Cash",
+        method:
+          deferredFee.advanceAmountPaid > 0 && deferredFee.balanceDue === 0
+            ? "Online Transfer"
+            : paymentValidation.value.method || "Cash",
       });
     }
 
@@ -745,18 +796,22 @@ export const completeCheckup = async (req, res) => {
     const nextFollowUpDate = prescriptionValidation.value.nextAppointment;
     if (nextFollowUpDate) {
       // The follow-up is a NEW visit: price it at the full fee
-      // (standardFee - discountAmount). For deferred visits the normalized
-      // netAmount still has the online advance subtracted, which must NOT
-      // carry into the follow-up's price.
-      const followUpStandard = deferredFee
-        ? deferredFee.standardFee
-        : paymentValidation.value.originalFee || paymentValidation.value.amount || 0;
-      const followUpDiscount = deferredFee
-        ? deferredFee.discountAmount
-        : paymentValidation.value.discountAmount || paymentValidation.value.discount || 0;
-      const followUpNet = deferredFee
-        ? Math.max(0, deferredFee.standardFee - deferredFee.discountAmount)
-        : paymentValidation.value.netAmount || paymentValidation.value.amount || 0;
+      // (standardFee - discountAmount). The online advance belongs to the visit
+      // it was paid for and must NEVER carry into the follow-up, so the
+      // follow-up is derived with no advance — the same shared formula, which
+      // is exactly why the visit's own netAmount can safely hold the full
+      // price (advance included) now.
+      const followUpFee = computeConsultationFee({
+        standardFee:
+          paymentValidation.value.originalFee || paymentValidation.value.amount || 0,
+        discountAmount:
+          paymentValidation.value.discountAmount ||
+          paymentValidation.value.discount ||
+          0,
+      });
+      const followUpStandard = followUpFee.standardFee;
+      const followUpDiscount = followUpFee.discountAmount;
+      const followUpNet = followUpFee.netAmount;
       const futureAppointment = new Appointment({
         doctor: req.doctorId,
         patient: patientId,

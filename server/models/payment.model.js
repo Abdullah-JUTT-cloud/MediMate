@@ -26,6 +26,10 @@ const paymentSchema = new mongoose.Schema({
         enum: ['PAID', 'PENDING', 'REALIZED'],
         default: 'PENDING'
     },
+    // The amount this ledger row bills for the visit. For CONSULTATION rows it
+    // mirrors `netAmount` (the full billed price, advance included) — the
+    // figure Revenue Lab and the Doctor Queue read. Never pre-subtract the
+    // online advance here; that split lives in `advanceAmountPaid`.
     amount: {
         type: Number,
         required: true,
@@ -53,12 +57,22 @@ const paymentSchema = new mongoose.Schema({
         default: 0,
         min: 0,
     },
-    // netAmount = standardFee - discountAmount - advanceAmountPaid, computed
-    // with the same shared formula by whichever write actually sets this
-    // record: booking (charge-now), online-booking approval (charge-now),
-    // consultation save (deferred fee), or a Payments-page edit (correction).
-    // The most recent write is authoritative — do not re-derive it downstream.
+    // netAmount = standardFee - discountAmount — the TOTAL billed for the
+    // visit, computed with the same shared formula (utils/consultationFee.js)
+    // by whichever write actually sets this record: booking (charge-now),
+    // online-booking approval (charge-now), consultation save (deferred fee),
+    // or a Payments-page edit (correction). The most recent write is
+    // authoritative — do not re-derive it downstream.
     netAmount: {
+        type: Number,
+        default: 0,
+        min: 0,
+    },
+    // Portion of `netAmount` the patient already paid online at booking time.
+    // `netAmount - advanceAmountPaid` is the cash still to collect at the
+    // clinic; the advance is never logged as a separate payment row (that would
+    // double-count revenue) and never stored as a discount.
+    advanceAmountPaid: {
         type: Number,
         default: 0,
         min: 0,

@@ -18,6 +18,9 @@
  *      schema-valid Patient.
  *   2. Fee reconciliation: netAmount = standardFee - discountAmount.
  *   3. Explicit checkupPrice from the approval modal wins.
+ *   3b. Online advance is part of the billed total (never a discount, never a
+ *       second ledger row): price 2000 with a 500 advance => the system records
+ *       2000 and reports 1500 as "collect at the visit".
  *   4. Double-approval is idempotent → 409, not 500.
  *   5. Re-approving a rejected booking clears the stale rejection state.
  *   6. Slot capacity reached → 409.
@@ -97,7 +100,18 @@ export default {
 `;
 
 const bookingProofMock = `${STATE_IMPORT}
+const thenable = (doc) => ({
+  sort: function () { return this; },
+  select: function () { return this; },
+  then: (res, rej) => Promise.resolve(doc).then(res, rej),
+});
 export default {
+  // findOne().sort().select() chain — resolves the amount the patient already
+  // paid online, which the controller reads in BOTH approval modes.
+  findOne: () => {
+    state.proofLookups += 1;
+    return thenable(state.proof);
+  },
   updateOne: async () => { state.proofUpdates += 1; return { matchedCount: 1 }; },
 };
 `;
@@ -187,6 +201,9 @@ const baseAppointment = (overrides = {}) => ({
   originalFee: 1000,
   discountAmount: 0,
   netAmount: 1000,
+  // 0 = legacy row with no mirrored advance, so the controller must fall back
+  // to the BookingPaymentProof amount (state.proof).
+  advanceAmountPaid: 0,
   cancellationReason: null,
   rejectionReason: null,
   cancelledAt: null,
@@ -259,6 +276,62 @@ resetState();
   assert(res.statusCode === 200, `returns 200 — got ${res.statusCode}`);
   assert(state.appointment.standardFee === 2000, "standardFee set to explicit checkupPrice");
   assert(state.appointment.netAmount === 2000, "netAmount follows the explicit price");
+}
+
+console.log("\nScenario 3b — online advance is PART of the billed total (approvals page)\n");
+resetState();
+{
+  // Patient paid Rs 500 online while booking; the doctor enters the FULL price
+  // (2000) on the approvals page. The visit must bill 2000 — NOT the 1500
+  // remainder — and keep the advance so the desk knows to collect 1500.
+  state.appointment = baseAppointment({
+    consultationFee: 500,
+    standardFee: 500,
+    originalFee: 500,
+    netAmount: 500,
+  });
+  state.proof = { _id: "proof-advance", amount: 500, status: "PENDING" };
+  const { req, res } = makeReqRes({ checkupPrice: 2000 });
+  await approveOnlineBooking(req, res);
+  assert(res.statusCode === 200, `returns 200 — got ${res.statusCode}`);
+  const a = state.appointment;
+  assert(a.standardFee === 2000 && a.originalFee === 2000, "standardFee/originalFee = the full price typed (2000)");
+  assert(a.netAmount === 2000 && a.consultationFee === 2000,
+    `netAmount + consultationFee = 2000, advance NOT subtracted from the bill — got ${a.netAmount}`);
+  assert(a.discountAmount === 0, "advance is never mislabelled as a discount");
+  assert(a.advanceAmountPaid === 500, `advance mirrored onto the appointment (500) — got ${a.advanceAmountPaid}`);
+  assert(state.proofLookups === 1, "advance resolved through the BookingPaymentProof fallback (legacy row)");
+  const payment = state.paymentUpdates[0]?.update || {};
+  assert(payment.amount === 2000 && payment.netAmount === 2000, "Payment row logs the FULL 2000 → Revenue Lab total");
+  assert(payment.advanceAmountPaid === 500, "Payment row keeps the 500 advance for the split");
+  assert(payment.status === "PAID", "Payment row stays PAID (fee charged at approval)");
+  assert(String(payment.description || "").includes("Rs 1,500 to collect at visit"),
+    `ledger description states the cash still owed — "${payment.description}"`);
+  const msg = state.whatsapp[0]?.message || "";
+  assert(msg.includes("Total Price: Rs 2,000"), "WhatsApp: full price is the total");
+  assert(msg.includes("Already Paid Online: Rs 500"), "WhatsApp: advance acknowledged");
+  assert(msg.includes("Balance To Pay At Clinic: Rs 1,500"), "WhatsApp: balance to settle at the clinic");
+}
+
+console.log("\nScenario 3c — stored advance wins; a covered fee owes nothing more\n");
+resetState();
+{
+  // Advance already mirrored on the appointment → no proof query needed, and
+  // the doctor prices the visit AT the advance (free-of-charge follow-up case).
+  state.appointment = baseAppointment({ advanceAmountPaid: 500 });
+  const { req, res } = makeReqRes({ checkupPrice: 500 });
+  await approveOnlineBooking(req, res);
+  assert(res.statusCode === 200, `returns 200 — got ${res.statusCode}`);
+  assert(state.proofLookups === 0, "stored advance used directly (no BookingPaymentProof query)");
+  const a = state.appointment;
+  assert(a.netAmount === 500 && a.advanceAmountPaid === 500, "total 500 with 500 already in — nothing left to collect");
+  const payment = state.paymentUpdates[0]?.update || {};
+  assert(payment.amount === 500, "Payment row = 500");
+  assert(payment.description === "Online Approved Consultation",
+    `no balance note when the advance covers the fee — "${payment.description}"`);
+  const msg = state.whatsapp[0]?.message || "";
+  assert(!msg.includes("Balance To Pay At Clinic"), "WhatsApp omits the balance line when nothing is owed");
+  assert(msg.includes("Total Price: Rs 500"), "WhatsApp still states the total");
 }
 
 console.log("\nScenario 4 — double approval is idempotent (409, not 500)\n");

@@ -11,7 +11,9 @@ const state = {
   existingPatients: [], // records Patient.findOne may match
   createdPatients: [],
   paymentUpdates: [],
+  proof: null, // latest BookingPaymentProof { amount } for the advance lookup
   proofUpdates: 0,
+  proofLookups: 0,
   whatsapp: [],
   forcePatientCreateError: null,
 };
@@ -23,7 +25,9 @@ export const resetState = () => {
   state.existingPatients = [];
   state.createdPatients = [];
   state.paymentUpdates = [];
+  state.proof = null;
   state.proofUpdates = 0;
+  state.proofLookups = 0;
   state.whatsapp = [];
   state.forcePatientCreateError = null;
 };

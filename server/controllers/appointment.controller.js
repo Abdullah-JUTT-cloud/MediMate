@@ -14,6 +14,7 @@ import {
   getClinicDayRange,
   toClinicDateString,
 } from "../utils/dateUtils.js";
+import { computeConsultationFee } from "../utils/consultationFee.js";
 
 const MAX_APPOINTMENTS_PER_SLOT = MAX_STANDARD_APPOINTMENTS_PER_SLOT;
 const INACTIVE_STATUSES = ["Cancelled", "No-show", "Completed"];
@@ -261,12 +262,17 @@ export const createAppointment = async (req, res) => {
       );
     };
 
-    // Compute the net fee here from the raw standardFee/discount pair using
-    // the shared formula. Nothing downstream (Mongoose hooks, Payment record,
-    // aggregations) may subtract the discount again — they all just
-    // persist/read this value. For payAtConsultation bookings the fee is 0
-    // here; it is computed LATER at consultation save with the same formula.
-    const netAmount = Math.max(0, Number(standardFee) - Number(discount || 0));
+    // Compute the net fee here from the raw standardFee/discount pair using the
+    // shared formula (utils/consultationFee.js). Nothing downstream (Mongoose
+    // hooks, Payment record, aggregations) may subtract the discount again —
+    // they all just persist/read this value. For payAtConsultation bookings the
+    // fee is 0 here; it is computed LATER at consultation save with the same
+    // formula. Walk-ins have no online advance, so netAmount is also the whole
+    // amount to collect at the desk.
+    const { netAmount } = computeConsultationFee({
+      standardFee,
+      discountAmount: discount,
+    });
     // Deferred bookings keep every fee field at its schema default (0) —
     // don't store the placeholder 0 pair as if it were a real price.
     const storedStandardFee = payAtConsultation ? 0 : standardFee;
@@ -740,14 +746,28 @@ export const getTodayQueue = async (req, res) => {
 
     const appointmentsWithPayments = appointments.map((appt) => {
       const apptObj = appt.toObject();
-      const apptPayment = payments.find(
+      // Prefer the CONSULTATION ledger row: an appointment can also carry LAB /
+      // extra-payment rows, and reading whichever happened to sort first would
+      // put the wrong number in the queue's fee badge.
+      const apptPayments = payments.filter(
         (p) => p.appointmentId && p.appointmentId.toString() === appt._id.toString()
       );
+      const apptPayment =
+        apptPayments.find((p) => p.category === "CONSULTATION") || apptPayments[0] || null;
       apptObj.paymentStatus = apptPayment ? apptPayment.status : "PENDING";
       apptObj.paymentAmount = apptPayment ? Number(apptPayment.netAmount ?? apptPayment.amount ?? 0) : 0;
       apptObj.originalFee = apptPayment ? Number(apptPayment.originalFee ?? apptPayment.amount ?? 0) : Number(apptObj.originalFee || apptObj.consultationFee || 0);
       apptObj.discountAmount = apptPayment ? Number(apptPayment.discountAmount ?? apptPayment.discount ?? 0) : Number(apptObj.discountAmount || 0);
       apptObj.netAmount = apptPayment ? Number(apptPayment.netAmount ?? apptPayment.amount ?? 0) : Number(apptObj.netAmount || apptObj.consultationFee || 0);
+      // Online advance already received + the cash still to collect at the
+      // desk. `netAmount` is the FULL billed price, so the queue needs both
+      // numbers: "Rs 2,000 total · Rs 1,500 to collect".
+      const advanceAmountPaid = Math.max(
+        0,
+        Number(apptObj.advanceAmountPaid ?? apptPayment?.advanceAmountPaid) || 0,
+      );
+      apptObj.advanceAmountPaid = advanceAmountPaid;
+      apptObj.balanceDue = Math.max(0, Number(apptObj.netAmount || 0) - advanceAmountPaid);
       return apptObj;
     });
 
@@ -888,14 +908,46 @@ const ageFromDob = (dob) => {
 const VALID_PATIENT_GENDERS = ["Male", "Female", "Other"];
 
 /**
+ * Resolves how much the patient already paid online for this booking.
+ *
+ * Prefers the amount stored on the appointment (seeded by the online booking
+ * flow and kept in sync on approval) and falls back to the latest
+ * BookingPaymentProof — that keeps legacy bookings, created before the amount
+ * was mirrored onto the appointment, reporting the real advance instead of 0.
+ *
+ * The advance is deliberately NOT folded into the fee: it never reduces the
+ * billed total, it only says how much of that total is still to collect at the
+ * clinic. Returns 0 for walk-ins, which have no online proof.
+ */
+const resolveOnlineAdvanceAmount = async (appointment) => {
+  const stored = Math.max(0, Number(appointment?.advanceAmountPaid) || 0);
+  if (stored > 0) return stored;
+  // Only PatientAccount bookings can have an online advance at all.
+  if (!appointment?.patientAccount) return 0;
+
+  const proof = await BookingPaymentProof.findOne({
+    appointmentId: appointment._id,
+  })
+    .sort({ createdAt: -1 })
+    .select("amount");
+
+  return Math.max(0, Number(proof?.amount) || 0);
+};
+
+/**
  * PATCH /api/appointments/:id/approve-online
  *
  * Confirms a pending online booking:
  *  1. Re-checks slot capacity (now counting this booking for real).
- *  2. Reconciles fees: netAmount = standardFee - discountAmount (>= 0).
+ *  2. Reconciles fees with the shared formula
+ *     (utils/consultationFee.js): netAmount = standardFee - discountAmount
+ *     (>= 0) — i.e. the FULL price the doctor typed is what gets billed and
+ *     logged, advance included. The online advance never reduces that total;
+ *     it is stored on `advanceAmountPaid` in BOTH modes so every surface can
+ *     show "Rs X already paid, collect Rs Y at the visit".
  *     With `payAtConsultation: true` the fee is deferred instead — fee
  *     resolution is skipped entirely, fee fields are zeroed, the online
- *     advance is stored on `advanceAmountPaid`, and no Payment record is
+ *     advance is still stored on `advanceAmountPaid`, and no Payment record is
  *     created (it happens at consultation save).
  *  3. Clears awaitingOnlineApproval and sets status → "Confirmed".
  *  4. Links/auto-creates the clinic-scoped Patient record (required
@@ -969,38 +1021,40 @@ export const approveOnlineBooking = async (req, res) => {
     }
 
     // ── Fee reconciliation ──────────────────────────────────────────────────
+    // The doctor's entry is ALWAYS the full price of the visit — the online
+    // advance the patient already paid never reduces it, it only explains how
+    // much cash is still owed at the desk. Both numbers come out of the shared
+    // formula in utils/consultationFee.js so approvals, consultation save and
+    // Payments edits can never drift apart.
+    //
     // "Pay at consultation": the receptionist is only confirming the booking —
-    // there is no fee to resolve yet. Skip the standardFee fallback chain
-    // (checkupPrice → stored fee → doctorFee) entirely and leave the fee
-    // fields at 0; the consultation workspace sets the fee later with the
-    // same shared formula, subtracting the online advance.
-    let standardFee = 0;
-    let discountAmount = 0;
-    let netAmount = 0;
-    let advanceAmount = 0;
+    // there is no fee to resolve yet, so the standardFee fallback chain
+    // (checkupPrice → stored fee → doctorFee) is skipped entirely and the fee
+    // fields stay at 0. The advance is still resolved: the consultation
+    // workspace needs it to tell the doctor what to collect.
+    const advanceAmountPaid = await resolveOnlineAdvanceAmount(appointment);
+    let feeBreakdown = {
+      standardFee: 0,
+      discountAmount: 0,
+      netAmount: 0,
+      advanceAmountPaid,
+      balanceDue: 0,
+    };
     if (!payAtConsultation) {
-      // Single source of truth: netAmount = standardFee - discountAmount,
-      // clamped at zero. The explicit checkup price from the approval modal
-      // wins; otherwise fall back to the stored fee, then the doctor's
-      // configured online booking fee.
+      // The explicit checkup price from the approval modal wins; otherwise
+      // fall back to the stored fee, then the doctor's configured online
+      // booking fee.
       const doctor = await Doctor.findById(req.doctorId).select("advanceBookingFee onlineBookingFee");
       const doctorFee = doctor?.onlineBookingFee || doctor?.advanceBookingFee || 0;
-      standardFee = Math.max(
+      const standardFee = Math.max(
         0,
         Number(checkupPrice ?? consultationFee ?? appointment.consultationFee ?? doctorFee) || 0,
       );
-      discountAmount = Math.max(0, Number(appointment.discountAmount) || 0);
-      netAmount = Math.max(0, standardFee - discountAmount);
-    } else {
-      // Capture the amount actually paid online (BookingPaymentProof.amount)
-      // so the consultation workspace can show "already paid Rs. X" and
-      // compute the remaining balance without an extra query.
-      const proof = await BookingPaymentProof.findOne({
-        appointmentId: appointment._id,
-      })
-        .sort({ createdAt: -1 })
-        .select("amount");
-      advanceAmount = Math.max(0, Number(proof?.amount) || 0);
+      feeBreakdown = computeConsultationFee({
+        standardFee,
+        discountAmount: Number(appointment.discountAmount) || 0,
+        advanceAmountPaid,
+      });
     }
 
     // ── Clinic Patient record ──────────────────────────────────────────────
@@ -1042,21 +1096,28 @@ export const approveOnlineBooking = async (req, res) => {
     if (payAtConsultation) {
       // Deferred fee: zero out the pre-populated booking fee (the online
       // booking flow seeds it with the doctor's advanceBookingFee) so no
-      // stale price is read downstream, and store the actual online advance
-      // amount for the consultation workspace.
+      // stale price is read downstream, and keep the actual online advance on
+      // the appointment — the consultation workspace needs it to tell the
+      // doctor "Rs X already paid, enter the full price".
       appointment.payAtConsultation = true;
-      appointment.advanceAmountPaid = advanceAmount;
+      appointment.advanceAmountPaid = feeBreakdown.advanceAmountPaid;
       appointment.consultationFee = 0;
       appointment.standardFee = 0;
       appointment.originalFee = 0;
       appointment.discountAmount = 0;
       appointment.netAmount = 0;
     } else {
-      appointment.consultationFee = netAmount;
-      appointment.standardFee = standardFee;
-      appointment.originalFee = standardFee;
-      appointment.discountAmount = discountAmount;
-      appointment.netAmount = netAmount;
+      // Charge now: the entered price IS the bill. `consultationFee` mirrors
+      // netAmount (the total) rather than the cash still owed, so Revenue Lab
+      // shows the full 2,000 while the queue can still report the 1,500 to
+      // collect from `advanceAmountPaid`.
+      appointment.payAtConsultation = false;
+      appointment.advanceAmountPaid = feeBreakdown.advanceAmountPaid;
+      appointment.consultationFee = feeBreakdown.netAmount;
+      appointment.standardFee = feeBreakdown.standardFee;
+      appointment.originalFee = feeBreakdown.standardFee;
+      appointment.discountAmount = feeBreakdown.discountAmount;
+      appointment.netAmount = feeBreakdown.netAmount;
     }
     // Clear stale rejection state when re-approving a previously rejected
     // request so the booking reads as a clean "Confirmed" record.
@@ -1075,6 +1136,9 @@ export const approveOnlineBooking = async (req, res) => {
     // and Payments pages. `patientId` is required by the Payment schema, so
     // the upsert is only attempted once a clinic Patient record exists;
     // runValidators keeps the stored document schema-clean on re-approval.
+    // The logged amount is the FULL billed price (advance included) — the
+    // advance is recorded alongside it as `advanceAmountPaid`, never as an
+    // extra row (that would double-count) and never as a discount.
     // SKIPPED for deferred fees — there is no fee to log yet; the record is
     // created when the doctor saves the checkup with the final fee.
     if (patientRecord?._id && !payAtConsultation) {
@@ -1086,13 +1150,16 @@ export const approveOnlineBooking = async (req, res) => {
           appointmentId: appointment._id,
           category: "CONSULTATION",
           status: "PAID",
-          amount: netAmount,
-          standardFee,
-          originalFee: standardFee,
-          discount: discountAmount,
-          discountAmount,
-          netAmount,
-          description: "Online Approved Consultation",
+          amount: feeBreakdown.netAmount,
+          standardFee: feeBreakdown.standardFee,
+          originalFee: feeBreakdown.standardFee,
+          discount: feeBreakdown.discountAmount,
+          discountAmount: feeBreakdown.discountAmount,
+          netAmount: feeBreakdown.netAmount,
+          advanceAmountPaid: feeBreakdown.advanceAmountPaid,
+          description: feeBreakdown.balanceDue > 0
+            ? `Online Approved Consultation (Rs ${feeBreakdown.advanceAmountPaid.toLocaleString()} paid online, Rs ${feeBreakdown.balanceDue.toLocaleString()} to collect at visit)`
+            : "Online Approved Consultation",
           method: "Online Transfer",
         },
         { upsert: true, new: true, runValidators: true }
@@ -1105,10 +1172,21 @@ export const approveOnlineBooking = async (req, res) => {
     if (patientPhone) {
       const patientName = appointment.patientAccount?.name || patientRecord?.name || "Patient";
       const dateStr = toClinicDateString(appointment.date) || String(appointment.date).slice(0, 10);
-      // Deferred fee → the price isn't known yet, so omit the Total Price line.
+      // Deferred fee → the price isn't known yet, so omit the Total Price line
+      // but still acknowledge the advance that was received.
+      const advanceLines =
+        feeBreakdown.advanceAmountPaid > 0 && !payAtConsultation
+          ? `Already Paid Online: Rs ${feeBreakdown.advanceAmountPaid.toLocaleString()}\n${
+              feeBreakdown.balanceDue > 0
+                ? `Balance To Pay At Clinic: Rs ${feeBreakdown.balanceDue.toLocaleString()}\n`
+                : ""
+            }`
+          : "";
       const priceLine = payAtConsultation
-        ? ""
-        : `Total Price: Rs ${netAmount.toLocaleString()}\n`;
+        ? feeBreakdown.advanceAmountPaid > 0
+          ? `Advance Received: Rs ${feeBreakdown.advanceAmountPaid.toLocaleString()}\nFinal fee will be confirmed at your visit.\n`
+          : ""
+        : `Total Price: Rs ${feeBreakdown.netAmount.toLocaleString()}\n${advanceLines}`;
       const confirmMsg = `Dear ${patientName}, your appointment request with MedAlerto has been *confirmed* ✅\n\nDate: ${dateStr}\nSlot: ${appointment.slot}\n${priceLine}\n\nPlease arrive 10 minutes early. Thank you!`;
       sendWhatsAppTextMessage(patientPhone, confirmMsg).catch((err) =>
         console.error("[approveOnlineBooking] WhatsApp error:", err.message)
@@ -1257,17 +1335,29 @@ export const getOnlinePendingBookings = async (req, res) => {
         proofMap[p.appointmentId.toString()] = {
           url: p.screenshotUrl,
           rejectionReason: p.rejectionReason,
+          amount: Math.max(0, Number(p.amount) || 0),
         };
       }
     });
 
-    const appointmentsWithProof = appointments.map((a) => ({
+    // `advanceAmountPaid` = what the patient already sent online. The approval
+    // modal needs it on the list payload so it can state "Rs 500 is already
+    // paid — enter the FULL price" before the booking is approved. Latest
+    // proof wins, then the amount mirrored on the appointment document.
+    const withAdvance = (a) => ({
       ...a,
+      advanceAmountPaid:
+        proofMap[a._id.toString()]?.amount ??
+        Math.max(0, Number(a.advanceAmountPaid) || 0),
+    });
+
+    const appointmentsWithProof = appointments.map((a) => ({
+      ...withAdvance(a),
       paymentScreenshotUrl: proofMap[a._id.toString()]?.url || a.paymentScreenshotUrl || a.paymentScreenshot || null,
     }));
 
     const rejectedWithProof = rejectedList.map((a) => ({
-      ...a,
+      ...withAdvance(a),
       rejectionReason: a.rejectionReason || proofMap[a._id.toString()]?.rejectionReason || "Payment screenshot could not be verified",
       paymentScreenshotUrl: proofMap[a._id.toString()]?.url || a.paymentScreenshotUrl || a.paymentScreenshot || null,
     }));

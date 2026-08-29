@@ -16,6 +16,7 @@ import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Search, ChevronLeft, CheckCircle2, AlertCircle, CreditCard } from "lucide-react";
 import axiosInstance from "../api/axios";
+import { formatPkr } from "../utils/consultationFee";
 import { RowSkeleton } from "../components/SkeletonLoaders";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -289,6 +290,26 @@ function PaymentWorkspace({ patient, onBack }) {
     [selectedCheckup],
   );
 
+  // Advance already received online + the cash that was taken at the clinic.
+  // netAmount/amount hold the FULL billed price, so the split is derived here
+  // (never stored back as a discount).
+  const selectedAdvancePaid = Number(
+    selectedCheckup?.payment?.advanceAmountPaid || 0,
+  );
+  const selectedTotalPaid = Math.max(
+    0,
+    Number(
+      selectedCheckup?.payment?.netAmount ?? selectedCheckup?.payment?.amount ?? 0,
+    ),
+  );
+  const selectedCollectNow = Math.max(0, selectedTotalPaid - selectedAdvancePaid);
+  // Same split, live against whatever is currently in the amount field.
+  const selectedAmountTotal = Number(amount || 0);
+  const selectedAmountCollectNow = Math.max(
+    0,
+    selectedAmountTotal - selectedAdvancePaid,
+  );
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -473,6 +494,26 @@ function PaymentWorkspace({ patient, onBack }) {
                 </div>
               </div>
 
+              {/* Online advance note: this visit's ledger amount is the FULL
+                  price, part of which arrived online at booking. Editing the
+                  field below must never be used to "subtract" that advance. */}
+              {selectedAdvancePaid > 0 && (
+                <div className="mb-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 p-3.5 rounded-xl text-xs font-semibold text-amber-800 dark:text-amber-200 leading-relaxed">
+                  <p>
+                    Rs. {selectedAdvancePaid.toLocaleString()} of this visit was
+                    already paid online while booking — it is PART of the{" "}
+                    {formatPkr(selectedTotalPaid)} below, not a discount and
+                    not a second payment.
+                  </p>
+                  {selectedCollectNow > 0 && (
+                    <p className="mt-1 font-bold text-amber-900 dark:text-amber-100">
+                      Collected at the clinic: Rs.{" "}
+                      {selectedCollectNow.toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* Selected Checkup Meta */}
               <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 p-4 rounded-xl mb-4">
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1">
@@ -491,7 +532,7 @@ function PaymentWorkspace({ patient, onBack }) {
                 {/* Payment Amount */}
                 <div>
                   <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block mb-2">
-                    Payment Amount (PKR)
+                    Payment Amount — Full Price (PKR)
                   </label>
                   <input
                     type="number"
@@ -501,6 +542,13 @@ function PaymentWorkspace({ patient, onBack }) {
                     placeholder="0"
                     className={inputCls}
                   />
+                  <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1.5">
+                    {selectedAdvancePaid > 0
+                      ? selectedAmountCollectNow > 0
+                        ? `Enter the complete price, not the cash left over: ${formatPkr(selectedAmountTotal)} here means ${formatPkr(selectedAmountCollectNow)} to collect at the desk.`
+                        : `The ${formatPkr(selectedAdvancePaid)} advance already covers this price — nothing more to collect.`
+                      : "Enter the complete consultation price for this visit."}
+                  </p>
                 </div>
 
                 {/* Payment Method */}

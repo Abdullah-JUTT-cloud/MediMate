@@ -12,7 +12,10 @@
     "test:expiry": "node scripts/testExpiryEnforcement.js",
     "test:expiry:fix": "node scripts/testExpiryEnforcement.js --fix",
     "test:approval": "node scripts/testApprovalController.js",
-    "test:deferred-fee": "node scripts/testDeferredFee.js"
+    "test:deferred-fee": "node scripts/testDeferredFee.js",
+    "test:fees": "node scripts/testApprovalController.js && node scripts/testDeferredFee.js",
+    "migrate:advance-fees": "node scripts/migrateOnlineAdvanceFees.js",
+    "migrate:advance-fees:apply": "node scripts/migrateOnlineAdvanceFees.js --apply"
   },
   "keywords": [],
   "author": "",
