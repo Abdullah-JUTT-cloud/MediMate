@@ -20,6 +20,12 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
+import {
+  computeConsultationFee,
+  buildFeeFieldHint,
+  buildCollectNowNote,
+  formatPkr,
+} from "../utils/consultationFee";
 
 // WhatsApp glyph (brand icon isn't shipped by lucide-react) — inherits currentColor.
 const WhatsAppIcon = (props) => (
@@ -648,19 +654,43 @@ export default function ConsultationWorkspaceRedesigned({
   }, [appointment, originalFee, discountAmount]);
 
   // ── Deferred ("pay at consultation") fee entry ────────────────────────────
-  // The doctor enters the TOTAL final fee (e.g. 1000) plus an optional
-  // discount. For online bookings the advance was already collected, so the
-  // amount collected now is:
-  //   netAmount = max(0, standardFee - discountAmount - advanceAmountPaid)
-  // (advanceAmountPaid is 0 for plain walk-ins → standardFee - discountAmount)
+  // The doctor enters the TOTAL final price (e.g. 2000) plus an optional
+  // discount — NEVER the remainder. The online advance the patient already paid
+  // is subtracted only to work out the cash to collect at the desk:
+  //   netAmount  = max(0, standardFee - discountAmount)        ← billed total
+  //   balanceDue = max(0, netAmount - advanceAmountPaid)        ← collect now
+  // (advanceAmountPaid is 0 for plain walk-ins, so both numbers match).
+  // Mirrors server/utils/consultationFee.js; the server re-derives both.
   const isDeferredFee = appointment?.payAtConsultation === true;
   const advanceAmountPaid = Number(appointment?.advanceAmountPaid || 0);
   const deferredFeeNum = Number(deferredFee);
   const deferredDiscountNum = Number(deferredDiscount || 0);
-  const deferredNet =
-    Number.isFinite(deferredFeeNum) && Number.isFinite(deferredDiscountNum)
-      ? Math.max(0, deferredFeeNum - deferredDiscountNum - advanceAmountPaid)
-      : 0;
+  const deferredCalc = computeConsultationFee({
+    standardFee: deferredFee,
+    discountAmount: deferredDiscount,
+    advanceAmountPaid,
+  });
+  // The fee that lands in the ledger / Revenue Lab: the full price.
+  const deferredNet = deferredCalc.netAmount;
+  // The cash the front desk still has to take from the patient today.
+  const deferredCollectNow = deferredCalc.balanceDue;
+  const collectNowNote = isDeferredFee
+    ? buildCollectNowNote({
+        standardFee: deferredFee,
+        discountAmount: deferredDiscount,
+        advanceAmountPaid,
+      })
+    : null;
+
+  // For fee-already-charged visits (walk-in booking or charge-now online
+  // approval) the fee is locked, but the patient may still owe part of it in
+  // cash: the ledger holds the TOTAL, so "collect now" is total − advance.
+  const billedConsultationFee = isDeferredFee ? deferredNet : netConsultationFee;
+  const collectNowAtVisit = Math.max(
+    0,
+    billedConsultationFee - advanceAmountPaid,
+  );
+  const advanceApplied = advanceAmountPaid > 0;
 
   // Helper to add preset to comma-separated field
   const appendQuickItem = (setter, currentVal, item) => {
@@ -749,7 +779,9 @@ export default function ConsultationWorkspaceRedesigned({
     // Deferred fee: required before checkout for pay-at-consultation visits.
     if (isDeferredFee) {
       if (deferredFee === "" || !Number.isFinite(deferredFeeNum) || deferredFeeNum < 0) {
-        errors.deferredFee = "Enter the consultation fee";
+        // The full price, never the remainder — the advance is deducted by the
+        // system to work out the cash to collect at the desk.
+        errors.deferredFee = "Enter the full consultation price";
       }
       if (!Number.isFinite(deferredDiscountNum) || deferredDiscountNum < 0) {
         errors.deferredDiscount = "Enter a valid discount amount";
@@ -774,7 +806,9 @@ export default function ConsultationWorkspaceRedesigned({
         isDeferredFee &&
         (deferredFee === "" || !Number.isFinite(deferredFeeNum) || deferredFeeNum < 0)
       ) {
-        toast.error("Enter the consultation fee before saving the checkup");
+        toast.error(
+          "Enter the full consultation price before saving the checkup — the system works out what is left to collect",
+        );
       } else if (
         isDeferredFee &&
         (!Number.isFinite(deferredDiscountNum) || deferredDiscountNum < 0)
@@ -822,10 +856,11 @@ export default function ConsultationWorkspaceRedesigned({
           patientAdvice: patientAdvice.trim(),
           nextAppointment: nextAppointment || undefined,
         },
-        // Deferred fee: send the TOTAL final fee (originalFee/standardFee)
-        // plus the raw discount. The backend re-derives netAmount with the
-        // shared formula (subtracting the online advance) and creates the
-        // Payment record for the first time — nothing here pre-subtracts.
+        // Deferred fee: send the TOTAL final price (originalFee/standardFee)
+        // plus the raw discount and the online advance. The backend re-derives
+        // netAmount with the shared formula (the advance is NOT subtracted from
+        // it — it only yields the "collect at the desk" figure) and creates the
+        // Payment record for the first time. Nothing here pre-subtracts.
         payment: isDeferredFee
           ? {
               amount: deferredNet,
@@ -834,6 +869,7 @@ export default function ConsultationWorkspaceRedesigned({
               discountAmount: deferredDiscountNum,
               discount: deferredDiscountNum,
               netAmount: deferredNet,
+              advanceAmountPaid,
               ancillaryFee: 0,
               description: "Consultation & Prescription",
               method: appointment?.paymentMethod || "Cash",
@@ -845,6 +881,7 @@ export default function ConsultationWorkspaceRedesigned({
               discountAmount,
               discount: discountAmount,
               netAmount: netConsultationFee,
+              advanceAmountPaid,
               ancillaryFee: 0,
               description: "Consultation & Prescription",
               method: appointment?.paymentMethod || "Cash",
@@ -965,6 +1002,19 @@ export default function ConsultationWorkspaceRedesigned({
 
             {/* Header Right Action */}
             <div className="flex items-center justify-between sm:justify-end gap-2.5 shrink-0">
+              {/* Cash still to take at the desk — shown whenever part of the
+                  fee arrived online. The fee ledger always holds the TOTAL, so
+                  this pill is the "don't forget the rest" reminder. */}
+              {advanceApplied && collectNowAtVisit > 0 && (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200">
+                  <DollarSign size={13} className="text-rose-600" />
+                  <span>
+                    Collect {formatPkr(collectNowAtVisit)} now ·{" "}
+                    {formatPkr(advanceAmountPaid)} paid online
+                  </span>
+                </div>
+              )}
+
               {/* Financial Status Pill */}
               <div
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
@@ -976,7 +1026,7 @@ export default function ConsultationWorkspaceRedesigned({
                 {appointment.paymentStatus === "PAID" || appointment.paymentStatus === "REALIZED" ? (
                   <>
                     <CheckCircle2 size={13} className="text-emerald-600" />
-                    <span>✓ Paid Rs. {Number(appointment.paymentAmount || appointment.netAmount || originalFee).toLocaleString()}</span>
+                    <span>✓ Total billed Rs. {Number(appointment.paymentAmount || appointment.netAmount || originalFee).toLocaleString()}</span>
                   </>
                 ) : (
                   <>
@@ -1434,7 +1484,10 @@ export default function ConsultationWorkspaceRedesigned({
 
               {/* Module 5: Consultation Fee — ONLY for deferred ("pay at
                   consultation") visits. Non-deferred visits keep the locked
-                  read-only fee behavior (values shown in the header pill). */}
+                  read-only fee behavior (values shown in the header pill).
+                  The doctor types the FULL price here; the advance already paid
+                  online is never subtracted from the bill, only from what the
+                  desk still has to collect. */}
               {isDeferredFee && (
                 <div className="bg-white border border-teal-200 dark:border-teal-800 rounded-xl p-4 shadow-sm">
                   <div className="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
@@ -1452,21 +1505,18 @@ export default function ConsultationWorkspaceRedesigned({
                     </span>
                   </div>
 
-                  {advanceAmountPaid > 0 && (
-                    <div className="mb-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-3 flex items-start gap-2">
-                      <span className="shrink-0 text-base leading-5">💡</span>
-                      <p className="text-xs font-semibold text-amber-800 dark:text-amber-200 leading-relaxed">
-                        Patient already paid Rs. {advanceAmountPaid.toLocaleString()} online —
-                        enter the total fee, the remaining balance will be
-                        calculated automatically.
-                      </p>
-                    </div>
-                  )}
+                  <div className="mb-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-3 flex items-start gap-2">
+                    <span className="shrink-0 text-base leading-5">💡</span>
+                    <p className="text-xs font-semibold text-amber-800 dark:text-amber-200 leading-relaxed">
+                      {buildFeeFieldHint(advanceAmountPaid)}
+                    </p>
+                  </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className={FIELD_LABEL_CLASS} htmlFor="deferred-fee">
-                        Consultation Fee (Rs.) <span className="text-rose-500">*</span>
+                        Full Consultation Price (Rs.){" "}
+                        <span className="text-rose-500">*</span>
                       </label>
                       <input
                         id="deferred-fee"
@@ -1480,16 +1530,22 @@ export default function ConsultationWorkspaceRedesigned({
                             setFormErrors((prev) => ({ ...prev, deferredFee: null }));
                           }
                         }}
-                        placeholder="e.g. 1000"
+                        placeholder="e.g. 2000 (the complete fee)"
                         className={`w-full bg-white border text-slate-900 text-sm rounded-lg p-3 outline-none placeholder:text-slate-400 font-normal transition-all ${
                           formErrors.deferredFee
                             ? "border-rose-500 ring-1 ring-rose-500/10"
                             : "border-slate-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10"
                         }`}
                       />
-                      {formErrors.deferredFee && (
+                      {formErrors.deferredFee ? (
                         <p className="text-xs font-bold text-rose-500 mt-1 flex items-center gap-1">
                           <AlertCircle size={13} /> {formErrors.deferredFee}
+                        </p>
+                      ) : (
+                        <p className="text-[11px] font-semibold text-slate-500 mt-1">
+                          {advanceApplied
+                            ? `Enter the complete price — ${formatPkr(advanceAmountPaid)} already paid is part of it.`
+                            : "Enter the complete price for this visit."}
                         </p>
                       )}
                     </div>
@@ -1524,14 +1580,45 @@ export default function ConsultationWorkspaceRedesigned({
                     </div>
                   </div>
 
-                  <div className="mt-4 flex items-center justify-between rounded-lg border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-950/40 px-4 py-3">
-                    <span className="text-xs font-bold uppercase tracking-wider text-teal-700 dark:text-teal-300">
-                      Collected now
-                      {advanceAmountPaid > 0 ? " (balance)" : ""}
-                    </span>
-                    <span className="text-base font-extrabold text-teal-800 dark:text-teal-200">
-                      Rs. {deferredNet.toLocaleString()}
-                    </span>
+                  {/* Live "what to collect" line — the whole point of entering
+                      the FULL price: the ledger takes the total, the desk takes
+                      the difference. Never ask the doctor to do that math. */}
+                  {collectNowNote && (
+                    <div
+                      className={`mt-3 rounded-lg border px-3 py-2.5 text-xs font-bold leading-relaxed ${
+                        collectNowNote.tone === "due"
+                          ? "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200"
+                          : collectNowNote.tone === "covered"
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
+                            : "border-slate-200 bg-slate-50 text-slate-600"
+                      }`}
+                      aria-live="polite"
+                    >
+                      {collectNowNote.text}
+                    </div>
+                  )}
+
+                  <div className="mt-4 rounded-lg border border-teal-200 dark:border-teal-800 bg-teal-50 dark:bg-teal-950/40 px-4 py-3 space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold uppercase tracking-wider text-teal-700 dark:text-teal-300">
+                        Total added to the system
+                      </span>
+                      <span className="text-base font-extrabold text-teal-800 dark:text-teal-200">
+                        {formatPkr(deferredNet)}
+                      </span>
+                    </div>
+                    {advanceApplied && (
+                      <>
+                        <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                          <span>Already paid online by patient</span>
+                          <span>− {formatPkr(advanceAmountPaid)}</span>
+                        </div>
+                        <div className="flex items-center justify-between border-t border-teal-200 dark:border-teal-800 pt-1.5 text-xs font-extrabold text-rose-700 dark:text-rose-300">
+                          <span>Collect now at the desk</span>
+                          <span>{formatPkr(deferredCollectNow)}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               )}

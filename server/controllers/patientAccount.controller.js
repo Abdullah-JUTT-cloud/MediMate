@@ -349,10 +349,15 @@ export const bookAppointment = async (req, res) => {
       awaitingOnlineApproval: true,
       advancePaid: false,
       isWalkIn: false,
+      // The seeded fee is the online booking advance the patient paid (not the
+      // doctor's final price) — the approval step overwrites these fields.
       consultationFee: feeAmount,
       standardFee: feeAmount,
       originalFee: feeAmount,
       netAmount: feeAmount,
+      // Recorded up front so the approvals page can show "Rs X already paid,
+      // collect Rs Y more" before the booking is even approved.
+      advanceAmountPaid: feeAmount,
     });
 
     await appointment.save();

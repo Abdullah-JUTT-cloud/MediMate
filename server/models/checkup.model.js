@@ -78,11 +78,16 @@ const checkupSchema = new mongoose.Schema(
       default: null,
     },
     payment: {
+      // `amount`/`netAmount` carry the TOTAL billed price (advance included) —
+      // this is the number Revenue Lab aggregates. `advanceAmountPaid` records
+      // how much of it arrived online at booking, so the clinic can see what is
+      // still to collect at the desk (netAmount - advanceAmountPaid).
       amount: { type: Number, required: true, default: 0, min: 0, max: 1000000 },
       originalFee: { type: Number, default: 0, min: 0, max: 1000000 },
       discount: { type: Number, default: 0, min: 0, max: 1000000 },
       discountAmount: { type: Number, default: 0, min: 0, max: 1000000 },
       netAmount: { type: Number, default: 0, min: 0, max: 1000000 },
+      advanceAmountPaid: { type: Number, default: 0, min: 0, max: 1000000 },
       ancillaryFee: { type: Number, default: 0, min: 0, max: 1000000 },
       description: { type: String, default: "Consultation", trim: true, maxlength: 200 },
       method: {

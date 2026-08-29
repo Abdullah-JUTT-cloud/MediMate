@@ -52,6 +52,10 @@ const appointmentSchema = new mongoose.Schema({
         enum: ["Doctor", "Patient", "Emergency", "No-show", "Payment Rejected", null],
         default: null,
     },
+    // Mirror of `netAmount` — the TOTAL consultation price (standardFee minus
+    // any discount), NOT the cash still owed at the desk. Kept in sync by
+    // whichever write sets the fee so legacy readers (revenue aggregation,
+    // Patient Dashboard, follow-up seeding) keep working.
     consultationFee: {
         type: Number,
         default: 0,
@@ -74,12 +78,15 @@ const appointmentSchema = new mongoose.Schema({
         default: 0,
         min: 0,
     },
-    // `netAmount` = standardFee - discountAmount - advanceAmountPaid, computed
-    // with the same shared formula at whichever of these points actually sets
-    // the fee: booking (walk-in, charge-now), online-booking approval
-    // (charge-now), consultation save (pay-at-consultation / deferred), or a
-    // Payments-page edit (correction). The most recent write is authoritative —
-    // do not re-derive or re-subtract it downstream.
+    // `netAmount` = standardFee - discountAmount — the TOTAL the visit costs,
+    // computed with the same shared formula (utils/consultationFee.js) at
+    // whichever of these points actually sets the fee: booking (walk-in,
+    // charge-now), online-booking approval (charge-now), consultation save
+    // (pay-at-consultation / deferred), or a Payments-page edit (correction).
+    // The online advance is NOT subtracted here (it is part of this total, see
+    // `advanceAmountPaid`); the cash still owed at the desk is derived as
+    // max(0, netAmount - advanceAmountPaid). The most recent write is
+    // authoritative — do not re-derive or re-subtract it downstream.
     netAmount: {
         type: Number,
         default: 0,
@@ -92,9 +99,12 @@ const appointmentSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
-    // Actual amount the patient already paid online (from the
-    // BookingPaymentProof amount) for deferred fees. Lets the consultation
-    // workspace compute the remaining balance without an extra query.
+    // Amount the patient already paid online while booking (the
+    // BookingPaymentProof amount). Stored for BOTH approval modes — charge-now
+    // and pay-at-consultation — so the Doctor Queue, the online-approvals
+    // modal and the consultation workspace can show "Rs X already paid,
+    // collect Rs Y at the visit" without an extra query. It is a PART of
+    // `netAmount`, never an extra payment line and never a discount.
     // Note: distinct from `advancePaid` (boolean — "was an advance paid").
     advanceAmountPaid: {
         type: Number,

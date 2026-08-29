@@ -17,6 +17,12 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import axiosInstance from "../api/axios";
+import {
+  computeConsultationFee,
+  buildFeeFieldHint,
+  buildCollectNowNote,
+  formatPkr,
+} from "../utils/consultationFee";
 
 // ─── Shared Design Tokens ────────────────────────────────────────────────────
 const CARD =
@@ -188,6 +194,21 @@ function BookingCard({ booking, onApproveClick, onRejectClick, actioning }) {
   const screenshotUrl = booking.paymentScreenshotUrl || booking.paymentScreenshot;
   const isRejected = booking.status === "Cancelled";
 
+  // Fee readout, same rules as the approval modal:
+  //  • `advanceAmountPaid` = what the patient already sent online (part of the
+  //    bill, never a discount and never an extra payment).
+  //  • The billed total only exists once the booking is approved (a pending row's
+  //    `consultationFee` is just the advance seeded by the booking flow), and it
+  //    is always the FULL price — the cash still owed is the difference.
+  const paidOnline = Number(
+    booking.advanceAmountPaid ??
+      (booking.awaitingOnlineApproval ? booking.consultationFee : 0),
+  ) || 0;
+  const billedTotal = booking.awaitingOnlineApproval
+    ? 0
+    : Number(booking.netAmount ?? booking.consultationFee ?? 0) || 0;
+  const collectAtVisit = Math.max(0, billedTotal - paidOnline);
+
   return (
     <div className={`${CARD} overflow-hidden`}>
       {/* Card Header */}
@@ -241,13 +262,42 @@ function BookingCard({ booking, onApproveClick, onRejectClick, actioning }) {
                   {booking.type || "—"}
                 </p>
               </div>
-              {booking.consultationFee > 0 && (
+              {paidOnline > 0 && (
                 <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl px-3 py-2 border border-amber-200 dark:border-amber-700">
                   <p className="text-amber-600 dark:text-amber-400 font-semibold uppercase tracking-wide text-[10px]">
-                    Online Booking Fee
+                    Paid Online (Advance)
                   </p>
                   <p className="font-bold text-amber-800 dark:text-amber-300 mt-0.5">
-                    Rs {booking.consultationFee?.toLocaleString()}
+                    Rs {paidOnline.toLocaleString()}
+                  </p>
+                </div>
+              )}
+              {billedTotal > 0 && (
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl px-3 py-2 border border-emerald-200 dark:border-emerald-700">
+                  <p className="text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wide text-[10px]">
+                    Billed Total
+                  </p>
+                  <p className="font-bold text-emerald-800 dark:text-emerald-300 mt-0.5">
+                    Rs {billedTotal.toLocaleString()}
+                  </p>
+                  {collectAtVisit > 0 ? (
+                    <p className="text-[10px] font-bold text-rose-600 dark:text-rose-300 mt-0.5">
+                      Collect Rs {collectAtVisit.toLocaleString()} at the visit
+                    </p>
+                  ) : (
+                    <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-300 mt-0.5">
+                      Covered by the advance
+                    </p>
+                  )}
+                </div>
+              )}
+              {booking.payAtConsultation && billedTotal === 0 && (
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl px-3 py-2 border border-slate-200 dark:border-slate-700">
+                  <p className="text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wide text-[10px]">
+                    Price
+                  </p>
+                  <p className="font-bold text-slate-700 dark:text-slate-200 mt-0.5">
+                    Set at consultation
                   </p>
                 </div>
               )}
@@ -334,7 +384,10 @@ export default function OnlineBookingsPage() {
 
   // Approval Modal state
   const [approvingBooking, setApprovingBooking] = useState(null);
-  const [checkupPrice, setCheckupPrice] = useState("1000");
+  // The FULL price for the visit (the online advance is part of it, never a
+  // deduction), so an unapproved booking starts empty rather than pre-filled
+  // with the advance amount — that was the source of "500 vs 2000" mistakes.
+  const [checkupPrice, setCheckupPrice] = useState("");
   // "Pay at consultation" — approve the booking without a final price; the
   // doctor sets the fee at the visit (the online advance is already tracked
   // via the payment proof).
@@ -374,7 +427,14 @@ export default function OnlineBookingsPage() {
 
   const openApproveModal = (booking) => {
     setApprovingBooking(booking);
-    setCheckupPrice(String(booking.consultationFee || 1000));
+    // Only carry over a price that was actually billed (a re-approval of a
+    // rejected booking). For a first-time approval `consultationFee` is just
+    // the advance the patient sent, so pre-filling it would tempt the doctor
+    // into approving the visit at the advance price.
+    const alreadyBilled = !booking.awaitingOnlineApproval
+      ? Number(booking.netAmount ?? booking.consultationFee ?? 0)
+      : 0;
+    setCheckupPrice(alreadyBilled > 0 ? String(alreadyBilled) : "");
     setPayAtConsultation(false);
   };
 
@@ -384,9 +444,14 @@ export default function OnlineBookingsPage() {
     const priceNum = Number(checkupPrice);
 
     // With "Pay at consultation" ON the fee is not known yet — no price is
-    // required and none is sent.
-    if (!payAtConsultation && (isNaN(priceNum) || priceNum < 0)) {
-      return toast.error("Please enter a valid checkup price");
+    // required and none is sent. Otherwise an explicit full price is REQUIRED:
+    // an empty field must never be silently approved as Rs 0 (Number("") is
+    // 0, so the old isNaN check alone could bill a visit for free).
+    if (
+      !payAtConsultation &&
+      (String(checkupPrice).trim() === "" || !Number.isFinite(priceNum) || priceNum < 0)
+    ) {
+      return toast.error("Enter the full consultation price for this visit");
     }
 
     setActioning(id);
@@ -398,8 +463,13 @@ export default function OnlineBookingsPage() {
       });
       toast.success(
         payAtConsultation
-          ? "Appointment approved! The doctor will set the fee at consultation."
-          : `Appointment approved! Consultation fee (Rs ${priceNum.toLocaleString()}) logged to Revenue & Queue.`
+          ? advancePaid > 0
+            ? `Appointment approved! ${formatPkr(advancePaid)} already received — the doctor will enter the full price at consultation and collect the rest.`
+            : "Appointment approved! The doctor will set the fee at consultation."
+          : approvalFeeCalc.balanceDue > 0
+            ? `Approved! ${formatPkr(approvalFeeCalc.netAmount)} logged to Revenue & Queue — collect ${formatPkr(approvalFeeCalc.balanceDue)} from the patient at the visit.`
+            : `Approved! ${formatPkr(approvalFeeCalc.netAmount)} logged to Revenue & Queue — fully covered by the online advance.`,
+        { duration: 6000 },
       );
       setBookings((prev) =>
         prev.map((b) =>
@@ -410,7 +480,12 @@ export default function OnlineBookingsPage() {
                 status: "Confirmed",
                 // Deferred fee: the price is not known yet — clear the
                 // pre-populated booking fee so no stale price is displayed.
-                consultationFee: payAtConsultation ? 0 : priceNum,
+                // Charge-now: store the FULL price (the advance never reduces
+                // it) so the card and the queue agree with the ledger.
+                consultationFee: payAtConsultation ? 0 : approvalFeeCalc.netAmount,
+                netAmount: payAtConsultation ? 0 : approvalFeeCalc.netAmount,
+                standardFee: payAtConsultation ? 0 : approvalFeeCalc.standardFee,
+                advanceAmountPaid: approvalFeeCalc.advanceAmountPaid,
                 payAtConsultation,
               }
             : b
@@ -465,6 +540,28 @@ export default function OnlineBookingsPage() {
 
   const pendingBookings = bookings.filter((b) => b.awaitingOnlineApproval);
   const processedBookings = bookings.filter((b) => !b.awaitingOnlineApproval && b.status !== "Cancelled");
+
+  // What the patient already sent online for the booking being approved. The
+  // server mirrors the verified proof amount onto `advanceAmountPaid`; the
+  // fallback covers rows created before that (where the seeded consultationFee
+  // WAS the advance).
+  const advancePaid = Number(
+    approvingBooking?.advanceAmountPaid ?? approvingBooking?.consultationFee ?? 0,
+  ) || 0;
+  // The approval modal takes the FULL price, so the live breakdown is the same
+  // formula the consultation workspace and the server use.
+  const approvalFeeCalc = computeConsultationFee({
+    standardFee: checkupPrice,
+    discountAmount: approvingBooking?.discountAmount ?? 0,
+    advanceAmountPaid: advancePaid,
+  });
+  const approvalFeeNote = advancePaid > 0
+    ? buildCollectNowNote({
+        standardFee: checkupPrice,
+        discountAmount: approvingBooking?.discountAmount ?? 0,
+        advanceAmountPaid: advancePaid,
+      })
+    : null;
 
   return (
     <div className="max-w-3xl mx-auto pb-12">
@@ -612,8 +709,8 @@ export default function OnlineBookingsPage() {
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
               {payAtConsultation
-                ? "Confirming the booking only — the doctor will set the final fee at consultation. The patient's online advance is already recorded and will be applied to the bill."
-                : "Specify the checkup consultation price. Approving will register the patient and log this payment to the Doctor Queue and Revenue ledger."}
+                ? "Confirming the booking only — the doctor will enter the FULL price at consultation. The patient's online advance stays recorded and is deducted from what they owe at the desk, never from the bill."
+                : "Enter the FULL consultation price (advance included). Approving registers the patient and logs this complete price to the Doctor Queue and Revenue ledger — the cash still owed is derived from it."}
             </p>
 
             <div className="bg-slate-50 dark:bg-slate-800/60 p-3.5 rounded-xl text-xs space-y-1.5 mb-4 border border-slate-200 dark:border-slate-700">
@@ -636,9 +733,9 @@ export default function OnlineBookingsPage() {
                 </strong>
               </p>
               <p>
-                <span className="text-slate-500 font-semibold">Online Booking Fee Paid:</span>{" "}
+                <span className="text-slate-500 font-semibold">Paid Online By Patient:</span>{" "}
                 <strong className="text-amber-600 dark:text-amber-400 font-bold">
-                  Rs {approvingBooking.consultationFee?.toLocaleString() || "0"}
+                  {advancePaid > 0 ? formatPkr(advancePaid) : "Nothing yet"}
                 </strong>
               </p>
             </div>
@@ -676,8 +773,22 @@ export default function OnlineBookingsPage() {
             </div>
 
             <div className="mb-5">
+              {/* Banner sits with the field it explains: the advance is already
+                  in, so the input below takes the FULL price, not the balance
+                  left over. In "pay at consultation" mode the doctor's copy is
+                  phrased for the visit instead. */}
+              {advancePaid > 0 && (
+                <div className="mb-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-3 flex items-start gap-2">
+                  <span className="shrink-0 text-base leading-5">💡</span>
+                  <p className="text-xs font-semibold text-amber-800 dark:text-amber-200 leading-relaxed">
+                    {payAtConsultation
+                      ? `${formatPkr(advancePaid)} is already paid by the patient online while booking. You are only confirming the slot — the doctor will enter the FULL price at the consultation and collect the difference.`
+                      : buildFeeFieldHint(advancePaid)}
+                  </p>
+                </div>
+              )}
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase mb-1.5">
-                Checkup Consultation Fee (PKR)
+                Full Consultation Price (PKR)
                 {!payAtConsultation && " *"}
               </label>
               <div className={`relative ${payAtConsultation ? "opacity-50" : ""}`}>
@@ -692,14 +803,36 @@ export default function OnlineBookingsPage() {
                   onChange={(e) => setCheckupPrice(e.target.value)}
                   disabled={payAtConsultation}
                   className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 pl-10 pr-4 py-2.5 text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:outline-none disabled:cursor-not-allowed disabled:bg-slate-100 dark:disabled:bg-slate-800"
-                  placeholder={payAtConsultation ? "Set at consultation" : "e.g. 1500"}
+                  placeholder={payAtConsultation ? "Set at consultation" : "e.g. 2000 (the complete fee)"}
                 />
               </div>
               <p className="text-[11px] text-slate-400 mt-1">
                 {payAtConsultation
-                  ? "You're only confirming the booking — the doctor sets the final price at the visit."
-                  : "Doctor can adjust consultation charge as needed."}
+                  ? "You're only confirming the booking — the doctor enters the full price at the visit."
+                  : "Enter the complete price for the visit — the system adds this number to Revenue Lab as-is."}
               </p>
+
+              {/* Live split so nobody has to do the advance math by hand. */}
+              {!payAtConsultation && approvalFeeNote && (
+                <div
+                  className={`mt-3 rounded-xl border px-3 py-2.5 text-xs font-bold leading-relaxed ${
+                    approvalFeeNote.tone === "due"
+                      ? "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200"
+                      : approvalFeeNote.tone === "covered"
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
+                        : "border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                  }`}
+                  aria-live="polite"
+                >
+                  {approvalFeeNote.text}
+                </div>
+              )}
+              {!payAtConsultation && advancePaid <= 0 && (
+                <div className="mt-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-3 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300">
+                  No online advance recorded — the patient pays the full{" "}
+                  {formatPkr(approvalFeeCalc.netAmount)} at the clinic.
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3">

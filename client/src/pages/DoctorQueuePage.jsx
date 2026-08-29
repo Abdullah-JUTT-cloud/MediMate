@@ -31,6 +31,7 @@ import axiosInstance from "../api/axios";
 import ConsultationWorkspace from "./ConsultationWorkspaceRedesigned";
 import useAuthStore from "../store/authStore";
 import VerifiedBadge from "../components/VerifiedBadge";
+import { resolveQueueFee } from "../utils/consultationFee";
 
 const demoPatients = [
   {
@@ -130,8 +131,67 @@ const formatTime = (value) => {
   return date.toLocaleTimeString("en-PK", { hour: "numeric", minute: "2-digit" });
 };
 
-const formatFee = (appointment) =>
-  Number(appointment.paymentAmount || appointment.netAmount || appointment.originalFee || appointment.consultationFee || 0).toLocaleString();
+// The billed amount for a queue row, as a NUMBER: the badge compares it against
+// the online advance, so it must never be parsed back out of a formatted
+// ("Rs. 1,500") string. Label formatting belongs to resolveQueueFee().
+const billedFee = (appointment) =>
+  Number(
+    appointment.paymentAmount ||
+      appointment.netAmount ||
+      appointment.originalFee ||
+      appointment.consultationFee ||
+      0,
+  ) || 0;
+
+const FEE_CELL_LABEL_CLASS =
+  "text-[10px] font-bold uppercase tracking-[0.09em] text-slate-400 dark:text-slate-500";
+
+/**
+ * Fee badge for one queue row.
+ *
+ * Every ledger amount on the server is the FULL billed price, so an online
+ * advance must never be shown as a smaller total — it is shown underneath as
+ * the cash still to take at the desk ("Pending Rs. 2,000" + "Rs. 500 paid
+ * online — collect Rs. 1,500 at this visit"). Rows whose price is not final
+ * yet (still awaiting approval, or fee deferred to the consultation) say so
+ * instead of inventing a number. All of that lives in resolveQueueFee().
+ */
+function QueueFeeBadge({ appointment, className = "", compact = false }) {
+  const fee = resolveQueueFee({
+    billed: billedFee(appointment),
+    advanceAmountPaid: appointment.advanceAmountPaid,
+    balanceDue: appointment.balanceDue,
+    payAtConsultation: appointment.payAtConsultation,
+    isSettled: appointment.paymentStatus === "PAID" || appointment.paymentStatus === "REALIZED",
+    awaitingApproval: appointment.awaitingOnlineApproval === true,
+  });
+
+  const tone =
+    fee.tone === "slate"
+      ? "border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+      : fee.tone === "emerald"
+        ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300"
+        : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300";
+  const hintTone =
+    fee.hintTone === "rose"
+      ? "text-rose-600 dark:text-rose-300"
+      : fee.hintTone === "slate"
+        ? "text-slate-500 dark:text-slate-400"
+        : "text-emerald-600 dark:text-emerald-300";
+
+  return (
+    <div className={className}>
+      {!compact && <p className={FEE_CELL_LABEL_CLASS}>Consultation fee</p>}
+      <span className={`${compact ? "mt-0" : "mt-1.5"} inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-extrabold ${tone}`}>
+        <Check size={compact ? 10 : 11} strokeWidth={3} />
+        {fee.label}
+      </span>
+      {!compact && fee.hint ? (
+        <p className={`mt-1 text-[10px] font-extrabold ${hintTone}`}>{fee.hint}</p>
+      ) : null}
+    </div>
+  );
+}
 
 // ─── Timezone-safe local date helpers ─────────────────────────────────────────
 // The queue must show and query the date the doctor actually sees on their
@@ -394,9 +454,9 @@ function PatientRow({ appointment, onStart }) {
         <div><p className="text-[10px] font-bold uppercase tracking-[0.09em] text-slate-400 dark:text-slate-500">Checked in</p><p className="mt-1 text-[11px] font-semibold text-slate-600 dark:text-slate-300">{formatTime(appointment.checkInTime)}</p></div>
       </div>
 
-      <div className="hidden lg:block"><p className="text-[10px] font-bold uppercase tracking-[0.09em] text-slate-400 dark:text-slate-500">Upfront fee</p><span className={`mt-1.5 inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-extrabold ${appointment.paymentStatus === "PAID" || appointment.paymentStatus === "REALIZED" ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300" : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300"}`}><Check size={11} strokeWidth={3} />{appointment.paymentStatus === "PAID" || appointment.paymentStatus === "REALIZED" ? `Paid Rs. ${formatFee(appointment)}` : `Pending Rs. ${formatFee(appointment)}`}</span></div>
+      <QueueFeeBadge appointment={appointment} className="hidden lg:block" />
 
-      <div className="flex items-center justify-between gap-2 lg:block"><div><p className="text-[10px] font-bold uppercase tracking-[0.09em] text-slate-400 dark:text-slate-500">Status</p><span className={`mt-1.5 inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-extrabold ${config.badge}`}><span className={`h-1.5 w-1.5 rounded-full ${config.dot} ${isInConsultation ? "animate-pulse" : ""}`} />{config.label}</span></div><div className="lg:hidden"><span className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-extrabold ${appointment.paymentStatus === "PAID" || appointment.paymentStatus === "REALIZED" ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-300" : "border-amber-200 bg-amber-50 text-amber-700"}`}><Check size={10} />Rs. {formatFee(appointment)}</span></div></div>
+      <div className="flex items-center justify-between gap-2 lg:block"><div><p className="text-[10px] font-bold uppercase tracking-[0.09em] text-slate-400 dark:text-slate-500">Status</p><span className={`mt-1.5 inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-extrabold ${config.badge}`}><span className={`h-1.5 w-1.5 rounded-full ${config.dot} ${isInConsultation ? "animate-pulse" : ""}`} />{config.label}</span></div><QueueFeeBadge appointment={appointment} compact className="lg:hidden" /></div>
 
       <div className="flex items-center justify-start lg:justify-end"><button type="button" disabled={isCompleted} onClick={() => onStart(appointment)} className={`inline-flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-[11px] font-extrabold transition sm:w-auto ${isCompleted ? "cursor-default border border-slate-200 bg-slate-50 text-slate-400 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-500" : isInConsultation ? "bg-teal-600 text-white shadow-sm shadow-teal-600/20 hover:bg-teal-700" : "bg-emerald-600 text-white shadow-sm shadow-emerald-600/20 hover:bg-emerald-700"}`}>{isCompleted ? <>✓ Consultation Completed</> : <>{isInConsultation ? "Resume Consultation" : "Start Consultation"}<span className="text-sm leading-none">→</span></>}</button><button type="button" className="ml-2 hidden rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 sm:block" aria-label="More patient options"><MoreHorizontal size={16} /></button></div>
     </div>

@@ -22,9 +22,14 @@
  *   E. completeCheckup, deferred walk-in (no advance) → fee finalized on the
  *      appointment, Payment CREATED (PAID) and flipped to REALIZED,
  *      checkup stores the fee + appointmentId.
- *   F. completeCheckup, deferred online (advance 500, fee 1000) → net 500,
- *      Payment amount 500 / standardFee 1000, advance NOT mislabelled as a
- *      discount, follow-up priced at the full fee.
+ *   F. completeCheckup, deferred online (advance 500, fee 1000) → the visit is
+ *      billed at the FULL 1000 (advance included, never subtracted), Payment
+ *      amount/netAmount 1000 with advanceAmountPaid 500 so the desk can show
+ *      "collect 500 more", advance NOT mislabelled as a discount, follow-up
+ *      priced at the full fee.
+ *   F2. completeCheckup, deferred online with a discount (fee 2000, discount
+ *      200, advance 500) → bill 1800, collect 1300 — the doctor's entry is
+ *      always the full price; only the cash-to-collect line moves.
  *   G. completeCheckup, deferred but fee missing/too-small → 400.
  *   H. completeCheckup, non-deferred (regression) → no new Payment created.
  *   I. updateCheckup (PUT /checkups/:id) — deferred checkup with NO Payment
@@ -377,10 +382,19 @@ resetState();
   assert(a.standardFee === 1500 && a.netAmount === 1500, `checkupPrice wins (1500) — std ${a.standardFee}, net ${a.netAmount}`);
   assert(state.doctorLookups === 1, "fee-resolution path still runs (doctor lookup)");
   assert(state.paymentUpdates.length === 1, "Payment upsert still happens");
-  assert(state.paymentUpdates[0].update.amount === 1500, "Payment amount = 1500");
+  assert(state.paymentUpdates[0].update.amount === 1500, "Payment amount = 1500 (full price, advance NOT subtracted)");
   assert(state.paymentUpdates[0].options?.upsert === true, "upsert pattern preserved");
+  // The online advance is mirrored onto the appointment in the charge-now
+  // branch too, so the queue/workspace can report what is left to collect.
+  assert(a.advanceAmountPaid === 500, `advanceAmountPaid mirrored from the proof (500) — got ${a.advanceAmountPaid}`);
+  assert(a.netAmount - a.advanceAmountPaid === 1000, "1,000 of the 1,500 bill is still to collect at the desk");
+  assert(state.paymentUpdates[0].update.advanceAmountPaid === 500, "Payment row carries the advance split");
+  assert(state.paymentUpdates[0].update.discountAmount === 0, "advance never stored as a discount");
+  assert(String(state.paymentUpdates[0].update.description || "").includes("Rs 1,000 to collect at visit"),
+    `ledger description states the cash owed — "${state.paymentUpdates[0].update.description}"`);
   const msg = state.whatsapp[0]?.message || "";
   assert(msg.includes("Total Price: Rs 1,500"), `WhatsApp includes Total Price line — "${msg.split("\n").find((l) => l.includes("Total")) || "missing"}"`);
+  assert(msg.includes("Balance To Pay At Clinic: Rs 1,000"), "WhatsApp states the balance due at the clinic");
 }
 
 console.log("\nC — createAppointment (walk-in), toggle ON (deferred)\n");
@@ -502,16 +516,21 @@ resetState();
 
   assert(res.statusCode === 201, `returns 201 — got ${res.statusCode} ${JSON.stringify(res.body)}`);
   const a = state.appointment;
-  assert(a.netAmount === 500, `netAmount = 1000 - 0 - 500 advance = 500 — got ${a.netAmount}`);
+  assert(a.netAmount === 1000, `netAmount = the FULL 1000 bill (advance is part of it, not a deduction) — got ${a.netAmount}`);
+  assert(a.consultationFee === 1000, `consultationFee mirrors the total (1000) — got ${a.consultationFee}`);
   assert(a.standardFee === 1000 && a.discountAmount === 0, "standardFee 1000 / discount 0 stored");
+  assert(a.advanceAmountPaid === 500, "advance still recorded separately on the appointment (500)");
   assert(state.createdPayments.length === 1, "Payment record created");
   const p = state.createdPayments[0];
-  assert(p && p.amount === 500, `Payment.amount = 500 (balance charged at visit) — got ${p && p.amount}`);
-  assert(p && p.standardFee === 1000 && p.netAmount === 500, "Payment standardFee 1000 / netAmount 500");
+  assert(p && p.amount === 1000, `Payment.amount = 1000 (total billed — 500 online + 500 at the desk) — got ${p && p.amount}`);
+  assert(p && p.standardFee === 1000 && p.netAmount === 1000, "Payment standardFee 1000 / netAmount 1000");
+  assert(p && p.advanceAmountPaid === 500, `Payment.advanceAmountPaid = 500 → collect 1000 - 500 = 500 more`);
+  assert(p && p.method === "Cash", `cash balance still owed → entered method kept (Cash) — got ${p && p.method}`);
   const c = state.savedCheckups[0];
   assert(c && c.payment.discountAmount === 0 && c.payment.discount === 0,
     "online advance NOT mislabelled as a discount in checkup.payment");
-  assert(c && c.payment.amount === 500 && c.payment.originalFee === 1000, "checkup.payment: amount 500 / originalFee 1000");
+  assert(c && c.payment.amount === 1000 && c.payment.originalFee === 1000, "checkup.payment: amount 1000 / originalFee 1000 (what Revenue Lab reads)");
+  assert(c && c.payment.advanceAmountPaid === 500, "checkup.payment carries the advance split");
   // Follow-up visit must be priced at the FULL fee — the online advance
   // belongs to this visit, not the future one. (The follow-up Appointment
   // doc carries originalFee, not standardFee — same shape as before this
@@ -521,6 +540,32 @@ resetState();
   assert(followUp && followUp.originalFee === 1000 && followUp.netAmount === 1000 && followUp.consultationFee === 1000 && followUp.discountAmount === 0,
     `follow-up priced at full fee 1000 (not the 500 balance) — got std ${followUp && followUp.originalFee} / net ${followUp && followUp.netAmount}`);
   assert(state.reviews.length === 1, "review invite path unaffected");
+}
+
+console.log("\nF2 — completeCheckup, deferred online WITH discount (fee 2000, disc 200, advance 500)\n");
+resetState();
+{
+  state.appointment = walkInAppointment({
+    payAtConsultation: true,
+    advanceAmountPaid: 500,
+    patientAccount: { _id: "patientacc-0001" },
+  });
+  const { req, res } = makeReqRes(completeBody(2000, 200));
+  await completeCheckup(req, res);
+
+  assert(res.statusCode === 201, `returns 201 — got ${res.statusCode} ${JSON.stringify(res.body)}`);
+  const a = state.appointment;
+  assert(a.standardFee === 2000, "doctor's full price stored as standardFee (2000)");
+  assert(a.discountAmount === 200, "discount stored (200)");
+  assert(a.netAmount === 1800 && a.consultationFee === 1800,
+    `billed total = 2000 - 200 = 1800 (advance NOT subtracted) — got ${a.netAmount}`);
+  assert(a.advanceAmountPaid === 500, "advance untouched by the discount math (500)");
+  const p = state.createdPayments[0];
+  assert(p && p.amount === 1800 && p.netAmount === 1800, "Payment row = 1800 total → Revenue Lab");
+  assert(p && p.advanceAmountPaid === 500, "Payment row keeps the 500 advance → 1300 to collect at the desk");
+  const c = state.savedCheckups[0];
+  assert(c && c.payment.amount === 1800 && c.payment.originalFee === 2000 && c.payment.discountAmount === 200,
+    "checkup.payment: 1800 net of discount, 2000 gross, discount 200");
 }
 
 console.log("\nG — completeCheckup, deferred but fee missing / invalid → 400\n");
