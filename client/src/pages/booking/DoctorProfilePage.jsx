@@ -4,6 +4,9 @@ import axios from "../../api/axios";
 import toast from "react-hot-toast";
 import usePatientAccountStore from "../../store/patientAccountStore";
 import MyAppointmentsButton from "../../components/booking/MyAppointmentsButton";
+import MetaTags from "../../components/Seo/MetaTags";
+import { physicianSchema, breadcrumbSchema } from "../../seo/jsonLd";
+import { clampTitle } from "../../seo/seoConfig";
 import {
   ArrowLeft,
   Calendar,
@@ -368,9 +371,32 @@ export default function DoctorProfilePage() {
   if (!doctor) return null;
 
   const onlineFee = doctor.onlineBookingFee || doctor.advanceBookingFee || 0;
+  const doctorName = `${doctor.title ? `${doctor.title} ` : "Dr. "}${doctor.fullName}`;
+  const doctorTitle = clampTitle(`${doctorName} — ${doctor.specialization || "Doctor"} in Pakistan | Book Online | MedAlerto`, 64);
+  const doctorDescription = `${doctorName} is a verified ${doctor.specialization || "physician"} in Pakistan with ${
+    doctor.yearsOfExperience || "extensive"
+  } years of experience. Check qualifications, clinic schedule and patient reviews — then book your appointment online with MedAlerto.`;
+  const doctorImage = doctor.profilePicUrl || "https://medalerto.me/og-image.png";
 
   return (
     <div className="min-h-screen bg-slate-50/70 dark:bg-zinc-950 font-sans text-slate-800 dark:text-zinc-100 pb-20">
+      {/* SEO head: dynamic title, canonical, Physician + Breadcrumb rich snippets */}
+      <MetaTags
+        title={doctorTitle}
+        description={doctorDescription}
+        keywords={`${doctorName}, ${doctor.specialization || "doctor"} ${doctor.fullName}, doctor booking Pakistan, book ${doctor.specialization || "doctor"} online, MedAlerto`}
+        path={`/book/doctors/${id}`}
+        image={doctorImage}
+        ogType="profile"
+        schemas={{
+          physician: physicianSchema(doctor, id),
+          breadcrumb: breadcrumbSchema([
+            { name: "Home", path: "/" },
+            { name: "Find Doctors", path: "/book/doctors" },
+            { name: doctor.fullName, path: `/book/doctors/${id}` },
+          ]),
+        }}
+      />
       {/* Header Bar */}
       <header className="sticky top-0 z-40 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-zinc-800">
         <div className="w-full max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">

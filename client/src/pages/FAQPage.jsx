@@ -1,6 +1,9 @@
 import { useMemo, useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import MetaTags from "../components/Seo/MetaTags";
+import { faqSchema } from "../seo/jsonLd";
+import { SITE } from "../seo/seoConfig";
 
 const faqItems = [
   { category: "Pricing & Billing", question: "Is there a setup fee?", answer: "No. There is no setup or activation fee." },
@@ -79,6 +82,13 @@ export default function FAQPage() {
 
   return (
     <div className="relative min-h-[100dvh] overflow-hidden bg-[var(--color-bg)] text-[var(--color-text-primary)]">
+      <MetaTags
+        title="MedAlerto FAQ — Clinic Workflow, Prescriptions & Support Answers"
+        description="Answers to the most common MedAlerto questions: setup, pricing, digital prescriptions, queue management, patient records, security and support."
+        keywords={`MedAlerto FAQ, MedAlert help, clinic software questions Pakistan, ${SITE.keywords}`}
+        path="/faq"
+        schemas={{ faq: faqSchema(faqItems) }}
+      />
       <div aria-hidden="true" className="pointer-events-none absolute -left-20 top-24 h-80 w-80 rounded-[60%_40%_35%_65%/55%_35%_65%_45%] bg-[var(--color-accent)]/60 blur-3xl" />
       <div aria-hidden="true" className="pointer-events-none absolute -right-24 top-56 h-96 w-96 rounded-[48%_52%_39%_61%/48%_34%_66%_52%] bg-[var(--color-primary)]/10 blur-3xl" />
       <Navbar />

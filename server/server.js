@@ -33,6 +33,7 @@ import subscriptionRoutes from "./routes/subscription.routes.js";
 import { startSubscriptionExpiryJob } from "./utils/subscriptionJob.js";
 import patientAccountRoutes from "./routes/patientAccount.routes.js";
 import publicRoutes from "./routes/public.routes.js";
+import sitemapRoutes from "./routes/sitemap.routes.js";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import mongoSanitize from "express-mongo-sanitize";
@@ -97,6 +98,9 @@ app.use(cookieParser());
 app.get("/",(req,res)=>{
     res.send("landing page");
 })
+
+// ─── SEO crawler endpoints (dynamic sitemap + robots; public, unauthenticated) ──
+app.use(sitemapRoutes);
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,

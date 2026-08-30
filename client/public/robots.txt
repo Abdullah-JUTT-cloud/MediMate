@@ -1,0 +1,11 @@
+# MedAlerto — crawler directives
+# Production: https://medalerto.me/robots.txt
+
+User-agent: *
+Allow: /
+Allow: /book
+Allow: /book/doctors
+Disallow: /dashboard
+Disallow: /api/
+
+Sitemap: https://medalerto.me/sitemap.xml

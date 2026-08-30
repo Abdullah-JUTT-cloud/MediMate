@@ -33,6 +33,8 @@ import {
 import toast from "react-hot-toast";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import MetaTags from "../components/Seo/MetaTags";
+import { blogSchema, blogPostingSchema } from "../seo/jsonLd";
 
 /* -------------------------------------------------------------------------- */
 /*  CATEGORY DEFINITIONS & METADATA                                            */
@@ -1482,6 +1484,25 @@ export default function BlogPage() {
 
   return (
     <div className="relative min-h-[100dvh] overflow-hidden bg-[var(--color-bg)] text-[var(--color-text-primary)] transition-colors duration-300">
+      <MetaTags
+        title={
+          activeArticleModal
+            ? `${activeArticleModal.title} | MedAlerto Blog`
+            : "MedAlerto Blog — Clinic Engineering, Queue Architecture & Practice Insights"
+        }
+        description={
+          activeArticleModal?.excerpt ||
+          "Engineering deep-dives and practice insights from the MedAlerto team: queue architecture, WhatsApp APIs, clinic billing, security and patient flow."
+        }
+        keywords="MedAlerto blog, clinic engineering, queue architecture, digital prescription engineering, patient flow"
+        path="/blog"
+        image="https://medalerto.me/og-image.png"
+        ogType="article"
+        schemas={{
+          blog: blogSchema(),
+          article: blogPostingSchema(activeArticleModal),
+        }}
+      />
       {/* Background Ambience Blobs */}
       <div
         aria-hidden="true"
