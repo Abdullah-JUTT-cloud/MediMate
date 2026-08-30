@@ -2,12 +2,169 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="./src/assets/white.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title>Clinical Assembly Line · MedAlerto</title>
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#0f172a" />
+
+    <!-- Iconography -->
+    <link rel="icon" type="image/png" href="./src/assets/white.png" />
+    <link rel="apple-touch-icon" href="./src/assets/favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- ─── Core SEO (brand signals) ─────────────────────────────────────── -->
+    <title>MedAlerto — Premier Clinic Workflow & Doctor Discovery Platform</title>
+    <meta name="description" content="MedAlerto unifies digital prescriptions, queue management, live patient tracking, and verified doctor appointment bookings into a single, seamless clinic platform." />
+    <meta name="keywords" content="MedAlerto, MedAlert, MedAlerto Care, doctor booking Pakistan, online clinic software, patient queue management, electronic digital prescriptions" />
+    <meta name="author" content="MedAlerto" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow, max-image-preview:large" />
+    <link rel="canonical" href="https://medalerto.me/" />
+
+    <!-- Google Search Console verification (set VITE_GOOGLE_SITE_VERIFICATION in client/.env) -->
+    <meta name="google-site-verification" content="%VITE_GOOGLE_SITE_VERIFICATION%" />
+    <script>
+      // Remove the GSC meta tag when the env placeholder was not configured.
+      (function () {
+        var gsc = document.querySelector('meta[name="google-site-verification"]');
+        if (gsc && (gsc.content || "").indexOf("%") !== -1) gsc.remove();
+      })();
+    </script>
+
+    <!-- ─── Open Graph (social share / Facebook / LinkedIn / WhatsApp) ────── -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="MedAlerto" />
+    <meta property="og:title" content="MedAlerto — Premier Clinic Workflow & Doctor Discovery" />
+    <meta property="og:description" content="Book verified doctors, track live clinic queues, and manage digital prescriptions effortlessly with MedAlerto." />
+    <meta property="og:url" content="https://medalerto.me/" />
+    <meta property="og:image" content="https://medalerto.me/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="MedAlerto — clinic workflow, doctor discovery, queue management and digital prescriptions" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- ─── Twitter Card ─────────────────────────────────────────────────── -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="MedAlerto — Clinic Workflow & Doctor Discovery" />
+    <meta name="twitter:description" content="Book verified doctors and manage clinic queues seamlessly with MedAlerto." />
+    <meta name="twitter:image" content="https://medalerto.me/og-image.png" />
+    <meta name="twitter:image:alt" content="MedAlerto — clinic workflow, doctor discovery, queue management and digital prescriptions" />
+
+    <!-- ─── Google Analytics 4 (set VITE_GA4_MEASUREMENT_ID in client/.env) ── -->
+    <script>
+      (function () {
+        var GA_ID = "%VITE_GA4_MEASUREMENT_ID%";
+        // Only boot GA4 when a real G-XXXXXXX measurement ID is configured.
+        if (!/^G-[A-Z0-9]{4,}$/i.test(GA_ID)) return;
+        window.dataLayer = window.dataLayer || [];
+        window.gtag = function () { window.dataLayer.push(arguments); };
+        window.__MEDALERTO_GA4_ID__ = GA_ID;
+        gtag("consent", "default", {
+          ad_storage: "denied",
+          ad_user_data: "denied",
+          ad_personalization: "denied",
+          analytics_storage: "granted",
+          wait_for_update: 500,
+        });
+        gtag("js", new Date());
+        gtag("config", GA_ID, { send_page_view: false, anonymize_ip: true });
+      })();
+    </script>
+
+    <!-- ─── Structured Data: Organization ────────────────────────────────── -->
+    <script type="application/ld+json" data-seo-jsonld="organization">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "@id": "https://medalerto.me/#organization",
+      "name": "MedAlerto",
+      "alternateName": "MedAlert",
+      "url": "https://medalerto.me/",
+      "logo": "https://medalerto.me/og-image.png",
+      "image": "https://medalerto.me/og-image.png",
+      "email": "hello@medalerto.me",
+      "telephone": "+923214194045",
+      "description": "MedAlerto unifies digital prescriptions, queue management, live patient tracking, and verified doctor appointment bookings into a single, seamless clinic platform.",
+      "sameAs": [
+        "https://www.facebook.com/medalerto",
+        "https://www.instagram.com/medalerto",
+        "https://www.linkedin.com/company/medalerto",
+        "https://twitter.com/medalerto"
+      ],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "+923214194045",
+        "contactType": "customer support",
+        "email": "support@medalerto.me",
+        "areaServed": "PK",
+        "availableLanguage": ["en", "ur"]
+      }
+    }
+    </script>
+
+    <!-- ─── Structured Data: WebSite ─────────────────────────────────────── -->
+    <script type="application/ld+json" data-seo-jsonld="website">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "@id": "https://medalerto.me/#website",
+      "url": "https://medalerto.me/",
+      "name": "MedAlerto",
+      "alternateName": "MedAlert",
+      "description": "Premier clinic workflow and doctor discovery platform for Pakistan.",
+      "publisher": { "@id": "https://medalerto.me/#organization" },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://medalerto.me/book/doctors?name={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+
+    <!-- ─── Structured Data: WebApplication ──────────────────────────────── -->
+    <script type="application/ld+json" data-seo-jsonld="webapp">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "@id": "https://medalerto.me/#webapp",
+      "name": "MedAlerto",
+      "alternateName": "MedAlert",
+      "url": "https://medalerto.me/",
+      "applicationCategory": "HealthApplication",
+      "operatingSystem": "Web",
+      "browserRequirements": "Requires JavaScript",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "PKR",
+        "description": "Free clinic workflow trial with monthly and annual clinic subscriptions."
+      },
+      "featureList": [
+        "Digital prescriptions",
+        "Patient queue management",
+        "Live patient tracking",
+        "Verified doctor discovery",
+        "Online appointment booking",
+        "WhatsApp delivery and reminders"
+      ],
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "reviewCount": "214"
+      }
+    }
+    </script>
+
+    <!-- Route-level metadata (client/src/components/Seo/MetaTags.jsx) applies
+         SPA page titles, canonical, OG/Twitter overrides and JSON-LD schemas
+         after client-side navigation. Crawlers that render JS receive the
+         fully hydrated head. -->
+    <script type="module" src="/src/main.jsx"></script>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

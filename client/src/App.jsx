@@ -10,6 +10,7 @@ import ScrollToTop from "./components/ScrollToTop";
 import useTheme from "./hooks/useTheme";
 import { RouteSkeleton } from "./components/RouteSkeleton";
 import ErrorBoundary from "./components/ErrorBoundary";
+import SeoRouteManager from "./components/Seo/SeoRouteManager";
 import useAuthStore from "./store/authStore";
 import { PatientAuthProvider } from "./context/PatientAuthContext";
 
@@ -62,6 +63,7 @@ function App() {
     <>
       <BrowserRouter>
         <ScrollToTop />
+        <SeoRouteManager />
         <ThemeToggle theme={theme} onToggle={toggleTheme} />
         {/* Global toast system: theme-aware (light/dark), high-contrast,
             fixed top-centre at z-[9999], offset below sticky headers

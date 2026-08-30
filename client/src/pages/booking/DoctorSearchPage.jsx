@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "../../api/axios";
 import MyAppointmentsButton from "../../components/booking/MyAppointmentsButton";
+import { trackEvent } from "../../lib/analytics";
 import {
   Search,
   Stethoscope,
@@ -105,7 +106,12 @@ export default function DoctorSearchPage() {
   }, [filters]);
 
   const handleSearch = (e) => {
-    setFilters((p) => ({ ...p, [e.target.name]: e.target.value, page: 1 }));
+    const next = { ...filters, [e.target.name]: e.target.value, page: 1 };
+    setFilters(next);
+    trackEvent("doctor_search", {
+      search_type: e.target.name,
+      term: e.target.value || "(empty)",
+    });
   };
 
   const clearFilters = () => {
@@ -295,7 +301,14 @@ export default function DoctorSearchPage() {
               return (
                 <div
                   key={doc._id}
-                  onClick={() => navigate(`/book/doctors/${doc._id}`)}
+                  onClick={() => {
+                    trackEvent("doctor_profile_view", {
+                      doctor_id: doc._id,
+                      doctor_name: doc.fullName,
+                      specialization: doc.specialization || "",
+                    });
+                    navigate(`/book/doctors/${doc._id}`);
+                  }}
                   className="group bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-slate-200/90 dark:border-zinc-800 shadow-sm hover:shadow-xl hover:border-indigo-500/40 transition-all duration-300 cursor-pointer flex flex-col justify-between"
                 >
                   <div>
