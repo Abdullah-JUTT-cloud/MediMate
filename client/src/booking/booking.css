@@ -1,0 +1,190 @@
+/* ────────────────────────────────────────────────────────────────────────────
+   MedAlerto Patient Portal — shared visual utilities & micro-interactions
+   (light + dark via the app-level [data-theme] attribute).
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/* Soft brand shadow token */
+.ma-shadow {
+  box-shadow: 0 4px 24px rgba(124, 58, 237, 0.08);
+}
+.ma-shadow-lg {
+  box-shadow: 0 18px 40px -12px rgba(124, 58, 237, 0.22);
+}
+
+/* Primary gradient button glow (hover/focus) */
+.ma-btn-glow {
+  transition: box-shadow 0.2s ease, transform 0.2s ease, filter 0.2s ease;
+}
+.ma-btn-glow:hover,
+.ma-btn-glow:focus-visible {
+  box-shadow: 0 10px 30px -6px rgba(124, 58, 237, 0.55);
+  filter: saturate(1.05);
+}
+
+/* Glass-morphism surface (search bar, navbar, payment card) */
+.ma-glass {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+}
+[data-theme="dark"] .ma-glass {
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+.ma-glass-dark {
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Decorative floating medical icons */
+@keyframes ma-float {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  33% { transform: translate(10px, -16px) rotate(6deg); }
+  66% { transform: translate(-14px, 8px) rotate(-5deg); }
+}
+.ma-float {
+  animation: ma-float 11s ease-in-out infinite;
+}
+
+/* Soft pulsing glow blobs */
+@keyframes ma-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.12); }
+}
+.ma-pulse {
+  animation: ma-pulse 9s ease-in-out infinite;
+}
+
+/* Scroll-reveal (paired with the <Reveal/> component) */
+.ma-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+.ma-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Skeleton shimmer */
+@keyframes ma-shimmer {
+  100% { transform: translateX(100%); }
+}
+.ma-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgb(226 232 240 / 0.7);
+}
+[data-theme="dark"] .ma-skeleton {
+  background: rgb(51 65 85 / 0.45);
+}
+.ma-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.55),
+    transparent
+  );
+  animation: ma-shimmer 1.6s infinite;
+}
+[data-theme="dark"] .ma-skeleton::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.08),
+    transparent
+  );
+}
+
+/* Themed spinner */
+.ma-spinner {
+  border: 3px solid rgba(124, 58, 237, 0.2);
+  border-top-color: #7c3aed;
+  border-radius: 9999px;
+  animation: ma-spin 0.8s linear infinite;
+}
+[data-theme="dark"] .ma-spinner {
+  border-color: rgba(129, 140, 248, 0.25);
+  border-top-color: #818cf8;
+}
+@keyframes ma-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Scrollable rail without visible scrollbars */
+.ma-no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.ma-no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Fade the trailing edge of horizontally-scrollable rails */
+.ma-scroll-fade {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 14px,
+    #000 calc(100% - 26px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 14px,
+    #000 calc(100% - 26px),
+    transparent 100%
+  );
+}
+
+/* Fine dotted medical pattern for hero backgrounds */
+.ma-medical-pattern {
+  background-image: radial-gradient(
+    rgba(255, 255, 255, 0.14) 1px,
+    transparent 1px
+  );
+  background-size: 22px 22px;
+}
+
+/* Glowing border used by the payment account card */
+.ma-glow-border {
+  position: relative;
+}
+.ma-glow-border::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(129, 140, 248, 0.7),
+    rgba(45, 212, 191, 0.5),
+    rgba(124, 58, 237, 0.6)
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ma-float,
+  .ma-pulse,
+  .ma-reveal {
+    animation: none;
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
+}
