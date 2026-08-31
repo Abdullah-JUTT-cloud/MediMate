@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import useThemedLogo from "../hooks/useThemedLogo";
-import usePatientAuth from "../../context/PatientAuthContext";
+import usePatientAuth from "../context/usePatientAuth";
 
 export default function Navbar() {
   const navigate = useNavigate();
   const logo = useThemedLogo();
   const location = useLocation();
+  const { isAuthenticated: patientAuthed, patient: sessionPatient } = usePatientAuth();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const isHome = location.pathname === "/";
@@ -95,7 +96,7 @@ export default function Navbar() {
             Book Appointment
           </button>
           {/* User auth buttons - conditionally rendered */}
-            {usePatientAuth().isAuthenticated ? (
+            {patientAuthed ? (
               /* Logged-in user profile indicator */
               <div className="flex items-center gap-2">
                 <img
@@ -104,7 +105,7 @@ export default function Navbar() {
                   className="h-6 w-6 rounded-full object-cover"
                 />
                 <span className="text-sm font-medium text-[var(--color-text-primary)]">
-                  {usePatientAuth().patient?.name || "Patient"}
+                  {sessionPatient?.name || "Patient"}
                 </span>
               </div>
             ) : (

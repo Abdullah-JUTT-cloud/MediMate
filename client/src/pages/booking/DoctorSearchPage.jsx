@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "../../api/axios";
 import MyAppointmentsButton from "../../components/booking/MyAppointmentsButton";
 import { trackEvent } from "../../lib/analytics";
 import { getDoctorImageUrl } from "../../booking/doctorApi";
-import usePatientAuth from "../../context/PatientAuthContext";
+import usePatientAuth from "../../context/usePatientAuth";
 import {
   Search,
   Stethoscope,
@@ -15,7 +15,7 @@ import {
   Clock,
   Sparkles,
 } from "lucide-react";
-import useThemedLogo from "../hooks/useThemedLogo";
+import useThemedLogo from "../../hooks/useThemedLogo";
 
 const SPECIALIZATIONS = [
   "General Physician",
@@ -82,6 +82,8 @@ function DoctorAvatar({ src, fullName }) {
 
 export default function DoctorSearchPage() {
   const navigate = useNavigate();
+  const { isAuthenticated: patientAuthed, patient: sessionPatient } = usePatientAuth();
+  const themedLogo = useThemedLogo();
   const [doctors, setDoctors] = useState([]);
   const [pagination, setPagination] = useState({ total: 0, pages: 1, page: 1 });
   const [loading, setLoading] = useState(false);
@@ -128,7 +130,7 @@ export default function DoctorSearchPage() {
         <div className="w-full max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-2">
           <Link to="/" className="flex items-center gap-2">
             <img
-              src={useThemedLogo()}
+              src={themedLogo}
               alt="MedAlerto Logo"
               className="h-6 w-auto object-contain"
             />
@@ -139,7 +141,7 @@ export default function DoctorSearchPage() {
           </Link>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            {usePatientAuth().isAuthenticated ? (
+            {patientAuthed ? (
               /* Logged-in user profile indicator */
               <div className="flex items-center gap-2">
                 <img
@@ -148,7 +150,7 @@ export default function DoctorSearchPage() {
                   className="h-6 w-6 rounded-full object-cover"
                 />
                 <span className="text-sm font-medium text-slate-900 dark:text-white">
-                  {usePatientAuth().patient?.name || "Patient"}
+                  {sessionPatient?.name || "Patient"}
                 </span>
               </div>
             ) : (
