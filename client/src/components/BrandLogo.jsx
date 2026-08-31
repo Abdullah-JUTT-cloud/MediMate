@@ -1,154 +1,253 @@
+import blackLogo from "../assets/black.png";
+import whiteLogo from "../assets/white.png";
+import fullBlueLogo from "../assets/fullblue.png";
+
 /**
  * ─────────────────────────────────────────────────────────────────────────────
- *  <BrandLogo /> — the single, reusable MedAlerto brand logo component
+ *  <BrandLogo /> — single reusable MedAlerto logo component
  * ─────────────────────────────────────────────────────────────────────────────
- *  Used by every header across the app (homepage navbar `/`, doctor directory
- *  `/book/doctors`, doctor profile `/book/doctors/:id`, patient dashboard
- *  `/book/dashboard`, and the patient auth modal).
+ *  All header/brand surfaces must use the official PNG files shipped in
+ *  client/src/assets (no generic square "M" placeholders):
+ *    • home / light marketing headers: black.png
+ *    • dark headers or dark mode:       white.png
+ *    • patient portal headers:          fullblue.png
+ *    • doctors booking headers:         black.png, white.png in dark mode
  *
- *  The mark is a crisp INLINE SVG rebuilt from the official brand assets
- *  (`medalerto-wordmark-*.svg` / `logo.svg` shipped in `client/src/assets`),
- *  so it:
- *    • can never 404 / show a broken-image icon (no <img>, no network),
- *    • stays razor sharp at every size, and
- *    • recolours itself for light / dark mode via the app's `[data-theme]`
- *      attribute (Tailwind's `dark:` variant is bound to it in src/index.css).
- *
- *  It replaces the legacy PNG rasters (black.png / white.png), the ad-hoc
- *  square "M" placeholder tiles, and every raw header <img> tag.
- *
- *  Variants:
- *    "auto"  (default)  follows the active theme
- *    "light"            forces the light-surface palette (dark monogram)
- *    "dark"             forces the dark-surface palette (white monogram,
- *                       e.g. on a gradient hero)
- * ─────────────────────────────────────────────────────────────────────────────
+ *  The source PNGs include transparent padding. The helper below keeps the
+ *  rendered visual mark near the requested 32–40px header height by cropping
+ *  that padding in an overflow-hidden wrapper while still loading the exact
+ *  repository asset via <img>.
  */
 
-/** Official "M" monogram path from the shipped brand SVG (viewBox 0 0 108 108). */
-const MARK_MONOGRAM =
-  "M24 77V30.5C24 27.4624 26.4624 25 29.5 25H36.5L54 60.5L71.5 25H78.5C81.5376 25 84 27.4624 84 30.5V77H72V42.6L58.7 68.3C57.3634 70.5267 54.6318 71.7834 52.0694 71.6403C49.507 71.4972 46.9286 69.9729 45.8 67.5L31.4 42.2V77H24Z";
-
-/** Sky accent bar under the monogram — the brand's constant accent colour. */
-const MARK_ACCENT =
-  "M18 83H90C91.6569 83 93 84.3431 93 86V91C93 92.6569 91.6569 94 90 94H18C16.3431 94 15 92.6569 15 91V86C15 84.3431 16.3431 83 18 83Z";
-
-/* Theme-aware fills — full literal class strings so Tailwind's scanner finds
-   every utility (never built via concatenation). */
-const MARK_FILLS = {
-  auto: {
-    tile: "fill-slate-200 dark:fill-slate-900",
-    mono: "fill-slate-900 dark:fill-slate-50",
-  },
-  light: {
-    tile: "fill-slate-200",
-    mono: "fill-slate-900",
-  },
-  dark: {
-    tile: "fill-slate-900",
-    mono: "fill-slate-50",
-  },
+const BRAND_LOGO_ASSETS = {
+  black: blackLogo,
+  white: whiteLogo,
+  fullblue: fullBlueLogo,
 };
+
+const AUTO_VARIANTS = new Set(["auto", "home", "doctors"]);
 
 const WORDMARK_TEXT = {
   auto: "text-slate-900 dark:text-white",
+  home: "text-slate-900 dark:text-white",
+  doctors: "text-slate-900 dark:text-white",
   light: "text-slate-900",
   dark: "text-white",
+  patient: "text-[#0f4f95] dark:text-sky-200",
 };
 
 const SUBTITLE_TEXT = {
   auto: "text-slate-400 dark:text-slate-500",
+  home: "text-slate-400 dark:text-slate-500",
+  doctors: "text-slate-400 dark:text-slate-500",
   light: "text-slate-400",
   dark: "text-slate-300",
+  patient: "text-[#0f4f95] dark:text-sky-200",
 };
 
-/**
- * Square logomark only (rounded tile + "M" monogram + sky accent bar).
- * Pure inline SVG — no external asset, so it can never fail to load.
- *
- * @param {object} props
- * @param {"auto" | "light" | "dark"} [props.variant="auto"] Theme variant.
- * @param {number} [props.size=40] Mark width/height in pixels.
- * @param {string} [props.className] Extra classes applied to the <svg>.
- * @param {string} [props.alt="MedAlerto logo"] Accessible label ("" = decorative).
- */
-export function BrandLogoMark({
-  variant = "auto",
-  size = 40,
-  className = "",
-  alt = "MedAlerto logo",
+const LOGO_CROP = {
+  // black.png / white.png: visible glyph bbox is ~276px inside a 500px canvas.
+  mark: {
+    canvasScale: 500 / 276,
+    widthRatio: 1,
+  },
+  // fullblue.png: visible lockup bbox is ~420×82px inside a 500×500 canvas.
+  // Use a little horizontal breathing room so antialiased edges never clip.
+  full: {
+    canvasScale: 500 / 82,
+    widthRatio: 440 / 82,
+  },
+};
+
+function normalizeVariant(variant, onDark = false) {
+  if (onDark) return "dark";
+
+  switch (variant) {
+    case "dark":
+    case "white":
+      return "dark";
+    case "light":
+    case "black":
+      return "light";
+    case "patient":
+    case "portal":
+      return "patient";
+    case "doctors":
+      return "doctors";
+    case "home":
+    case "auto":
+    default:
+      return "home";
+  }
+}
+
+function LogoImage({
+  src,
+  assetName,
+  size,
+  full = false,
+  imageClassName = "",
+  hiddenClassName = "",
 }) {
-  const fills = MARK_FILLS[variant] ?? MARK_FILLS.auto;
-  const decorative = !alt;
+  const crop = full ? LOGO_CROP.full : LOGO_CROP.mark;
+  const wrapperWidth = Math.round(size * crop.widthRatio);
+  const canvasSize = Math.ceil(size * crop.canvasScale);
 
   return (
-    <svg
-      viewBox="0 0 108 108"
-      width={size}
-      height={size}
-      xmlns="http://www.w3.org/2000/svg"
-      role={decorative ? undefined : "img"}
-      aria-hidden={decorative || undefined}
-      aria-label={decorative ? undefined : alt}
-      className={`shrink-0 select-none ${className}`}
+    <span
+      className={`relative inline-flex shrink-0 overflow-hidden align-middle ${hiddenClassName}`}
+      style={{ width: `${wrapperWidth}px`, height: `${size}px` }}
+      data-medalerto-logo-wrapper={assetName}
     >
-      {!decorative && <title>{alt}</title>}
-      <rect x="0" y="0" width="108" height="108" rx="28" className={fills.tile} />
-      <path d={MARK_MONOGRAM} className={fills.mono} />
-      <path d={MARK_ACCENT} className="fill-sky-500" />
-    </svg>
+      <img
+        src={src}
+        alt=""
+        aria-hidden="true"
+        draggable={false}
+        decoding="async"
+        data-medalerto-logo={assetName}
+        className={`absolute left-1/2 top-1/2 max-w-none -translate-x-1/2 -translate-y-1/2 select-none object-contain ${imageClassName}`}
+        style={{ width: `${canvasSize}px`, height: `${canvasSize}px` }}
+      />
+    </span>
   );
 }
 
 /**
- * Full brand lockup: logomark + "MedAlerto" wordmark + optional subtitle
- * (e.g. "Verified Doctors" on /book/doctors, "Patient Portal" on
- * /book/dashboard).
+ * Official MedAlerto image mark/lockup.
  *
  * @param {object} props
- * @param {"auto" | "light" | "dark"} [props.variant="auto"] Theme variant.
- * @param {number} [props.markSize=40] Logomark width/height in pixels.
- * @param {string} [props.wordmark="MedAlerto"] Wordmark text.
- * @param {string} [props.subtitle=""] Optional tiny uppercase caption under the wordmark.
- * @param {string} [props.className] Extra classes for the lockup row.
- * @param {string} [props.markClassName] Extra classes for the logomark.
- * @param {string} [props.wordmarkClassName] Extra classes for the wordmark text.
- * @param {string} [props.subtitleClassName] Extra classes for the subtitle text.
+ * @param {"auto" | "home" | "doctors" | "patient" | "light" | "dark"} [props.variant="home"]
+ * @param {boolean} [props.onDark=false] Force the white logo, useful on dark/gradient sections.
+ * @param {number} [props.size=40] Desired visible logo height in pixels.
+ * @param {string} [props.className] Extra classes for the cropped logo wrapper.
+ * @param {string} [props.imageClassName] Extra classes for the underlying <img>.
+ * @param {string} [props.alt="MedAlerto logo"] Accessible label ("" = decorative).
+ */
+export function BrandLogoMark({
+  variant = "home",
+  onDark = false,
+  size = 40,
+  className = "",
+  imageClassName = "",
+  alt = "MedAlerto logo",
+}) {
+  const resolvedVariant = normalizeVariant(variant, onDark);
+  const accessibilityProps = alt
+    ? { role: "img", "aria-label": alt }
+    : { "aria-hidden": "true" };
+
+  const renderImage = (assetName, src, extraProps = {}) => (
+    <LogoImage
+      src={src}
+      assetName={assetName}
+      size={size}
+      imageClassName={imageClassName}
+      {...extraProps}
+    />
+  );
+
+  let content = null;
+
+  if (resolvedVariant === "patient") {
+    content = renderImage("fullblue", BRAND_LOGO_ASSETS.fullblue, { full: true });
+  } else if (resolvedVariant === "dark") {
+    content = renderImage("white", BRAND_LOGO_ASSETS.white);
+  } else if (resolvedVariant === "light") {
+    content = renderImage("black", BRAND_LOGO_ASSETS.black);
+  } else if (AUTO_VARIANTS.has(resolvedVariant)) {
+    content = (
+      <>
+        {renderImage("black", BRAND_LOGO_ASSETS.black, { hiddenClassName: "dark:hidden" })}
+        {renderImage("white", BRAND_LOGO_ASSETS.white, { hiddenClassName: "hidden dark:inline-flex" })}
+      </>
+    );
+  }
+
+  return (
+    <span className={`inline-flex shrink-0 ${className}`} {...accessibilityProps}>
+      {content}
+    </span>
+  );
+}
+
+/**
+ * Full brand lockup: official image + optional text/subtitle.
+ *
+ * Patient variant intentionally uses fullblue.png as the visible lockup and
+ * does not duplicate the MedAlerto wordmark in text by default. Pass
+ * showWordmark={true} only for special layouts that need additional text.
  */
 export default function BrandLogo({
-  variant = "auto",
+  variant = "home",
+  onDark = false,
   markSize = 40,
   wordmark = "MedAlerto",
   subtitle = "",
+  showWordmark,
   className = "",
   markClassName = "",
+  imageClassName = "",
   wordmarkClassName = "",
   subtitleClassName = "",
 }) {
-  const text = WORDMARK_TEXT[variant] ?? WORDMARK_TEXT.auto;
-  const sub = SUBTITLE_TEXT[variant] ?? SUBTITLE_TEXT.auto;
+  const resolvedVariant = normalizeVariant(variant, onDark);
+  const text = WORDMARK_TEXT[resolvedVariant] ?? WORDMARK_TEXT.home;
+  const sub = SUBTITLE_TEXT[resolvedVariant] ?? SUBTITLE_TEXT.home;
+  const shouldShowWordmark = showWordmark ?? resolvedVariant !== "patient";
+  const hasTextColumn = shouldShowWordmark || Boolean(subtitle);
+  const markAlt = shouldShowWordmark ? "" : `${wordmark} logo`;
+
+  if (resolvedVariant === "patient" && !shouldShowWordmark) {
+    return (
+      <div className={`flex min-w-0 items-center ${className}`}>
+        <div className="flex min-w-0 flex-col items-start leading-none">
+          <BrandLogoMark
+            variant="patient"
+            size={markSize}
+            alt={markAlt}
+            className={`drop-shadow-[0_4px_10px_rgba(15,79,149,0.18)] ${markClassName}`}
+            imageClassName={imageClassName}
+          />
+          {subtitle ? (
+            <span
+              className={`mt-1 text-[9px] font-bold uppercase tracking-[0.22em] ${sub} ${subtitleClassName}`}
+            >
+              {subtitle}
+            </span>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
+    <div className={`flex min-w-0 items-center gap-3 ${className}`}>
       <BrandLogoMark
-        variant={variant}
+        variant={resolvedVariant}
         size={markSize}
+        alt={shouldShowWordmark ? "" : markAlt}
         className={`drop-shadow-[0_4px_10px_rgba(0,0,0,0.10)] ${markClassName}`}
+        imageClassName={imageClassName}
       />
-      <div className="flex min-w-0 flex-col leading-none">
-        <span
-          className={`font-heading text-lg font-extrabold tracking-tight ${text} ${wordmarkClassName}`}
-        >
-          {wordmark}
-        </span>
-        {subtitle ? (
-          <span
-            className={`mt-1 text-[9px] font-bold uppercase tracking-[0.22em] ${sub} ${subtitleClassName}`}
-          >
-            {subtitle}
-          </span>
-        ) : null}
-      </div>
+      {hasTextColumn ? (
+        <div className="flex min-w-0 flex-col leading-none">
+          {shouldShowWordmark ? (
+            <span
+              className={`font-heading text-lg font-extrabold tracking-tight ${text} ${wordmarkClassName}`}
+            >
+              {wordmark}
+            </span>
+          ) : null}
+          {subtitle ? (
+            <span
+              className={`mt-1 text-[9px] font-bold uppercase tracking-[0.22em] ${sub} ${subtitleClassName}`}
+            >
+              {subtitle}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

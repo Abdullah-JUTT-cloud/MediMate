@@ -1,7 +1,7 @@
 export default function StartupLifelineOverlay({ done }) {
   return (
     <div className={`startup-lifeline-overlay${done ? " startup-lifeline-overlay--done" : ""}`} aria-hidden={done}>
-      <div className="startup-lifeline-wrap" role="status" aria-live="polite" aria-label="Loading MediMate">
+      <div className="startup-lifeline-wrap" role="status" aria-live="polite" aria-label="Loading MedAlerto">
         <svg className="startup-lifeline-svg" viewBox="0 0 600 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <path
             className="startup-lifeline-track"

@@ -1,13 +1,15 @@
 /**
- * Runtime verification — Header fixes across the three public surfaces.
+ * Runtime verification — Header fixes across the public booking surfaces.
  *
  *  1. AVATAR CRASH FIX: no header may render <img src="/assets/avatar.png">
  *     (an asset that does not exist → broken-image icon next to the user's
  *     name). Logged-in headers must fall back to clean initials ("AJ") or a
  *     safe <UserAvatar /> that recovers from image load errors.
  *  2. BRAND LOGO: headers on `/`, `/book/doctors` and `/book/dashboard` must
- *     use the unified inline-SVG <BrandLogo /> (no generic "M" tile, no raw
- *     header <img> that can 404).
+ *     use the official MedAlerto repository assets through <BrandLogo />:
+ *       - black.png for light marketing / doctors headers
+ *       - white.png when dark mode is active
+ *       - fullblue.png for patient portal headers
  *  3. HOMEPAGE CTAs: the marketing navbar shows Login → /login and
  *     Create Account → /signup links and NO profile pill / avatar.
  *
@@ -22,6 +24,9 @@ import BrandLogo, { BrandLogoMark } from "../components/BrandLogo";
 import UserAvatar from "../components/UserAvatar";
 import DoctorSearchPage from "../pages/booking/DoctorSearchPage";
 import PatientDashboardPage from "../pages/booking/PatientDashboardPage";
+import blackLogo from "../assets/black.png";
+import whiteLogo from "../assets/white.png";
+import fullBlueLogo from "../assets/fullblue.png";
 
 vi.mock("../api/axios", () => ({
   default: { get: vi.fn(), post: vi.fn(), patch: vi.fn() },
@@ -54,6 +59,16 @@ beforeAll(() => {
 
 afterEach(cleanup);
 
+function logoImage(assetName, root = document) {
+  return root.querySelector(`img[data-medalerto-logo="${assetName}"]`);
+}
+
+function expectLogoSrc(assetName, expectedSrc) {
+  const img = logoImage(assetName);
+  expect(img).toBeTruthy();
+  expect(img.getAttribute("src")).toBe(expectedSrc);
+}
+
 /* ────────────────────────────── UserAvatar ────────────────────────────── */
 
 describe("UserAvatar — safe fallbacks", () => {
@@ -82,22 +97,30 @@ describe("UserAvatar — safe fallbacks", () => {
 
 /* ────────────────────────────── BrandLogo ─────────────────────────────── */
 
-describe("BrandLogo — unified SVG brand logo", () => {
-  it("renders an inline <svg> mark (no <img>, so it can never 404)", () => {
+describe("BrandLogo — official image assets", () => {
+  it("renders black.png on light headers and a white.png dark-mode counterpart", () => {
     render(
       <MemoryRouter>
-        <BrandLogo subtitle="Verified Doctors" />
+        <BrandLogo variant="doctors" subtitle="VERIFIED DOCTORS" />
       </MemoryRouter>
     );
-    expect(document.querySelector("svg")).toBeTruthy();
-    expect(document.querySelector("img")).toBeNull();
+
+    expect(document.querySelector("svg")).toBeNull();
+    expectLogoSrc("black", blackLogo);
+    expectLogoSrc("white", whiteLogo);
     expect(screen.getAllByText(/MedAlerto/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Verified Doctors/i).length).toBeGreaterThan(0);
   });
 
-  it("BrandLogoMark exposes an accessible label", () => {
+  it("BrandLogoMark exposes an accessible image label", () => {
     render(<BrandLogoMark size={32} />);
-    expect(document.querySelector("svg[role='img']")).toBeTruthy();
+    expect(screen.getByRole("img", { name: /MedAlerto logo/i })).toBeTruthy();
+  });
+
+  it("renders fullblue.png for the patient portal variant", () => {
+    render(<BrandLogo variant="patient" markSize={34} subtitle="PATIENT PORTAL" />);
+    expectLogoSrc("fullblue", fullBlueLogo);
+    expect(screen.getAllByText(/Patient Portal/i).length).toBeGreaterThan(0);
   });
 });
 
@@ -119,8 +142,9 @@ describe("Navbar — homepage header CTAs", () => {
     expect(signup).toBeTruthy();
     expect(signup.getAttribute("href")).toBe("/signup");
 
-    // No avatar, no profile pill, no <img> anywhere in the navbar.
-    expect(document.querySelector("img")).toBeNull();
+    // Official black/white logo assets are present; no logged-in profile UI.
+    expectLogoSrc("black", blackLogo);
+    expectLogoSrc("white", whiteLogo);
     expect(screen.queryByText(/Abdullah/i)).toBeNull();
   });
 });
@@ -128,7 +152,7 @@ describe("Navbar — homepage header CTAs", () => {
 /* ─────────────────────── Doctor directory (`/book/doctors`) ────────────── */
 
 describe("DoctorSearchPage header — avatar crash fix + brand logo", () => {
-  it("uses the SVG brand logo and never renders the broken avatar.png", async () => {
+  it("uses the official doctors logo assets and never renders the broken avatar.png", async () => {
     axios.get.mockResolvedValue({
       data: { doctors: [], pagination: { total: 0, pages: 1, page: 1 } },
     });
@@ -143,8 +167,8 @@ describe("DoctorSearchPage header — avatar crash fix + brand logo", () => {
 
     await waitFor(() => expect(axios.get).toHaveBeenCalled());
 
-    // Unified inline-SVG brand logo with the "Verified Doctors" subtitle.
-    expect(document.querySelector("header svg")).toBeTruthy();
+    expectLogoSrc("black", blackLogo);
+    expectLogoSrc("white", whiteLogo);
     expect(screen.getAllByText(/Verified Doctors/i).length).toBeGreaterThan(0);
 
     // The crash source is gone: no /assets/avatar.png, and the logged-in
@@ -158,7 +182,7 @@ describe("DoctorSearchPage header — avatar crash fix + brand logo", () => {
 /* ───────────────────── Patient dashboard (`/book/dashboard`) ───────────── */
 
 describe("PatientDashboardPage header — brand logo + safe patient pill", () => {
-  it("replaces the generic 'M' tile with the SVG brand logo and Patient Portal subtitle", async () => {
+  it("uses fullblue.png and keeps the Patient Portal subtitle", async () => {
     axios.get.mockImplementation((url) => {
       if (url.includes("/patient-account/me")) {
         return Promise.resolve({
@@ -176,9 +200,8 @@ describe("PatientDashboardPage header — brand logo + safe patient pill", () =>
       </MemoryRouter>
     );
 
-    // Brand lockup replaces the square "M" placeholder + "MediMate" label.
-    expect(await screen.findAllByText(/MedAlerto/i)).toBeTruthy();
-    expect(screen.getAllByText(/Patient Portal/i).length).toBeGreaterThan(0);
+    expect(await screen.findAllByText(/Patient Portal/i)).toBeTruthy();
+    expectLogoSrc("fullblue", fullBlueLogo);
     expect(screen.queryByText(/^MediMate$/)).toBeNull();
 
     // No broken avatar images; initials bubble instead.

@@ -298,7 +298,7 @@ export default function DoctorsPage() {
       {/* ── Navbar ───────────────────────────────────────────────────────── */}
       <GlassBar>
         <Link to="/" className="shrink-0" aria-label="MedAlerto home">
-          <MedalertoLogo />
+          <MedalertoLogo variant="doctors" subtitle="VERIFIED DOCTORS" />
         </Link>
 
         <div className="hidden items-center gap-3 md:flex">

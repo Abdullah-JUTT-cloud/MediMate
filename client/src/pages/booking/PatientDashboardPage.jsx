@@ -305,13 +305,12 @@ export default function PatientDashboardPage() {
       {/* Top Header Navigation */}
       <header className="sticky top-0 z-30 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800">
         <div className="w-full max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-2">
-          {/* Unified SVG brand logo — replaces the generic square "M" tile. */}
           <Link
             to="/"
             aria-label="MedAlerto home"
             className="shrink-0 rounded-xl transition-opacity duration-300 hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/70 focus-visible:ring-offset-2"
           >
-            <BrandLogo markSize={34} subtitle="Patient Portal" />
+            <BrandLogo variant="patient" markSize={34} subtitle="PATIENT PORTAL" />
           </Link>
 
           <div className="flex items-center gap-2">

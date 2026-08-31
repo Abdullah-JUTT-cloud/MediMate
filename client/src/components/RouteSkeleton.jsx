@@ -7,7 +7,7 @@ export function RouteSkeleton() {
   return (
     <div className="route-loader">
       <div className="route-loader__content">
-        <img src={logoCompact} alt="MediMate" className="route-loader__logo" />
+        <img src={logoCompact} alt="MedAlerto" className="route-loader__logo" />
         <div className="route-loader__heartbeat-track">
           <svg
             className="route-loader__heartbeat-svg"

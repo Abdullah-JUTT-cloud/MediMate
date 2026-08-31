@@ -443,13 +443,12 @@ export default function DoctorProfilePage() {
             <span>Back to Doctors</span>
           </button>
 
-          {/* Unified SVG brand logo — replaces the placeholder "M" tile. */}
           <Link
             to="/"
             aria-label="MedAlerto home"
             className="shrink-0 rounded-xl transition-opacity duration-300 hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/70 focus-visible:ring-offset-2"
           >
-            <BrandLogo markSize={30} subtitle="Verified Doctors" />
+            <BrandLogo variant="doctors" markSize={30} subtitle="VERIFIED DOCTORS" />
           </Link>
 
           <div className="flex items-center gap-2">

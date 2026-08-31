@@ -197,7 +197,7 @@ export default function DoctorDetailPage() {
         </button>
 
         <Link to="/" className="shrink-0" aria-label="MedAlerto home">
-          <MedalertoLogo badge={null} subtitle={null} markSize={32} />
+          <MedalertoLogo variant="doctors" subtitle="VERIFIED DOCTORS" markSize={32} />
         </Link>
 
         <div className="flex items-center gap-2">
