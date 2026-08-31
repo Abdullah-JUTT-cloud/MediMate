@@ -14,9 +14,12 @@ import { getFileUrl } from "../services/storage.service.js";
  * Fields exposed on a doctor's public profile.
  * Never includes OTP, reset tokens, password, or subscription details.
  */
-const PUBLIC_DOCTOR_FIELDS = [
+const PUBLIC_DOCTOR_BASE_FIELDS = [
+  // Identity
   "fullName",
   "title",
+  "gender",
+  // Professional details (rendered on the directory card)
   "specialization",
   "primaryDegree",
   "additionalDegrees",
@@ -24,26 +27,45 @@ const PUBLIC_DOCTOR_FIELDS = [
   "graduationYear",
   "postgraduateTraining",
   "yearsOfExperience",
-  "gender",
+  // Practice locations — clinics/hospitals sub-documents (name, address,
+  // phone, hours, sessions) shown on the card and the profile page.
   "clinics",
   "hospitals",
   "slotDuration",
-  // Profile image: doctors may have the R2 key in `profilePicture`, `profilePicUrl`,
-  // or both (legacy accounts only populated one of the two). Both fields are
-  // selected so the response can normalize whichever one is populated —
-  // otherwise doctors whose image key lives only in `profilePicture` render
-  // fallback initials in the directory.
-  "profilePicture",
-  "profilePicUrl",
+  // Fees
   "advanceBookingFee",
   "onlineBookingFee",
+  // Approval state (let the client render the "verified" badge honestly)
   "verificationStatus",
   // Payment / bank account details (shown when advanceBookingFee > 0)
   "paymentAccountTitle",
   "paymentBankName",
   "paymentAccountNumber",
   "paymentIBAN",
+];
+
+/**
+ * Profile image fields.
+ *
+ * Doctors may have the R2 key in `profilePicture`, `profilePicUrl`, or both
+ * (legacy accounts only populated one of the two). BOTH are always selected so
+ * the response can normalize whichever one is populated — otherwise doctors
+ * whose image key lives only in `profilePicture` render fallback initials in
+ * the directory even though they uploaded a picture.
+ */
+const PROFILE_IMAGE_FIELDS = ["profilePicture", "profilePicUrl"];
+
+/** Final projection: base fields + guaranteed profile-image fields. */
+const PUBLIC_DOCTOR_FIELDS = [
+  ...new Set([...PUBLIC_DOCTOR_BASE_FIELDS, ...PROFILE_IMAGE_FIELDS]),
 ].join(" ");
+
+/**
+ * Escapes user-supplied text so it is treated as a literal string inside a
+ * MongoDB `$regex` (a raw "." / "(" / "[" in a search box would otherwise
+ * change the meaning of the query or throw on an unbalanced pattern).
+ */
+const escapeRegex = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /**
  * Resolves a doctor's profile image to a public URL.
@@ -53,7 +75,9 @@ const PUBLIC_DOCTOR_FIELDS = [
  * present, otherwise "" so the client falls back to initials.
  */
 const getDoctorProfileImageUrl = (doctor) => {
-  const raw = doctor?.profilePicture || doctor?.profilePicUrl || "";
+  const raw =
+    (typeof doctor?.profilePicUrl === "string" ? doctor.profilePicUrl.trim() : "") ||
+    (typeof doctor?.profilePicture === "string" ? doctor.profilePicture.trim() : "");
   return raw ? getFileUrl(raw) : "";
 };
 
@@ -78,13 +102,20 @@ export const listDoctors = async (req, res) => {
     const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
     const skip = (pageNum - 1) * limitNum;
 
+    // Strictly APPROVED doctors only.
+    //
+    // NOTE on `isVerified`: that flag tracks email/OTP verification during
+    // signup — it is NOT an alias for admin approval, so it is deliberately
+    // NOT used here. An account can have a verified email and still be
+    // PENDING/REJECTED by the admin; only `verificationStatus: "APPROVED"`
+    // means the doctor is cleared to appear in the public directory.
     const filter = { verificationStatus: "APPROVED" };
 
-    if (specialization) {
-      filter.specialization = { $regex: specialization.trim(), $options: "i" };
+    if (specialization && specialization.trim()) {
+      filter.specialization = { $regex: escapeRegex(specialization.trim()), $options: "i" };
     }
     if (name && name.trim()) {
-      const regex = new RegExp(name.trim(), "i");
+      const regex = new RegExp(escapeRegex(name.trim()), "i");
       filter.$or = [
         { fullName: regex },
         { "clinics.name": regex },
@@ -125,14 +156,21 @@ export const listDoctors = async (req, res) => {
       reviewStats.map((s) => [String(s._id), s])
     );
 
-    const enriched = doctors.map((doc) => ({
-      ...doc,
-      profilePicUrl: getDoctorProfileImageUrl(doc),
-      avgRating: statsMap[String(doc._id)]?.avgRating != null
-        ? Math.round(statsMap[String(doc._id)].avgRating * 10) / 10
-        : null,
-      reviewCount: statsMap[String(doc._id)]?.reviewCount ?? 0,
-    }));
+    const enriched = doctors.map((doc) => {
+      // Same normalized URL on both image fields: whichever one the client
+      // reads, it gets a renderable absolute URL (or "" → initials fallback).
+      const imageUrl = getDoctorProfileImageUrl(doc);
+      return {
+        ...doc,
+        profilePicUrl: imageUrl,
+        profilePicture: imageUrl,
+        avgRating:
+          statsMap[String(doc._id)]?.avgRating != null
+            ? Math.round(statsMap[String(doc._id)].avgRating * 10) / 10
+            : null,
+        reviewCount: statsMap[String(doc._id)]?.reviewCount ?? 0,
+      };
+    });
 
     res.status(200).json({
       doctors: enriched,
@@ -175,10 +213,13 @@ export const getDoctorProfile = async (req, res) => {
       { $group: { _id: null, avgRating: { $avg: "$rating" }, reviewCount: { $sum: 1 } } },
     ]);
 
+    const imageUrl = getDoctorProfileImageUrl(doctor);
+
     res.status(200).json({
       doctor: {
         ...doctor,
-        profilePicUrl: getDoctorProfileImageUrl(doctor),
+        profilePicUrl: imageUrl,
+        profilePicture: imageUrl,
         avgRating: statsResult?.avgRating != null
           ? Math.round(statsResult.avgRating * 10) / 10
           : null,
@@ -295,9 +336,12 @@ export const getReviewByToken = async (req, res) => {
       return res.status(400).json({ message: "Invalid token" });
     }
 
+    // Both profile-image fields are populated: legacy accounts only stored the
+    // key in one of them, and the raw value is an R2 key that must be resolved
+    // to a public URL before the client can render it.
     const review = await Review.findOne({ token, isSubmitted: false })
       .select("+token +tokenExpiry")
-      .populate("doctorId", "fullName title specialization profilePicUrl");
+      .populate("doctorId", "fullName title specialization profilePicture profilePicUrl");
 
     if (!review) {
       return res.status(404).json({ message: "Review link is invalid or has already been used" });
@@ -307,7 +351,10 @@ export const getReviewByToken = async (req, res) => {
     }
 
     res.status(200).json({
-      doctor: review.doctorId,
+      doctor: {
+        ...(review.doctorId?.toObject?.() ?? review.doctorId),
+        profilePicUrl: getDoctorProfileImageUrl(review.doctorId),
+      },
       reviewId: review._id,
     });
   } catch (error) {

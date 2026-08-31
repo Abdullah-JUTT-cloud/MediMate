@@ -104,10 +104,20 @@ describe("live doctor directory — avatars", () => {
   });
 });
 
-describe("mock doctor directory — avatar src priority", () => {
+describe("live doctor directory (src/booking/DoctorsPage) — real API data", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    axios.get.mockResolvedValue({
+      data: {
+        doctors: doctorsWithImages,
+        pagination: { total: 2, pages: 1, page: 1 },
+      },
+    });
+  });
+
   afterEach(cleanup);
 
-  it("uses the image src when provided and initials otherwise", async () => {
+  it("renders doctors fetched from GET /public/doctors (no hardcoded list)", async () => {
     render(
       <MemoryRouter>
         <Routes>
@@ -116,13 +126,63 @@ describe("mock doctor directory — avatar src priority", () => {
       </MemoryRouter>
     );
 
-    await waitFor(() => expect(screen.getByText(/Dr\. Muhammad Abdullah/)).toBeTruthy());
+    // Server data is rendered; the old hardcoded fixtures are gone.
+    await waitFor(() => expect(screen.getByText(/Ayesha Khan/)).toBeTruthy());
+    expect(screen.getByText(/Sara Malik/)).toBeTruthy();
+    expect(screen.queryByText(/Muhammad Abdullah/)).toBeNull();
 
-    // Mock data has no avatarUrl/profilePicUrl yet → initials are the
-    // correct fallback (image string null/empty). The doctor card's avatar
-    // area must NOT contain an <img> in that case.
-    const card = screen.getByRole("link", { name: /View profile of Dr\. Muhammad Abdullah/ });
-    expect(card.textContent).toContain("MA"); // "Muhammad Abdullah" initials
-    expect(within(card).queryByRole("img")).toBeNull();
+    // The API is the single source of truth for the directory.
+    expect(axios.get).toHaveBeenCalled();
+    expect(String(axios.get.mock.calls[0][0])).toContain("/public/doctors");
+
+    // Real fields are mapped onto the cards: fee, practice location, rating.
+    const ayeshaCard = screen
+      .getByText((t) => t.includes("Ayesha Khan"))
+      .closest(".group");
+    expect(ayeshaCard.textContent).toContain("Cardiologist");
+    expect(ayeshaCard.textContent).toContain("City Care Clinic");
+    expect(ayeshaCard.textContent).toContain("Rs 1,000");
+    expect(ayeshaCard.textContent).toContain("4.5");
+  });
+
+  it("renders the uploaded profile picture and falls back to initials only when empty", async () => {
+    render(
+      <MemoryRouter>
+        <Routes>
+          <Route path="/" element={<DoctorsPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(screen.getByText(/Ayesha Khan/)).toBeTruthy());
+
+    // Doctor WITH an uploaded picture → <img src=...> wins over initials.
+    const ayeshaCard = screen
+      .getByText((t) => t.includes("Ayesha Khan"))
+      .closest(".group");
+    const img = within(ayeshaCard).getByRole("img");
+    expect(img.getAttribute("src")).toBe("https://cdn.medalerto.example/ayesha.jpg");
+
+    // Doctor WITHOUT a picture (empty string) → initials, no broken <img>.
+    const saraCard = screen.getByText((t) => t.includes("Sara Malik")).closest(".group");
+    expect(saraCard).toBeTruthy();
+    expect(within(saraCard).queryByRole("img")).toBeNull();
+    expect(within(saraCard).getByText("SM")).toBeTruthy();
+  });
+
+  it("shows an error state when the directory API fails", async () => {
+    axios.get.mockRejectedValue(new Error("Network Error"));
+
+    render(
+      <MemoryRouter>
+        <Routes>
+          <Route path="/" element={<DoctorsPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() =>
+      expect(screen.getByText(/Couldn't load the doctor directory/)).toBeTruthy()
+    );
   });
 });

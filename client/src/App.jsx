@@ -45,8 +45,15 @@ const BlogPage = lazy(() => import("./pages/BlogPage"));
 // src/booking/* and is driven by realistic mock data (src/booking/mockData.js)
 // so it can be previewed end-to-end without the API. Re-wire the data boundary
 // in those files to the live endpoints when integrating with the backend.
+//
+// The doctor DIRECTORY (src/booking/DoctorsPage.jsx) is now wired to the live
+// API (GET /api/public/doctors), so it lists real approved doctors with their
+// real Mongo `_id`. Those ids only resolve on the API-driven profile page, so
+// /book/doctors/:id is served by pages/booking/DoctorProfilePage (live doctor
+// profile, slots and booking) instead of the mock-data DoctorDetailPage, which
+// looks ids up in src/booking/mockData.js and would render a blank page.
 const DoctorSearchPage = lazy(() => import("./booking/DoctorsPage"));
-const DoctorProfilePage = lazy(() => import("./booking/DoctorDetailPage"));
+const DoctorProfilePage = lazy(() => import("./pages/booking/DoctorProfilePage"));
 const PatientLoginPage2 = lazy(() => import("./pages/booking/PatientLoginPage2"));
 const PatientRegisterPage = lazy(() => import("./pages/booking/PatientRegisterPage"));
 const PatientVerifyEmailPage = lazy(() => import("./pages/booking/PatientVerifyEmailPage"));

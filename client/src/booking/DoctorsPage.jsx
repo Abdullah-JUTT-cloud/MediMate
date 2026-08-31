@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import axios from "../api/axios";
+import usePatientAccountStore from "../store/patientAccountStore";
 import {
   Search,
   Stethoscope,
@@ -32,7 +34,13 @@ import {
 } from "./ui";
 import { cn } from "./cn";
 import { layout, gradient } from "./theme";
-import { DOCTORS, SPECIALIZATIONS, PATIENT } from "./mockData";
+// NOTE: `DOCTORS` (the hardcoded mock doctor array) is intentionally no longer
+// imported — the directory renders live doctors from `GET /api/public/doctors`.
+// `SPECIALIZATIONS` is kept only as a fallback list for the filter dropdown
+// while the first API response is still in flight (empty database, slow
+// network); once doctors load, the options are derived from the real data.
+import { SPECIALIZATIONS } from "./mockData";
+import { getDoctorImageUrl, mapApiDoctor } from "./doctorApi";
 
 const SORTS = [
   { id: "recommended", label: "Recommended" },
@@ -42,12 +50,28 @@ const SORTS = [
   { id: "fee-high", label: "Fee: high to low" },
 ];
 
+/**
+ * How many approved doctors the directory loads in one request.
+ *
+ * The card grid supports sorting (rating / experience / fee) and the
+ * specialization chips, and both have to apply across the whole directory, not
+ * just the visible page — so the list is pulled in a single request (the API
+ * caps `limit` at 100) and sorted/filtered in memory, exactly like the
+ * free-text search which the API itself handles.
+ */
+const DIRECTORY_PAGE_SIZE = 100;
+
+/** Debounce (ms) for the free-text search before it hits the API. */
+const SEARCH_DEBOUNCE_MS = 350;
+
 /* ── Doctor card ──────────────────────────────────────────────────────────── */
 function DoctorCard({ doctor, index }) {
   const navigate = useNavigate();
-  const fee = doctor.onlineBookingFee || 0;
+  const fee = Number(doctor.onlineBookingFee) || 0;
   const clinic = doctor.clinics?.[0];
   const hospital = doctor.hospitals?.[0];
+  const rating = Number(doctor.avgRating) || 0;
+  const hasReviews = Number(doctor.reviewCount) > 0;
 
   return (
     <Reveal delay={Math.min(index, 5) * 70} className="h-full">
@@ -67,10 +91,16 @@ function DoctorCard({ doctor, index }) {
         <div>
           {/* Header: avatar, identity, fee badge */}
           <div className="flex items-start gap-4">
-            {/* Priority order: real uploaded image → initials fallback. The
-                Avatar component renders initials whenever `src` is
-                null/empty or fails to load. */}
-            <Avatar name={doctor.fullName} size="lg" online src={doctor.avatarUrl || doctor.profilePicUrl || ""} />
+            {/* Task 2 — priority order: the doctor's real uploaded picture →
+                initials fallback. `getDoctorImageUrl` returns "" when the
+                profile picture is null/empty/undefined, and the Avatar
+                component additionally falls back if the image fails to load. */}
+            <Avatar
+              name={doctor.fullName}
+              size="lg"
+              online
+              src={getDoctorImageUrl(doctor)}
+            />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
                 <h3 className="truncate font-extrabold tracking-tight text-slate-900 dark:text-white">
@@ -86,7 +116,8 @@ function DoctorCard({ doctor, index }) {
                 {doctor.specialization}
               </p>
               <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                {doctor.yearsOfExperience} yrs exp • {doctor.primaryDegree}
+                {doctor.yearsOfExperience} yrs exp
+                {doctor.primaryDegree ? ` • ${doctor.primaryDegree}` : ""}
               </p>
             </div>
             {fee > 0 && (
@@ -101,13 +132,19 @@ function DoctorCard({ doctor, index }) {
             )}
           </div>
 
-          {/* Rating */}
+          {/* Rating — `avgRating` is null for doctors with no reviews yet. */}
           <div className="mt-3 flex items-center gap-1.5">
-            <StarRating value={doctor.avgRating} />
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
-              {doctor.avgRating.toFixed(1)}
-            </span>
-            <span className="text-xs text-slate-400">({doctor.reviewCount})</span>
+            {hasReviews ? (
+              <>
+                <StarRating value={rating} />
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                  {rating.toFixed(1)}
+                </span>
+                <span className="text-xs text-slate-400">({doctor.reviewCount})</span>
+              </>
+            ) : (
+              <span className="text-xs font-medium text-slate-400">No reviews yet</span>
+            )}
           </div>
 
           {/* Locations */}
@@ -156,33 +193,82 @@ function DoctorCard({ doctor, index }) {
  * Doctors list page
  * ──────────────────────────────────────────────────────────────────────────── */
 export default function DoctorsPage() {
+  const patient = usePatientAccountStore((s) => s.patient);
+
+  // Live doctors from GET /api/public/doctors (approved doctors only).
+  const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
+
   const [query, setQuery] = useState("");
   const [specialization, setSpecialization] = useState("");
   const [sort, setSort] = useState("recommended");
   const [drawer, setDrawer] = useState(false);
 
-  /* Simulated fetch → shows themed skeletons on first paint. */
+  /* The free-text search is executed by the API (`name` matches doctor name,
+     clinic name and hospital name), so it is debounced to avoid firing a
+     request on every keystroke. */
+  const [searchTerm, setSearchTerm] = useState("");
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 750);
+    const t = setTimeout(() => setSearchTerm(query.trim()), SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(t);
-  }, []);
+  }, [query]);
+
+  /* ── Live data fetch ───────────────────────────────────────────────────── */
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+
+    const load = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const params = new URLSearchParams();
+        if (searchTerm) params.set("name", searchTerm);
+        params.set("limit", String(DIRECTORY_PAGE_SIZE));
+
+        const { data } = await axios.get(`/public/doctors?${params.toString()}`, {
+          signal: controller.signal,
+        });
+        if (cancelled) return;
+
+        const list = Array.isArray(data?.doctors) ? data.doctors : [];
+        setDoctors(list.map(mapApiDoctor));
+      } catch (err) {
+        if (cancelled || axios.isCancel?.(err) || err?.name === "CanceledError") return;
+        console.error("[DoctorsPage] failed to load doctors", err);
+        setDoctors([]);
+        setError("We couldn't reach the doctor directory. Please try again.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [searchTerm, reloadKey]);
+
+  /* Specialization options are derived from the doctors that actually exist in
+     the database, so the chips/dropdown always match real values ("Dermatologist",
+     not a guessed "Dermatology"). The static list is only a pre-load fallback. */
+  const specializationOptions = useMemo(() => {
+    const fromData = [
+      ...new Set(doctors.map((d) => d.specialization).filter(Boolean)),
+    ].sort((a, b) => a.localeCompare(b));
+    return fromData.length ? fromData : SPECIALIZATIONS;
+  }, [doctors]);
 
   const results = useMemo(() => {
-    let list = [...DOCTORS];
-    const q = query.trim().toLowerCase();
-    if (q) {
-      list = list.filter(
-        (d) =>
-          d.fullName.toLowerCase().includes(q) ||
-          d.specialization.toLowerCase().includes(q) ||
-          d.clinics.some((c) => c.name.toLowerCase().includes(q)) ||
-          d.hospitals.some((h) => h.name.toLowerCase().includes(q))
-      );
-    }
+    let list = [...doctors];
+
     if (specialization) {
       list = list.filter((d) => d.specialization === specialization);
     }
+
     switch (sort) {
       case "rating":
         list.sort((a, b) => b.avgRating - a.avgRating);
@@ -200,7 +286,7 @@ export default function DoctorsPage() {
         list.sort((a, b) => b.reviewCount - a.reviewCount);
     }
     return list;
-  }, [query, specialization, sort]);
+  }, [doctors, specialization, sort]);
 
   const clearFilters = () => {
     setQuery("");
@@ -222,12 +308,23 @@ export default function DoctorsPage() {
           >
             <SlidersHorizontal size={14} /> My Appointments
           </Link>
-          <div className="flex items-center gap-2.5">
-            <Avatar name={PATIENT.name} size="sm" online />
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
-              {PATIENT.name}
-            </span>
-          </div>
+          {/* Real signed-in patient (patient account store) — the directory no
+              longer pretends a hardcoded mock patient is logged in. */}
+          {patient ? (
+            <div className="flex items-center gap-2.5">
+              <Avatar name={patient.name} size="sm" online />
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                {patient.name}
+              </span>
+            </div>
+          ) : (
+            <Link
+              to="/book/login"
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/70 px-4 py-2 text-xs font-bold text-slate-700 transition hover:border-violet-300 hover:text-violet-700 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:border-violet-500/50"
+            >
+              Sign In
+            </Link>
+          )}
         </div>
 
         <button
@@ -318,7 +415,7 @@ export default function DoctorsPage() {
                   <option value="" className="text-slate-700 dark:bg-slate-800">
                     All Specializations
                   </option>
-                  {SPECIALIZATIONS.map((s) => (
+                  {specializationOptions.map((s) => (
                     <option key={s} value={s} className="text-slate-700 dark:bg-slate-800">
                       {s}
                     </option>
@@ -397,7 +494,7 @@ export default function DoctorsPage() {
           >
             All
           </button>
-          {SPECIALIZATIONS.map((s) => (
+          {specializationOptions.map((s) => (
             <button
               key={s}
               type="button"
@@ -422,11 +519,31 @@ export default function DoctorsPage() {
                 <DoctorCardSkeleton key={i} />
               ))}
             </div>
+          ) : error ? (
+            /* API unreachable / request failed */
+            <EmptyState
+              icon="⚠️"
+              title="Couldn't load the doctor directory"
+              text={error}
+              action={
+                <Button onClick={() => setReloadKey((k) => k + 1)}>
+                  <SlidersHorizontal size={15} /> Try again
+                </Button>
+              }
+            />
           ) : results.length === 0 ? (
             <EmptyState
               icon="🔍"
-              title="No doctors match your search"
-              text="We couldn't find any specialist matching your terms. Try a different name, clinic, or specialization."
+              title={
+                doctors.length === 0
+                  ? "No verified doctors available yet"
+                  : "No doctors match your search"
+              }
+              text={
+                doctors.length === 0
+                  ? "There are no approved doctor profiles in the directory right now. Please check back shortly."
+                  : "We couldn't find any specialist matching your terms. Try a different name, clinic, or specialization."
+              }
               action={
                 <Button onClick={clearFilters}>
                   <SlidersHorizontal size={15} /> Clear filters
