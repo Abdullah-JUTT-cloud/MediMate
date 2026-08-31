@@ -67,7 +67,10 @@ function DoctorCard({ doctor, index }) {
         <div>
           {/* Header: avatar, identity, fee badge */}
           <div className="flex items-start gap-4">
-            <Avatar name={doctor.fullName} size="lg" online />
+            {/* Priority order: real uploaded image → initials fallback. The
+                Avatar component renders initials whenever `src` is
+                null/empty or fails to load. */}
+            <Avatar name={doctor.fullName} size="lg" online src={doctor.avatarUrl || doctor.profilePicUrl || ""} />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
                 <h3 className="truncate font-extrabold tracking-tight text-slate-900 dark:text-white">

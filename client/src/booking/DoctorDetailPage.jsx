@@ -77,10 +77,19 @@ export default function DoctorDetailPage() {
   const { theme, toggleTheme } = useTheme();
   const doctor = getDoctor(id);
 
+  // Declared at the top of the component, BEFORE any handler/step-indicator
+  // that references it. Previously `const fee` was declared near the bottom of
+  // the component body while `handleSubmit` and `activeStep` referenced it
+  // above that declaration — the moment a patient selected a time slot the
+  // re-render evaluated `fee > 0` inside the temporal dead zone and threw
+  // `ReferenceError: Cannot access 'fee' before initialization`, crashing the
+  // whole booking flow into the global ErrorBoundary ("Something went wrong").
+  const fee = doctor?.onlineBookingFee || 0;
+
   const days7 = useMemo(() => Array.from({ length: 7 }, (_, i) => dayOffset(i)), []);
 
   const [locationType, setLocationType] = useState(
-    doctor.clinics?.length ? "Clinic" : "Hospital"
+    doctor?.clinics?.length ? "Clinic" : "Hospital"
   );
   const [selectedDate, setSelectedDate] = useState(days7[0]);
   const [selectedSlot, setSelectedSlot] = useState(null);
@@ -171,7 +180,6 @@ export default function DoctorDetailPage() {
 
   const reviews = REVIEWS[doctor.id] || [];
   const similar = getSimilarDoctors(doctor.id);
-  const fee = doctor.onlineBookingFee || 0;
 
   if (!doctor) return null;
 
@@ -222,7 +230,7 @@ export default function DoctorDetailPage() {
             <Reveal>
               <Card className="p-6 sm:p-8">
                 <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center">
-                  <Avatar name={doctor.fullName} size="xl" online />
+                  <Avatar name={doctor.fullName} size="xl" online src={doctor.avatarUrl || doctor.profilePicUrl || ""} />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl dark:text-white">

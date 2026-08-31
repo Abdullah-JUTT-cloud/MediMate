@@ -16,6 +16,13 @@ class ErrorBoundary extends Component {
 
   render() {
     if (this.state.hasError) {
+      // Route-aware fallback destination. A crash on any /book/* page (doctor
+      // directory, doctor profile, booking flow, patient dashboard) must drop
+      // the patient into the PATIENT portal (/book/dashboard) — not the doctor
+      // portal (/dashboard). Everything else keeps the original default.
+      const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+      const dashboardHref = pathname.includes("/book") ? "/book/dashboard" : "/dashboard";
+
       return (
         <div className="flex min-h-[100dvh] items-center justify-center bg-[var(--color-bg)] px-4 text-[var(--color-text-primary)]">
           <div className="max-w-md rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-8 text-center shadow-lg">
@@ -24,7 +31,8 @@ class ErrorBoundary extends Component {
               The page encountered an unexpected error. Please return to the dashboard.
             </p>
             <a
-              href="/dashboard"
+              href={dashboardHref}
+              onClick={() => this.setState({ hasError: false, error: null })}
               className="mt-6 inline-flex items-center justify-center rounded-full bg-[var(--color-primary)] px-5 py-3 font-semibold text-[var(--color-on-primary)] transition hover:opacity-90"
             >
               Return to dashboard

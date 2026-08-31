@@ -47,15 +47,15 @@ function StarRating({ value }) {
 
 function DoctorProfileAvatar({ profilePicUrl, fullName }) {
   const [imgError, setImgError] = useState(false);
-  const isValidUrl = Boolean(
-    profilePicUrl &&
-      typeof profilePicUrl === "string" &&
-      (profilePicUrl.startsWith("http://") || profilePicUrl.startsWith("https://") || profilePicUrl.startsWith("/"))
+  // Same policy as the directory cards: any non-empty image string wins over
+  // the initials fallback (backend already resolves R2 keys to URLs).
+  const hasImage = Boolean(
+    profilePicUrl && typeof profilePicUrl === "string" && profilePicUrl.trim().length > 0
   );
 
   return (
     <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-extrabold text-3xl flex items-center justify-center shrink-0 overflow-hidden border-2 border-indigo-100 dark:border-indigo-900/50 shadow-md">
-      {isValidUrl && !imgError ? (
+      {hasImage && !imgError ? (
         <img
           src={profilePicUrl}
           alt={fullName || "Doctor"}
@@ -124,7 +124,15 @@ function getNext7Days() {
   for (let i = 0; i < 7; i++) {
     const d = new Date();
     d.setDate(d.getDate() + i);
-    days.push(d.toISOString().slice(0, 10));
+    // Use LOCAL date parts, not toISOString().slice(0, 10). For timezones
+    // ahead of UTC (e.g. Pakistan, +05:00) toISOString() can roll the string
+    // back to the PREVIOUS calendar day during early-morning hours, which made
+    // the "next 7 days" window start yesterday and mismatched the weekday
+    // labels patients saw in the date picker.
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    days.push(`${year}-${month}-${day}`);
   }
   return days;
 }
@@ -277,7 +285,10 @@ export default function DoctorProfilePage() {
         const { data } = await axios.get(`/public/doctors/${id}/slots`, {
           params: { date: selectedDate },
         });
-        setSlots(data.slots || []);
+        // Normalize: slot availability must be an array of { time, isFull, … }.
+        // Any other payload shape is treated as "no availability data" instead
+        // of being passed through to `.find()` and crashing the render.
+        setSlots(Array.isArray(data?.slots) ? data.slots : []);
       } catch {
         setSlots([]);
       } finally {
@@ -303,6 +314,13 @@ export default function DoctorProfilePage() {
 
   // Returns the full slot data object from the API (includes isFull, standardCount, etc.)
   const getSlotInfo = (time) => {
+    // Defensive: `slots` must be an array. If the API ever returns a
+    // non-array payload (object keyed by time, error page, null), calling
+    // `.find` would throw `TypeError: slots.find is not a function` and crash
+    // the slot grid / selected-slot summary on the next interaction.
+    if (!Array.isArray(slots)) {
+      return { standardCount: 0, emergencyCount: 0, totalCount: 0, isFull: false };
+    }
     return slots.find((item) => item.time === time) || { standardCount: 0, emergencyCount: 0, totalCount: 0, isFull: false };
   };
 

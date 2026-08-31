@@ -10,6 +10,7 @@ import {
   bookAppointment,
   getMyAppointments,
   cancelMyAppointment,
+  submitMyReview,
 } from "../controllers/patientAccount.controller.js";
 import {
   verifyPatientAccountToken,
@@ -50,5 +51,8 @@ router.post(
 );
 router.get("/appointments", verifyPatientAccountToken, getMyAppointments);
 router.patch("/appointments/:id/cancel", verifyPatientAccountToken, cancelMyAppointment);
+
+// Patient reviews (authenticated — "Leave Feedback" from the Patient Dashboard)
+router.post("/reviews", verifyPatientAccountToken, submitMyReview);
 
 export default router;

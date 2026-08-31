@@ -17,6 +17,8 @@ import {
   Stethoscope,
   Building2,
   Phone,
+  Star,
+  X,
 } from "lucide-react";
 
 export default function PatientDashboardPage() {
@@ -26,6 +28,12 @@ export default function PatientDashboardPage() {
   const [cancelling, setCancelling] = useState(null);
   const [activeTab, setActiveTab] = useState("ALL");
   const [patientUser, setPatientUser] = useState(null);
+
+  // ── Review ("Leave Feedback") modal state ────────────────────────────────
+  const [reviewTarget, setReviewTarget] = useState(null); // appointment being reviewed
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
   useEffect(() => {
     // Check session info
@@ -65,6 +73,49 @@ export default function PatientDashboardPage() {
       toast.error(err.response?.data?.message || "Failed to cancel appointment");
     } finally {
       setCancelling(null);
+    }
+  };
+
+  // ── Review ("Leave Feedback") handlers ───────────────────────────────────
+  const openReview = (appointment) => {
+    setReviewTarget(appointment);
+    setReviewRating(0);
+    setReviewComment("");
+  };
+
+  const closeReview = () => {
+    if (reviewSubmitting) return;
+    setReviewTarget(null);
+  };
+
+  const submitReview = async () => {
+    if (!reviewTarget) return;
+    if (!reviewRating) {
+      toast.error("Please select a star rating");
+      return;
+    }
+    setReviewSubmitting(true);
+    try {
+      // POSTs through the authenticated patient session (axios sends the
+      // `patientAccountToken` cookie; the server validates ownership + that
+      // the appointment is Completed before saving).
+      await axios.post("/patient-account/reviews", {
+        appointmentId: reviewTarget._id,
+        doctorId: reviewTarget.doctor?._id || reviewTarget.doctorId,
+        rating: reviewRating,
+        comment: reviewComment,
+      });
+      toast.success("Thank you for your review!");
+      // One review per appointment — mark it locally so the button flips to
+      // the disabled "Review Submitted" state without a refetch.
+      setAppointments((prev) =>
+        prev.map((x) => (x._id === reviewTarget._id ? { ...x, reviewed: true } : x))
+      );
+      setReviewTarget(null);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to submit review");
+    } finally {
+      setReviewSubmitting(false);
     }
   };
 
@@ -334,19 +385,44 @@ export default function PatientDashboardPage() {
                   </div>
 
                   {/* Footer Actions & Cancellation */}
-                  <div className="mt-4 pt-3 flex items-center justify-between border-t border-zinc-100 dark:border-zinc-800/60 text-xs">
+                  <div className="mt-4 pt-3 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 dark:border-zinc-800/60 text-xs">
                     <p className="text-[11px] text-zinc-400">
                       Ref ID: <span className="font-mono">{a._id.slice(-8)}</span>
                     </p>
-                    {!["Cancelled", "Completed", "No-show"].includes(a.status) && (
-                      <button
-                        onClick={() => cancel(a._id)}
-                        disabled={cancelling === a._id}
-                        className="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 px-3 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900/50 transition disabled:opacity-50"
-                      >
-                        {cancelling === a._id ? "Cancelling…" : "Cancel Booking"}
-                      </button>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* Leave Feedback — completed appointments only. Hidden
+                          once a review has been submitted for this appointment
+                          (server truth: `a.reviewed` from /patient-account/
+                          appointments). */}
+                      {isCompleted && !a.reviewed && (
+                        <button
+                          onClick={() => openReview(a)}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950/40 px-3 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-900/50 transition"
+                        >
+                          <Star size={13} className="fill-amber-400 text-amber-400" />
+                          Leave Feedback
+                        </button>
+                      )}
+                      {isCompleted && a.reviewed && (
+                        <button
+                          disabled
+                          title="You have already submitted a review for this appointment"
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1.5 rounded-lg border border-emerald-200 dark:border-emerald-900/50 opacity-80 cursor-not-allowed"
+                        >
+                          <CheckCircle2 size={13} />
+                          Review Submitted
+                        </button>
+                      )}
+                      {!["Cancelled", "Completed", "No-show"].includes(a.status) && (
+                        <button
+                          onClick={() => cancel(a._id)}
+                          disabled={cancelling === a._id}
+                          className="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 px-3 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900/50 transition disabled:opacity-50"
+                        >
+                          {cancelling === a._id ? "Cancelling…" : "Cancel Booking"}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -354,6 +430,107 @@ export default function PatientDashboardPage() {
           </div>
         )}
       </main>
+
+      {/* ── Review Submission Modal ─────────────────────────────────────── */}
+      {reviewTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-zinc-950/60 backdrop-blur-sm"
+            onClick={closeReview}
+            aria-hidden="true"
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="review-modal-title"
+            className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-3xl p-6 shadow-2xl border border-zinc-200 dark:border-zinc-700 max-h-[90vh] overflow-y-auto"
+          >
+            <div className="flex items-start justify-between gap-4 mb-1">
+              <div>
+                <h3 id="review-modal-title" className="text-base font-extrabold text-zinc-900 dark:text-white">
+                  Rate your visit
+                </h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                  {reviewTarget.doctor?.title ? `${reviewTarget.doctor.title} ` : "Dr. "}
+                  {reviewTarget.doctor?.fullName || "Medical Specialist"}
+                  <span className="text-zinc-400 dark:text-zinc-500"> · {reviewTarget.doctor?.specialization || "General Physician"}</span>
+                </p>
+              </div>
+              <button
+                onClick={closeReview}
+                disabled={reviewSubmitting}
+                aria-label="Close review modal"
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 dark:hover:text-zinc-200 dark:hover:bg-zinc-800 transition disabled:opacity-40"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Star Rating */}
+            <div className="mt-4 text-center">
+              <p className="text-xs font-bold text-zinc-600 dark:text-zinc-300 mb-2">
+                How was your experience?
+              </p>
+              <div className="flex justify-center gap-1.5">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setReviewRating(s)}
+                    disabled={reviewSubmitting}
+                    aria-label={`${s} star${s > 1 ? "s" : ""}`}
+                    className="transition-transform hover:scale-110 disabled:opacity-50"
+                  >
+                    <Star
+                      size={26}
+                      className={s <= reviewRating ? "text-amber-400 fill-amber-400" : "text-zinc-300 dark:text-zinc-600 fill-zinc-200 dark:fill-zinc-700"}
+                    />
+                  </button>
+                ))}
+              </div>
+              {reviewRating > 0 && (
+                <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mt-2">
+                  {["", "Poor", "Fair", "Good", "Very Good", "Excellent"][reviewRating]}
+                </p>
+              )}
+            </div>
+
+            {/* Comment */}
+            <div className="mt-4">
+              <label className="block text-xs font-bold text-zinc-600 dark:text-zinc-300 mb-1.5">
+                Comment (optional)
+              </label>
+              <textarea
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                disabled={reviewSubmitting}
+                rows={3}
+                maxLength={1000}
+                placeholder="Share your experience to help other patients…"
+                className="w-full rounded-2xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3.5 py-2.5 text-xs text-zinc-900 dark:text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none disabled:opacity-60"
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="mt-5 flex gap-2.5">
+              <button
+                onClick={closeReview}
+                disabled={reviewSubmitting}
+                className="flex-1 py-2.5 rounded-2xl border border-zinc-300 dark:border-zinc-700 text-xs font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitReview}
+                disabled={reviewSubmitting || !reviewRating}
+                className="flex-1 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold transition shadow-sm"
+              >
+                {reviewSubmitting ? "Submitting…" : "Submit Review"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -28,6 +28,12 @@ const PUBLIC_DOCTOR_FIELDS = [
   "clinics",
   "hospitals",
   "slotDuration",
+  // Profile image: doctors may have the R2 key in `profilePicture`, `profilePicUrl`,
+  // or both (legacy accounts only populated one of the two). Both fields are
+  // selected so the response can normalize whichever one is populated —
+  // otherwise doctors whose image key lives only in `profilePicture` render
+  // fallback initials in the directory.
+  "profilePicture",
   "profilePicUrl",
   "advanceBookingFee",
   "onlineBookingFee",
@@ -38,6 +44,18 @@ const PUBLIC_DOCTOR_FIELDS = [
   "paymentAccountNumber",
   "paymentIBAN",
 ].join(" ");
+
+/**
+ * Resolves a doctor's profile image to a public URL.
+ *
+ * The profile image key may live in either `profilePicture` or `profilePicUrl`
+ * (legacy accounts set only one). Returns a fully-qualified URL when a key is
+ * present, otherwise "" so the client falls back to initials.
+ */
+const getDoctorProfileImageUrl = (doctor) => {
+  const raw = doctor?.profilePicture || doctor?.profilePicUrl || "";
+  return raw ? getFileUrl(raw) : "";
+};
 
 
 // ─────────────────────────────────────────────────────────
@@ -109,7 +127,7 @@ export const listDoctors = async (req, res) => {
 
     const enriched = doctors.map((doc) => ({
       ...doc,
-      profilePicUrl: doc.profilePicUrl ? getFileUrl(doc.profilePicUrl) : "",
+      profilePicUrl: getDoctorProfileImageUrl(doc),
       avgRating: statsMap[String(doc._id)]?.avgRating != null
         ? Math.round(statsMap[String(doc._id)].avgRating * 10) / 10
         : null,
@@ -160,7 +178,7 @@ export const getDoctorProfile = async (req, res) => {
     res.status(200).json({
       doctor: {
         ...doctor,
-        profilePicUrl: doctor.profilePicUrl ? getFileUrl(doctor.profilePicUrl) : "",
+        profilePicUrl: getDoctorProfileImageUrl(doctor),
         avgRating: statsResult?.avgRating != null
           ? Math.round(statsResult.avgRating * 10) / 10
           : null,

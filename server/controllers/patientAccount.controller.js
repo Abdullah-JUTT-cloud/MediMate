@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import PatientAccount from "../models/patientAccount.model.js";
 import Appointment from "../models/appointment.model.js";
 import BookingPaymentProof from "../models/bookingPaymentProof.model.js";
+import Review from "../models/review.model.js";
 import { Doctor } from "../models/doctor.model.js";
 import { generateOtp } from "../utils/generateOtp.js";
 import { sendEmail } from "../utils/sendEmail.js";
@@ -416,7 +417,7 @@ export const getMyAppointments = async (req, res) => {
 
     const [appointments, total] = await Promise.all([
       Appointment.find(query)
-        .populate("doctor", "fullName specialization title profilePicUrl clinics hospitals")
+        .populate("doctor", "fullName specialization title profilePicUrl profilePicture clinics hospitals")
         .sort({ date: -1 })
         .skip(skip)
         .limit(limitNum)
@@ -424,11 +425,31 @@ export const getMyAppointments = async (req, res) => {
       Appointment.countDocuments(query),
     ]);
 
+    // Attach `reviewed: true` to appointments that already have a submitted
+    // review (one review per appointment — the schema enforces the unique
+    // appointmentId index). The Patient Dashboard uses this to swap the
+    // "Leave Feedback" action for a "Review Submitted" state.
+    const appointmentIds = appointments.map((a) => a._id);
+    const submittedReviews = appointmentIds.length
+      ? await Review.find({
+          appointmentId: { $in: appointmentIds },
+          isSubmitted: true,
+        })
+          .select("appointmentId")
+          .lean()
+      : [];
+    const reviewedAppointmentIds = new Set(
+      submittedReviews.map((r) => String(r.appointmentId))
+    );
+
     const enrichedAppointments = appointments.map((a) => {
-      if (a.doctor?.profilePicUrl) {
-        a.doctor.profilePicUrl = getFileUrl(a.doctor.profilePicUrl);
+      if (a.doctor?.profilePicture || a.doctor?.profilePicUrl) {
+        a.doctor.profilePicUrl = getFileUrl(a.doctor.profilePicture || a.doctor.profilePicUrl);
       }
-      return a;
+      return {
+        ...a,
+        reviewed: reviewedAppointmentIds.has(String(a._id)),
+      };
     });
 
     res.status(200).json({
@@ -442,6 +463,95 @@ export const getMyAppointments = async (req, res) => {
     });
   } catch (error) {
     console.error("[getMyAppointments]", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// ─────────────────────────────────────────────────────────
+// Submit Review (Authenticated Patient)
+// ─────────────────────────────────────────────────────────
+
+/**
+ * POST /api/patient-account/reviews
+ *
+ * Lets an authenticated patient submit a review directly from the Patient
+ * Dashboard ("Leave Feedback" on a completed appointment), instead of relying
+ * only on the WhatsApp token link.
+ *
+ * Body: { appointmentId, doctorId, rating: 1-5, comment?: string }
+ *
+ * Rules:
+ *   - The appointment must belong to the authenticated patient.
+ *   - Only "Completed" appointments can be reviewed.
+ *   - One review per appointment — the second submission is rejected with 409.
+ *
+ * If the clinic already created an (unsubmitted) token-based Review record for
+ * this appointment (the WhatsApp flow), that same record is completed here so
+ * the token becomes single-use-consumed and no duplicate is created.
+ */
+export const submitMyReview = async (req, res) => {
+  try {
+    const { appointmentId, doctorId, rating, comment } = req.body || {};
+
+    if (!mongoose.isValidObjectId(appointmentId)) {
+      return res.status(400).json({ message: "Invalid appointment ID" });
+    }
+    if (!mongoose.isValidObjectId(doctorId)) {
+      return res.status(400).json({ message: "Invalid doctor ID" });
+    }
+
+    const ratingNum = Number(rating);
+    if (!Number.isInteger(ratingNum) || ratingNum < 1 || ratingNum > 5) {
+      return res.status(400).json({ message: "Rating must be an integer between 1 and 5" });
+    }
+
+    const appointment = await Appointment.findOne({
+      _id: appointmentId,
+      patientAccount: req.patientAccountId,
+    }).select("doctor status");
+
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found for this patient" });
+    }
+    if (appointment.status !== "Completed") {
+      return res.status(400).json({
+        message: "You can only leave feedback after your appointment is completed",
+      });
+    }
+    if (String(appointment.doctor) !== String(doctorId)) {
+      return res.status(400).json({ message: "Doctor does not match this appointment" });
+    }
+
+    const existing = await Review.findOne({ appointmentId }).select("+token +tokenExpiry");
+    if (existing && existing.isSubmitted) {
+      return res.status(409).json({ message: "You have already submitted a review for this appointment" });
+    }
+
+    const review = existing || new Review({ appointmentId });
+    review.doctorId = doctorId;
+    review.patientAccountId = req.patientAccountId;
+    review.rating = ratingNum;
+    review.comment = typeof comment === "string" ? comment.trim().slice(0, 1000) : "";
+    review.isSubmitted = true;
+    review.isVisible = true;
+    // Consume any pending WhatsApp review token — the dashboard submission
+    // supersedes it, so the emailed/WhatsApp link cannot be reused.
+    review.token = null;
+    review.tokenExpiry = null;
+    await review.save();
+
+    res.status(201).json({
+      message: "Thank you for your review!",
+      review: {
+        _id: review._id,
+        appointmentId: review.appointmentId,
+        doctorId: review.doctorId,
+        rating: review.rating,
+        comment: review.comment,
+      },
+    });
+  } catch (error) {
+    console.error("[submitMyReview]", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
