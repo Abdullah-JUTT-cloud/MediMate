@@ -135,7 +135,7 @@ export default function LoginPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 p-6 flex items-center justify-between">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
           <div className="h-10 w-10 glass-card rounded-xl flex items-center justify-center p-1.5 border-[var(--color-primary)]/20">
-            <img src={logo} alt="Logo" className="h-full w-full object-contain" />
+            <img src={logo} alt="MedAlerto" className="h-full w-full object-contain" />
           </div>
           <span className="font-heading text-lg font-bold tracking-tight text-[var(--color-text-primary)]">MedAlerto</span>
         </div>

@@ -1,10 +1,9 @@
 import { Clock, MessageSquareOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import useThemedLogo from "../hooks/useThemedLogo";
+import BrandLogo from "../components/BrandLogo";
 
 export default function PatientLoginPage() {
   const navigate = useNavigate();
-  const logo = useThemedLogo();
 
   return (
     <div className="min-h-[100dvh] bg-[var(--color-bg)] px-4 py-6 text-[var(--color-text-primary)]">
@@ -14,12 +13,7 @@ export default function PatientLoginPage() {
           onClick={() => navigate("/")}
           className="flex items-center gap-3"
         >
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-1.5">
-            <img src={logo} alt="MedAlerto" className="h-full w-full object-contain" />
-          </span>
-          <span className="text-sm font-bold text-[var(--color-text-primary)]">
-            MedAlerto
-          </span>
+          <BrandLogo variant="patient" markSize={34} subtitle="PATIENT PORTAL" />
         </button>
       </nav>
 

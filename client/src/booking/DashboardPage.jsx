@@ -524,7 +524,7 @@ export default function DashboardPage() {
       {/* ── Navbar ───────────────────────────────────────────────────────── */}
       <GlassBar>
         <Link to="/" aria-label="MedAlerto home" className="shrink-0">
-          <MedalertoLogo />
+          <MedalertoLogo variant="patient" subtitle="PATIENT PORTAL" />
         </Link>
 
         <div className="hidden items-center gap-3 md:flex">

@@ -51,9 +51,8 @@ export default function Navbar() {
         />
 
         <Link to="/" className="group flex items-center gap-4">
-          {/* Unified inline-SVG brand logo — no <img>, so it can never show a
-              broken-image icon or depend on an external asset path. */}
           <BrandLogo
+            variant="home"
             markSize={40}
             subtitle="rooted clinic tools"
             markClassName="transition-transform duration-300 group-hover:scale-105"

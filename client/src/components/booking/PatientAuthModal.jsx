@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "../../api/axios";
 import toast from "react-hot-toast";
 import usePatientAccountStore from "../../store/patientAccountStore";
-import { BrandLogoMark } from "../BrandLogo";
+import BrandLogo from "../BrandLogo";
 import { X, LogIn, UserPlus, ShieldCheck } from "lucide-react";
 
 /**
@@ -127,12 +127,11 @@ export default function PatientAuthModal({ open, onClose, from = "/book/dashboar
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4">
-          <div className="flex items-center gap-3">
-            {/* Unified inline-SVG brand mark — replaces the "M" placeholder tile. */}
-            <BrandLogoMark size={40} alt="" />
-            <div>
-              <h2 className="text-base font-extrabold text-slate-900 dark:text-white">Patient Account</h2>
-              <p className="text-[11px] font-semibold text-slate-400 dark:text-zinc-500">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="min-w-0">
+              <BrandLogo variant="patient" markSize={28} subtitle="PATIENT PORTAL" />
+              <h2 className="sr-only">Patient Account</h2>
+              <p className="mt-1 text-[11px] font-semibold text-slate-400 dark:text-zinc-500">
                 Book & track your appointments
               </p>
             </div>
