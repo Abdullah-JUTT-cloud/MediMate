@@ -3,16 +3,13 @@ import { Link, useNavigate } from "react-router-dom";
 import axios from "../../api/axios";
 import MyAppointmentsButton from "../../components/booking/MyAppointmentsButton";
 import { trackEvent } from "../../lib/analytics";
+import { getDoctorImageUrl } from "../../booking/doctorApi";
 import {
   Search,
   Stethoscope,
   Star,
   CheckCircle2,
-  Calendar,
-  Building2,
   ArrowRight,
-  Filter,
-  UserCheck,
   ShieldCheck,
   Clock,
   Sparkles,
@@ -52,28 +49,29 @@ function StarRating({ value }) {
   );
 }
 
-function DoctorAvatar({ profilePicUrl, fullName }) {
+function getInitial(fullName) {
+  return String(fullName || "Doctor").trim().charAt(0).toUpperCase() || "D";
+}
+
+function DoctorAvatar({ src, fullName }) {
   const [imgError, setImgError] = useState(false);
-  // Prioritize the real profile image: ANY non-empty string is treated as an
-  // image source (the backend already resolves R2 keys to absolute URLs, but
-  // it may also hand back a bare key/relative path when no public CDN domain
-  // is configured). Only fall back to initials when the image string is
-  // null/empty or fails to load.
-  const hasImage = Boolean(
-    profilePicUrl && typeof profilePicUrl === "string" && profilePicUrl.trim().length > 0
-  );
+  // Prioritize the real profile image from the API. Only fall back to text
+  // initials when the profile image string is null, undefined, blank, or the
+  // browser reports a failed image load.
+  const imageSrc = typeof src === "string" ? src.trim() : "";
+  const hasImage = imageSrc.length > 0;
 
   return (
     <div className="relative w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-extrabold flex items-center justify-center text-xl shrink-0 overflow-hidden border border-indigo-100 dark:border-indigo-900/50 shadow-sm">
       {hasImage && !imgError ? (
         <img
-          src={profilePicUrl}
+          src={imageSrc}
           alt={fullName || "Doctor"}
           onError={() => setImgError(true)}
           className="w-full h-full object-cover"
         />
       ) : (
-        <span className="uppercase tracking-wider font-extrabold">{fullName?.charAt(0) || "D"}</span>
+        <span className="uppercase tracking-wider font-extrabold">{getInitial(fullName)}</span>
       )}
       <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-zinc-900 rounded-full" />
     </div>
@@ -97,8 +95,8 @@ export default function DoctorSearchPage() {
         params.set("page", filters.page);
         params.set("limit", "12");
         const { data } = await axios.get(`/public/doctors?${params}`);
-        setDoctors(data.doctors || []);
-        setPagination(data.pagination || { total: 0, pages: 1, page: 1 });
+        setDoctors(Array.isArray(data?.doctors) ? data.doctors : []);
+        setPagination(data?.pagination || { total: 0, pages: 1, page: 1 });
       } catch {
         setDoctors([]);
       } finally {
@@ -298,26 +296,31 @@ export default function DoctorSearchPage() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {doctors.map((doc) => {
               const fee = doc.onlineBookingFee || doc.advanceBookingFee || 0;
-              const hasClinics = doc.clinics && doc.clinics.length > 0;
-              const hasHospitals = doc.hospitals && doc.hospitals.length > 0;
+              const clinics = Array.isArray(doc.clinics) ? doc.clinics : [];
+              const hospitals = Array.isArray(doc.hospitals) ? doc.hospitals : [];
+              const hasClinics = clinics.length > 0;
+              const hasHospitals = hospitals.length > 0;
+              const profileImage = getDoctorImageUrl(doc);
 
               return (
                 <div
-                  key={doc._id}
+                  key={doc._id || doc.id}
                   onClick={() => {
+                    const doctorId = doc._id || doc.id;
+                    if (!doctorId) return;
                     trackEvent("doctor_profile_view", {
-                      doctor_id: doc._id,
+                      doctor_id: doctorId,
                       doctor_name: doc.fullName,
                       specialization: doc.specialization || "",
                     });
-                    navigate(`/book/doctors/${doc._id}`);
+                    navigate(`/book/doctors/${doctorId}`);
                   }}
                   className="group bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-slate-200/90 dark:border-zinc-800 shadow-sm hover:shadow-xl hover:border-indigo-500/40 transition-all duration-300 cursor-pointer flex flex-col justify-between"
                 >
                   <div>
                     {/* Header: Avatar & Info */}
                     <div className="flex items-start gap-4 mb-4">
-                      <DoctorAvatar profilePicUrl={doc.profilePicUrl} fullName={doc.fullName} />
+                      <DoctorAvatar src={profileImage} fullName={doc.fullName} />
 
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5">
@@ -366,7 +369,7 @@ export default function DoctorSearchPage() {
                           <span className="px-1.5 py-0.5 rounded bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 text-[10px] font-bold uppercase">
                             Clinic
                           </span>
-                          <span className="truncate font-medium">{doc.clinics[0].name}</span>
+                          <span className="truncate font-medium">{clinics[0].name}</span>
                         </div>
                       )}
                       {hasHospitals && (
@@ -374,7 +377,7 @@ export default function DoctorSearchPage() {
                           <span className="px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold uppercase">
                             Hospital
                           </span>
-                          <span className="truncate font-medium">{doc.hospitals[0].name}</span>
+                          <span className="truncate font-medium">{hospitals[0].name}</span>
                         </div>
                       )}
                     </div>

@@ -290,7 +290,7 @@ export const bookAppointment = async (req, res) => {
     const doctor = await Doctor.findOne({
       _id: doctorId,
       verificationStatus: "APPROVED",
-    }).select("_id fullName advanceBookingFee");
+    }).select("_id fullName advanceBookingFee onlineBookingFee");
 
     if (!doctor) {
       return res.status(404).json({ message: "Doctor not found or not verified" });
@@ -453,6 +453,9 @@ export const getMyAppointments = async (req, res) => {
     });
 
     res.status(200).json({
+      bookings: enrichedAppointments,
+      // Legacy key retained so older clients/tests that still call
+      // /patient-account/appointments continue to render the same payload.
       appointments: enrichedAppointments,
       pagination: {
         page: pageNum,

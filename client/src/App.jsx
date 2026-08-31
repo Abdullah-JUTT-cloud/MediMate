@@ -41,23 +41,16 @@ const CookiePolicyPage = lazy(() => import("./pages/CookiePolicyPage"));
 const BlogPage = lazy(() => import("./pages/BlogPage"));
 
 // Patient Booking Module (isolated from legacy patient-chat)
-// NOTE: The redesigned patient portal (MedAlerto Patient Portal v2) lives in
-// src/booking/* and is driven by realistic mock data (src/booking/mockData.js)
-// so it can be previewed end-to-end without the API. Re-wire the data boundary
-// in those files to the live endpoints when integrating with the backend.
-//
-// The doctor DIRECTORY (src/booking/DoctorsPage.jsx) is now wired to the live
-// API (GET /api/public/doctors), so it lists real approved doctors with their
-// real Mongo `_id`. Those ids only resolve on the API-driven profile page, so
-// /book/doctors/:id is served by pages/booking/DoctorProfilePage (live doctor
-// profile, slots and booking) instead of the mock-data DoctorDetailPage, which
-// looks ids up in src/booking/mockData.js and would render a blank page.
-const DoctorSearchPage = lazy(() => import("./booking/DoctorsPage"));
+// The patient portal routes are wired directly to the live API-backed pages:
+// doctor directory → GET /api/public/doctors, doctor profile/slots →
+// GET /api/public/doctors/:id(/slots), patient dashboard →
+// GET /api/patient-account/bookings.
+const DoctorSearchPage = lazy(() => import("./pages/booking/DoctorSearchPage"));
 const DoctorProfilePage = lazy(() => import("./pages/booking/DoctorProfilePage"));
 const PatientLoginPage2 = lazy(() => import("./pages/booking/PatientLoginPage2"));
 const PatientRegisterPage = lazy(() => import("./pages/booking/PatientRegisterPage"));
 const PatientVerifyEmailPage = lazy(() => import("./pages/booking/PatientVerifyEmailPage"));
-const PatientDashboardPage = lazy(() => import("./booking/DashboardPage"));
+const PatientDashboardPage = lazy(() => import("./pages/booking/PatientDashboardPage"));
 const ReviewSubmitPage = lazy(() => import("./pages/booking/ReviewSubmitPage"));
 
 function NotFoundRoute() {
@@ -150,11 +143,8 @@ function App() {
               <Route path="/book/login" element={<PatientLoginPage2 />} />
               <Route path="/book/register" element={<PatientRegisterPage />} />
               <Route path="/book/verify-email" element={<PatientVerifyEmailPage />} />
-              {/* Protected patient pages.
-                  The redesigned portal is mock-data driven for the redesign
-                  handoff/preview, so the dashboard renders without the auth
-                  guard. Re-wrap in <PatientAccountProtectedRoute> when the
-                  pages are reconnected to the live backend. */}
+              {/* Protected patient page. The dashboard itself handles an expired
+                  or missing patient session by redirecting to /book/login. */}
               <Route path="/book/dashboard" element={<PatientDashboardPage />} />
               {/* Public token-based review submission */}
               <Route path="/review/:token" element={<ReviewSubmitPage />} />

@@ -49,6 +49,7 @@ router.post(
   upload.single("screenshot"),
   bookAppointment
 );
+router.get("/bookings", verifyPatientAccountToken, getMyAppointments);
 router.get("/appointments", verifyPatientAccountToken, getMyAppointments);
 router.patch("/appointments/:id/cancel", verifyPatientAccountToken, cancelMyAppointment);
 
