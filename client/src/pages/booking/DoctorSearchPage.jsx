@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import axios from "../../api/axios";
 import MyAppointmentsButton from "../../components/booking/MyAppointmentsButton";
 import { trackEvent } from "../../lib/analytics";
 import { getDoctorImageUrl } from "../../booking/doctorApi";
+import usePatientAuth from "../../context/PatientAuthContext";
 import {
   Search,
   Stethoscope,
@@ -14,6 +15,7 @@ import {
   Clock,
   Sparkles,
 } from "lucide-react";
+import useThemedLogo from "../hooks/useThemedLogo";
 
 const SPECIALIZATIONS = [
   "General Physician",
@@ -124,34 +126,49 @@ export default function DoctorSearchPage() {
       {/* Top Header Navigation */}
       <header className="sticky top-0 z-40 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-zinc-800">
         <div className="w-full max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-2">
-          <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-500 flex items-center justify-center text-white font-black text-xl shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform">
-              M
-            </div>
-            <div>
-              <span className="font-extrabold text-slate-900 dark:text-white text-lg tracking-tight">MedAlerto</span>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block -mt-1">
-                Verified Doctors
-              </span>
-            </div>
+          <Link to="/" className="flex items-center gap-2">
+            <img
+              src={useThemedLogo()}
+              alt="MedAlerto Logo"
+              className="h-6 w-auto object-contain"
+            />
+            <span className="font-extrabold text-slate-900 dark:text-white text-lg tracking-tight">MedAlerto</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block -mt-1">
+              Verified Doctors
+            </span>
           </Link>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Authenticated → /book/dashboard; guest → Patient Login/Signup
-                modal (never a dead route). */}
+            {usePatientAuth().isAuthenticated ? (
+              /* Logged-in user profile indicator */
+              <div className="flex items-center gap-2">
+                <img
+                  src="/assets/avatar.png"
+                  alt="User"
+                  className="h-6 w-6 rounded-full object-cover"
+                />
+                <span className="text-sm font-medium text-slate-900 dark:text-white">
+                  {usePatientAuth().patient?.name || "Patient"}
+                </span>
+              </div>
+            ) : (
+              <>
+                <Link
+                  to="/book/login"
+                  className="text-xs font-bold text-slate-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 px-3.5 py-2 rounded-xl transition"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/book/register"
+                  className="hidden min-[480px]:inline text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl shadow-sm shadow-indigo-500/20 transition hover:shadow-md"
+                >
+                  Register Account
+                </Link>
+              </>
+            )}
+
             <MyAppointmentsButton />
-            <Link
-              to="/book/login"
-              className="text-xs font-bold text-slate-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 px-3.5 py-2 rounded-xl transition"
-            >
-              Sign In
-            </Link>
-            <Link
-              to="/book/register"
-              className="hidden min-[480px]:inline text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl shadow-sm shadow-indigo-500/20 transition hover:shadow-md"
-            >
-              Register Account
-            </Link>
           </div>
         </div>
       </header>

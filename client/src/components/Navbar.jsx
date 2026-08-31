@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import useThemedLogo from "../hooks/useThemedLogo";
+import usePatientAuth from "../../context/PatientAuthContext";
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -93,19 +94,36 @@ export default function Navbar() {
           >
             Book Appointment
           </button>
-          <button
-            onClick={() => navigate("/login")}
-            className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--color-secondary)] bg-[var(--color-card)]/65 px-5 font-body text-sm font-bold text-[var(--color-secondary)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--color-secondary)] hover:bg-[var(--color-bg-soft)] hover:shadow-[0_10px_28px_-14px_rgba(193,140,93,0.28)] active:translate-y-0"
-          >
-            Login
-          </button>
-          <button
-            onClick={() => navigate("/signup")}
-            className="group relative inline-flex h-11 items-center justify-center overflow-hidden rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)] px-5 font-body text-sm font-bold text-[var(--color-on-primary)] shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-14px_rgba(93,112,82,0.3)] active:translate-y-0"
-          >
-            <span className="absolute inset-0 bg-[var(--color-secondary)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-            <span className="relative z-10">Create Account</span>
-          </button>
+          {/* User auth buttons - conditionally rendered */}
+            {usePatientAuth().isAuthenticated ? (
+              /* Logged-in user profile indicator */
+              <div className="flex items-center gap-2">
+                <img
+                  src="/assets/avatar.png"
+                  alt="User"
+                  className="h-6 w-6 rounded-full object-cover"
+                />
+                <span className="text-sm font-medium text-[var(--color-text-primary)]">
+                  {usePatientAuth().patient?.name || "Patient"}
+                </span>
+              </div>
+            ) : (
+              <div className="hidden items-center gap-8 lg:flex">
+                <button
+                  onClick={() => navigate("/login")}
+                  className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--color-secondary)] bg-[var(--color-card)]/65 px-5 font-body text-sm font-bold text-[var(--color-secondary)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--color-secondary)] hover:bg-[var(--color-bg-soft)] hover:shadow-[0_10px_28px_-14px_rgba(193,140,93,0.28)] active:translate-y-0"
+                >
+                  Login
+                </button>
+                <button
+                  onClick={() => navigate("/signup")}
+                  className="group relative inline-flex h-11 items-center justify-center overflow-hidden rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)] px-5 font-body text-sm font-bold text-[var(--color-on-primary)] shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-14px_rgba(93,112,82,0.3)] active:translate-y-0"
+                >
+                  <span className="absolute inset-0 bg-[var(--color-secondary)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+                  <span className="relative z-10">Create Account</span>
+                </button>
+              </div>
+            )}
         </div>
 
         <button

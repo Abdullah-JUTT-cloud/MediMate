@@ -434,9 +434,7 @@ export default function DoctorProfilePage() {
       <header className="sticky top-0 z-40 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-zinc-800">
         <div className="w-full max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <button
-            onClick={() => navigate("/book/doctors")}
-            className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition"
-          >
+            onClick={() => navigate("/book/doctors")}>
             <ArrowLeft size={16} />
             <span>Back to Doctors</span>
           </button>
@@ -449,6 +447,39 @@ export default function DoctorProfilePage() {
           </Link>
 
           <div className="flex items-center gap-2">
+            {usePatientAuth().isAuthenticated ? (
+              /* Logged-in user profile indicator - clickable to dashboard */
+              <Link
+                to="/book/dashboard"
+                className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate("/book/dashboard");
+                }}
+              >
+                <img
+                  src="/assets/avatar.png"
+                  alt="User"
+                  className="h-6 w-6 rounded-full object-cover"
+                />
+                <span className="text-sm font-medium text-slate-900 dark:text-white">
+                  {usePatientAuth().patient?.name || "Patient"}
+                </span>
+              </Link>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Link
+                  to="/book/login"
+                  className="text-xs font-bold text-slate-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 px-3.5 py-2 rounded-xl transition">
+                  Sign In
+                </Link>
+                <Link
+                  to="/book/register"
+                  className="hidden min-[480px]:inline text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl shadow-sm shadow-indigo-500/20 transition hover:shadow-md">
+                  Register Account
+                </Link>
+              </div>
+            )}
             {/* Authenticated → /book/dashboard; guest → Patient Login/Signup
                 modal (see MyAppointmentsButton). */}
             <MyAppointmentsButton from={`/book/doctors/${id}`} />
