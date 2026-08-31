@@ -1,6 +1,7 @@
 import blackLogo from "../assets/black.png";
 import whiteLogo from "../assets/white.png";
 import fullBlueLogo from "../assets/fullblue.png";
+import useDataTheme from "../hooks/useDataTheme";
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────
@@ -8,10 +9,15 @@ import fullBlueLogo from "../assets/fullblue.png";
  * ─────────────────────────────────────────────────────────────────────────────
  *  All header/brand surfaces must use the official PNG files shipped in
  *  client/src/assets (no generic square "M" placeholders):
- *    • home / light marketing headers: black.png
- *    • dark headers or dark mode:       white.png
- *    • patient portal headers:          fullblue.png
- *    • doctors booking headers:         black.png, white.png in dark mode
+ *    • home / marketing headers (light): black.png
+ *    • home / marketing headers (dark):  white.png
+ *    • ALL /book/* patient-portal pages (dashboard, doctors directory,
+ *      doctor profile, …):                fullblue.png
+ *
+ *  SINGLE-LOGO GUARANTEE: this component renders exactly ONE <img> — never
+ *  two side-by-side copies hidden/shown with CSS. The theme swap for the
+ *  marketing logo is done by switching the `src` (via useDataTheme), which
+ *  cannot break regardless of Tailwind utility ordering in the compiled CSS.
  *
  *  The source PNGs include transparent padding. The helper below keeps the
  *  rendered visual mark near the requested 32–40px header height by cropping
@@ -25,24 +31,20 @@ const BRAND_LOGO_ASSETS = {
   fullblue: fullBlueLogo,
 };
 
-const AUTO_VARIANTS = new Set(["auto", "home", "doctors"]);
-
 const WORDMARK_TEXT = {
   auto: "text-slate-900 dark:text-white",
   home: "text-slate-900 dark:text-white",
-  doctors: "text-slate-900 dark:text-white",
   light: "text-slate-900",
   dark: "text-white",
-  patient: "text-[#0f4f95] dark:text-sky-200",
+  portal: "text-[#0f4f95] dark:text-sky-200",
 };
 
 const SUBTITLE_TEXT = {
   auto: "text-slate-400 dark:text-slate-500",
   home: "text-slate-400 dark:text-slate-500",
-  doctors: "text-slate-400 dark:text-slate-500",
   light: "text-slate-400",
   dark: "text-slate-300",
-  patient: "text-[#0f4f95] dark:text-sky-200",
+  portal: "text-[#0f4f95] dark:text-sky-200",
 };
 
 const LOGO_CROP = {
@@ -59,6 +61,17 @@ const LOGO_CROP = {
   },
 };
 
+/**
+ * Resolve a variant to one of three render modes:
+ *   "portal"  → fullblue.png lockup (every /book/* patient-portal page)
+ *   "light"   → black.png
+ *   "dark"    → white.png
+ *   "auto"/"home" → light or dark, following the live data-theme attribute.
+ *
+ * Note: "doctors" is folded into "portal" on purpose — per the branding
+ * rules, every route under /book/* (including /book/doctors and doctor
+ * profiles) shows the fullblue MedAlerto lockup.
+ */
 function normalizeVariant(variant, onDark = false) {
   if (onDark) return "dark";
 
@@ -71,31 +84,23 @@ function normalizeVariant(variant, onDark = false) {
       return "light";
     case "patient":
     case "portal":
-      return "patient";
     case "doctors":
-      return "doctors";
+      return "portal";
     case "home":
     case "auto":
     default:
-      return "home";
+      return "auto";
   }
 }
 
-function LogoImage({
-  src,
-  assetName,
-  size,
-  full = false,
-  imageClassName = "",
-  hiddenClassName = "",
-}) {
+function LogoImage({ src, assetName, size, full = false, imageClassName = "" }) {
   const crop = full ? LOGO_CROP.full : LOGO_CROP.mark;
   const wrapperWidth = Math.round(size * crop.widthRatio);
   const canvasSize = Math.ceil(size * crop.canvasScale);
 
   return (
     <span
-      className={`relative inline-flex shrink-0 overflow-hidden align-middle ${hiddenClassName}`}
+      className="relative inline-flex shrink-0 overflow-hidden align-middle"
       style={{ width: `${wrapperWidth}px`, height: `${size}px` }}
       data-medalerto-logo-wrapper={assetName}
     >
@@ -114,7 +119,7 @@ function LogoImage({
 }
 
 /**
- * Official MedAlerto image mark/lockup.
+ * Official MedAlerto image mark/lockup — always exactly ONE <img>.
  *
  * @param {object} props
  * @param {"auto" | "home" | "doctors" | "patient" | "light" | "dark"} [props.variant="home"]
@@ -132,41 +137,31 @@ export function BrandLogoMark({
   imageClassName = "",
   alt = "MedAlerto logo",
 }) {
+  // "auto"/"home" follow the live data-theme attribute; the other variants
+  // are static, but the hook is cheap and keeps every instance consistent.
+  const theme = useDataTheme();
   const resolvedVariant = normalizeVariant(variant, onDark);
+
+  const assetName =
+    resolvedVariant === "portal"
+      ? "fullblue"
+      : resolvedVariant === "dark" || (resolvedVariant === "auto" && theme === "dark")
+        ? "white"
+        : "black";
+
   const accessibilityProps = alt
     ? { role: "img", "aria-label": alt }
     : { "aria-hidden": "true" };
 
-  const renderImage = (assetName, src, extraProps = {}) => (
-    <LogoImage
-      src={src}
-      assetName={assetName}
-      size={size}
-      imageClassName={imageClassName}
-      {...extraProps}
-    />
-  );
-
-  let content = null;
-
-  if (resolvedVariant === "patient") {
-    content = renderImage("fullblue", BRAND_LOGO_ASSETS.fullblue, { full: true });
-  } else if (resolvedVariant === "dark") {
-    content = renderImage("white", BRAND_LOGO_ASSETS.white);
-  } else if (resolvedVariant === "light") {
-    content = renderImage("black", BRAND_LOGO_ASSETS.black);
-  } else if (AUTO_VARIANTS.has(resolvedVariant)) {
-    content = (
-      <>
-        {renderImage("black", BRAND_LOGO_ASSETS.black, { hiddenClassName: "dark:hidden" })}
-        {renderImage("white", BRAND_LOGO_ASSETS.white, { hiddenClassName: "hidden dark:inline-flex" })}
-      </>
-    );
-  }
-
   return (
     <span className={`inline-flex shrink-0 ${className}`} {...accessibilityProps}>
-      {content}
+      <LogoImage
+        src={BRAND_LOGO_ASSETS[assetName]}
+        assetName={assetName}
+        size={size}
+        full={resolvedVariant === "portal"}
+        imageClassName={imageClassName}
+      />
     </span>
   );
 }
@@ -174,9 +169,10 @@ export function BrandLogoMark({
 /**
  * Full brand lockup: official image + optional text/subtitle.
  *
- * Patient variant intentionally uses fullblue.png as the visible lockup and
- * does not duplicate the MedAlerto wordmark in text by default. Pass
- * showWordmark={true} only for special layouts that need additional text.
+ * Portal variant (all /book/* pages) intentionally uses fullblue.png as the
+ * visible lockup and does not duplicate the MedAlerto wordmark in text by
+ * default. Pass showWordmark={true} only for special layouts that need
+ * additional text.
  */
 export default function BrandLogo({
   variant = "home",
@@ -192,13 +188,13 @@ export default function BrandLogo({
   subtitleClassName = "",
 }) {
   const resolvedVariant = normalizeVariant(variant, onDark);
-  const text = WORDMARK_TEXT[resolvedVariant] ?? WORDMARK_TEXT.home;
-  const sub = SUBTITLE_TEXT[resolvedVariant] ?? SUBTITLE_TEXT.home;
-  const shouldShowWordmark = showWordmark ?? resolvedVariant !== "patient";
+  const text = WORDMARK_TEXT[resolvedVariant] ?? WORDMARK_TEXT.auto;
+  const sub = SUBTITLE_TEXT[resolvedVariant] ?? SUBTITLE_TEXT.auto;
+  const shouldShowWordmark = showWordmark ?? resolvedVariant !== "portal";
   const hasTextColumn = shouldShowWordmark || Boolean(subtitle);
   const markAlt = shouldShowWordmark ? "" : `${wordmark} logo`;
 
-  if (resolvedVariant === "patient" && !shouldShowWordmark) {
+  if (resolvedVariant === "portal" && !shouldShowWordmark) {
     return (
       <div className={`flex min-w-0 items-center ${className}`}>
         <div className="flex min-w-0 flex-col items-start leading-none">
