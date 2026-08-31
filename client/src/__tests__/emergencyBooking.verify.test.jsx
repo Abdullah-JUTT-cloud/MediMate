@@ -236,12 +236,12 @@ describe("Appointments booking form (AppointmentsPage)", () => {
     expect(screen.getByRole("button", { name: /Slot 17:30/i }).disabled).toBe(false);
 
     await user.click(screen.getByRole("button", { name: /Slot 17:30/i }));
-    await user.selectOptions(screen.getByLabelText(/Consultation Type/i), "Emergency");
+    await user.selectOptions(screen.getByLabelText(/Appointment Type/i), "Emergency");
 
     // Fill billing amount + confirm booking.
     const amountInput = screen.getAllByPlaceholderText("2000")[0];
     fireEvent.change(amountInput, { target: { value: "4000" } });
-    await user.click(screen.getByRole("button", { name: /Book Appointment/i }));
+    await user.click(screen.getByRole("button", { name: /Confirm Booking/i }));
 
     await waitFor(() => {
       expect(requestLog.some((entry) => entry.startsWith("POST /appointments"))).toBe(true);

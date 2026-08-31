@@ -2,7 +2,12 @@ import axios from "axios";
 import useAuthStore from "../store/authStore";
 import usePatientAccountStore from "../store/patientAccountStore";
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:5000/api").trim().replace(/\/$/, "");
+// Same-origin by default: in local dev the Vite proxy forwards /api and
+// /socket.io to the backend (see vite.config.js), and in production the API is
+// either co-located behind the same origin or set explicitly via VITE_API_URL.
+// Falling back to a hard-coded "localhost:PORT" broke every API call in the
+// deployed app (and locally too, since the server listens on 3000).
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "/api").trim().replace(/\/+$/, "");
 
 export function getApiBaseUrl() {
     return API_BASE_URL;
@@ -10,7 +15,14 @@ export function getApiBaseUrl() {
 
 export function getRealtimeBaseUrl() {
     const apiBaseUrl = getApiBaseUrl();
-    return apiBaseUrl.replace(/\/api$/, "");
+    if (/^https?:\/\//i.test(apiBaseUrl)) {
+        return apiBaseUrl.replace(/\/api\/?$/, "");
+    }
+    // Relative base URL → realtime socket connects to the same origin.
+    if (typeof window !== "undefined" && window.location?.origin) {
+        return window.location.origin;
+    }
+    return "";
 }
 
 const axiosInstance = axios.create({

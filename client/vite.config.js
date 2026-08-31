@@ -21,45 +21,57 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
-  plugins: [
-    react(),
-    tailwindcss(),
-  ],
-  define,
-  test: {
-    environment: 'jsdom',
-    globals: true,
-    setupFiles: [],
-  },
-  build: {
-    outDir: 'dist',
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (id.includes('node_modules/recharts')) return 'vendor-charts'
-          if (id.includes('node_modules/@mui') || id.includes('node_modules/@emotion')) {
-            return 'vendor-mui'
-          }
-          if (
-            id.includes('node_modules/react/') ||
-            id.includes('node_modules/react-dom/') ||
-            id.includes('node_modules/react-router') ||
-            id.includes('node_modules/scheduler/') ||
-            id.includes('node_modules/zustand/') ||
-            id.includes('node_modules/axios/') ||
-            id.includes('node_modules/socket.io-client/')
-          ) {
-            return 'vendor-core'
-          }
-          if (id.includes('node_modules')) return 'vendor'
-          return undefined
+    plugins: [
+      react(),
+      tailwindcss(),
+    ],
+    define,
+    test: {
+      environment: 'jsdom',
+      globals: true,
+      setupFiles: [],
+    },
+    build: {
+      outDir: 'dist',
+      rollupOptions: {
+        output: {
+          // NOTE: manualChunks must never create a cycle between chunks, or the
+          // whole bundle fails at runtime with "Cannot read properties of
+          // undefined (reading 'memo')" (a blank/white screen). Keep React and
+          // its ecosystem together in one 'vendor' chunk and only split out the
+          // two large, leaf dependencies (charts + MUI) that nothing in
+          // 'vendor' imports back from.
+          manualChunks(id) {
+            if (id.includes('node_modules/recharts')) return 'vendor-charts'
+            if (id.includes('node_modules/@mui') || id.includes('node_modules/@emotion')) {
+              return 'vendor-mui'
+            }
+            if (id.includes('node_modules')) return 'vendor'
+            return undefined
+          },
         },
       },
     },
-  },
-  server: {
-    host: true,
-    allowedHosts: ['.e2b.app'],
-  },
+    server: {
+      host: true,
+      allowedHosts: ['.e2b.app'],
+      // Route API + realtime traffic to the backend during local development so
+      // the SPA can use same-origin /api URLs instead of a hard-coded port.
+      proxy: {
+        '/api': {
+          target: process.env.VITE_PROXY_TARGET || 'http://localhost:3000',
+          changeOrigin: true,
+        },
+        '/socket.io': {
+          target: process.env.VITE_PROXY_TARGET || 'http://localhost:3000',
+          changeOrigin: true,
+          ws: true,
+        },
+      },
+    },
+    preview: {
+      host: true,
+      allowedHosts: ['.e2b.app'],
+    },
   }
 })
