@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import useThemedLogo from "../hooks/useThemedLogo";
+import { Link, useLocation } from "react-router-dom";
+import BrandLogo from "./BrandLogo";
 
 export default function Navbar() {
-  const navigate = useNavigate();
-  const logo = useThemedLogo();
   const location = useLocation();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -53,22 +51,13 @@ export default function Navbar() {
         />
 
         <Link to="/" className="group flex items-center gap-4">
-          <div className="flex w-[40px] sm:w-[48px] lg:w-[54px] aspect-square items-center justify-center overflow-hidden rounded-full border border-[var(--color-border)]/80 bg-[var(--color-card)] shadow-[var(--shadow-soft)] transition-all group-hover:scale-105">
-            <img
-              src={logo}
-              alt="MedAlerto Logo"
-              className="h-2/3 w-auto object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.08)]"
-            />
-          </div>
-          <div className="flex flex-col">
-            <span className="block font-heading text-xs sm:text-sm font-semibold uppercase tracking-[0.15em] text-[var(--color-text-primary)]">
-              MEDALERTO
-            </span>
-            <div className="h-px w-10 bg-[var(--color-border)] mt-1 mb-1 opacity-60" />
-            <span className="block font-mono text-[8px] sm:text-[9px] uppercase tracking-[0.25em] text-[var(--color-text-secondary)] transition duration-300 group-hover:text-[var(--color-primary)]">
-              rooted clinic tools
-            </span>
-          </div>
+          {/* Unified inline-SVG brand logo — no <img>, so it can never show a
+              broken-image icon or depend on an external asset path. */}
+          <BrandLogo
+            markSize={40}
+            subtitle="rooted clinic tools"
+            markClassName="transition-transform duration-300 group-hover:scale-105"
+          />
         </Link>
 
         <div className="hidden items-center gap-8 lg:flex">
@@ -87,29 +76,28 @@ export default function Navbar() {
           <Link to="/blog" className={linkClass("/blog")}>
             Blog
           </Link>
-          <button
-            onClick={() => navigate("/book/doctors")}
+          <Link
+            to="/book/doctors"
             className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)]/10 px-5 font-body text-sm font-bold text-[var(--color-primary)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-primary)]/20 active:translate-y-0"
           >
             Book Appointment
-          </button>
+          </Link>
           {/* Primary auth actions — the marketing header always shows these two
-              buttons (no logged-in profile pill), routing to /login and
-              /signup respectively. */}
-          <button
-            type="button"
-            onClick={() => navigate("/login")}
+              links (no logged-in profile pill), pointing at /login and
+              /signup respectively. Real <Link>s so they behave like anchors
+              (middle-click / open-in-new-tab / crawlable). */}
+          <Link
+            to="/login"
             className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--color-primary)]/60 bg-transparent px-5 font-body text-sm font-bold text-[var(--color-primary)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 hover:shadow-[0_10px_28px_-14px_rgba(13,148,136,0.35)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/70 focus-visible:ring-offset-2"
           >
             Login
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("/signup")}
+          </Link>
+          <Link
+            to="/signup"
             className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)] px-5 font-body text-sm font-bold text-[var(--color-on-primary)] shadow-[0_4px_20px_-2px_rgba(13,148,136,0.35)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--color-primary-hover)] hover:bg-[var(--color-primary-hover)] hover:shadow-[0_10px_28px_-14px_rgba(13,148,136,0.5)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/70 focus-visible:ring-offset-2"
           >
             Create Account
-          </button>
+          </Link>
         </div>
 
         <button
@@ -175,33 +163,27 @@ export default function Navbar() {
             >
               Blog
             </Link>
-            <button
-              onClick={() => {
-                navigate("/book/doctors");
-                setMenuOpen(false);
-              }}
+            <Link
+              to="/book/doctors"
+              onClick={() => setMenuOpen(false)}
               className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)]/10 px-5 font-body text-sm font-bold text-[var(--color-primary)] transition duration-300 hover:-translate-y-0.5"
             >
               Book Appointment
-            </button>
-            <button
-              onClick={() => {
-                navigate("/login");
-                setMenuOpen(false);
-              }}
+            </Link>
+            <Link
+              to="/login"
+              onClick={() => setMenuOpen(false)}
               className="inline-flex h-11 w-full items-center justify-center rounded-full border border-[var(--color-primary)]/60 bg-transparent px-5 font-body text-sm font-bold text-[var(--color-primary)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/70 focus-visible:ring-offset-2 active:translate-y-0"
             >
               Login
-            </button>
-            <button
-              onClick={() => {
-                navigate("/signup");
-                setMenuOpen(false);
-              }}
+            </Link>
+            <Link
+              to="/signup"
+              onClick={() => setMenuOpen(false)}
               className="inline-flex h-11 w-full items-center justify-center rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)] px-5 font-body text-sm font-bold text-[var(--color-on-primary)] shadow-[0_4px_20px_-2px_rgba(13,148,136,0.35)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--color-primary-hover)] hover:bg-[var(--color-primary-hover)] hover:shadow-[0_10px_28px_-14px_rgba(13,148,136,0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/70 focus-visible:ring-offset-2 active:translate-y-0"
             >
               Create Account
-            </button>
+            </Link>
           </div>
         </div>
       )}

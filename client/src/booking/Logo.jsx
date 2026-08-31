@@ -1,8 +1,8 @@
-import { LogoMark } from "../components/Logo";
+import { BrandLogoMark as LogoMark } from "../components/BrandLogo";
 
 /**
  * Official MedAlerto mark for the booking portal — rendered from the unified
- * SVG brand logo (src/components/Logo.jsx) instead of the legacy PNG rasters.
+ * SVG brand logo (src/components/BrandLogo.jsx) instead of the legacy PNG rasters.
  * `variant="auto"` follows the app theme; "light" / "dark" force a specific
  * surface palette (e.g. a white mark on a gradient hero).
  */

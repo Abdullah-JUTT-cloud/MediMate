@@ -5,7 +5,8 @@ import MyAppointmentsButton from "../../components/booking/MyAppointmentsButton"
 import { trackEvent } from "../../lib/analytics";
 import { getDoctorImageUrl } from "../../booking/doctorApi";
 import usePatientAuth from "../../context/usePatientAuth";
-import Logo from "../../components/Logo";
+import BrandLogo from "../../components/BrandLogo";
+import UserAvatar from "../../components/UserAvatar";
 import {
   Search,
   Stethoscope,
@@ -133,22 +134,27 @@ export default function DoctorSearchPage() {
             aria-label="MedAlerto home"
             className="shrink-0 rounded-xl transition-opacity duration-300 hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/70 focus-visible:ring-offset-2"
           >
-            <Logo markSize={34} subtitle="Verified Doctors" />
+            <BrandLogo markSize={34} subtitle="Verified Doctors" />
           </Link>
 
           <div className="flex items-center gap-2 sm:gap-3">
             {patientAuthed ? (
-              /* Logged-in user profile indicator */
-              <div className="flex items-center gap-2">
-                <img
-                  src="/assets/avatar.png"
-                  alt="User"
-                  className="h-6 w-6 rounded-full object-cover"
+              /* Logged-in user profile indicator — safe avatar with initials
+                 fallback (never a broken-image icon). */
+              <Link
+                to="/book/dashboard"
+                className="flex items-center gap-2 rounded-full py-0.5 pl-0.5 pr-2.5 transition hover:bg-slate-100 dark:hover:bg-zinc-800"
+                aria-label="Open patient dashboard"
+              >
+                <UserAvatar
+                  src={sessionPatient?.image || sessionPatient?.avatar || ""}
+                  name={sessionPatient?.name || "Patient"}
+                  size={28}
                 />
-                <span className="text-sm font-medium text-slate-900 dark:text-white">
+                <span className="hidden min-[400px]:inline text-sm font-medium text-slate-900 dark:text-white">
                   {sessionPatient?.name || "Patient"}
                 </span>
-              </div>
+              </Link>
             ) : (
               <>
                 <Link

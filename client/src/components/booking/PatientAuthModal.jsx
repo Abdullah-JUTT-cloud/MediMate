@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "../../api/axios";
 import toast from "react-hot-toast";
 import usePatientAccountStore from "../../store/patientAccountStore";
+import { BrandLogoMark } from "../BrandLogo";
 import { X, LogIn, UserPlus, ShieldCheck } from "lucide-react";
 
 /**
@@ -127,9 +128,8 @@ export default function PatientAuthModal({ open, onClose, from = "/book/dashboar
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-md shadow-indigo-500/20">
-              M
-            </div>
+            {/* Unified inline-SVG brand mark — replaces the "M" placeholder tile. */}
+            <BrandLogoMark size={40} alt="" />
             <div>
               <h2 className="text-base font-extrabold text-slate-900 dark:text-white">Patient Account</h2>
               <p className="text-[11px] font-semibold text-slate-400 dark:text-zinc-500">
