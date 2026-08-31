@@ -1,28 +1,123 @@
-import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "../../api/axios";
 import toast from "react-hot-toast";
+import usePatientAccountStore from "../../store/patientAccountStore";
 import {
-  Calendar,
   Clock,
-  User,
   PlusCircle,
   LogOut,
   AlertCircle,
   CheckCircle2,
   XCircle,
-  Search,
-  Maximize2,
-  ImageOff,
   Stethoscope,
-  Building2,
-  Phone,
   Star,
   X,
 } from "lucide-react";
 
+const STATUS = {
+  PENDING: "PENDING",
+  CONFIRMED: "CONFIRMED",
+  CANCELLED: "CANCELLED",
+  REJECTED: "REJECTED",
+  COMPLETED: "COMPLETED",
+  NO_SHOW: "NO-SHOW",
+};
+
+function normalizeStatus(status) {
+  return String(status || "")
+    .trim()
+    .replace(/_/g, "-")
+    .toUpperCase();
+}
+
+function extractAppointments(payload) {
+  if (Array.isArray(payload?.bookings)) return payload.bookings;
+  if (Array.isArray(payload?.appointments)) return payload.appointments;
+  return [];
+}
+
+function hasAppointmentList(payload) {
+  return Array.isArray(payload?.bookings) || Array.isArray(payload?.appointments);
+}
+
+async function fetchPatientBookings() {
+  try {
+    const bookingsRes = await axios.get("/patient-account/bookings");
+    if (hasAppointmentList(bookingsRes.data)) return extractAppointments(bookingsRes.data);
+  } catch (err) {
+    // Backward-compatible fallback for deployments that have not picked up the
+    // new /bookings alias yet. Auth and server errors should still surface.
+    if (err.response?.status && err.response.status !== 404) throw err;
+  }
+
+  const appointmentsRes = await axios.get("/patient-account/appointments");
+  return extractAppointments(appointmentsRes.data);
+}
+
+function getAppointmentId(appointment) {
+  return String(appointment?._id || appointment?.id || "");
+}
+
+function getDoctorId(appointment) {
+  if (typeof appointment?.doctor === "string") return appointment.doctor;
+  return String(appointment?.doctor?._id || appointment?.doctorId || "");
+}
+
+function getDoctorImageUrl(doctor) {
+  const raw =
+    doctor?.profilePicUrl ||
+    doctor?.profilePicture ||
+    doctor?.avatarUrl ||
+    doctor?.avatar ||
+    doctor?.image ||
+    "";
+  return typeof raw === "string" ? raw.trim() : "";
+}
+
+function hasSubmittedReview(appointment) {
+  return Boolean(
+    appointment?.reviewed ||
+      appointment?.hasReview ||
+      appointment?.reviewSubmitted ||
+      appointment?.review?.isSubmitted
+  );
+}
+
+function isRejectedOrCancelled(appointment) {
+  const status = normalizeStatus(appointment?.status);
+  return (
+    status === STATUS.REJECTED ||
+    status === STATUS.CANCELLED ||
+    Boolean(appointment?.rejectionReason) ||
+    appointment?.cancellationReason === "Payment Rejected"
+  );
+}
+
+function formatAppointmentDate(dateValue) {
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return "Date pending";
+  return date.toLocaleDateString("en-PK", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function getAppointmentFee(appointment) {
+  return Number(
+    appointment?.consultationFee ??
+      appointment?.standardFee ??
+      appointment?.onlineBookingFee ??
+      appointment?.advanceBookingFee ??
+      0
+  );
+}
+
 export default function PatientDashboardPage() {
   const navigate = useNavigate();
+  const clearPatientSession = usePatientAccountStore((state) => state.clearSession);
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(null);
@@ -36,23 +131,44 @@ export default function PatientDashboardPage() {
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
   useEffect(() => {
-    // Check session info
-    axios
-      .get("/patient-account/me")
-      .then(({ data }) => setPatientUser(data.patient))
-      .catch(() => {});
+    let mounted = true;
 
-    // Load appointments
-    axios
-      .get("/patient-account/appointments")
-      .then(({ data }) => setAppointments(data.appointments || []))
-      .catch(() => toast.error("Failed to load your appointments"))
-      .finally(() => setLoading(false));
-  }, []);
+    const loadDashboard = async () => {
+      setLoading(true);
+      try {
+        const [sessionRes, patientBookings] = await Promise.all([
+          axios.get("/patient-account/me").catch(() => null),
+          fetchPatientBookings(),
+        ]);
+
+        if (!mounted) return;
+        setPatientUser(sessionRes?.data?.patient || null);
+        setAppointments(patientBookings);
+      } catch (err) {
+        if (!mounted) return;
+        setAppointments([]);
+        if (err.response?.status === 401) {
+          toast.error("Please sign in to view your appointments");
+          navigate("/book/login", { state: { from: "/book/dashboard" }, replace: true });
+        } else {
+          toast.error(err.response?.data?.message || "Failed to load your appointments");
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    loadDashboard();
+    return () => {
+      mounted = false;
+    };
+  }, [navigate]);
 
   const handleLogout = async () => {
     try {
       await axios.post("/patient-account/logout");
+      clearPatientSession();
+      setPatientUser(null);
       toast.success("Logged out successfully");
       navigate("/book/login");
     } catch {
@@ -60,14 +176,20 @@ export default function PatientDashboardPage() {
     }
   };
 
-  const cancel = async (id) => {
+  const cancel = async (appointment) => {
+    const id = getAppointmentId(appointment);
+    if (!id) return;
     if (!confirm("Are you sure you want to cancel this appointment request?")) return;
     setCancelling(id);
     try {
       await axios.patch(`/patient-account/appointments/${id}/cancel`, {});
       toast.success("Appointment cancelled");
       setAppointments((prev) =>
-        prev.map((a) => (a._id === id ? { ...a, status: "Cancelled", cancellationReason: "Patient" } : a))
+        prev.map((a) =>
+          getAppointmentId(a) === id
+            ? { ...a, status: "Cancelled", awaitingOnlineApproval: false, cancellationReason: "Patient" }
+            : a
+        )
       );
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to cancel appointment");
@@ -78,6 +200,10 @@ export default function PatientDashboardPage() {
 
   // ── Review ("Leave Feedback") handlers ───────────────────────────────────
   const openReview = (appointment) => {
+    if (!getAppointmentId(appointment) || !getDoctorId(appointment)) {
+      toast.error("This appointment is missing review details. Please contact support.");
+      return;
+    }
     setReviewTarget(appointment);
     setReviewRating(0);
     setReviewComment("");
@@ -99,9 +225,11 @@ export default function PatientDashboardPage() {
       // POSTs through the authenticated patient session (axios sends the
       // `patientAccountToken` cookie; the server validates ownership + that
       // the appointment is Completed before saving).
+      const appointmentId = getAppointmentId(reviewTarget);
+      const doctorId = getDoctorId(reviewTarget);
       await axios.post("/patient-account/reviews", {
-        appointmentId: reviewTarget._id,
-        doctorId: reviewTarget.doctor?._id || reviewTarget.doctorId,
+        appointmentId,
+        doctorId,
         rating: reviewRating,
         comment: reviewComment,
       });
@@ -109,34 +237,66 @@ export default function PatientDashboardPage() {
       // One review per appointment — mark it locally so the button flips to
       // the disabled "Review Submitted" state without a refetch.
       setAppointments((prev) =>
-        prev.map((x) => (x._id === reviewTarget._id ? { ...x, reviewed: true } : x))
+        prev.map((x) =>
+          getAppointmentId(x) === appointmentId ? { ...x, reviewed: true, reviewSubmitted: true } : x
+        )
       );
       setReviewTarget(null);
     } catch (err) {
+      if (err.response?.status === 409) {
+        const appointmentId = getAppointmentId(reviewTarget);
+        setAppointments((prev) =>
+          prev.map((x) =>
+            getAppointmentId(x) === appointmentId ? { ...x, reviewed: true, reviewSubmitted: true } : x
+          )
+        );
+        setReviewTarget(null);
+      }
       toast.error(err.response?.data?.message || "Failed to submit review");
     } finally {
       setReviewSubmitting(false);
     }
   };
 
-  // Metrics counts
-  const totalCount = appointments.length;
-  const pendingCount = appointments.filter((a) => a.awaitingOnlineApproval).length;
-  const confirmedCount = appointments.filter((a) => a.status === "Confirmed").length;
-  const rejectedCount = appointments.filter(
-    (a) => a.status === "Cancelled" && (a.rejectionReason || a.cancellationReason === "Payment Rejected")
-  ).length;
+  // Metrics counts — derived only from the live patient booking API.
+  const summary = useMemo(() => {
+    const counts = { total: appointments.length, pending: 0, confirmed: 0, completed: 0, rejected: 0 };
+    appointments.forEach((appointment) => {
+      const status = normalizeStatus(appointment.status);
+      const terminal = [STATUS.CANCELLED, STATUS.REJECTED, STATUS.COMPLETED, STATUS.NO_SHOW].includes(status);
+      if ((appointment.awaitingOnlineApproval || status === STATUS.PENDING) && !terminal) counts.pending += 1;
+      if (status === STATUS.CONFIRMED) counts.confirmed += 1;
+      if (status === STATUS.COMPLETED) counts.completed += 1;
+      if (isRejectedOrCancelled(appointment)) counts.rejected += 1;
+    });
+    return counts;
+  }, [appointments]);
 
   // Filtered List
-  const filteredAppointments = appointments.filter((a) => {
-    if (activeTab === "ALL") return true;
-    if (activeTab === "PENDING") return a.awaitingOnlineApproval;
-    if (activeTab === "CONFIRMED") return a.status === "Confirmed";
-    if (activeTab === "REJECTED")
-      return a.status === "Cancelled" && (a.rejectionReason || a.cancellationReason === "Payment Rejected");
-    if (activeTab === "COMPLETED") return a.status === "Completed";
-    return true;
-  });
+  const filteredAppointments = useMemo(
+    () =>
+      appointments.filter((a) => {
+        const status = normalizeStatus(a.status);
+        if (activeTab === "ALL") return true;
+        if (activeTab === "PENDING") {
+          return (
+            (a.awaitingOnlineApproval || status === STATUS.PENDING) &&
+            ![STATUS.CANCELLED, STATUS.REJECTED, STATUS.COMPLETED, STATUS.NO_SHOW].includes(status)
+          );
+        }
+        if (activeTab === "CONFIRMED") return status === STATUS.CONFIRMED;
+        if (activeTab === "REJECTED") return isRejectedOrCancelled(a);
+        if (activeTab === "COMPLETED") return status === STATUS.COMPLETED;
+        return true;
+      }),
+    [appointments, activeTab]
+  );
+
+  const totalCount = summary.total;
+  const pendingCount = summary.pending;
+  const confirmedCount = summary.confirmed;
+  const completedCount = summary.completed;
+  const rejectedCount = summary.rejected;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-indigo-50/30 dark:from-zinc-950 dark:to-zinc-900 pb-16">
@@ -214,11 +374,11 @@ export default function PatientDashboardPage() {
             <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">{confirmedCount}</p>
           </div>
 
-          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 border border-rose-200 dark:border-rose-900/50 shadow-sm">
-            <p className="text-[11px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider flex items-center gap-1">
-              <XCircle size={12} /> Rejected / Cancelled
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 border border-indigo-200 dark:border-indigo-900/50 shadow-sm">
+            <p className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider flex items-center gap-1">
+              <CheckCircle2 size={12} /> Completed
             </p>
-            <p className="text-2xl font-black text-rose-600 dark:text-rose-400 mt-1">{rejectedCount}</p>
+            <p className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1">{completedCount}</p>
           </div>
         </div>
 
@@ -228,8 +388,8 @@ export default function PatientDashboardPage() {
             { id: "ALL", label: `All (${totalCount})` },
             { id: "PENDING", label: `⏳ Pending (${pendingCount})` },
             { id: "CONFIRMED", label: `✅ Confirmed (${confirmedCount})` },
-            { id: "REJECTED", label: `❌ Rejected (${rejectedCount})` },
-            { id: "COMPLETED", label: `Completed` },
+            { id: "COMPLETED", label: `✅ Completed (${completedCount})` },
+            { id: "REJECTED", label: `❌ Rejected / Cancelled (${rejectedCount})` },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -276,34 +436,50 @@ export default function PatientDashboardPage() {
           /* Appointment Cards List */
           <div className="space-y-4">
             {filteredAppointments.map((a) => {
-              const isPending = a.awaitingOnlineApproval;
-              const isConfirmed = a.status === "Confirmed";
-              const isCancelled = a.status === "Cancelled";
-              const isCompleted = a.status === "Completed";
-              const rejectionText = a.rejectionReason || (a.cancellationReason === "Payment Rejected" ? "Payment screenshot could not be verified by clinic staff" : null);
+              const appointmentId = getAppointmentId(a);
+              const status = normalizeStatus(a.status);
+              const isPending = Boolean(a.awaitingOnlineApproval) || status === STATUS.PENDING;
+              const isConfirmed = status === STATUS.CONFIRMED;
+              const isCompleted = status === STATUS.COMPLETED;
+              const isCancelled = status === STATUS.CANCELLED || status === STATUS.REJECTED;
+              const alreadyReviewed = hasSubmittedReview(a);
+              const doctorImageUrl = getDoctorImageUrl(a.doctor);
+              const doctorName = a.doctor?.fullName || a.doctorName || "Medical Specialist";
+              const doctorTitle = a.doctor?.title
+                ? `${a.doctor.title} `
+                : String(doctorName).startsWith("Dr.")
+                ? ""
+                : "Dr. ";
+              const specialization = a.doctor?.specialization || a.specialization || "General Physician";
+              const rejectionText =
+                a.rejectionReason ||
+                (a.cancellationReason === "Payment Rejected"
+                  ? "Payment screenshot could not be verified by clinic staff"
+                  : null);
+              const fee = getAppointmentFee(a);
 
               return (
                 <div
-                  key={a._id}
+                  key={appointmentId || `${doctorName}-${a.date}-${a.slot}`}
                   className="bg-white dark:bg-zinc-900 rounded-2xl p-5 border border-zinc-200/90 dark:border-zinc-800 shadow-sm hover:shadow-md transition overflow-hidden"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-100 dark:border-zinc-800/80">
                     {/* Doctor Info Header */}
                     <div className="flex items-center gap-3.5">
                       <div className="w-12 h-12 rounded-2xl bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-bold flex items-center justify-center text-lg shrink-0 overflow-hidden">
-                        {a.doctor?.profilePicUrl ? (
-                          <img src={a.doctor.profilePicUrl} alt={a.doctor?.fullName} className="w-full h-full object-cover" />
+                        {doctorImageUrl ? (
+                          <img src={doctorImageUrl} alt={doctorName} className="w-full h-full object-cover" />
                         ) : (
                           <Stethoscope size={22} />
                         )}
                       </div>
                       <div>
                         <h3 className="font-bold text-zinc-900 dark:text-white text-sm">
-                          {a.doctor?.title ? `${a.doctor.title} ` : "Dr. "}
-                          {a.doctor?.fullName || "Medical Specialist"}
+                          {doctorTitle}
+                          {doctorName}
                         </h3>
                         <p className="text-xs text-indigo-600 dark:text-indigo-400 font-medium">
-                          {a.doctor?.specialization || "General Physician"}
+                          {specialization}
                         </p>
                       </div>
                     </div>
@@ -357,12 +533,7 @@ export default function PatientDashboardPage() {
                     <div className="bg-zinc-50 dark:bg-zinc-800/50 p-2.5 rounded-xl border border-zinc-100 dark:border-zinc-800">
                       <p className="text-zinc-400 dark:text-zinc-500 font-bold uppercase text-[10px]">Booking Date</p>
                       <p className="font-bold text-zinc-800 dark:text-zinc-200 mt-0.5">
-                        {new Date(a.date).toLocaleDateString("en-PK", {
-                          weekday: "short",
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
+                        {formatAppointmentDate(a.date)}
                       </p>
                     </div>
 
@@ -379,7 +550,7 @@ export default function PatientDashboardPage() {
                     <div className="bg-zinc-50 dark:bg-zinc-800/50 p-2.5 rounded-xl border border-zinc-100 dark:border-zinc-800">
                       <p className="text-zinc-400 dark:text-zinc-500 font-bold uppercase text-[10px]">Booking Charge</p>
                       <p className="font-bold text-indigo-600 dark:text-indigo-400 mt-0.5">
-                        Rs {(a.consultationFee || 1000).toLocaleString()}
+                        Rs {fee.toLocaleString()}
                       </p>
                     </div>
                   </div>
@@ -387,14 +558,14 @@ export default function PatientDashboardPage() {
                   {/* Footer Actions & Cancellation */}
                   <div className="mt-4 pt-3 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 dark:border-zinc-800/60 text-xs">
                     <p className="text-[11px] text-zinc-400">
-                      Ref ID: <span className="font-mono">{a._id.slice(-8)}</span>
+                      Ref ID: <span className="font-mono">{appointmentId ? appointmentId.slice(-8) : "—"}</span>
                     </p>
                     <div className="flex flex-wrap items-center gap-2">
                       {/* Leave Feedback — completed appointments only. Hidden
                           once a review has been submitted for this appointment
                           (server truth: `a.reviewed` from /patient-account/
-                          appointments). */}
-                      {isCompleted && !a.reviewed && (
+                          bookings). */}
+                      {isCompleted && !alreadyReviewed && (
                         <button
                           onClick={() => openReview(a)}
                           className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-950/40 px-3 py-1.5 rounded-lg border border-indigo-200 dark:border-indigo-900/50 transition"
@@ -403,7 +574,7 @@ export default function PatientDashboardPage() {
                           Leave Feedback
                         </button>
                       )}
-                      {isCompleted && a.reviewed && (
+                      {isCompleted && alreadyReviewed && (
                         <button
                           disabled
                           title="You have already submitted a review for this appointment"
@@ -413,13 +584,13 @@ export default function PatientDashboardPage() {
                           Review Submitted
                         </button>
                       )}
-                      {!["Cancelled", "Completed", "No-show"].includes(a.status) && (
+                      {![STATUS.CANCELLED, STATUS.REJECTED, STATUS.COMPLETED, STATUS.NO_SHOW].includes(status) && (
                         <button
-                          onClick={() => cancel(a._id)}
-                          disabled={cancelling === a._id}
+                          onClick={() => cancel(a)}
+                          disabled={cancelling === appointmentId}
                           className="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 px-3 py-1.5 rounded-lg border border-rose-200 dark:border-rose-900/50 transition disabled:opacity-50"
                         >
-                          {cancelling === a._id ? "Cancelling…" : "Cancel Booking"}
+                          {cancelling === appointmentId ? "Cancelling…" : "Cancel Booking"}
                         </button>
                       )}
                     </div>
@@ -452,8 +623,8 @@ export default function PatientDashboardPage() {
                 </h3>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
                   {reviewTarget.doctor?.title ? `${reviewTarget.doctor.title} ` : "Dr. "}
-                  {reviewTarget.doctor?.fullName || "Medical Specialist"}
-                  <span className="text-zinc-400 dark:text-zinc-500"> · {reviewTarget.doctor?.specialization || "General Physician"}</span>
+                  {reviewTarget.doctor?.fullName || reviewTarget.doctorName || "Medical Specialist"}
+                  <span className="text-zinc-400 dark:text-zinc-500"> · {reviewTarget.doctor?.specialization || reviewTarget.specialization || "General Physician"}</span>
                 </p>
               </div>
               <button

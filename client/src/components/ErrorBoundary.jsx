@@ -1,5 +1,12 @@
 import { Component } from "react";
 
+function getDashboardFallbackHref() {
+  if (typeof window !== "undefined" && window.location.pathname.includes("/book")) {
+    return "/book/dashboard";
+  }
+  return "/dashboard";
+}
+
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props);
@@ -16,12 +23,7 @@ class ErrorBoundary extends Component {
 
   render() {
     if (this.state.hasError) {
-      // Route-aware fallback destination. A crash on any /book/* page (doctor
-      // directory, doctor profile, booking flow, patient dashboard) must drop
-      // the patient into the PATIENT portal (/book/dashboard) — not the doctor
-      // portal (/dashboard). Everything else keeps the original default.
-      const pathname = typeof window !== "undefined" ? window.location.pathname : "";
-      const dashboardHref = pathname.includes("/book") ? "/book/dashboard" : "/dashboard";
+      const dashboardHref = getDashboardFallbackHref();
 
       return (
         <div className="flex min-h-[100dvh] items-center justify-center bg-[var(--color-bg)] px-4 text-[var(--color-text-primary)]">

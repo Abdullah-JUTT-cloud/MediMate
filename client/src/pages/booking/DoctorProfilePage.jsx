@@ -4,6 +4,7 @@ import axios from "../../api/axios";
 import toast from "react-hot-toast";
 import usePatientAccountStore from "../../store/patientAccountStore";
 import MyAppointmentsButton from "../../components/booking/MyAppointmentsButton";
+import { getDoctorImageUrl } from "../../booking/doctorApi";
 import MetaTags from "../../components/Seo/MetaTags";
 import { physicianSchema, breadcrumbSchema } from "../../seo/jsonLd";
 import { clampTitle } from "../../seo/seoConfig";
@@ -23,7 +24,6 @@ import {
   User,
   CreditCard,
   ShieldCheck,
-  Phone,
   MessageSquare,
 } from "lucide-react";
 
@@ -78,9 +78,15 @@ const DEFAULT_SLOT_TIMES = [
   "16:00", "16:20", "16:40", "17:00", "17:20", "17:40",
 ];
 
+const asArray = (value) => (Array.isArray(value) ? value : []);
+
 function parseTimeStrToMinutes(str) {
-  if (!str) return 0;
-  const [h, m] = str.split(":").map(Number);
+  if (typeof str !== "string") return Number.NaN;
+  const match = str.trim().match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return Number.NaN;
+  const h = Number(match[1]);
+  const m = Number(match[2]);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return Number.NaN;
   return h * 60 + m;
 }
 
@@ -105,14 +111,17 @@ function to12h(time24) {
 }
 
 function generateSlotsFromSessions(sessions, slotDuration = 20) {
-  if (!sessions || !Array.isArray(sessions) || sessions.length === 0) {
+  const sessionList = asArray(sessions);
+  const duration = Number(slotDuration) > 0 ? Number(slotDuration) : 20;
+  if (sessionList.length === 0) {
     return DEFAULT_SLOT_TIMES;
   }
   const slots = [];
-  sessions.forEach((s) => {
-    const startMins = parseTimeStrToMinutes(s.startTime);
-    const endMins = parseTimeStrToMinutes(s.endTime);
-    for (let current = startMins; current + slotDuration <= endMins; current += slotDuration) {
+  sessionList.forEach((s) => {
+    const startMins = parseTimeStrToMinutes(s?.startTime);
+    const endMins = parseTimeStrToMinutes(s?.endTime);
+    if (!Number.isFinite(startMins) || !Number.isFinite(endMins) || endMins <= startMins) return;
+    for (let current = startMins; current + duration <= endMins; current += duration) {
       slots.push(formatMinutesToTime(current));
     }
   });
@@ -149,8 +158,8 @@ const dayNameFor = (dateStr) => DAY_NAMES[new Date(dateStr + "T00:00:00").getDay
  * mode, where every day of the week is bookable (legacy behaviour).
  */
 function getOperatingDaySet(location) {
-  const sessions = location?.sessions;
-  if (!Array.isArray(sessions) || sessions.length === 0) return null;
+  const sessions = asArray(location?.sessions);
+  if (sessions.length === 0) return null;
   const daySet = new Set();
   sessions.forEach((s) => {
     if (s && typeof s.day === "string" && DAY_NAMES.includes(s.day)) daySet.add(s.day);
@@ -210,21 +219,26 @@ export default function DoctorProfilePage() {
     load();
   }, [id, navigate]);
 
-  // Practice locations lists
-  const hasClinics = doctor?.clinics && doctor.clinics.length > 0;
-  const hasHospitals = doctor?.hospitals && doctor.hospitals.length > 0;
+  // Practice locations lists — normalize all facility collections to arrays so
+  // malformed or missing API fields never reach `.map`, `.filter`, or `.some`
+  // during slot selection.
+  const clinicLocations = useMemo(() => asArray(doctor?.clinics), [doctor]);
+  const hospitalLocations = useMemo(() => asArray(doctor?.hospitals), [doctor]);
+  const hasClinics = clinicLocations.length > 0;
+  const hasHospitals = hospitalLocations.length > 0;
 
   useEffect(() => {
     if (doctor) {
       if (hasClinics) setLocationType("Clinic");
       else if (hasHospitals) setLocationType("Hospital");
+      setSelectedLocationIndex(0);
     }
   }, [doctor, hasClinics, hasHospitals]);
 
   const currentLocationList = useMemo(() => {
     if (!doctor) return [];
-    return locationType === "Clinic" ? doctor.clinics || [] : doctor.hospitals || [];
-  }, [doctor, locationType]);
+    return locationType === "Clinic" ? clinicLocations : hospitalLocations;
+  }, [doctor, locationType, clinicLocations, hospitalLocations]);
 
   const currentLocation = currentLocationList[selectedLocationIndex] || currentLocationList[0] || null;
 
@@ -254,7 +268,7 @@ export default function DoctorProfilePage() {
   // Switch between Clinic / Hospital: reset date + slot to match the
   // facility that is about to be selected.
   const switchLocationType = (newType) => {
-    const list = newType === "Clinic" ? doctor?.clinics || [] : doctor?.hospitals || [];
+    const list = newType === "Clinic" ? clinicLocations : hospitalLocations;
     setLocationType(newType);
     setSelectedLocationIndex(0);
     setSelectedSlot(null);
@@ -301,10 +315,11 @@ export default function DoctorProfilePage() {
 
   // Active day sessions
   const daySessions = useMemo(() => {
-    if (!currentLocation?.sessions) return [];
+    const sessions = asArray(currentLocation?.sessions);
+    if (sessions.length === 0) return [];
     const dateObj = new Date(selectedDate + "T00:00:00");
     const dayName = DAY_NAMES[dateObj.getDay()];
-    return currentLocation.sessions.filter((s) => s.day === dayName);
+    return sessions.filter((s) => s?.day === dayName);
   }, [currentLocation, selectedDate]);
 
   // Dynamic slot times
@@ -394,7 +409,7 @@ export default function DoctorProfilePage() {
   const doctorDescription = `${doctorName} is a verified ${doctor.specialization || "physician"} in Pakistan with ${
     doctor.yearsOfExperience || "extensive"
   } years of experience. Check qualifications, clinic schedule and patient reviews — then book your appointment online with MedAlerto.`;
-  const doctorImage = doctor.profilePicUrl || "https://medalerto.me/og-image.png";
+  const doctorImage = getDoctorImageUrl(doctor) || "https://medalerto.me/og-image.png";
 
   return (
     <div className="min-h-screen bg-slate-50/70 dark:bg-zinc-950 font-sans text-slate-800 dark:text-zinc-100 pb-20">
@@ -449,7 +464,7 @@ export default function DoctorProfilePage() {
             {/* Doctor Profile Card */}
             <div className="bg-white dark:bg-zinc-900 rounded-3xl p-6 sm:p-8 border border-slate-200/90 dark:border-zinc-800 shadow-sm">
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-                <DoctorProfileAvatar profilePicUrl={doctor.profilePicUrl} fullName={doctor.fullName} />
+                <DoctorProfileAvatar profilePicUrl={getDoctorImageUrl(doctor)} fullName={doctor.fullName} />
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -501,7 +516,7 @@ export default function DoctorProfilePage() {
 
                   <div className="grid sm:grid-cols-2 gap-4">
                     {hasClinics &&
-                      doctor.clinics.map((c, idx) => (
+                      clinicLocations.map((c, idx) => (
                         <div
                           key={idx}
                           className="bg-slate-50/80 dark:bg-zinc-800/40 rounded-2xl p-4 border border-slate-200/80 dark:border-zinc-800"
@@ -521,7 +536,7 @@ export default function DoctorProfilePage() {
                       ))}
 
                     {hasHospitals &&
-                      doctor.hospitals.map((h, idx) => (
+                      hospitalLocations.map((h, idx) => (
                         <div
                           key={idx}
                           className="bg-slate-50/80 dark:bg-zinc-800/40 rounded-2xl p-4 border border-slate-200/80 dark:border-zinc-800"
@@ -818,7 +833,7 @@ export default function DoctorProfilePage() {
                     const date = new Date(d + "T00:00:00");
                     const dayName = DAY_NAMES[date.getDay()];
                     const operates = dayOperates(d);
-                    const hasSessionOnDay = currentLocation?.sessions?.some((s) => s.day === dayName);
+                    const hasSessionOnDay = asArray(currentLocation?.sessions).some((s) => s?.day === dayName);
 
                     return (
                       <button
