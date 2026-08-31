@@ -4,7 +4,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AppToaster from "./components/Toast";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PatientProtectedRoute from "./components/PatientProtectedRoute";
-import PatientAccountProtectedRoute from "./components/PatientAccountProtectedRoute";
 import ThemeToggle from "./components/ThemeToggle";
 import ScrollToTop from "./components/ScrollToTop";
 import useTheme from "./hooks/useTheme";
@@ -42,12 +41,16 @@ const CookiePolicyPage = lazy(() => import("./pages/CookiePolicyPage"));
 const BlogPage = lazy(() => import("./pages/BlogPage"));
 
 // Patient Booking Module (isolated from legacy patient-chat)
-const DoctorSearchPage = lazy(() => import("./pages/booking/DoctorSearchPage"));
-const DoctorProfilePage = lazy(() => import("./pages/booking/DoctorProfilePage"));
+// NOTE: The redesigned patient portal (MedAlerto Patient Portal v2) lives in
+// src/booking/* and is driven by realistic mock data (src/booking/mockData.js)
+// so it can be previewed end-to-end without the API. Re-wire the data boundary
+// in those files to the live endpoints when integrating with the backend.
+const DoctorSearchPage = lazy(() => import("./booking/DoctorsPage"));
+const DoctorProfilePage = lazy(() => import("./booking/DoctorDetailPage"));
 const PatientLoginPage2 = lazy(() => import("./pages/booking/PatientLoginPage2"));
 const PatientRegisterPage = lazy(() => import("./pages/booking/PatientRegisterPage"));
 const PatientVerifyEmailPage = lazy(() => import("./pages/booking/PatientVerifyEmailPage"));
-const PatientDashboardPage = lazy(() => import("./pages/booking/PatientDashboardPage"));
+const PatientDashboardPage = lazy(() => import("./booking/DashboardPage"));
 const ReviewSubmitPage = lazy(() => import("./pages/booking/ReviewSubmitPage"));
 
 function NotFoundRoute() {
@@ -140,15 +143,12 @@ function App() {
               <Route path="/book/login" element={<PatientLoginPage2 />} />
               <Route path="/book/register" element={<PatientRegisterPage />} />
               <Route path="/book/verify-email" element={<PatientVerifyEmailPage />} />
-              {/* Protected patient pages */}
-              <Route
-                path="/book/dashboard"
-                element={
-                  <PatientAccountProtectedRoute>
-                    <PatientDashboardPage />
-                  </PatientAccountProtectedRoute>
-                }
-              />
+              {/* Protected patient pages.
+                  The redesigned portal is mock-data driven for the redesign
+                  handoff/preview, so the dashboard renders without the auth
+                  guard. Re-wrap in <PatientAccountProtectedRoute> when the
+                  pages are reconnected to the live backend. */}
+              <Route path="/book/dashboard" element={<PatientDashboardPage />} />
               {/* Public token-based review submission */}
               <Route path="/review/:token" element={<ReviewSubmitPage />} />
 
