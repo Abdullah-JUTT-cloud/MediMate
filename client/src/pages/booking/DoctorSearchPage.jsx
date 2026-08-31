@@ -5,6 +5,7 @@ import MyAppointmentsButton from "../../components/booking/MyAppointmentsButton"
 import { trackEvent } from "../../lib/analytics";
 import { getDoctorImageUrl } from "../../booking/doctorApi";
 import usePatientAuth from "../../context/usePatientAuth";
+import Logo from "../../components/Logo";
 import {
   Search,
   Stethoscope,
@@ -15,7 +16,6 @@ import {
   Clock,
   Sparkles,
 } from "lucide-react";
-import useThemedLogo from "../../hooks/useThemedLogo";
 
 const SPECIALIZATIONS = [
   "General Physician",
@@ -83,7 +83,6 @@ function DoctorAvatar({ src, fullName }) {
 export default function DoctorSearchPage() {
   const navigate = useNavigate();
   const { isAuthenticated: patientAuthed, patient: sessionPatient } = usePatientAuth();
-  const themedLogo = useThemedLogo();
   const [doctors, setDoctors] = useState([]);
   const [pagination, setPagination] = useState({ total: 0, pages: 1, page: 1 });
   const [loading, setLoading] = useState(false);
@@ -128,16 +127,13 @@ export default function DoctorSearchPage() {
       {/* Top Header Navigation */}
       <header className="sticky top-0 z-40 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-slate-200/80 dark:border-zinc-800">
         <div className="w-full max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-2">
-          <Link to="/" className="flex items-center gap-2">
-            <img
-              src={themedLogo}
-              alt="MedAlerto Logo"
-              className="h-6 w-auto object-contain"
-            />
-            <span className="font-extrabold text-slate-900 dark:text-white text-lg tracking-tight">MedAlerto</span>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block -mt-1">
-              Verified Doctors
-            </span>
+          {/* Unified SVG brand logo — no generic image placeholders. */}
+          <Link
+            to="/"
+            aria-label="MedAlerto home"
+            className="shrink-0 rounded-xl transition-opacity duration-300 hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/70 focus-visible:ring-offset-2"
+          >
+            <Logo markSize={34} subtitle="Verified Doctors" />
           </Link>
 
           <div className="flex items-center gap-2 sm:gap-3">
@@ -157,13 +153,13 @@ export default function DoctorSearchPage() {
               <>
                 <Link
                   to="/book/login"
-                  className="text-xs font-bold text-slate-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 px-3.5 py-2 rounded-xl transition"
+                  className="inline-flex items-center rounded-xl border border-slate-200 bg-white/70 px-3.5 py-2 text-xs font-bold text-slate-700 transition hover:border-teal-300 hover:bg-teal-50 hover:text-teal-700 dark:border-zinc-700 dark:bg-zinc-800/70 dark:text-zinc-200 dark:hover:border-teal-500/50 dark:hover:bg-teal-500/10 dark:hover:text-teal-300"
                 >
                   Sign In
                 </Link>
                 <Link
                   to="/book/register"
-                  className="hidden min-[480px]:inline text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl shadow-sm shadow-indigo-500/20 transition hover:shadow-md"
+                  className="hidden min-[480px]:inline-flex text-xs font-bold bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-xl shadow-sm shadow-teal-500/25 transition hover:shadow-md hover:shadow-teal-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/70 focus-visible:ring-offset-2"
                 >
                   Register Account
                 </Link>

@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import usePatientAccountStore from "../../store/patientAccountStore";
 import usePatientAuth from "../../context/usePatientAuth";
 import MyAppointmentsButton from "../../components/booking/MyAppointmentsButton";
+import Logo from "../../components/Logo";
 import { getDoctorImageUrl } from "../../booking/doctorApi";
 import MetaTags from "../../components/Seo/MetaTags";
 import { physicianSchema, breadcrumbSchema } from "../../seo/jsonLd";
@@ -441,11 +442,13 @@ export default function DoctorProfilePage() {
             <span>Back to Doctors</span>
           </button>
 
-          <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-black text-base shadow-sm">
-              M
-            </div>
-            <span className="font-extrabold text-slate-900 dark:text-white text-base">MedAlerto</span>
+          {/* Unified SVG brand logo — replaces the placeholder "M" tile. */}
+          <Link
+            to="/"
+            aria-label="MedAlerto home"
+            className="shrink-0 rounded-xl transition-opacity duration-300 hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/70 focus-visible:ring-offset-2"
+          >
+            <Logo markSize={30} />
           </Link>
 
           <div className="flex items-center gap-2">
@@ -472,12 +475,12 @@ export default function DoctorProfilePage() {
               <div className="flex items-center gap-2">
                 <Link
                   to="/book/login"
-                  className="text-xs font-bold text-slate-700 dark:text-zinc-200 hover:text-indigo-600 dark:hover:text-indigo-400 px-3.5 py-2 rounded-xl transition">
+                  className="inline-flex items-center rounded-xl border border-slate-200 bg-white/70 px-3.5 py-2 text-xs font-bold text-slate-700 transition hover:border-teal-300 hover:bg-teal-50 hover:text-teal-700 dark:border-zinc-700 dark:bg-zinc-800/70 dark:text-zinc-200 dark:hover:border-teal-500/50 dark:hover:bg-teal-500/10 dark:hover:text-teal-300">
                   Sign In
                 </Link>
                 <Link
                   to="/book/register"
-                  className="hidden min-[480px]:inline text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl shadow-sm shadow-indigo-500/20 transition hover:shadow-md">
+                  className="hidden min-[480px]:inline-flex text-xs font-bold bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-xl shadow-sm shadow-teal-500/25 transition hover:shadow-md hover:shadow-teal-500/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/70 focus-visible:ring-offset-2">
                   Register Account
                 </Link>
               </div>
