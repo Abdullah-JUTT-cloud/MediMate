@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "../../api/axios";
 import toast from "react-hot-toast";
 import usePatientAccountStore from "../../store/patientAccountStore";
+import BrandLogo from "../../components/BrandLogo";
+import UserAvatar from "../../components/UserAvatar";
 import {
   Clock,
   PlusCircle,
@@ -303,22 +305,26 @@ export default function PatientDashboardPage() {
       {/* Top Header Navigation */}
       <header className="sticky top-0 z-30 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-zinc-200 dark:border-zinc-800">
         <div className="w-full max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-black text-lg shadow-md shadow-indigo-500/20">
-              M
-            </div>
-            <div>
-              <span className="font-bold text-zinc-900 dark:text-white text-base tracking-tight">MediMate</span>
-              <span className="text-[10px] uppercase font-extrabold tracking-widest text-indigo-600 dark:text-indigo-400 block -mt-1">
-                Patient Portal
-              </span>
-            </div>
-          </div>
+          {/* Unified SVG brand logo — replaces the generic square "M" tile. */}
+          <Link
+            to="/"
+            aria-label="MedAlerto home"
+            className="shrink-0 rounded-xl transition-opacity duration-300 hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/70 focus-visible:ring-offset-2"
+          >
+            <BrandLogo markSize={34} subtitle="Patient Portal" />
+          </Link>
 
           <div className="flex items-center gap-2">
             {patientUser && (
-              <span className="hidden sm:inline-block text-xs font-semibold text-zinc-600 dark:text-zinc-300 mr-2 bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 rounded-full">
-                👤 {patientUser.name}
+              /* Logged-in patient pill — safe avatar (initials fallback, never
+                 a broken image) + name. */
+              <span className="hidden sm:inline-flex items-center gap-2 text-xs font-semibold text-zinc-600 dark:text-zinc-300 mr-2 bg-zinc-100 dark:bg-zinc-800 pl-1 pr-3 py-1 rounded-full">
+                <UserAvatar
+                  src={patientUser?.image || patientUser?.avatar || ""}
+                  name={patientUser?.name || "Patient"}
+                  size={22}
+                />
+                {patientUser.name}
               </span>
             )}
             <button

@@ -5,7 +5,8 @@ import toast from "react-hot-toast";
 import usePatientAccountStore from "../../store/patientAccountStore";
 import usePatientAuth from "../../context/usePatientAuth";
 import MyAppointmentsButton from "../../components/booking/MyAppointmentsButton";
-import Logo from "../../components/Logo";
+import BrandLogo from "../../components/BrandLogo";
+import UserAvatar from "../../components/UserAvatar";
 import { getDoctorImageUrl } from "../../booking/doctorApi";
 import MetaTags from "../../components/Seo/MetaTags";
 import { physicianSchema, breadcrumbSchema } from "../../seo/jsonLd";
@@ -448,7 +449,7 @@ export default function DoctorProfilePage() {
             aria-label="MedAlerto home"
             className="shrink-0 rounded-xl transition-opacity duration-300 hover:opacity-85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/70 focus-visible:ring-offset-2"
           >
-            <Logo markSize={30} />
+            <BrandLogo markSize={30} subtitle="Verified Doctors" />
           </Link>
 
           <div className="flex items-center gap-2">
@@ -462,12 +463,12 @@ export default function DoctorProfilePage() {
                   navigate("/book/dashboard");
                 }}
               >
-                <img
-                  src="/assets/avatar.png"
-                  alt="User"
-                  className="h-6 w-6 rounded-full object-cover"
+                <UserAvatar
+                  src={sessionPatient?.image || sessionPatient?.avatar || ""}
+                  name={sessionPatient?.name || "Patient"}
+                  size={26}
                 />
-                <span className="text-sm font-medium text-slate-900 dark:text-white">
+                <span className="hidden min-[400px]:inline text-sm font-medium text-slate-900 dark:text-white">
                   {sessionPatient?.name || "Patient"}
                 </span>
               </Link>
