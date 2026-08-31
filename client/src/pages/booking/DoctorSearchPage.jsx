@@ -54,15 +54,18 @@ function StarRating({ value }) {
 
 function DoctorAvatar({ profilePicUrl, fullName }) {
   const [imgError, setImgError] = useState(false);
-  const isValidUrl = Boolean(
-    profilePicUrl &&
-      typeof profilePicUrl === "string" &&
-      (profilePicUrl.startsWith("http://") || profilePicUrl.startsWith("https://") || profilePicUrl.startsWith("/"))
+  // Prioritize the real profile image: ANY non-empty string is treated as an
+  // image source (the backend already resolves R2 keys to absolute URLs, but
+  // it may also hand back a bare key/relative path when no public CDN domain
+  // is configured). Only fall back to initials when the image string is
+  // null/empty or fails to load.
+  const hasImage = Boolean(
+    profilePicUrl && typeof profilePicUrl === "string" && profilePicUrl.trim().length > 0
   );
 
   return (
     <div className="relative w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 font-extrabold flex items-center justify-center text-xl shrink-0 overflow-hidden border border-indigo-100 dark:border-indigo-900/50 shadow-sm">
-      {isValidUrl && !imgError ? (
+      {hasImage && !imgError ? (
         <img
           src={profilePicUrl}
           alt={fullName || "Doctor"}

@@ -23,6 +23,8 @@ import {
   Calendar,
   Banknote,
   Phone,
+  Star,
+  X,
 } from "lucide-react";
 import "./booking.css";
 import MedalertoLogo from "./Logo";
@@ -195,8 +197,113 @@ function ConfirmModal({ open, onClose, onConfirm, title, text }) {
   );
 }
 
+/* ── Review modal ("Leave Feedback") ──────────────────────────────────────── */
+function ReviewModal({ booking, open, onClose, onSubmit }) {
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+
+  if (!open) return null;
+
+  const submit = () => {
+    if (!rating) {
+      toast.error("Please select a star rating");
+      return;
+    }
+    onSubmit(rating, comment);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[70] flex items-end justify-center p-4 sm:items-center">
+      <div
+        className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="review-modal-title"
+        className="relative w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-700 dark:bg-slate-800"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 id="review-modal-title" className="text-base font-bold text-slate-900 dark:text-white">
+              Rate your visit
+            </h3>
+            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+              {booking.doctorName} · {booking.specialization}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close review modal"
+            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700 dark:hover:text-slate-200"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="mt-5 text-center">
+          <p className="mb-3 text-xs font-bold text-slate-600 dark:text-slate-300">
+            How was your experience?
+          </p>
+          <div className="flex justify-center gap-1.5">
+            {[1, 2, 3, 4, 5].map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setRating(s)}
+                aria-label={`${s} star${s > 1 ? "s" : ""}`}
+                className="transition-transform hover:scale-110"
+              >
+                <Star
+                  size={26}
+                  className={
+                    s <= rating
+                      ? "fill-amber-400 text-amber-400"
+                      : "fill-slate-200 text-slate-200 dark:fill-slate-700 dark:text-slate-700"
+                  }
+                />
+              </button>
+            ))}
+          </div>
+          {rating > 0 && (
+            <p className="mt-2 text-xs font-semibold text-violet-600 dark:text-violet-400">
+              {["", "Poor", "Fair", "Good", "Very Good", "Excellent"][rating]}
+            </p>
+          )}
+        </div>
+
+        <div className="mt-4">
+          <label className="mb-1.5 block text-xs font-bold text-slate-600 dark:text-slate-300">
+            Comment (optional)
+          </label>
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            rows={3}
+            maxLength={1000}
+            placeholder="Share your experience to help other patients…"
+            className="w-full resize-none rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-violet-400 focus:ring-2 focus:ring-violet-500/30 dark:border-slate-600 dark:bg-slate-900/50 dark:text-white"
+          />
+        </div>
+
+        <div className="mt-5 flex gap-2.5">
+          <Button variant="outline" className="flex-1" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button className="flex-1" onClick={submit}>
+            Submit Review
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Single booking card ───────────────────────────────────────────────────── */
-function BookingCard({ booking, onCancel, onContact }) {
+function BookingCard({ booking, onCancel, onContact, onReview }) {
   const navigate = useNavigate();
   const meta = STATUS_META[booking.status] || STATUS_META.Confirmed;
   const StatusIcon = meta.icon;
@@ -315,9 +422,18 @@ function BookingCard({ booking, onCancel, onContact }) {
           {booking.status === "Completed" && (
             <Button
               size="sm"
-              onClick={() => navigate(`/book/doctors/${booking.doctorId}`)}
+              disabled={booking.reviewed}
+              onClick={() => onReview(booking)}
             >
-              <StarRating value={5} size={13} /> Leave Feedback
+              {booking.reviewed ? (
+                <>
+                  <CheckCircle2 size={14} /> Review Submitted
+                </>
+              ) : (
+                <>
+                  <StarRating value={5} size={13} /> Leave Feedback
+                </>
+              )}
             </Button>
           )}
         </div>
@@ -336,6 +452,7 @@ export default function DashboardPage() {
   const [sort, setSort] = useState("newest");
   const [drawer, setDrawer] = useState(false);
   const [cancelTarget, setCancelTarget] = useState(null);
+  const [reviewTarget, setReviewTarget] = useState(null);
   const [bookings, setBookings] = useState(BOOKINGS);
 
   const counts = {
@@ -372,6 +489,22 @@ export default function DashboardPage() {
 
   const handleContact = () => {
     navigate("/book/doctors");
+  };
+
+  /* "Leave Feedback" — records the review locally and flips the completed
+     booking into the "Review Submitted" (disabled) state. In the live portal
+     the same action POSTs to /patient-account/reviews via the authenticated
+     patient session; this mock preview keeps the identical UX with no
+     backend running. */
+  const handleReviewSubmit = (rating, comment) => {
+    if (!reviewTarget) return;
+    setBookings((prev) =>
+      prev.map((x) =>
+        x.id === reviewTarget.id ? { ...x, reviewed: true, rating, comment } : x
+      )
+    );
+    toast.success("Thank you for your review!");
+    setReviewTarget(null);
   };
 
   /* Quick actions / drawer links — real routes navigate, "#…" scrolls or toasts. */
@@ -651,6 +784,7 @@ export default function DashboardPage() {
                     booking={b}
                     onCancel={(x) => setCancelTarget(x)}
                     onContact={handleContact}
+                    onReview={(x) => setReviewTarget(x)}
                   />
                 </Reveal>
               ))}
@@ -745,6 +879,13 @@ export default function DashboardPage() {
         onConfirm={() => cancelTarget && handleCancel(cancelTarget)}
         title="Cancel this booking?"
         text="Your slot will be released and the clinic will be notified. This action cannot be undone."
+      />
+
+      <ReviewModal
+        booking={reviewTarget || {}}
+        open={Boolean(reviewTarget)}
+        onClose={() => setReviewTarget(null)}
+        onSubmit={handleReviewSubmit}
       />
     </div>
   );
