@@ -5,17 +5,18 @@
  *     (an asset that does not exist → broken-image icon next to the user's
  *     name). Logged-in headers must fall back to clean initials ("AJ") or a
  *     safe <UserAvatar /> that recovers from image load errors.
- *  2. BRAND LOGO: headers on `/`, `/book/doctors` and `/book/dashboard` must
- *     use the official MedAlerto repository assets through <BrandLogo />:
- *       - black.png for light marketing / doctors headers
- *       - white.png when dark mode is active
- *       - fullblue.png for patient portal headers
+ *  2. SINGLE BRAND LOGO: every header renders EXACTLY ONE logo <img> —
+ *     never two icons side by side (the old black+white double-<img> with
+ *     CSS-hiding is banned; the theme swap switches the src instead):
+ *       - `/` homepage navbar:      black.png in light, white.png in dark
+ *       - ALL /book/* portal pages: fullblue.png (doctors directory and
+ *         patient dashboard included)
  *  3. HOMEPAGE CTAs: the marketing navbar shows Login → /login and
  *     Create Account → /signup links and NO profile pill / avatar.
  *
  * Run with: npx vitest run
  */
-import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from "vitest";
 import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import axios from "../api/axios";
@@ -57,16 +58,26 @@ beforeAll(() => {
   });
 });
 
-afterEach(cleanup);
+afterAll(() => {
+  document.documentElement.removeAttribute("data-theme");
+});
 
-function logoImage(assetName, root = document) {
-  return root.querySelector(`img[data-medalerto-logo="${assetName}"]`);
+afterEach(() => {
+  cleanup();
+  document.documentElement.removeAttribute("data-theme");
+});
+
+/* ─────────────────────── single-logo assertion helpers ─────────────────── */
+
+function allLogoImages(root = document) {
+  return Array.from(root.querySelectorAll("img[data-medalerto-logo]"));
 }
 
-function expectLogoSrc(assetName, expectedSrc) {
-  const img = logoImage(assetName);
-  expect(img).toBeTruthy();
-  expect(img.getAttribute("src")).toBe(expectedSrc);
+/** Exactly ONE logo <img> may exist, and it must point at `expectedSrc`. */
+function expectSingleLogo(expectedSrc) {
+  const imgs = allLogoImages();
+  expect(imgs).toHaveLength(1);
+  expect(imgs[0].getAttribute("src")).toBe(expectedSrc);
 }
 
 /* ────────────────────────────── UserAvatar ────────────────────────────── */
@@ -97,30 +108,49 @@ describe("UserAvatar — safe fallbacks", () => {
 
 /* ────────────────────────────── BrandLogo ─────────────────────────────── */
 
-describe("BrandLogo — official image assets", () => {
-  it("renders black.png on light headers and a white.png dark-mode counterpart", () => {
+describe("BrandLogo — one official image asset, never duplicates", () => {
+  it("renders ONLY black.png for the light marketing variant (no second logo)", () => {
+    document.documentElement.setAttribute("data-theme", "light");
     render(
       <MemoryRouter>
-        <BrandLogo variant="doctors" subtitle="VERIFIED DOCTORS" />
+        <BrandLogo variant="home" subtitle="rooted clinic tools" />
       </MemoryRouter>
     );
 
+    expectSingleLogo(blackLogo);
+    expect(allLogoImages().some((img) => img.dataset.medalertoLogo === "white")).toBe(false);
     expect(document.querySelector("svg")).toBeNull();
-    expectLogoSrc("black", blackLogo);
-    expectLogoSrc("white", whiteLogo);
     expect(screen.getAllByText(/MedAlerto/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Verified Doctors/i).length).toBeGreaterThan(0);
+  });
+
+  it("swaps the SAME single <img> to white.png when dark theme is active", () => {
+    document.documentElement.setAttribute("data-theme", "dark");
+    render(
+      <MemoryRouter>
+        <BrandLogo variant="home" subtitle="rooted clinic tools" />
+      </MemoryRouter>
+    );
+
+    expectSingleLogo(whiteLogo);
+    expect(allLogoImages().some((img) => img.dataset.medalertoLogo === "black")).toBe(false);
   });
 
   it("BrandLogoMark exposes an accessible image label", () => {
     render(<BrandLogoMark size={32} />);
     expect(screen.getByRole("img", { name: /MedAlerto logo/i })).toBeTruthy();
+    expectSingleLogo(blackLogo);
   });
 
   it("renders fullblue.png for the patient portal variant", () => {
     render(<BrandLogo variant="patient" markSize={34} subtitle="PATIENT PORTAL" />);
-    expectLogoSrc("fullblue", fullBlueLogo);
+    expectSingleLogo(fullBlueLogo);
     expect(screen.getAllByText(/Patient Portal/i).length).toBeGreaterThan(0);
+  });
+
+  it("renders fullblue.png for the doctors variant (all /book/* routes)", () => {
+    render(<BrandLogo variant="doctors" markSize={34} subtitle="VERIFIED DOCTORS" />);
+    expectSingleLogo(fullBlueLogo);
+    expect(screen.getAllByText(/Verified Doctors/i).length).toBeGreaterThan(0);
   });
 });
 
@@ -142,17 +172,27 @@ describe("Navbar — homepage header CTAs", () => {
     expect(signup).toBeTruthy();
     expect(signup.getAttribute("href")).toBe("/signup");
 
-    // Official black/white logo assets are present; no logged-in profile UI.
-    expectLogoSrc("black", blackLogo);
-    expectLogoSrc("white", whiteLogo);
+    // Exactly ONE black logo asset; no white twin beside it, no profile UI.
+    expectSingleLogo(blackLogo);
     expect(screen.queryByText(/Abdullah/i)).toBeNull();
+  });
+
+  it("still renders exactly ONE logo when dark theme is active", () => {
+    document.documentElement.setAttribute("data-theme", "dark");
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Navbar />
+      </MemoryRouter>
+    );
+
+    expectSingleLogo(whiteLogo);
   });
 });
 
 /* ─────────────────────── Doctor directory (`/book/doctors`) ────────────── */
 
-describe("DoctorSearchPage header — avatar crash fix + brand logo", () => {
-  it("uses the official doctors logo assets and never renders the broken avatar.png", async () => {
+describe("DoctorSearchPage header — avatar crash fix + single fullblue logo", () => {
+  it("uses ONE fullblue.png logo and never renders the broken avatar.png", async () => {
     axios.get.mockResolvedValue({
       data: { doctors: [], pagination: { total: 0, pages: 1, page: 1 } },
     });
@@ -167,8 +207,7 @@ describe("DoctorSearchPage header — avatar crash fix + brand logo", () => {
 
     await waitFor(() => expect(axios.get).toHaveBeenCalled());
 
-    expectLogoSrc("black", blackLogo);
-    expectLogoSrc("white", whiteLogo);
+    expectSingleLogo(fullBlueLogo);
     expect(screen.getAllByText(/Verified Doctors/i).length).toBeGreaterThan(0);
 
     // The crash source is gone: no /assets/avatar.png, and the logged-in
@@ -181,7 +220,7 @@ describe("DoctorSearchPage header — avatar crash fix + brand logo", () => {
 
 /* ───────────────────── Patient dashboard (`/book/dashboard`) ───────────── */
 
-describe("PatientDashboardPage header — brand logo + safe patient pill", () => {
+describe("PatientDashboardPage header — single fullblue logo + safe patient pill", () => {
   it("uses fullblue.png and keeps the Patient Portal subtitle", async () => {
     axios.get.mockImplementation((url) => {
       if (url.includes("/patient-account/me")) {
@@ -201,7 +240,7 @@ describe("PatientDashboardPage header — brand logo + safe patient pill", () =>
     );
 
     expect(await screen.findAllByText(/Patient Portal/i)).toBeTruthy();
-    expectLogoSrc("fullblue", fullBlueLogo);
+    expectSingleLogo(fullBlueLogo);
     expect(screen.queryByText(/^MediMate$/)).toBeNull();
 
     // No broken avatar images; initials bubble instead.
