@@ -34,11 +34,12 @@ screens (it is **not** a new theme):
 | Radius | 12px (cards) · 16px (sections) · 9999px (pills) |
 | Shadow | `0 4px 24px rgba(124,58,237,0.08)` |
 
-The official **logo assets** are used directly from `src/assets`:
-`black.png` / `white.png` (theme-aware mark) via the existing `useThemedLogo`
-hook, rendered by `Logo.jsx`. Dark mode follows the app's global
-`[data-theme="dark"]` toggle (`dark:` utilities), so both themes are fully
-supported with no extra wiring.
+The official **brand logo** is the unified SVG component in
+`src/components/Logo.jsx` (mark + wordmark lockup), rebuilt from the
+`medalerto-wordmark-*.svg` assets in `src/assets`; the portal `Logo.jsx`
+re-exports it as the mark + "MedAlerto" lockup with an optional portal badge.
+Dark mode follows the app's global `[data-theme="dark"]` toggle (`dark:`
+utilities), so both themes are fully supported with no extra wiring.
 
 ## File map
 

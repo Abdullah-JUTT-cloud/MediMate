@@ -1,35 +1,34 @@
-import useThemedLogo from "../hooks/useThemedLogo";
-import blackLogo from "../assets/black.png";
-import whiteLogo from "../assets/white.png";
+import { LogoMark } from "../components/Logo";
 
 /**
- * Official MedAlerto mark — the exact "M" logomark asset shipped in the repo
- * (client/src/assets). `black.png` sits on light surfaces, `white.png` on dark
- * ones; `variant="auto"` follows the app theme via the existing useThemedLogo
- * hook, while "light" / "dark" force a specific asset (e.g. white on a
- * gradient hero).
+ * Official MedAlerto mark for the booking portal — rendered from the unified
+ * SVG brand logo (src/components/Logo.jsx) instead of the legacy PNG rasters.
+ * `variant="auto"` follows the app theme; "light" / "dark" force a specific
+ * surface palette (e.g. a white mark on a gradient hero).
  */
-export function MedalertoMark({ variant = "auto", size = 40, className = "", alt = "MedAlerto logo" }) {
-  const themed = useThemedLogo();
-  const src =
-    variant === "dark" ? whiteLogo : variant === "light" ? blackLogo : themed;
+export function MedalertoMark({
+  variant = "auto",
+  size = 40,
+  className = "",
+  alt = "MedAlerto logo",
+}) {
+  const resolvedVariant =
+    variant === "dark" ? "dark" : variant === "light" ? "light" : "auto";
 
   return (
-    <img
-      src={src}
+    <LogoMark
+      variant={resolvedVariant}
+      size={size}
       alt={alt}
-      width={size}
-      height={size}
-      loading="lazy"
       className={`h-auto w-auto select-none object-contain ${className}`}
-      style={{ width: size, height: size }}
     />
   );
 }
 
 /**
- * Full portal lockup: official mark + "MedAlerto" wordmark + a "PATIENT PORTAL"
- * badge. `onDark` flips the wordmark/badge colours for dark or gradient bars.
+ * Full portal lockup: unified SVG mark + "MedAlerto" wordmark + a
+ * "PATIENT PORTAL" badge. `onDark` flips the wordmark/badge colours for dark
+ * or gradient bars.
  */
 export default function MedalertoLogo({
   onDark = false,

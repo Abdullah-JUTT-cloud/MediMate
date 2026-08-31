@@ -1,13 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import useThemedLogo from "../hooks/useThemedLogo";
-import usePatientAuth from "../context/usePatientAuth";
 
 export default function Navbar() {
   const navigate = useNavigate();
   const logo = useThemedLogo();
   const location = useLocation();
-  const { isAuthenticated: patientAuthed, patient: sessionPatient } = usePatientAuth();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const isHome = location.pathname === "/";
@@ -95,36 +93,23 @@ export default function Navbar() {
           >
             Book Appointment
           </button>
-          {/* User auth buttons - conditionally rendered */}
-            {patientAuthed ? (
-              /* Logged-in user profile indicator */
-              <div className="flex items-center gap-2">
-                <img
-                  src="/assets/avatar.png"
-                  alt="User"
-                  className="h-6 w-6 rounded-full object-cover"
-                />
-                <span className="text-sm font-medium text-[var(--color-text-primary)]">
-                  {sessionPatient?.name || "Patient"}
-                </span>
-              </div>
-            ) : (
-              <div className="hidden items-center gap-8 lg:flex">
-                <button
-                  onClick={() => navigate("/login")}
-                  className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--color-secondary)] bg-[var(--color-card)]/65 px-5 font-body text-sm font-bold text-[var(--color-secondary)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--color-secondary)] hover:bg-[var(--color-bg-soft)] hover:shadow-[0_10px_28px_-14px_rgba(193,140,93,0.28)] active:translate-y-0"
-                >
-                  Login
-                </button>
-                <button
-                  onClick={() => navigate("/signup")}
-                  className="group relative inline-flex h-11 items-center justify-center overflow-hidden rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)] px-5 font-body text-sm font-bold text-[var(--color-on-primary)] shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-14px_rgba(93,112,82,0.3)] active:translate-y-0"
-                >
-                  <span className="absolute inset-0 bg-[var(--color-secondary)] opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-                  <span className="relative z-10">Create Account</span>
-                </button>
-              </div>
-            )}
+          {/* Primary auth actions — the marketing header always shows these two
+              buttons (no logged-in profile pill), routing to /login and
+              /signup respectively. */}
+          <button
+            type="button"
+            onClick={() => navigate("/login")}
+            className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--color-primary)]/60 bg-transparent px-5 font-body text-sm font-bold text-[var(--color-primary)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 hover:shadow-[0_10px_28px_-14px_rgba(13,148,136,0.35)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/70 focus-visible:ring-offset-2"
+          >
+            Login
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate("/signup")}
+            className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)] px-5 font-body text-sm font-bold text-[var(--color-on-primary)] shadow-[0_4px_20px_-2px_rgba(13,148,136,0.35)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--color-primary-hover)] hover:bg-[var(--color-primary-hover)] hover:shadow-[0_10px_28px_-14px_rgba(13,148,136,0.5)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/70 focus-visible:ring-offset-2"
+          >
+            Create Account
+          </button>
         </div>
 
         <button
@@ -204,7 +189,7 @@ export default function Navbar() {
                 navigate("/login");
                 setMenuOpen(false);
               }}
-              className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--color-secondary)] bg-[var(--color-card)]/65 px-5 font-body text-sm font-bold text-[var(--color-secondary)] transition duration-300 hover:-translate-y-0.5 hover:bg-[var(--color-bg-soft)] hover:shadow-[0_10px_28px_-14px_rgba(193,140,93,0.28)]"
+              className="inline-flex h-11 w-full items-center justify-center rounded-full border border-[var(--color-primary)]/60 bg-transparent px-5 font-body text-sm font-bold text-[var(--color-primary)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/70 focus-visible:ring-offset-2 active:translate-y-0"
             >
               Login
             </button>
@@ -213,7 +198,7 @@ export default function Navbar() {
                 navigate("/signup");
                 setMenuOpen(false);
               }}
-              className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)] px-5 font-body text-sm font-bold text-[var(--color-on-primary)] shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-14px_rgba(93,112,82,0.3)]"
+              className="inline-flex h-11 w-full items-center justify-center rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)] px-5 font-body text-sm font-bold text-[var(--color-on-primary)] shadow-[0_4px_20px_-2px_rgba(13,148,136,0.35)] transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--color-primary-hover)] hover:bg-[var(--color-primary-hover)] hover:shadow-[0_10px_28px_-14px_rgba(13,148,136,0.5)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/70 focus-visible:ring-offset-2 active:translate-y-0"
             >
               Create Account
             </button>
