@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "../../api/axios";
 import toast from "react-hot-toast";
 import usePatientAccountStore from "../../store/patientAccountStore";
+import usePatientAuth from "../../context/usePatientAuth";
 import MyAppointmentsButton from "../../components/booking/MyAppointmentsButton";
 import { getDoctorImageUrl } from "../../booking/doctorApi";
 import MetaTags from "../../components/Seo/MetaTags";
@@ -178,6 +179,7 @@ export default function DoctorProfilePage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const patient = usePatientAccountStore((s) => s.patient);
+  const { isAuthenticated: patientAuthed, patient: sessionPatient } = usePatientAuth();
 
   const [doctor, setDoctor] = useState(null);
   const [reviews, setReviews] = useState([]);
@@ -447,7 +449,7 @@ export default function DoctorProfilePage() {
           </Link>
 
           <div className="flex items-center gap-2">
-            {usePatientAuth().isAuthenticated ? (
+            {patientAuthed ? (
               /* Logged-in user profile indicator - clickable to dashboard */
               <Link
                 to="/book/dashboard"
@@ -463,7 +465,7 @@ export default function DoctorProfilePage() {
                   className="h-6 w-6 rounded-full object-cover"
                 />
                 <span className="text-sm font-medium text-slate-900 dark:text-white">
-                  {usePatientAuth().patient?.name || "Patient"}
+                  {sessionPatient?.name || "Patient"}
                 </span>
               </Link>
             ) : (

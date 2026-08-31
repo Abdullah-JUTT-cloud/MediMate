@@ -4,7 +4,6 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Routes, Route, Link } from "react-router-dom";
 import SeoRouteManager from "../components/Seo/SeoRouteManager";
 import MetaTags from "../components/Seo/MetaTags";
-import { applyHeadMeta } from "./head";
 import { SITE, canonicalUrl, clampTitle } from "./seoConfig";
 import { organizationSchema, websiteSchema, faqSchema, physicianSchema } from "./jsonLd";
 
