@@ -179,13 +179,14 @@ export function Avatar({ name = "", src, size = "md", online = false, className 
         />
       ) : (
         <span aria-hidden="true">
-          {(name || "?")
-            .split(" ")
-            .filter(Boolean)
-            .slice(0, 2)
-            .map((w) => w[0])
-            .join("")
-            .toUpperCase()}
+          {(function initials() {
+            const words = (name || "?").trim().split(/\s+/).filter(Boolean);
+            const label =
+              words.length > 1
+                ? words[0][0] + words[words.length - 1][0]
+                : (words[0] || "?").slice(0, 2);
+            return label.toUpperCase();
+          })()}
         </span>
       )}
       {online && (
