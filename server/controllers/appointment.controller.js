@@ -628,7 +628,9 @@ export const emergencyCancel = async (req, res) => {
       doctor: req.doctorId,
       date: { $gte: startDay, $lte: endDay },
       status: { $nin: INACTIVE_STATUSES },
-    }).populate("patient", "name phone");
+    })
+      .populate("patient", "name phone locations")
+      .populate("patientAccount", "name phone");
 
     // Robust slot parsing: support "HH:MM" and "HH:MM AM/PM" stored in `slot`.
     const slotToMinutes = (slotStr) => {
@@ -675,54 +677,79 @@ export const emergencyCancel = async (req, res) => {
 
     const cancelledAt = new Date();
 
-    // Single atomic write — replaces the sequential per-document save loop
-    const cancelIds = toCancel.map((a) => a._id);
-    await Appointment.updateMany(
-      { _id: { $in: cancelIds } },
-      {
-        $set: {
-          status: "Cancelled",
-          cancellationReason: "Emergency",
-          emergencyCancelled: true,
-          reminderSent: true,
-          cancelledAt,
-        },
-      },
+    // Separate appointments that should be deleted (online/pending patientAccount)
+    const toDelete = toCancel.filter(
+      (a) => a.awaitingOnlineApproval === true || Boolean(a.patientAccount),
     );
+    const toUpdate = toCancel.filter((a) => !toDelete.some((d) => d._id.equals(a._id)));
 
-    // Re-fetch with updated status for the response and WhatsApp messages
-    const cancelledAppointments = toCancel.map((a) => ({
-      ...a.toObject(),
-      status: "Cancelled",
-      cancellationReason: "Emergency",
-      emergencyCancelled: true,
-      reminderSent: true,
-      cancelledAt,
-    }));
+    const deleteIds = toDelete.map((a) => a._id);
+    const updateIds = toUpdate.map((a) => a._id);
 
+    // Delete online/pending appointments so they don't appear in approval queues
+    if (deleteIds.length > 0) {
+      await Appointment.deleteMany({ _id: { $in: deleteIds } });
+    }
+
+    // Mark the remaining appointments as Cancelled
+    if (updateIds.length > 0) {
+      await Appointment.updateMany(
+        { _id: { $in: updateIds } },
+        {
+          $set: {
+            status: "Cancelled",
+            cancellationReason: "Emergency",
+            emergencyCancelled: true,
+            reminderSent: true,
+            cancelledAt,
+          },
+        },
+      );
+    }
+
+    // Build response entries, mark deleted vs updated
+    const cancelledAppointments = [];
+    for (const a of toDelete) {
+      cancelledAppointments.push({
+        ...a.toObject(),
+        deleted: true,
+        cancelledAt,
+      });
+    }
+    for (const a of toUpdate) {
+      cancelledAppointments.push({
+        ...a.toObject(),
+        status: "Cancelled",
+        cancellationReason: "Emergency",
+        emergencyCancelled: true,
+        reminderSent: true,
+        cancelledAt,
+        deleted: false,
+      });
+    }
+
+    // Send WhatsApp notifications where possible. Prefer `patient`, fallback to `patientAccount`.
     for (const appointment of toCancel) {
       try {
-        const formattedDate = new Date(appointment.date).toLocaleDateString(
-          "en-PK",
-          {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          },
-        );
-        const msg = `Dear ${appointment.patient.name}, your appointment on ${formattedDate} at ${appointment.slot} has been cancelled due to an emergency. We apologize for the inconvenience. - MedAlerto`;
-        await sendAppointmentWhatsApp(appointment.patient, appointment, msg);
+        const contact = appointment.patient || appointment.patientAccount || {};
+        const patientName = contact.name || (appointment.patient && appointment.patient.name) || "Patient";
+        const phone = contact.phone;
+        if (!phone) continue; // no recipient
+        const formattedDate = new Date(appointment.date).toLocaleDateString("en-PK", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        });
+        const msg = `Dear ${patientName}, your appointment on ${formattedDate} at ${appointment.slot} has been cancelled due to an emergency. We apologize for the inconvenience. - MedAlerto`;
+        await sendAppointmentWhatsApp(contact, appointment, msg);
       } catch (error) {
-        console.error(
-          `WhatsApp send failed for appointment ${appointment._id}:`,
-          error.message,
-        );
+        console.error(`WhatsApp send failed for appointment ${appointment._id}:`, error.message);
       }
     }
 
     res.status(200).json({
-      message: `${cancelledAppointments.length} appointment(s) cancelled successfully`,
+      message: `${cancelledAppointments.length} appointment(s) cancelled/removed successfully`,
       cancelledAppointments,
     });
   } catch (error) {
