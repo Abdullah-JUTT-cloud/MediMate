@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import PatientAccount from "../models/patientAccount.model.js";
@@ -7,7 +8,7 @@ import BookingPaymentProof from "../models/bookingPaymentProof.model.js";
 import Review from "../models/review.model.js";
 import { Doctor } from "../models/doctor.model.js";
 import { generateOtp } from "../utils/generateOtp.js";
-import { sendEmail } from "../utils/sendEmail.js";
+import { sendEmail, resetPasswordEmailTemplate } from "../utils/sendEmail.js";
 import { getCookieOptions, getClearCookieOptions } from "../utils/security.js";
 import { uploadToR2, getFileUrl } from "../services/storage.service.js";
 
@@ -290,11 +291,17 @@ export const bookAppointment = async (req, res) => {
     const doctor = await Doctor.findOne({
       _id: doctorId,
       verificationStatus: "APPROVED",
-    }).select("_id fullName advanceBookingFee onlineBookingFee");
+    }).select("_id fullName advanceBookingFee onlineBookingFee clinics hospitals");
 
     if (!doctor) {
       return res.status(404).json({ message: "Doctor not found or not verified" });
     }
+
+    // Determine location from doctor's profile (first available clinic or hospital)
+    const firstClinic = doctor.clinics?.[0];
+    const firstHospital = doctor.hospitals?.[0];
+    const locationName = firstClinic?.name || firstHospital?.name || null;
+    const locationAddress = firstClinic?.address || firstHospital?.address || null;
 
     const VALID_TYPES = ["Consultation", "Follow-up", "Check-up"];
     if (!VALID_TYPES.includes(type)) {
@@ -350,6 +357,8 @@ export const bookAppointment = async (req, res) => {
       awaitingOnlineApproval: true,
       advancePaid: false,
       isWalkIn: false,
+      locationName,
+      locationAddress,
       // The seeded fee is the online booking advance the patient paid (not the
       // doctor's final price) — the approval step overwrites these fields.
       consultationFee: feeAmount,
@@ -592,6 +601,234 @@ export const cancelMyAppointment = async (req, res) => {
     res.status(200).json({ message: "Appointment cancelled successfully" });
   } catch (error) {
     console.error("[cancelMyAppointment]", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// ─────────────────────────────────────────────────────────
+// Forgot Password (Patient)
+// ─────────────────────────────────────────────────────────
+
+const secureOtpMatches = (storedOtp, submittedOtp) => {
+  const stored = String(storedOtp || "");
+  const submitted = String(submittedOtp || "");
+  if (stored.length === 0 || stored.length !== submitted.length) return false;
+  try {
+    return crypto.timingSafeEqual(Buffer.from(stored), Buffer.from(submitted));
+  } catch {
+    return false;
+  }
+};
+
+export const patientForgotPassword = async (req, res) => {
+  const { email } = req.body;
+  try {
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+    const patient = await PatientAccount.findOne({ email: normalizedEmail });
+    // Generic response to prevent email enumeration
+    if (!patient) {
+      return res.status(200).json({ message: "If this email is registered, an OTP has been sent" });
+    }
+    const otp = generateOtp();
+    const otpExpiry = Date.now() + 30 * 60 * 1000;
+    patient.otp = otp;
+    patient.otpExpiry = otpExpiry;
+    await patient.save();
+
+    res.status(200).json({ success: true, message: "OTP dispatched" });
+
+    sendEmail({
+      to: normalizedEmail,
+      subject: "Reset your MedAlerto password",
+      html: resetPasswordEmailTemplate(patient.name, otp),
+    }).catch((emailError) => {
+      console.error("[patientForgotPassword] email failed:", emailError.message);
+    });
+  } catch (error) {
+    console.error("[patientForgotPassword]", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const patientVerifyResetOtp = async (req, res) => {
+  const { email, otp } = req.body;
+  try {
+    const normalizedEmail = normalizeEmail(email);
+    if (!normalizedEmail || !otp) {
+      return res.status(400).json({ message: "Email and OTP are required" });
+    }
+    const patient = await PatientAccount.findOne({ email: normalizedEmail }).select("+otp +otpExpiry");
+    if (!patient) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+    if (!secureOtpMatches(patient.otp, otp)) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+    if (patient.otpExpiry < Date.now()) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+    const resetTokenExpiry = Date.now() + 30 * 60 * 1000;
+    patient.resetToken = hashedToken;
+    patient.resetTokenExpiry = resetTokenExpiry;
+    patient.otp = null;
+    patient.otpExpiry = null;
+    await patient.save();
+    res.status(200).json({ message: "OTP verified successfully", resetToken: rawToken });
+  } catch (error) {
+    console.error("[patientVerifyResetOtp]", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const patientResetPassword = async (req, res) => {
+  const { email, resetToken, newPassword } = req.body;
+  try {
+    if (!resetToken || !newPassword) {
+      return res.status(400).json({ message: "Reset token and password are required" });
+    }
+    if (!isStrongPassword(newPassword)) {
+      return res.status(400).json({
+        message: "Password must be at least 8 characters and include uppercase, number, and special character",
+      });
+    }
+    const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+    const patient = await PatientAccount.findOne({ resetToken: hashedToken }).select("+resetToken +resetTokenExpiry");
+    if (!patient) {
+      return res.status(400).json({ message: "Invalid or expired reset token" });
+    }
+    if (patient.resetTokenExpiry < Date.now()) {
+      return res.status(400).json({ message: "Invalid or expired reset token" });
+    }
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    patient.password = hashedPassword;
+    patient.resetToken = null;
+    patient.resetTokenExpiry = null;
+    await patient.save();
+    res.status(200).json({ message: "Password reset successful" });
+  } catch (error) {
+    console.error("[patientResetPassword]", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// ─────────────────────────────────────────────────────────
+// Reschedule Appointment (Patient)
+// ─────────────────────────────────────────────────────────
+
+const MAX_STANDARD_PER_SLOT = 3;
+const INACTIVE_STATUSES = ["Cancelled", "No-show", "Completed"];
+
+export const rescheduleAppointment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newDate, newSlot, reason } = req.body;
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ message: "Invalid appointment ID" });
+    }
+    if (!newDate || !newSlot) {
+      return res.status(400).json({ message: "New date and time slot are required" });
+    }
+
+    const parsedDate = new Date(newDate);
+    if (isNaN(parsedDate.getTime())) {
+      return res.status(400).json({ message: "Invalid date" });
+    }
+
+    const appointment = await Appointment.findOne({
+      _id: id,
+      patientAccount: req.patientAccountId,
+    });
+
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    // Only PENDING or CONFIRMED appointments can be rescheduled
+    const RESCHEDULABLE_STATUSES = ["Pending"];
+    const CONFIRMED_RESCHEDULABLE = ["Confirmed"];
+    const isPending = appointment.awaitingOnlineApproval === true || RESCHEDULABLE_STATUSES.includes(appointment.status);
+    const isConfirmed = CONFIRMED_RESCHEDULABLE.includes(appointment.status) && !appointment.awaitingOnlineApproval;
+
+    if (!isPending && !isConfirmed) {
+      return res.status(400).json({
+        message: "Only pending or confirmed appointments can be rescheduled",
+      });
+    }
+
+    // CONFIRMED reschedules require a reason
+    if (isConfirmed && !reason?.trim()) {
+      return res.status(400).json({
+        message: "Please provide a reason for rescheduling",
+      });
+    }
+
+    // Check slot availability (excluding this appointment)
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    if (parsedDate < todayStart) {
+      return res.status(400).json({ message: "Cannot reschedule to a past date" });
+    }
+
+    const dayStart = new Date(parsedDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(parsedDate);
+    dayEnd.setHours(23, 59, 59, 999);
+
+    const slotCount = await Appointment.countDocuments({
+      doctor: appointment.doctor,
+      date: { $gte: dayStart, $lte: dayEnd },
+      slot: newSlot,
+      status: { $nin: INACTIVE_STATUSES },
+      awaitingOnlineApproval: { $ne: true },
+      _id: { $ne: appointment._id }, // exclude current appointment
+    });
+
+    if (slotCount >= MAX_STANDARD_PER_SLOT) {
+      return res.status(400).json({ message: "This time slot is fully booked. Please choose another." });
+    }
+
+    // Store original date/slot for display
+    const originalDate = appointment.date;
+    const originalSlot = appointment.slot;
+
+    // Update appointment
+    appointment.date = parsedDate;
+    appointment.slot = newSlot;
+    appointment.isRescheduled = true;
+    appointment.originalDate = originalDate;
+    appointment.originalSlot = originalSlot;
+
+    if (isPending) {
+      // PENDING: just update the data in-place. The doctor sees updated info.
+      // Add a note about what changed.
+      appointment.rescheduleReason = reason?.trim() || null;
+      // Keep awaitingOnlineApproval as-is (still pending)
+    }
+
+    if (isConfirmed) {
+      // CONFIRMED: send a new approval request to the doctor
+      appointment.rescheduleReason = reason.trim();
+      appointment.awaitingRescheduleApproval = true;
+      // Reset status to Pending so it appears in the approval queue
+      appointment.status = "Pending";
+      appointment.awaitingOnlineApproval = true;
+    }
+
+    await appointment.save();
+
+    res.status(200).json({
+      message: isPending
+        ? "Appointment rescheduled successfully"
+        : "Reschedule request sent to the doctor for approval",
+    });
+  } catch (error) {
+    console.error("[rescheduleAppointment]", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

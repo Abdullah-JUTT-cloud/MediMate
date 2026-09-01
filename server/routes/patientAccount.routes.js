@@ -11,6 +11,10 @@ import {
   getMyAppointments,
   cancelMyAppointment,
   submitMyReview,
+  patientForgotPassword,
+  patientVerifyResetOtp,
+  patientResetPassword,
+  rescheduleAppointment,
 } from "../controllers/patientAccount.controller.js";
 import {
   verifyPatientAccountToken,
@@ -37,6 +41,9 @@ router.post("/register", registerPatientAccount);
 router.post("/verify-email", verifyPatientEmail);
 router.post("/resend-otp", resendPatientOtp);
 router.post("/login", loginPatientAccount);
+router.post("/forgot-password", patientForgotPassword);
+router.post("/verify-reset-otp", patientVerifyResetOtp);
+router.post("/reset-password", patientResetPassword);
 
 // ── Protected (patientAccountToken cookie required) ─────
 router.post("/logout", verifyPatientAccountToken, logoutPatientAccount);
@@ -52,6 +59,7 @@ router.post(
 router.get("/bookings", verifyPatientAccountToken, getMyAppointments);
 router.get("/appointments", verifyPatientAccountToken, getMyAppointments);
 router.patch("/appointments/:id/cancel", verifyPatientAccountToken, cancelMyAppointment);
+router.patch("/appointments/:id/reschedule", verifyPatientAccountToken, rescheduleAppointment);
 
 // Patient reviews (authenticated — "Leave Feedback" from the Patient Dashboard)
 router.post("/reviews", verifyPatientAccountToken, submitMyReview);

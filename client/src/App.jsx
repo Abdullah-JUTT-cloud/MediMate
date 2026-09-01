@@ -50,6 +50,9 @@ const DoctorProfilePage = lazy(() => import("./pages/booking/DoctorProfilePage")
 const PatientLoginPage2 = lazy(() => import("./pages/booking/PatientLoginPage2"));
 const PatientRegisterPage = lazy(() => import("./pages/booking/PatientRegisterPage"));
 const PatientVerifyEmailPage = lazy(() => import("./pages/booking/PatientVerifyEmailPage"));
+const PatientForgotPasswordPage = lazy(() => import("./pages/booking/PatientForgotPasswordPage"));
+const PatientVerifyResetOtpPage = lazy(() => import("./pages/booking/PatientVerifyResetOtpPage"));
+const PatientResetPasswordPage = lazy(() => import("./pages/booking/PatientResetPasswordPage"));
 const PatientDashboardPage = lazy(() => import("./pages/booking/PatientDashboardPage"));
 const ReviewSubmitPage = lazy(() => import("./pages/booking/ReviewSubmitPage"));
 
@@ -143,6 +146,9 @@ function App() {
               <Route path="/book/login" element={<PatientLoginPage2 />} />
               <Route path="/book/register" element={<PatientRegisterPage />} />
               <Route path="/book/verify-email" element={<PatientVerifyEmailPage />} />
+              <Route path="/book/forgot-password" element={<PatientForgotPasswordPage />} />
+              <Route path="/book/verify-reset-otp" element={<PatientVerifyResetOtpPage />} />
+              <Route path="/book/reset-password" element={<PatientResetPasswordPage />} />
               {/* Protected patient page. The dashboard itself handles an expired
                   or missing patient session by redirecting to /book/login. */}
               <Route path="/book/dashboard" element={<PatientDashboardPage />} />

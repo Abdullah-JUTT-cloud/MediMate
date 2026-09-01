@@ -175,6 +175,47 @@ const appointmentSchema = new mongoose.Schema({
         type: Date,
         default: null,
     },
+    // === Reschedule Fields ===
+    // Original date/slot before a patient reschedule. Preserved so the doctor
+    // can see what the appointment was changed from.
+    originalDate: {
+        type: Date,
+        default: null,
+    },
+    originalSlot: {
+        type: String,
+        default: null,
+    },
+    // Reason the patient gave for rescheduling (required for CONFIRMED
+    // reschedules, optional for PENDING).
+    rescheduleReason: {
+        type: String,
+        default: null,
+    },
+    // True when this appointment has been rescheduled at least once.
+    isRescheduled: {
+        type: Boolean,
+        default: false,
+    },
+    // For CONFIRMED reschedules: a new approval request is sent to the
+    // doctor. This flag is true while the doctor reviews the reschedule.
+    awaitingRescheduleApproval: {
+        type: Boolean,
+        default: false,
+    },
+    // === Location Fields ===
+    // Stores which clinic/hospital the appointment is at. Populated from
+    // the doctor's profile at booking time so the patient dashboard can
+    // show the correct location even if the doctor later adds/removes
+    // clinics.
+    locationName: {
+        type: String,
+        default: null,
+    },
+    locationAddress: {
+        type: String,
+        default: null,
+    },
 },{timestamps:true});
 
 // Speed up hot paths for date/status dashboard queries and listing.

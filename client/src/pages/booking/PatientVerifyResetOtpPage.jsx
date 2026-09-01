@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import axios from "../../api/axios";
 import useThemedLogo from "../../hooks/useThemedLogo";
 import EmailSpamNotice from "../../components/EmailSpamNotice";
 
-export default function PatientVerifyEmailPage() {
+export default function PatientVerifyResetOtpPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const logo = useThemedLogo();
@@ -18,8 +18,8 @@ export default function PatientVerifyEmailPage() {
 
   useEffect(() => {
     if (!email) {
-      toast.error("No email found. Please register first.");
-      navigate("/book/register");
+      toast.error("No email found. Please start again.");
+      navigate("/book/forgot-password");
     }
     inputRefs.current[0]?.focus();
   }, [email, navigate]);
@@ -55,11 +55,17 @@ export default function PatientVerifyEmailPage() {
       toast.error("Please enter the complete 6-digit OTP");
       return;
     }
+
     setIsLoading(true);
     try {
-      await axios.post("/patient-account/verify-email", { email, otp: otpValue });
-      toast.success("Email verified! Please log in.");
-      navigate("/book/login");
+      const response = await axios.post("/patient-account/verify-reset-otp", {
+        email,
+        otp: otpValue,
+      });
+      toast.success("OTP verified successfully!");
+      navigate("/book/reset-password", {
+        state: { email, resetToken: response.data?.resetToken },
+      });
     } catch (error) {
       toast.error(error.response?.data?.message || "Invalid OTP. Please try again.");
       setOtp(["", "", "", "", "", ""]);
@@ -72,7 +78,7 @@ export default function PatientVerifyEmailPage() {
   const handleResend = async () => {
     setResending(true);
     try {
-      await axios.post("/patient-account/resend-otp", { email });
+      await axios.post("/patient-account/forgot-password", { email });
       toast.success("New OTP sent to your email!");
       setOtp(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();
@@ -100,10 +106,10 @@ export default function PatientVerifyEmailPage() {
             <img src={logo} alt="MedAlerto" className="h-full w-full object-contain" />
           </div>
           <button
-            onClick={() => navigate("/book/login")}
+            onClick={() => navigate("/book/forgot-password")}
             className="rounded-full border border-[var(--color-secondary)] px-4 py-2 text-xs font-bold text-[var(--color-secondary)] transition duration-300 hover:scale-105 hover:bg-[var(--color-secondary)]/10 sm:text-sm"
           >
-            Back to Login
+            Back to Forgot Password
           </button>
         </div>
       </nav>
@@ -121,38 +127,29 @@ export default function PatientVerifyEmailPage() {
           </div>
 
           <header className="mb-8 text-center">
-            <h1 className="mb-2 text-2xl font-heading font-semibold sm:text-3xl">
-              Check your email
-            </h1>
-            <p className="mb-1 text-sm text-[var(--color-text-secondary)] sm:text-base">
-              We sent a 6-digit OTP to
-            </p>
-            <p className="break-all text-sm font-semibold text-[var(--color-primary)] sm:text-base">
-              {email}
-            </p>
+            <h1 className="mb-2 text-2xl font-heading font-semibold sm:text-3xl">Verify reset OTP</h1>
+            <p className="mb-1 text-sm text-[var(--color-text-secondary)] sm:text-base">Enter the 6-digit OTP sent to</p>
+            <p className="break-all text-sm font-semibold text-[var(--color-primary)] sm:text-base">{email}</p>
           </header>
 
           <EmailSpamNotice />
 
           <div className="rounded-3xl border border-[var(--color-border)]/70 bg-[var(--color-bg-soft)]/45 p-4 sm:p-6">
             <p className="mb-6 text-center text-xs text-[var(--color-text-secondary)] sm:text-sm">
-              Enter the 6-digit code below. The code expires in 30 minutes.
+              This code verifies your password reset request.
             </p>
 
-            <div
-              className="mb-8 flex items-center justify-center gap-2 sm:gap-3"
-              onPaste={handlePaste}
-            >
-              {otp.map((digit, index) => (
+            <div className="mb-8 flex items-center justify-center gap-2 sm:gap-3" onPaste={handlePaste}>
+              {otp.map((digit, idx) => (
                 <input
-                  key={index}
-                  ref={(el) => (inputRefs.current[index] = el)}
+                  key={idx}
+                  ref={(el) => (inputRefs.current[idx] = el)}
                   type="text"
                   inputMode="numeric"
                   maxLength={1}
                   value={digit}
-                  onChange={(e) => handleChange(index, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(index, e)}
+                  onChange={(e) => handleChange(idx, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(idx, e)}
                   className="h-12 w-10 rounded-full border text-center text-lg font-bold outline-none transition duration-300 focus:border-[var(--color-primary)] focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]/20 sm:h-14 sm:w-12 sm:text-xl"
                   style={{
                     background: digit ? "rgba(var(--color-primary-rgb), 0.1)" : "var(--color-card)",
@@ -169,12 +166,12 @@ export default function PatientVerifyEmailPage() {
               disabled={isLoading || otp.join("").length < 6}
               className="w-full rounded-full border border-[var(--color-primary)] bg-[var(--color-primary)] py-3 text-sm font-bold text-[var(--color-on-primary)] shadow-[0_4px_20px_-2px_rgba(93,112,82,0.15)] transition duration-300 hover:scale-105 hover:shadow-[0_6px_24px_-4px_rgba(93,112,82,0.25)] disabled:cursor-not-allowed disabled:opacity-40 sm:py-4 sm:text-base"
             >
-              {isLoading ? "Verifying..." : "Verify Email"}
+              {isLoading ? "Verifying..." : "Verify OTP"}
             </button>
 
             <div className="mt-5 text-center">
               <p className="text-xs text-[var(--color-text-secondary)] sm:text-sm">
-                Didn&apos;t receive the code?{" "}
+                Didn&apos;t receive it?{" "}
                 <button
                   onClick={handleResend}
                   disabled={resending}
@@ -187,12 +184,12 @@ export default function PatientVerifyEmailPage() {
           </div>
 
           <p className="mt-6 text-center text-xs text-[var(--color-text-secondary)]">
-            Wrong email?{" "}
+            Changed your mind?{" "}
             <button
-              onClick={() => navigate("/book/register")}
+              onClick={() => navigate("/book/login")}
               className="font-semibold text-[var(--color-secondary)] transition hover:opacity-80"
             >
-              Go back and register again
+              Back to Login
             </button>
           </p>
         </section>

@@ -303,6 +303,26 @@ function BookingCard({ booking, onApproveClick, onRejectClick, actioning }) {
               )}
             </div>
 
+            {/* Reschedule Info Banner */}
+            {booking.isRescheduled && booking.awaitingOnlineApproval && (
+              <div className="mt-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl p-2.5 text-xs text-amber-900 dark:text-amber-200 font-medium flex items-start gap-2">
+                <span className="shrink-0 mt-0.5">🔄</span>
+                <div>
+                  <span className="font-bold">Reschedule Request</span>
+                  {booking.originalDate && booking.originalSlot && (
+                    <p className="mt-0.5">
+                      Original: {formatDate(booking.originalDate)} at {booking.originalSlot} → New: {formatDate(booking.date)} at {booking.slot}
+                    </p>
+                  )}
+                  {booking.rescheduleReason && (
+                    <p className="mt-1 text-amber-800 dark:text-amber-300">
+                      <span className="font-bold">Reason:</span> {booking.rescheduleReason}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Rejection Reason Banner if rejected */}
             {isRejected && booking.rejectionReason && (
               <div className="mt-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-xl p-2.5 text-xs text-rose-900 dark:text-rose-200 font-medium flex items-start gap-2">

@@ -170,7 +170,7 @@ export default function LandingPage() {
                   onClick={() => navigate("/book/doctors")}
                   className="hero-cta-primary group relative inline-flex h-14 items-center justify-center gap-2.5 overflow-hidden rounded-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)] px-9 font-body text-sm font-bold text-[var(--color-on-primary)] transition-all duration-300 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-primary)]"
                 >
-                  <span className="relative z-10">Book an Appointment</span>
+                  <span className="relative z-10">Are you a patient? Let's find the perfect doctor for you</span>
                   <svg
                     className="relative z-10 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
                     viewBox="0 0 24 24"

@@ -55,6 +55,16 @@ const patientAccountSchema = new Schema(
       default: null,
       select: false,
     },
+    resetToken: {
+      type: String,
+      default: null,
+      select: false,
+    },
+    resetTokenExpiry: {
+      type: Date,
+      default: null,
+      select: false,
+    },
   },
   { timestamps: true }
 );
