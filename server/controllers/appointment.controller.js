@@ -578,20 +578,51 @@ export const emergencyCancel = async (req, res) => {
         .json({ message: "Start date/time and end date/time are required" });
     }
 
-    const start = new Date(`${startDate}T${startTime}:00Z`);
-    const end = new Date(`${endDate}T${endTime}:00Z`);
+    // Helper: parse a time string into minutes since midnight.
+    // Accepts formats: "HH:MM", "H:MM AM", "HH:MM PM", with optional
+    // surrounding whitespace. Returns integer minutes or null on failure.
+    const parseTimeToMinutes = (timeStr) => {
+      if (!timeStr || typeof timeStr !== 'string') return null;
+      const t = timeStr.trim();
+      // Match 24-hour or 12-hour with meridiem
+      const m12 = t.match(/^(\d{1,2}):(\d{2})\s*([AaPp][Mm])$/);
+      const m24 = t.match(/^(\d{1,2}):(\d{2})$/);
+      if (m12) {
+        let h = parseInt(m12[1], 10);
+        const m = parseInt(m12[2], 10);
+        const meridiem = m12[3].toUpperCase();
+        if (h === 12) h = meridiem === 'AM' ? 0 : 12;
+        else if (meridiem === 'PM') h += 12;
+        if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+        return h * 60 + m;
+      }
+      if (m24) {
+        const h = parseInt(m24[1], 10);
+        const m = parseInt(m24[2], 10);
+        if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+        return h * 60 + m;
+      }
+      return null;
+    };
 
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      return res.status(400).json({ message: "Invalid date/time format" });
-    }
-    if (start > end) {
-      return res
-        .status(400)
-        .json({ message: "Start datetime must be before end datetime" });
+    const startMinutes = parseTimeToMinutes(startTime);
+    const endMinutes = parseTimeToMinutes(endTime);
+    if (startMinutes === null || endMinutes === null) {
+      return res.status(400).json({ message: 'Invalid time format' });
     }
 
     const startDay = new Date(`${startDate}T00:00:00Z`);
     const endDay = new Date(`${endDate}T23:59:59Z`);
+
+    if (isNaN(startDay.getTime()) || isNaN(endDay.getTime())) {
+      return res.status(400).json({ message: 'Invalid date format' });
+    }
+
+    const startDateTime = new Date(startDay.getTime() + startMinutes * 60000);
+    const endDateTime = new Date(endDay.getTime() + endMinutes * 60000);
+    if (startDateTime > endDateTime) {
+      return res.status(400).json({ message: 'Start datetime must be before end datetime' });
+    }
 
     const appointments = await Appointment.find({
       doctor: req.doctorId,
@@ -599,17 +630,38 @@ export const emergencyCancel = async (req, res) => {
       status: { $nin: INACTIVE_STATUSES },
     }).populate("patient", "name phone");
 
+    // Robust slot parsing: support "HH:MM" and "HH:MM AM/PM" stored in `slot`.
+    const slotToMinutes = (slotStr) => {
+      if (!slotStr || typeof slotStr !== 'string') return null;
+      const s = slotStr.trim();
+      const m12 = s.match(/^(\d{1,2}):(\d{2})\s*([AaPp][Mm])$/);
+      const m24 = s.match(/^(\d{1,2}):(\d{2})$/);
+      if (m12) {
+        let h = parseInt(m12[1], 10);
+        const m = parseInt(m12[2], 10);
+        const meridiem = m12[3].toUpperCase();
+        if (h === 12) h = meridiem === 'AM' ? 0 : 12;
+        else if (meridiem === 'PM') h += 12;
+        if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+        return h * 60 + m;
+      }
+      if (m24) {
+        const h = parseInt(m24[1], 10);
+        const m = parseInt(m24[2], 10);
+        if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+        return h * 60 + m;
+      }
+      return null;
+    };
+
     const toCancel = appointments.filter((apt) => {
-      const [aptHour, aptMin] = apt.slot.split(":").map(Number);
-      const aptMinutesSinceMidnight = aptHour * 60 + aptMin;
-      const [startHour, startMin] = startTime.split(":").map(Number);
-      const startMinutesSinceMidnight = startHour * 60 + startMin;
-      const [endHour, endMin] = endTime.split(":").map(Number);
-      const endMinutesSinceMidnight = endHour * 60 + endMin;
-      return (
-        aptMinutesSinceMidnight >= startMinutesSinceMidnight &&
-        aptMinutesSinceMidnight <= endMinutesSinceMidnight
-      );
+      const aptMinutesSinceMidnight = slotToMinutes(apt.slot);
+      if (aptMinutesSinceMidnight === null) return false;
+      // compute the appointment's absolute datetime for comparison when
+      // the range spans multiple days and times near midnight
+      const aptDay = new Date(apt.date);
+      const aptDateTime = new Date(aptDay.getTime() + aptMinutesSinceMidnight * 60000);
+      return aptDateTime >= startDateTime && aptDateTime <= endDateTime;
     });
 
     if (toCancel.length === 0) {
