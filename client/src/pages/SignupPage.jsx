@@ -1329,7 +1329,7 @@ export default function SignupPage() {
                   </div>
                 </div>
 
-                <div>
+                <div className="relative z-0">
                   <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)]">
                     License Issue Date{" "}
                     <span className="text-[var(--color-primary)]">*</span>
@@ -1340,14 +1340,14 @@ export default function SignupPage() {
                     onChange={(e) =>
                       updateProfessional("licenseIssueDate", e.target.value)
                     }
-                    className={inputCls}
+                    className={`${inputCls} cursor-pointer [color-scheme:light] dark:[color-scheme:dark]`}
                     style={S.input}
                     onFocus={focusStyle}
                     onBlur={blurStyle}
                   />
                 </div>
 
-                <div>
+                <div className="relative z-0">
                   <label className="mb-2 block text-xs font-semibold text-[var(--color-text-secondary)]">
                     License Expiry Date{" "}
                     <span className="text-xs opacity-60">(optional)</span>
@@ -1358,7 +1358,7 @@ export default function SignupPage() {
                     onChange={(e) =>
                       updateProfessional("licenseExpiryDate", e.target.value)
                     }
-                    className={inputCls}
+                    className={`${inputCls} cursor-pointer [color-scheme:light] dark:[color-scheme:dark]`}
                     style={S.input}
                     onFocus={focusStyle}
                     onBlur={blurStyle}
